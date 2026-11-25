@@ -2,12 +2,12 @@ import { memo, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { diffDays, humanDate, humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
-import { useHub, useRt } from '../context';
-import { afterTick } from '../notify';
+import { useHub } from '../context';
 import { use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
-import { doneMany, useOverlays } from '../ui/overlays';
+import { useOverlays } from '../ui/overlays';
+import { useTick } from '../tick';
 import { doerOf, requestState, visTagFor } from '../privacy';
 import { Avatar, Check, ListBullet, StepRing } from '../ui/primitives';
 import { ReqTag, UrgentTag, VisTag } from '../ui/tags';
@@ -66,7 +66,7 @@ export const ItemRow = memo(function ItemRow({
   const vis = visTagFor(hub, item);
   const due = dateMode === 'full' ? dueLabel(item, ref, use24h(prefs)) : null;
   const readonly = !hub.canEdit(item);
-  const rt = useRt();
+  const tick = useTick();
   const hold = useSettleHold();
   const fresh = useFresh(item.id);
   // The owner never shows as an avatar (the privacy tag says whose); my own avatar only where it tells something.
@@ -78,32 +78,7 @@ export const ItemRow = memo(function ItemRow({
       return;
     }
     if (!item.done) hold?.(item.id);
-    if (item.repeat && !item.done) {
-      const undo = hub.completeRepeating(item.id);
-      const next = hub.item(item.id)?.due;
-      toast(next ? `Nice. Next time: ${humanDate(next, ref)}` : 'Nice.', { action: { label: 'Undo', run: undo } });
-      return;
-    }
-    const openSteps = !item.done && !item.needsOk ? hub.descendants(item.id).filter((d) => !d.done).length : 0;
-    const undo = hub.toggle(item.id);
-    const msg = afterTick(rt, hub, item.id);
-    if (msg) {
-      toast(msg, { action: { label: 'Undo', run: undo } });
-      return;
-    }
-    if (openSteps) {
-      toast(`Done. ${openSteps} step${openSteps > 1 ? 's' : ''} still open.`, {
-        action: {
-          label: 'Finish them',
-          run: () => {
-            undo();
-            hub.toggle(item.id, { withChildren: true });
-          },
-        },
-      });
-      return;
-    }
-    if (!item.done) toast('Done', { action: { label: 'Undo', run: undo }, group: 'done', many: doneMany });
+    tick(item);
   };
 
   return (

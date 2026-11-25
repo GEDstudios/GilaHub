@@ -3,7 +3,8 @@ import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/d
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
 import { InlineEditor, useSummary, type Draft } from '../components/editors';
-import { afterTick, notifyAbout, setUpReminders } from '../notify';
+import { notifyAbout, setUpReminders } from '../notify';
+import { freshAgain, useTick } from '../tick';
 import { ListPickerSheet, OptRow } from '../components/pickers';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useAddAction } from '../addAction';
@@ -76,14 +77,15 @@ function DonePanel({ id, close }: { id: string; close: () => void }) {
   const item = hub.item(id);
   const ref = todayStr();
   if (!item?.repeat) return null;
-  const done = (day: string, label: string) => {
+  /** Today says what every tick says; an earlier day says which day it counted for. */
+  const done = (day: string, label: string | null) => {
     const undo = hub.completeRepeating(id, day);
-    toast(label, { action: { label: 'Undo', run: undo } });
+    toast(label ?? freshAgain(hub, id), { action: { label: 'Undo', run: undo } });
     close();
   };
   return (
     <div className="options">
-      <button type="button" className="option" onClick={() => done(ref, 'Done. Fresh again.')}>
+      <button type="button" className="option" onClick={() => done(ref, null)}>
         Today
       </button>
       <button type="button" className="option" onClick={() => done(addDays(ref, -1), 'Counted for yesterday')}>
@@ -135,6 +137,7 @@ function DonePanel({ id, close }: { id: string; close: () => void }) {
 export function ItemScreen({ id }: { id: string }) {
   const hub = useHub();
   const rt = useRt();
+  const tick = useTick();
   const { openSheet, toast } = useOverlays();
   const summarize = useSummary();
   const item = hub.item(id);
@@ -166,7 +169,6 @@ export function ItemScreen({ id }: { id: string }) {
   const vis = hub.visibilityOf(item);
   const partner = hub.partner();
   const partnerName = partner?.name ?? 'your partner';
-  const ref = todayStr();
   const logs = hub.logsFor(id).filter((l) => l.kind === 'done').slice(0, 5);
   const allowed = allowedVis(hub, list, ancestors.at(-1));
   const visChoice = itemVisChoice(hub, item);
@@ -176,15 +178,7 @@ export function ItemScreen({ id }: { id: string }) {
   const steps = hub.childrenOf(id);
 
   const onToggle = () => {
-    if (!hub.canTick(item)) return;
-    if (item.repeat && !item.done) {
-      const undo = hub.completeRepeating(id);
-      toast(`Nice. Next time: ${humanDate(hub.item(id)!.due!, ref)}`, { action: { label: 'Undo', run: undo } });
-    } else {
-      const undo = hub.toggle(id);
-      const msg = afterTick(rt, hub, id);
-      if (msg) toast(msg, { action: { label: 'Undo', run: undo } });
-    }
+    if (hub.canTick(item)) tick(item);
   };
 
   const draft: Draft = {

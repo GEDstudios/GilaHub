@@ -8,7 +8,8 @@ import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { Icon } from '../ui/Icon';
-import { doneMany, useOverlays } from '../ui/overlays';
+import { useOverlays } from '../ui/overlays';
+import { useTick } from '../tick';
 import { doerOf, requestState } from '../privacy';
 import { Avatar, Band, Check, Disclosure, Empty, lineVars, NewButton, Section } from '../ui/primitives';
 import { useFresh } from '../ui/fresh';
@@ -20,10 +21,10 @@ import { NewProjectSheet } from './Lists';
 import { SyncBadge } from '../components/SyncBadge';
 import { AWAY_ON, welcomeBack } from '../settingsCopy';
 
-/** One chore row; ticking it gives the "Fresh again. Next: …" toast. Also on Today (Chores ready). */
+/** One chore row; ticking it gives the "Fresh again. Next: …" toast (useTick). Also on Today (Chores ready). */
 export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const tick = useTick();
   const { item, list } = row;
   const ref = todayStr();
   const who = doerOf(hub, item);
@@ -37,15 +38,7 @@ export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: 
 
   const done = () => {
     onHold(item.id);
-    if (!item.repeat) {
-      const undo = hub.toggle(item.id);
-      toast('Done', { action: { label: 'Undo', run: undo }, group: 'done', many: doneMany });
-      return;
-    }
-    const undo = hub.completeRepeating(item.id);
-    const next = hub.item(item.id);
-    const turn = next?.assignee === 'turns' && next.turn ? ` · ${next.turn === hub.meId ? 'your' : `${hub.member(next.turn)?.name}’s`} turn next` : '';
-    toast(`Fresh again. Next: ${next?.due ? humanDate(next.due, ref) : '—'}${turn}`, { action: { label: 'Undo', run: undo } });
+    tick(item);
   };
 
   return (
