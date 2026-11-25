@@ -279,7 +279,7 @@ export function InlineEditor({
   /** For "turns": whose turn it is. */
   turn?: string | null;
   /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores, List in the composer). */
-  extras?: Array<{ key: string; label: ReactNode; icon?: IconName; lead?: ReactNode; panel: (close: () => void) => ReactNode }>;
+  extras?: Array<{ key: string; label: ReactNode; icon?: IconName; lead?: ReactNode; set?: boolean; panel: (close: () => void) => ReactNode }>;
   /** 'compose' while the thing is being written ("Ask Hila" rather than "Asked Hila"). */
   whoMode?: 'item' | 'compose';
   /** The add row's smaller chips. */
@@ -299,7 +299,7 @@ export function InlineEditor({
 
   const chips: ReactNode[] = [];
   for (const x of extras) {
-    chips.push(chip(x.key, x.label, x.icon, true, x.lead));
+    chips.push(chip(x.key, x.label, x.icon, x.set ?? true, x.lead));
     if (open === x.key) chips.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
   for (const f of fields) {

@@ -82,6 +82,7 @@ export const ItemRow = memo(function ItemRow({
     tick(item);
   };
 
+  const twin = hub.linked(item);
   return (
     <li
       ref={liRef}
@@ -97,8 +98,9 @@ export const ItemRow = memo(function ItemRow({
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
         </span>
-        {(showList && list) || req || vis || due || item.repeat || steps.total ? (
+        {(showList && list) || req || vis || due || item.repeat || steps.total || twin ? (
           <span className="row__meta">
+            {twin ? <TwinTag twin={twin} /> : null}
             {showList && list ? (
               <button
                 type="button"
@@ -144,4 +146,24 @@ export const ItemRow = memo(function ItemRow({
 /** "since Tue" → quick catch-up actions, for the From earlier group. */
 export function catchUpDays(due: string, ref: string): number {
   return diffDays(due, ref);
+}
+
+/** "Also on Home shopping": the same thing lives there too; tap to go to it. */
+export function TwinTag({ twin, label }: { twin: Item; label?: string }) {
+  const hub = useHub();
+  const list = hub.list(twin.listId);
+  if (!list) return null;
+  return (
+    <button
+      type="button"
+      className="meta meta--link meta--twin"
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(list.kind === 'shopping' ? { name: 'shop' } : { name: 'item', id: twin.parentId ?? twin.id });
+      }}
+    >
+      <Icon name="link" className="icon--xs" />
+      <span dir="auto">{label ?? list.name}</span>
+    </button>
+  );
 }

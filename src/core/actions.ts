@@ -435,6 +435,9 @@ export class Hub {
   updateItem(id: string, fields: Partial<Item>): Undo {
     const before = this.item(id);
     if (fields.urgent && !before?.urgent) fields = { ...fields, urgentBy: this.meId };
+    // Renamed: its twin in a task project follows (a shopping twin keeps its shopping name).
+    const twin = this.linked(before);
+    if (twin && fields.title && this.list(twin.listId)?.kind !== 'shopping' && this.list(before!.listId)?.kind !== 'shopping') this.store.mutate('item', twin.id, { title: fields.title });
     const prev: Record<string, unknown> = {};
     if (before) for (const k of Object.keys(fields)) prev[k] = (before as unknown as Record<string, unknown>)[k] ?? null;
     this.store.mutate('item', id, fields);
@@ -482,6 +485,47 @@ export class Hub {
   }
 
   /** Tick / untick, as tickKind says. */
+  // ---------- one thing, two places ----------
+
+  /** The other place this thing lives, if it's linked (and that one still points back). */
+  linked(item: Item | undefined): Item | undefined {
+    const other = item?.linkId ? this.item(item.linkId) : undefined;
+    return other && other.linkId === item!.id && !other.deleted ? other : undefined;
+  }
+
+  /**
+   * Put this thing in another project as well. On a shopping list it goes in as the thing to
+   * buy ("Buy a doorknob" → "doorknob"); elsewhere as itself. Returns the new (or found) id.
+   */
+  alsoIn(id: string, listId: string): string | null {
+    const item = this.item(id);
+    const list = this.list(listId);
+    if (!item || !list || list.id === item.listId || this.linked(item)) return null;
+    return this.store.batch(() => {
+      const other = list.kind === 'shopping' ? this.addShopping(listId, toBuy(item.title)).id : this.addItem(listId, { title: item.title });
+      this.store.mutate('item', other, { linkId: id });
+      this.store.mutate('item', id, { linkId: other });
+      return other;
+    });
+  }
+
+  /** "Buy a doorknob": a subtask that's shopping lands on the right shopping list too. */
+  linkIfShopping(id: string): string | null {
+    const item = this.item(id);
+    if (!item || !buyWords(item.title) || this.list(item.listId)?.kind === 'shopping') return null;
+    const dest = this.routeShopping(toBuy(item.title));
+    return dest ? this.alsoIn(id, dest.id) : null;
+  }
+
+  unlink(id: string): void {
+    const item = this.item(id);
+    const other = this.linked(item);
+    this.store.batch(() => {
+      if (item) this.store.mutate('item', id, { linkId: null });
+      if (other) this.store.mutate('item', other.id, { linkId: null });
+    });
+  }
+
   toggle(id: string, opts: { withChildren?: boolean } = {}): Undo {
     const item = this.item(id);
     if (!item) return () => {};
@@ -512,6 +556,23 @@ export class Hub {
       }
       touched.push([id, { done: item.done, doneAt: item.doneAt ?? null, doneBy: item.doneBy ?? null, logId: item.logId ?? null }]);
       this.store.mutate('item', id, fields);
+      // The same thing elsewhere goes with it (bought on Shopping = done on the chore, and back).
+      const twin = this.linked(item);
+      if (twin && !twin.repeat && twin.done !== done) {
+        const tf: Partial<Item> = { done, doneAt: done ? now : null, doneBy: done ? this.meId : null };
+        if (this.list(twin.listId)?.kind === 'shopping') {
+          if (done) {
+            const logId = newId();
+            this.writeLog(twin, { id: logId, kind: 'bought', key: itemKey(twin.title), name: twin.title, listId: twin.listId, at: now });
+            tf.logId = logId;
+          } else if (twin.logId) {
+            this.store.mutate('log', twin.logId, { deleted: true });
+            tf.logId = null;
+          }
+        }
+        touched.push([twin.id, { done: twin.done, doneAt: twin.doneAt ?? null, doneBy: twin.doneBy ?? null, logId: twin.logId ?? null, archived: twin.archived ?? false }]);
+        this.store.mutate('item', twin.id, tf);
+      }
       if (done && opts.withChildren) {
         for (const c of this.descendants(id)) {
           if (c.done) continue;
@@ -625,12 +686,16 @@ export class Hub {
 
   delete(id: string): Undo {
     const ids = [id, ...this.descendants(id).map((d) => d.id)];
+    // Their twins elsewhere stay, on their own.
+    const twins = ids.map((i) => this.linked(this.item(i))).filter((t): t is Item => !!t);
     this.store.batch(() => {
       for (const i of ids) this.store.mutate('item', i, { deleted: true });
+      for (const t of twins) this.store.mutate('item', t.id, { linkId: null });
     });
     return () =>
       this.store.batch(() => {
         for (const i of ids) this.store.mutate('item', i, { deleted: false });
+        for (const t of twins) this.store.mutate('item', t.id, { linkId: this.store.all('item').find((x) => x.linkId === t.id)?.id ?? null });
       });
   }
 
@@ -1180,4 +1245,15 @@ export function seedHousehold(hub: Hub, templateKeys: string[], colors: Record<s
       if (t) createFromTemplate(hub, t, colors[key]);
     }
   });
+}
+
+/** Words that mean "this is shopping": buy/get/order/pick up, or Hebrew לקנות/קנה. */
+const BUY = /^(?:buy|get|order|pick up|grab|לקנות|קנה|קני|להזמין)\s+(.+)$/i;
+export function buyWords(title: string): boolean {
+  return BUY.test(title.trim());
+}
+/** "Buy a new doorknob" → "new doorknob": what goes on the shopping list. */
+export function toBuy(title: string): string {
+  const m = title.trim().match(BUY);
+  return (m ? m[1] : title).replace(/^(?:a|an|the|some)\s+/i, '').trim();
 }

@@ -1,3 +1,4 @@
+import { useAlsoShop } from '../alsoShop';
 import { useEffect, useRef, useState } from 'react';
 import type { Item } from '../../core/model';
 import { suggestFromCatalog } from '../../smart/categorize';
@@ -90,6 +91,7 @@ function Composer({
   const hub = useHub();
   const prefs = usePrefs();
   const { toast } = useOverlays();
+  const alsoShop = useAlsoShop();
   const summarize = useSummary();
   const [text, setText] = useState(initialText);
   const [roll] = useState(Math.random);
@@ -147,7 +149,7 @@ function Composer({
     const id = c.commit(raw === undefined ? undefined : raw, { announce: true });
     if (!id) return;
     const made = hub.item(id);
-    if (made) hub.store.batch(() => steps.forEach((t) => hub.addItem(made.listId, { title: t, parentId: id })));
+    if (made) for (const t of steps) alsoShop(hub.addItem(made.listId, { title: t, parentId: id }));
     onDone();
   };
 

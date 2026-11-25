@@ -1,9 +1,10 @@
+import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
 import { useEffect, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, useSummary, type Draft } from '../components/editors';
+import { InlineEditor, Options, useSummary, type Draft } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
 import { ListPickerSheet, OptRow } from '../components/pickers';
@@ -15,7 +16,7 @@ import { back, navigate } from '../router';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Check, Empty, IconButton, lineVars, NewButton, Section } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, IconButton, lineVars, ListBullet, NewButton, Section } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
 import { AutoTitle } from '../ui/AutoTitle';
 
@@ -208,6 +209,63 @@ export function ItemScreen({ id }: { id: string }) {
       : { name: 'today' as const };
   const steps = hub.childrenOf(id);
 
+  // One thing, two places: "Also in Home shopping" (tap to go there, or stop), or "Also in…".
+  const twin = hub.linked(item);
+  const twinList = twin ? hub.list(twin.listId) : undefined;
+  const alsoChip = {
+    key: 'also',
+    label: twinList ? `Also in ${twinList.name}` : 'Also in…',
+    icon: 'link' as const,
+    set: !!twinList,
+    panel: (close: () => void) =>
+      twin && twinList ? (
+        <div className="tokens">
+          <button
+            type="button"
+            className="token"
+            onClick={() => navigate(twinList.kind === 'shopping' ? { name: 'shop' } : { name: 'item', id: twin.parentId ?? twin.id })}
+          >
+            <ListBullet list={twinList} size="xs" />
+            <span dir="auto">Go to {twinList.name}</span>
+          </button>
+          <button
+            type="button"
+            className="token"
+            onClick={() => {
+              hub.unlink(id);
+              close();
+            }}
+          >
+            <Icon name="x" className="token__x" />
+            <span>Not linked anymore</span>
+          </button>
+        </div>
+      ) : (
+        <Options
+          value={null}
+          options={hub
+            .lists()
+            .filter((l) => l.id !== item.listId)
+            .sort((a, b) => Number(b.kind === 'shopping') - Number(a.kind === 'shopping'))
+            .map((l) => ({
+              value: l.id,
+              label: (
+                <>
+                  <ListBullet list={l} size="xs" />
+                  <span dir="auto">{l.name}</span>
+                </>
+              ),
+            }))}
+          onPick={(lid) => {
+            const other = hub.alsoIn(id, lid);
+            const it = other ? hub.item(other) : undefined;
+            if (it) toast(`${it.title} is in ${hub.list(lid)?.name ?? 'there'} too`);
+            close();
+          }}
+        />
+      ),
+  };
+
   const onToggle = () => {
     if (hub.canTick(item)) tick(item);
   };
@@ -303,18 +361,19 @@ export function ItemScreen({ id }: { id: string }) {
 
         {editable ? (
           <InlineEditor
-            extras={
-              item.repeat
+            extras={[
+              ...(item.repeat
                 ? [
                     {
                       key: 'done',
                       label: 'Done…',
-                      icon: 'check',
-                      panel: (close) => <DonePanel id={id} close={close} />,
+                      icon: 'check' as const,
+                      panel: (close: () => void) => <DonePanel id={id} close={close} />,
                     },
                   ]
-                : []
-            }
+                : []),
+              alsoChip,
+            ]}
             value={draft}
             onChange={change}
             fields={(['when', 'repeat', 'remind', 'who', 'vis', 'urgent'] as const).filter(
@@ -402,11 +461,12 @@ export function ItemScreen({ id }: { id: string }) {
 /** Write a subtask straight into the task's list of subtasks: Enter adds it and keeps going. */
 function SubtaskAdd({ listId, parentId }: { listId: string; parentId: string }) {
   const hub = useHub();
+  const alsoShop = useAlsoShop();
   const [t, setT] = useState('');
   const add = () => {
     const v = t.trim();
     if (!v) return;
-    hub.addItem(listId, { title: v, parentId });
+    alsoShop(hub.addItem(listId, { title: v, parentId }));
     setT('');
   };
   return (
@@ -435,3 +495,4 @@ function SubtaskAdd({ listId, parentId }: { listId: string; parentId: string }) 
     </label>
   );
 }
+

@@ -154,6 +154,11 @@ export interface Item {
   sentBackBy?: string | null;
   /** Shopping: the purchase log written when it was checked. */
   logId?: string | null;
+  /**
+   * The same thing in another place ("Buy a doorknob" under "Replace the doorknob", and
+   * "doorknob" on Home shopping): each points at the other, and ticking one ticks both.
+   */
+  linkId?: string | null;
   createdAt: number;
   createdBy: string;
   deleted?: boolean;

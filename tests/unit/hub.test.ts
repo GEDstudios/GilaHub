@@ -487,3 +487,28 @@ describe('renameOldDefaults', () => {
     expect(hub.list(c)?.name).toBe('Housework');
   });
 });
+
+describe('one thing, two places', () => {
+  it('"Buy a doorknob" under a chore lands on Home shopping, and ticking either ticks both', async () => {
+    const { buyWords, toBuy } = await import('../../src/core/actions');
+    expect(buyWords('Buy a new doorknob')).toBe(true);
+    expect(toBuy('Buy a new doorknob')).toBe('new doorknob');
+    expect(buyWords('Replace the doorknob')).toBe(false);
+    const guy = await person('guy');
+    guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    seedHousehold(guy, ['groceries', 'home', 'chores']);
+    const chores = guy.lists().find((l) => l.name === 'Chores')!;
+    const task = guy.addItem(chores.id, { title: 'Replace the doorknob' });
+    const sub = guy.addItem(chores.id, { title: 'Buy a doorknob', parentId: task });
+    const shop = guy.linkIfShopping(sub)!;
+    expect(guy.list(guy.item(shop)!.listId)!.name).toBe('Home shopping');
+    expect(guy.item(shop)!.title).toBe('doorknob');
+    guy.toggle(shop);
+    expect(guy.item(sub)!.done).toBe(true);
+    guy.toggle(sub);
+    expect(guy.item(shop)!.done).toBe(false);
+    guy.unlink(sub);
+    guy.toggle(sub);
+    expect(guy.item(shop)!.done).toBe(false);
+  });
+});

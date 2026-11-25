@@ -1,3 +1,4 @@
+import { TwinTag } from '../components/ItemRow';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react';
 import type { Item, List } from '../../core/model';
 import { cadenceLabel } from '../../smart/suggest';
@@ -542,6 +543,7 @@ export function ShopRow({
   const mine = useFresh(item.id);
   // Once it's in the cart, the urgency is dealt with.
   const tagged = item.urgent && !item.done && !inUrgent;
+  const twin = hub.linked(item);
   return (
     <li
       ref={liRef}
@@ -558,8 +560,9 @@ export function ShopRow({
           {item.title}
           {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
-        {vis || note ? (
+        {vis || note || twin ? (
           <span className="row__meta">
+            {twin ? <TwinTag twin={twin} label={`For ${hub.item(twin.parentId)?.title ?? twin.title}`} /> : null}
             {vis ? <VisTag item={item} /> : null}
             {note ? (
               <span className="meta" dir="auto">
