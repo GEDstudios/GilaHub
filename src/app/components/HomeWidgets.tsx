@@ -20,6 +20,7 @@ import { choresView, openCount, todayView, type ChoreRow, type ChoresView, type 
 import { AsksWidget } from './Asks';
 import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
+import { MomentsSheet } from './Moments';
 import { QuickAddSheet } from './QuickAddSheet';
 import { ShopItemSheet } from './ShopItemSheet';
 
@@ -212,7 +213,7 @@ export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: strin
 
 // ---------------------------------------------------------------- this week
 
-function Strip({ color, num, label, onClick }: { color: LineColor; num: number; label: string; onClick?: () => void }) {
+function Strip({ color, num, label, onClick }: { color: LineColor; num: number | string; label: string; onClick?: () => void }) {
   return (
     <button type="button" className="strip" style={lineVars(color)} onClick={onClick} aria-label={`${num} ${label}`} disabled={!onClick}>
       <span className="strip__num num">{num}</span>
@@ -221,12 +222,18 @@ function Strip({ color, num, label, onClick }: { color: LineColor; num: number; 
   );
 }
 
-/** The one colour moment: to buy, my partner's chores ready, done this week — each only when it isn't its own block. */
+/** The one colour moment: to buy, my partner's chores ready, how the week went (vs the last), and Moments. */
 export function WeekStrips({ v, chores, shown }: { v: TodayView; chores: ChoresView; shown: ReadonlySet<string> }) {
   const hub = useHub();
+  const { openSheet } = useOverlays();
   const bands = weekBands(hub, v, chores, shown);
   if (!bands.length) return null;
-  const go = { shop: () => navigate({ name: 'shop' }), chores: () => navigate({ name: 'chores' }), done: undefined };
+  const go = {
+    shop: () => navigate({ name: 'shop' }),
+    chores: () => navigate({ name: 'chores' }),
+    done: undefined,
+    moments: () => openSheet((close) => <MomentsSheet onClose={close} />),
+  };
   return (
     <Section title="This week">
       <div className="stack">

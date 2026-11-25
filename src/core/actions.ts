@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type Idea, type Item, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { LINE_COLORS, type Idea, type Item, type Moment, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { categorize, routeFlavor, type Flavor } from '../smart/categorize';
@@ -819,6 +819,27 @@ export class Hub {
     this.store.mutate('log', logId, { thankedBy: this.meId, thankedAt: Date.now() });
   }
 
+  // ---------- moments (things worth looking back on) ----------
+
+  moments(): Moment[] {
+    return this.store
+      .all('moment')
+      .filter((m) => !m.deleted)
+      .sort((a, b) => b.day.localeCompare(a.day) || b.createdAt - a.createdAt);
+  }
+
+  addMoment(text: string, feel: string, day: string = todayStr()): string | null {
+    const t = text.trim();
+    if (!t && !feel) return null;
+    return this.store.create('moment', { text: t, feel, day, by: this.meId, createdAt: Date.now() });
+  }
+
+  deleteMoment(id: string): Undo {
+    if (!this.store.get('moment', id)) return () => {};
+    this.store.mutate('moment', id, { deleted: true });
+    return () => this.store.mutate('moment', id, { deleted: false });
+  }
+
   // ---------- ideas (for Gila Hub itself) ----------
 
   idea(id: string | null | undefined): Idea | undefined {
@@ -943,7 +964,7 @@ export class Hub {
       if ('listId' in out) out.listId = listOf(out.listId);
       return out;
     };
-    const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member' | 'idea', row: { id: string } & Record<string, unknown>, scope: Scope) => {
+    const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member' | 'idea' | 'moment', row: { id: string } & Record<string, unknown>, scope: Scope) => {
       if (!row?.id) return;
       const stranded = !!from && from !== this.meId && this.store.scopeOf(t, row.id) === `p:${from}`;
       if (this.store.record(t, row.id) && !stranded) return;
@@ -980,6 +1001,7 @@ export class Hub {
       for (const st of data.store ?? []) put('store', st, 'h');
       for (const st of data.settings ?? []) put('settings', fix(st), 'h');
       for (const idea of data.idea ?? []) put('idea', fix(idea), 'h');
+      for (const m of data.moment ?? []) put('moment', fix(m), 'h');
     });
     return n;
   }

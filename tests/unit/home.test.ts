@@ -276,9 +276,11 @@ describe('home blocks', () => {
     hub.toggle(done);
     const v = todayView(hub, today());
     const c = choresView(hub, today());
-    expect(weekBands(hub, v, c).map((b) => b.label)).toEqual(['to buy', 'done this week']);
+    expect(weekBands(hub, v, c).map((b) => b.label)).toEqual(['to buy', 'done this week', 'Keep a moment, to look back on']);
     showHome(hub, 'shop');
-    expect(weekBands(hub, todayView(hub, today()), c).map((b) => b.key)).toEqual(['done']);
+    expect(weekBands(hub, todayView(hub, today()), c).map((b) => b.key)).toEqual(['done', 'moments']);
+    hub.addMoment('Pancakes in bed', '🥰');
+    expect(weekBands(hub, todayView(hub, today()), c).at(-1)).toMatchObject({ key: 'moments', num: '🥰', label: 'Pancakes in bed' });
   });
 
   it('the chores strip never repeats chores Today already lists, and the Chores widget changes nothing then', async () => {
@@ -363,5 +365,15 @@ describe('Start here', () => {
     expect(tourItem(hub, 'drag')!.done).toBe(true);
     for (const k of ['tick', 'share', 'bar', 'person'] as const) tourDone(hub, k);
     expect(tourWatch(hub)).toBe(true);
+  });
+});
+
+describe('Moments and the week', () => {
+  it('finds the same day a year or a month ago', async () => {
+    const { onThisDay } = await import('../../src/app/moments');
+    const m = (day: string, text: string) => ({ id: day, day, text, feel: '🥰', by: 'g', createdAt: 0 });
+    expect(onThisDay([m('2025-11-25', 'Snow!')], '2026-11-25')?.ago).toBe('A year ago today');
+    expect(onThisDay([m('2026-09-25', 'Picnic')], '2026-11-25')?.ago).toBe('2 months ago today');
+    expect(onThisDay([m('2026-11-24', 'x')], '2026-11-25')).toBeNull();
   });
 });

@@ -141,7 +141,7 @@ export function ItemScreen({ id }: { id: string }) {
   useEffect(() => setNotes(item?.notes ?? ''), [item?.notes]);
   // The + adds a step of this item (a chip in the sheet makes it its own task instead).
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={item?.listId} parentId={item?.id} />);
-  useAddAction(openNew, 'Add a step');
+  useAddAction(openNew, 'Add a subtask');
   // Start here: "Tap me to open me" is done by opening it (ticked as you leave, after reading).
   useEffect(
     () => () => {
@@ -237,7 +237,7 @@ export function ItemScreen({ id }: { id: string }) {
           editable ? (
             <>
               <IconButton icon="more" label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} />
-              <NewButton label="Add a step" onClick={openNew} />
+              <NewButton label="Add a subtask" onClick={openNew} />
             </>
           ) : undefined
         }
@@ -326,8 +326,9 @@ export function ItemScreen({ id }: { id: string }) {
         />
 
         {steps.length || editable ? (
-          <Section title="Steps" count={steps.length}>
+          <Section title="Subtasks" count={steps.length}>
             <Children listId={item.listId} parentId={id} readonly={!editable} />
+            {editable ? <SubtaskAdd listId={item.listId} parentId={id} /> : null}
           </Section>
         ) : null}
 
@@ -376,5 +377,37 @@ export function ItemScreen({ id }: { id: string }) {
         ) : null}
       </div>
     </>
+  );
+}
+
+/** Write a subtask straight into the task's list of subtasks: Enter adds it and keeps going. */
+function SubtaskAdd({ listId, parentId }: { listId: string; parentId: string }) {
+  const hub = useHub();
+  const [t, setT] = useState('');
+  const add = () => {
+    const v = t.trim();
+    if (!v) return;
+    hub.addItem(listId, { title: v, parentId });
+    setT('');
+  };
+  return (
+    <label className="composer__stepadd subtaskadd">
+      <Icon name="plus" className="icon--sm" />
+      <input
+        value={t}
+        dir="auto"
+        onChange={(e) => setT(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            add();
+          }
+        }}
+        onBlur={add}
+        placeholder="Add a subtask"
+        aria-label="Add a subtask"
+        enterKeyHint="next"
+      />
+    </label>
   );
 }

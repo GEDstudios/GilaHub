@@ -5,7 +5,7 @@
  * Lists hold items; items nest infinitely through `parentId`.
  */
 
-export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea';
+export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea' | 'moment';
 
 /** Encryption scope: 'h' = household key (both partners), 'p:<memberId>' = personal key. */
 export type Scope = 'h' | `p:${string}`;
@@ -223,6 +223,22 @@ export interface Idea {
   deleted?: boolean;
 }
 
+/**
+ * A moment worth keeping: a feeling and a line, from either of us (Moments, on Today's "This
+ * week"). Household scope, so we both look back on all of them.
+ */
+export interface Moment {
+  id: string;
+  text: string;
+  /** One emoji for how it felt. */
+  feel: string;
+  by: string;
+  /** The day it happened, "YYYY-MM-DD" (usually today). */
+  day: string;
+  createdAt: number;
+  deleted?: boolean;
+}
+
 export interface TableTypes {
   member: Member;
   list: List;
@@ -232,4 +248,5 @@ export interface TableTypes {
   store: Store;
   settings: Settings;
   idea: Idea;
+  moment: Moment;
 }

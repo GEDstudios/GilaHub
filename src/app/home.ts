@@ -1,5 +1,6 @@
 import type { Hub } from '../core/actions';
-import { diffDays, fromDateStr, humanDate, weekdayName } from '../core/dates';
+import { addDays, diffDays, fromDateStr, humanDate, today as todayStr, weekdayName } from '../core/dates';
+import { onThisDay } from './moments';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';
 import { keepDormant } from './tabs';
 import type { IconName } from './ui/Icon';
@@ -194,10 +195,25 @@ export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | '
 export const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 export interface WeekBand {
-  key: 'shop' | 'chores' | 'done';
+  key: 'shop' | 'chores' | 'done' | 'moments';
   color: LineColor;
-  num: number;
+  /** The big figure: a count, or a feeling. */
+  num: number | string;
   label: string;
+}
+
+/** Done this week (tasks, chores, shopping trips), and the week before, for "more than last week". */
+export function weekCounts(hub: Hub, now = Date.now()): { week: number; last: number } {
+  const day = 86_400_000;
+  const kinds = new Map(hub.lists().map((l) => [l.id, l.kind]));
+  const at = [
+    ...hub.store.all('log').map((l) => l.at),
+    ...hub.store
+      .all('item')
+      .filter((i) => i.done && i.doneAt && !i.repeat && kinds.get(i.listId) !== 'shopping')
+      .map((i) => i.doneAt!),
+  ];
+  return { week: at.filter((t) => t > now - 7 * day).length, last: at.filter((t) => t > now - 14 * day && t <= now - 7 * day).length };
 }
 
 /** Chores ready now, minus what Today already shows (so: my partner's). Nothing while we're away. */
@@ -217,7 +233,21 @@ export function weekBands(hub: Hub, v: TodayView, chores: ChoresView, shown: Rea
   // The same "ready" the Chores widget shows: not what Today already lists.
   const ready = choresReady(hub, v, chores).length;
   if (ready && !shown.has('chores')) out.push({ key: 'chores', color: 'pink', num: ready, label: `${ready === 1 ? 'chore' : 'chores'} ready for ${hub.partner()?.name ?? 'them'}` });
-  if (v.together) out.push({ key: 'done', color: 'lilac', num: v.together, label: hub.partner() ? 'done together this week' : 'done this week' });
+  // How the week went, against the one before.
+  const { week, last } = weekCounts(hub);
+  if (week) {
+    const diff = week - last;
+    const vs = !last ? '' : diff > 0 ? ` · ${diff} more than last week` : diff < 0 ? ` · ${-diff} fewer than last week` : ' · same as last week';
+    out.push({ key: 'done', color: 'lilac', num: week, label: `${hub.partner() ? 'done together' : 'done'} this week${vs}` });
+  }
+  // Moments: the good bits. A year (or a month) ago today first; else this week's; else an invitation.
+  const moments = hub.moments();
+  const today = todayStr();
+  const back = onThisDay(moments, today);
+  const thisWeek = moments.filter((m) => m.day > addDays(today, -7));
+  if (back) out.push({ key: 'moments', color: 'mint', num: back.moment.feel, label: `${back.ago}: ${back.moment.text}` });
+  else if (thisWeek.length) out.push({ key: 'moments', color: 'mint', num: thisWeek[0].feel, label: thisWeek.length > 1 ? `${thisWeek[0].text} · and ${thisWeek.length - 1} more` : thisWeek[0].text });
+  else out.push({ key: 'moments', color: 'mint', num: '+', label: moments.length ? 'Keep a moment from this week' : 'Keep a moment, to look back on' });
   return out;
 }
 

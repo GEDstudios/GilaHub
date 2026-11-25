@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Item } from '../../core/model';
 import { categoryMeta, suggestFromCatalog } from '../../smart/categorize';
 import { splitPasted } from '../../smart/normalize';
-import { composerPlaceholder, type AddMode } from '../compose';
+import { composerPlaceholder, splitSteps, type AddMode } from '../compose';
 import { useHub } from '../context';
 import { getPrefs, usePrefs } from '../prefs';
 import { shoppingView } from '../views';
@@ -15,8 +15,8 @@ import { listChip, ParsedToken, useCompose } from './QuickAdd';
 
 /**
  * New: the one way to add, from the black + on every screen. You write straight onto the
- * colour card. It opens compact (the card and the two or three chips that matter here) and
- * "More" opens every option without losing what you typed. It opens pointed at where you
+ * colour card, with every option right under it: the project, subtasks (typed in a list, or in
+ * the words: "Pack: towels, hats"), date, repeat, notification, who, who sees it, urgent. It opens pointed at where you
  * are: `listId` (any kind of project), `parentId` (a step of this item), `defaultDue` (a
  * day), else the last project you added to, else To do. Shopping stays open for the next
  * item until Done.
@@ -65,18 +65,11 @@ const GHOST: Record<AddMode, string> = {
   shopping: 'Something to buy',
 };
 
-/** Every option, when expanded. */
-const FULL: Record<AddMode, Field[]> = {
+/** Every option, right there. */
+const FIELDS: Record<AddMode, Field[]> = {
   task: ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'],
   chore: ['repeat', 'who', 'remind', 'vis'],
   shopping: ['urgent', 'vis'],
-};
-
-/** The few that matter here, compact. */
-const COMPACT: Record<AddMode, Field[]> = {
-  task: ['when', 'remind'],
-  chore: ['repeat', 'who'],
-  shopping: ['urgent'],
 };
 
 function Composer({
@@ -100,21 +93,25 @@ function Composer({
   const summarize = useSummary();
   const [text, setText] = useState(initialText);
   const [roll] = useState(Math.random);
-  const [full, setFull] = useState(false);
   const [asStep, setAsStep] = useState(!!parentId);
   const [added, setAdded] = useState<string[]>([]);
+  const [own, setOwn] = useState<string[]>([]);
+  const [stepText, setStepText] = useState('');
   const field = useRef<HTMLTextAreaElement>(null);
+  // "Task: a, b and c" puts its steps in the words (not for shopping, nor for a step itself).
+  const words = asStep || hub.list(listId)?.kind === 'shopping' ? { head: text, steps: [] } : splitSteps(text);
   const c = useCompose({
     listId,
     parentId: asStep ? parentId : null,
     defaultDue,
-    text,
+    text: words.head,
     route,
   });
   const { draft, dest, mode, parsed } = c;
   const title = parsed.title.trim();
   const shopping = mode === 'shopping';
-  const fields = (full ? FULL : COMPACT)[mode].filter((f) => f !== 'who' || draft.visibility !== 'private');
+  const fields = FIELDS[mode].filter((f) => f !== 'who' || draft.visibility !== 'private');
+  const steps = shopping || c.parent ? [] : [...words.steps, ...own];
   const parent = hub.item(parentId);
 
   // The card's text grows with what you write.
@@ -132,6 +129,7 @@ function Composer({
 
   const clear = () => {
     setText('');
+    setOwn([]);
     c.reset();
     field.current?.focus();
   };
@@ -146,7 +144,18 @@ function Composer({
       clear();
       return;
     }
-    if (c.commit(raw, { announce: true })) onDone();
+    const id = c.commit(raw === undefined ? undefined : raw, { announce: true });
+    if (!id) return;
+    const made = hub.item(id);
+    if (made) hub.store.batch(() => steps.forEach((t) => hub.addItem(made.listId, { title: t, parentId: id })));
+    onDone();
+  };
+
+  const addStep = () => {
+    const t = stepText.trim();
+    if (!t) return;
+    setOwn((s) => [...s, t]);
+    setStepText('');
   };
 
   const onPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -166,7 +175,7 @@ function Composer({
     const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
     sub = aisle ? [aisle.en, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
   } else if (c.parent) {
-    sub = `A step of ${c.parent.title}`;
+    sub = `A subtask of ${c.parent.title}`;
   } else {
     sub = summarize(draft, { listName: dest?.name });
   }
@@ -182,11 +191,11 @@ function Composer({
           .map((s) => s.name)
     : [];
 
-  const extras = !c.parent && full ? [listChip(c, hub.lists())] : [];
+  const extras = c.parent ? [] : [listChip(c, hub.lists())];
 
   return (
     <form
-      className={`composer ${full ? 'is-full' : 'is-compact'}`}
+      className="composer"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -211,8 +220,8 @@ function Composer({
               }
             }}
             onPaste={onPaste}
-            placeholder={c.parent ? 'A step' : composerPlaceholder(mode, hub.partner()?.name, roll) || GHOST[mode]}
-            aria-label={shopping ? 'What do you need?' : c.parent ? 'A step' : 'What needs doing?'}
+            placeholder={c.parent ? 'A subtask' : composerPlaceholder(mode, hub.partner()?.name, roll) || GHOST[mode]}
+            aria-label={shopping ? 'What do you need?' : c.parent ? 'A subtask' : 'What needs doing?'}
             enterKeyHint={shopping ? 'enter' : 'done'}
             autoComplete="off"
             data-autofocus=""
@@ -262,16 +271,58 @@ function Composer({
             {parent ? (
               <EChip
                 icon={asStep ? 'steps' : 'lines'}
-                label={asStep ? 'A step' : 'Its own task'}
+                label={asStep ? 'A subtask' : 'Its own task'}
                 set={asStep}
                 open={false}
                 onToggle={() => setAsStep(!asStep)}
               />
             ) : null}
-            {!full ? <EChip icon="sliders" label="More" set={false} open={false} onToggle={() => setFull(true)} /> : null}
           </>
         }
       />
+
+      {!shopping && !c.parent ? (
+        <div className="composer__steps">
+          {steps.length ? (
+            <ul className="composer__steplist">
+              {steps.map((t, i) => (
+                <li key={`${i}-${t}`} className="composer__step">
+                  <span className="composer__stepdot" aria-hidden="true" />
+                  <span dir="auto">{t}</span>
+                  {i >= words.steps.length ? (
+                    <button
+                      type="button"
+                      className="composer__stepx"
+                      aria-label={`Remove ${t}`}
+                      onClick={() => setOwn((s) => s.filter((_, j) => j !== i - words.steps.length))}
+                    >
+                      <Icon name="x" className="icon--xs" />
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <label className="composer__stepadd">
+            <Icon name="plus" className="icon--sm" />
+            <input
+              value={stepText}
+              dir="auto"
+              onChange={(e) => setStepText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addStep();
+                }
+              }}
+              onBlur={addStep}
+              placeholder="Add a subtask"
+              aria-label="Add a subtask"
+              enterKeyHint="next"
+            />
+          </label>
+        </div>
+      ) : null}
 
       {shopping && added.length ? (
         <p className="composer__added" aria-live="polite">

@@ -29,7 +29,7 @@ const wide = () => typeof matchMedia === 'function' && matchMedia('(min-width: 9
 const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 function exportData(rt: Runtime) {
-  const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea'] as const;
+  const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment'] as const;
   const data: Record<string, unknown[]> = {};
   for (const t of tables) data[t] = rt.store.all(t);
   // `me`: whose backup it is, so restoring it on a new device makes those things mine again.

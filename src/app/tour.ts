@@ -28,7 +28,7 @@ const STEPS: TourStep[] = [
     title: () => 'Tap me to open me',
     today: true,
     notes: () => 'Everything opens like this. Change the date, the notification, who does it, right here under the title.',
-    steps: ['Steps live inside a task', 'Tick them off one by one'],
+    steps: ['Subtasks live inside a task', 'Tick them off one by one'],
   },
   { key: 'add', title: () => 'Add something of yours with the black +', today: true },
   {

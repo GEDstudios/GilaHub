@@ -251,7 +251,6 @@ try {
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
     await guy.locator('.band .iconbtn--solid').first().click();
     await guy.locator('.composer__input').fill('Water the balcony plants @hila today');
-    await guy.locator('.composer').getByRole('button', { name: 'More' }).click();
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
     await guy.locator('.composer__input').press('Enter');
@@ -313,7 +312,6 @@ try {
     await guy.goto(`${url}/`);
     await guy.getByRole('button', { name: 'New', exact: true }).click();
     await guy.getByRole('textbox', { name: 'What needs doing?' }).fill('Return the library books @hila');
-    await guy.locator('.composer').getByRole('button', { name: 'More' }).click();
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
     await shot(guy, '13-composer-ask');

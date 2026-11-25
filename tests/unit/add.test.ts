@@ -150,3 +150,13 @@ describe('a date turns the notification on', () => {
     expect(withNotification({ remind: null }, null)).toEqual({});
   });
 });
+
+describe('subtasks in the words', () => {
+  it('"Task: a, b and c" is a task with subtasks; one thing after the colon stays one task', async () => {
+    const { splitSteps } = await import('../../src/app/compose');
+    expect(splitSteps('Pack for Eilat tomorrow: towels, sunscreen and hats')).toEqual({ head: 'Pack for Eilat tomorrow', steps: ['towels', 'sunscreen', 'hats'] });
+    expect(splitSteps('Call mom: about Friday')).toEqual({ head: 'Call mom: about Friday', steps: [] });
+    expect(splitSteps('Buy milk')).toEqual({ head: 'Buy milk', steps: [] });
+    expect(splitSteps('קניות לשבת: חלה, יין')).toEqual({ head: 'קניות לשבת', steps: ['חלה', 'יין'] });
+  });
+});

@@ -65,3 +65,20 @@ export function composerPlaceholder(mode: AddMode, partnerName: string | null | 
   const all = ['Call mom tomorrow 6pm', 'Pay rent every 1st', ...(partnerName ? [`Fix the tap @${partnerName}`] : [])];
   return all[Math.min(all.length - 1, Math.floor(rand * all.length))];
 }
+
+/**
+ * Steps in the words: "Pack for Eilat tomorrow: towels, sunscreen and hats" is the task "Pack
+ * for Eilat tomorrow" with three steps. Only when there are at least two after the colon, so
+ * "Call mom: about Friday" stays one task.
+ */
+export function splitSteps(text: string): { head: string; steps: string[] } {
+  const at = text.indexOf(':');
+  if (at < 1) return { head: text, steps: [] };
+  const tail = text.slice(at + 1);
+  const steps = tail
+    .split(/\s*(?:,|،|;|\band\b|\n)\s*/i)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (steps.length < 2) return { head: text, steps: [] };
+  return { head: text.slice(0, at).trim(), steps };
+}

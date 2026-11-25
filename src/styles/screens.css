@@ -177,8 +177,152 @@
 }
 
 .strip__label {
+  min-width: 0;
   font-size: 13.5px;
   font-weight: 500;
+  text-align: end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Moments (components/Moments.tsx): the good bits, kept to look back on */
+
+.moment__new {
+  margin-top: 4px;
+}
+
+.moment__feels {
+  display: flex;
+  gap: 6px;
+}
+
+.moment__feel {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 22px;
+  background: var(--tile);
+  transition: transform 180ms var(--spring), background 160ms var(--ease);
+}
+
+.moment__feel.is-on {
+  background: var(--mint);
+  transform: scale(1.08);
+}
+
+.moment__write {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+}
+
+.moment__write input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  font-size: 16px;
+}
+
+.moment__write input:focus-visible {
+  outline: none;
+}
+
+.moment__back {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: var(--r-l);
+  background: var(--c);
+  color: var(--ink);
+}
+
+.moment__ago {
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.moment__backtext {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.moment__month {
+  margin-top: 22px;
+}
+
+.moment__monthname {
+  margin: 0 2px 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.moment__list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border-radius: var(--r-l);
+  background: var(--tile);
+}
+
+.moment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 6px 6px 14px;
+}
+
+.moment + .moment {
+  border-top: 1px solid var(--line);
+}
+
+.moment__e {
+  font-size: 24px;
+}
+
+.moment__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.moment__text {
+  font-size: 15.5px;
+}
+
+.moment__meta {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.moment__x {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-4);
+}
+
+.moment__empty {
+  margin: 22px 2px 0;
+  color: var(--text-3);
 }
 
 /* While I'm on my own: a dashed card to bring my person in, with a quiet × for "not now" */
@@ -790,6 +934,84 @@ button.projcard:active {
 .composer__done {
   flex: 0 0 auto;
   min-width: 96px;
+}
+
+.composer__steps {
+  margin-top: 14px;
+}
+
+.composer__steplist {
+  margin: 0 0 4px;
+  padding: 4px 0;
+  list-style: none;
+  border-radius: 18px;
+  background: var(--tile);
+}
+
+.composer__step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 6px 0 14px;
+  font-size: 15px;
+  animation: row-in 200ms var(--ease) both;
+}
+
+.composer__step > span[dir] {
+  flex: 1;
+  min-width: 0;
+}
+
+.composer__stepdot {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-4);
+}
+
+.composer__stepx {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.composer__stepadd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 16px;
+  color: var(--text-3);
+  cursor: text;
+}
+
+.composer__stepadd:focus-within {
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+}
+
+.composer__stepadd input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  font-size: 15.5px;
+  color: var(--text);
+}
+
+.composer__stepadd input:focus-visible {
+  outline: none;
+}
+
+.subtaskadd {
+  margin-top: 6px;
 }
 
 /* ============================================================ Shopping */

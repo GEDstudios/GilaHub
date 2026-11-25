@@ -49,7 +49,7 @@ export function useTick(): (item: Item) => void {
     const msg = afterTick(rt, hub, item.id);
     if (msg) say(msg);
     else if (openSteps)
-      say(`Done. ${openSteps} step${openSteps > 1 ? 's' : ''} open`, {
+      say(`Done. ${openSteps} subtask${openSteps > 1 ? 's' : ''} open`, {
         action: [
           { label: 'Undo', run: () => undo() },
           {
