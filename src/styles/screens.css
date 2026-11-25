@@ -766,7 +766,7 @@ button.projcard:active {
   z-index: 35;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px);
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px + var(--tag-h, 0px));
   display: flex;
   justify-content: center;
   padding: 0 var(--gutter);

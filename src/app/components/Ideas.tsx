@@ -1,0 +1,392 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
+import { shortAgo, shortDay } from '../../core/dates';
+import type { Idea } from '../../core/model';
+import { useHub } from '../context';
+import { usePrefs } from '../prefs';
+import { ideasMarkdown, ideasUnseen, ideasView } from '../views';
+import { markFresh, useFresh } from '../ui/fresh';
+import { haptic } from '../ui/haptics';
+import { Icon } from '../ui/Icon';
+import { Sheet, useOverlays } from '../ui/overlays';
+import { Check, Disclosure, lineVars } from '../ui/primitives';
+import { Sortable, useSortableItem } from '../ui/Sortable';
+import { useSettle } from '../ui/useSettle';
+
+/**
+ * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag hangs on the bottom
+ * bar on every screen (IdeaTag, drawn once by the App shell); it opens the Ideas sheet, where
+ * either of us writes, edits, reorders and resolves. Settings has a switch for the tag and a
+ * row that opens the same sheet.
+ */
+
+// ---------------------------------------------------------------- last seen (this device)
+
+const SEEN_KEY = 'gh.ideasSeen';
+const seenListeners = new Set<() => void>();
+
+function readSeen(): number {
+  try {
+    return Number(localStorage.getItem(SEEN_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+let seenAt = readSeen();
+
+/** Everything up to now counts as seen: the sheet was opened (or closed) on this device. */
+function markSeen(): void {
+  seenAt = Date.now();
+  try {
+    localStorage.setItem(SEEN_KEY, String(seenAt));
+  } catch {
+    /* storage blocked: remembered until the page reloads */
+  }
+  seenListeners.forEach((l) => l());
+}
+
+function useSeenAt(): number {
+  return useSyncExternalStore(
+    (l) => {
+      seenListeners.add(l);
+      return () => seenListeners.delete(l);
+    },
+    () => seenAt,
+  );
+}
+
+/** Open the Ideas sheet (the tag, and Settings). */
+export function useOpenIdeas(): () => void {
+  const { openSheet } = useOverlays();
+  return useCallback(() => {
+    markSeen();
+    openSheet((close) => (
+      <IdeasSheet
+        onClose={() => {
+          markSeen();
+          close();
+        }}
+      />
+    ));
+  }, [openSheet]);
+}
+
+// ---------------------------------------------------------------- the tag
+
+/**
+ * The tag: a paper label tucked behind the bar's top edge on the right, with a punched hole,
+ * a light bulb and the open count. A dot in my partner's color says they added or changed
+ * something since I last looked. It steps aside for sheets and the keyboard (CSS).
+ */
+export function IdeaTag() {
+  const hub = useHub();
+  const prefs = usePrefs();
+  const seen = useSeenAt();
+  const open = useOpenIdeas();
+  const shown = prefs.ideasTag;
+
+  // Toasts, the shopbar and the page's end make room for it.
+  useEffect(() => {
+    if (!shown) return;
+    const root = document.documentElement.classList;
+    root.add('has-ideatag');
+    return () => root.remove('has-ideatag');
+  }, [shown]);
+
+  if (!shown) return null;
+  const n = ideasView(hub).open.length;
+  const partner = hub.partner();
+  const fresh = !!partner && ideasUnseen(hub, seen);
+  const label = ['Ideas for Gila Hub', n ? `${n} open` : '', fresh ? `new from ${partner.name}` : ''].filter(Boolean).join(', ');
+
+  return (
+    <button
+      type="button"
+      className="ideatag"
+      aria-label={label}
+      title="Ideas for Gila Hub"
+      onClick={() => {
+        haptic('select');
+        open();
+      }}
+    >
+      <span className="ideatag__body">
+        <span className="ideatag__paper">
+          <Icon name="lightbulb" />
+          {n ? <span className="ideatag__n num">{n}</span> : null}
+        </span>
+        {fresh ? <span className="ideatag__dot" style={lineVars(partner.color)} /> : null}
+      </span>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------- the sheet
+
+/** A textarea that grows with its text. */
+function useAutosize(ref: React.RefObject<HTMLTextAreaElement | null>, value: string): void {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [ref, value]);
+}
+
+/** Enter commits, Shift+Enter is a new line. */
+const isCommit = (e: KeyboardEvent) => e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing;
+
+function Composer() {
+  const hub = useHub();
+  const [text, setText] = useState('');
+  const field = useRef<HTMLTextAreaElement>(null);
+  useAutosize(field, text);
+  const add = (e?: FormEvent) => {
+    e?.preventDefault();
+    const id = hub.addIdea(text);
+    if (!id) return;
+    haptic('tick');
+    markFresh(id);
+    setText('');
+  };
+  return (
+    <form className="addrow ideas__compose" onSubmit={add}>
+      <span className="addrow__plus" aria-hidden="true">
+        <Icon name="plus" />
+      </span>
+      <textarea
+        ref={field}
+        rows={1}
+        dir="auto"
+        value={text}
+        placeholder="What should Gila Hub do better?"
+        aria-label="New idea"
+        enterKeyHint="send"
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (isCommit(e)) add(e);
+        }}
+      />
+      {text.trim() ? (
+        <button type="submit" className="btn btn--sm ideas__add">
+          Add
+        </button>
+      ) : null}
+    </form>
+  );
+}
+
+/** The text, edited in place: blur or Enter saves, Esc puts it back. */
+function IdeaText({ idea }: { idea: Idea }) {
+  const hub = useHub();
+  const [draft, setDraft] = useState<string | null>(null);
+  const field = useRef<HTMLTextAreaElement>(null);
+  const cancelled = useRef(false);
+  useAutosize(field, draft ?? '');
+  useEffect(() => {
+    const el = field.current;
+    if (draft === null || !el || document.activeElement === el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [draft]);
+
+  if (draft === null)
+    return (
+      <button type="button" className="idea__text" dir="auto" onClick={() => setDraft(idea.text)}>
+        <span className="row__title">{idea.text}</span>
+      </button>
+    );
+  return (
+    <textarea
+      ref={field}
+      className="row__title idea__edit"
+      rows={1}
+      dir="auto"
+      value={draft}
+      aria-label="Edit idea"
+      enterKeyHint="done"
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (isCommit(e)) {
+          e.preventDefault();
+          e.currentTarget.blur();
+        } else if (e.key === 'Escape') {
+          // Only the edit, not the sheet.
+          e.stopPropagation();
+          cancelled.current = true;
+          e.currentTarget.blur();
+        }
+      }}
+      onBlur={() => {
+        if (!cancelled.current) hub.editIdea(idea.id, draft);
+        cancelled.current = false;
+        setDraft(null);
+      }}
+    />
+  );
+}
+
+function useMeta(idea: Idea): string {
+  const hub = useHub();
+  const name = (id: string | null | undefined) => hub.member(id)?.name ?? 'Someone';
+  if (idea.resolvedAt) return `Resolved by ${name(idea.resolvedBy)} · ${shortDay(idea.resolvedAt)}`;
+  const edited = idea.editedBy && idea.editedBy !== idea.by ? ` · edited by ${name(idea.editedBy)}` : '';
+  return `${name(idea.by)} · ${shortAgo(idea.createdAt)}${edited}`;
+}
+
+/** An open idea: [author dot][text, meta][check][grip]. */
+function OpenRow({ idea, settling, onResolve }: { idea: Idea; settling: boolean; onResolve: (id: string) => void }) {
+  const hub = useHub();
+  const s = useSortableItem(idea.id, { disabled: settling });
+  const fresh = useFresh(idea.id);
+  const meta = useMeta(idea);
+  return (
+    <li
+      ref={s.ref}
+      style={s.style}
+      {...s.props}
+      data-settle={idea.id}
+      data-id={idea.id}
+      className={`row idea ${s.className} ${settling ? 'is-settling' : ''} ${fresh ? 'row--fresh row--flash' : ''}`}
+    >
+      <span className="idea__dot" style={lineVars(hub.member(idea.by)?.color)} aria-hidden="true" />
+      <div className="row__body">
+        <IdeaText idea={idea} />
+        <span className="row__meta" dir="auto">
+          {meta}
+        </span>
+      </div>
+      <Check on={settling} color={hub.me()?.color} onToggle={() => onResolve(idea.id)} label={idea.text} disabled={settling} />
+      <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="slot__btn slot__grip" aria-label={`Move ${idea.text}`}>
+        <Icon name="grip" />
+      </button>
+    </li>
+  );
+}
+
+/** The lifted copy while dragging. */
+function LiftedRow({ idea }: { idea: Idea }) {
+  const hub = useHub();
+  const meta = useMeta(idea);
+  return (
+    <ul className="rows">
+      <li className="row idea">
+        <span className="idea__dot" style={lineVars(hub.member(idea.by)?.color)} aria-hidden="true" />
+        <div className="row__body">
+          <span className="idea__text" dir="auto">
+            <span className="row__title">{idea.text}</span>
+          </span>
+          <span className="row__meta" dir="auto">
+            {meta}
+          </span>
+        </div>
+        <span className="check" aria-hidden="true" />
+        <span className="slot__btn slot__grip" aria-hidden="true">
+          <Icon name="grip" />
+        </span>
+      </li>
+    </ul>
+  );
+}
+
+/** A resolved idea: muted and struck; the check reopens it, × deletes it (with Undo). */
+function ResolvedRow({ idea }: { idea: Idea }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const meta = useMeta(idea);
+  return (
+    <li className="row idea is-done" data-id={idea.id}>
+      <span className="idea__dot" style={lineVars(hub.member(idea.by)?.color)} aria-hidden="true" />
+      <div className="row__body">
+        <span className="row__title" dir="auto">
+          {idea.text}
+        </span>
+        <span className="row__meta" dir="auto">
+          {meta}
+        </span>
+      </div>
+      {/* Filled in the color of whoever resolved it */}
+      <Check on color={hub.member(idea.resolvedBy)?.color} onToggle={() => hub.reopenIdea(idea.id)} label={idea.text} />
+      <button
+        type="button"
+        className="slot__btn"
+        aria-label={`Delete ${idea.text}`}
+        onClick={() => {
+          haptic('tick');
+          const undo = hub.deleteIdea(idea.id);
+          toast('Idea deleted', { action: { label: 'Undo', run: undo } });
+        }}
+      >
+        <Icon name="x" />
+      </button>
+    </li>
+  );
+}
+
+const ideaId = (i: Idea) => i.id;
+
+export function IdeasSheet({ onClose }: { onClose: () => void }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const { open, resolved } = ideasView(hub);
+  const settle = useSettle(ideaId);
+  const rows = settle.view('open', open);
+
+  const resolve = (id: string) => {
+    settle.hold(id);
+    hub.resolveIdea(id);
+  };
+
+  const copy = async () => {
+    const n = open.length;
+    try {
+      await navigator.clipboard.writeText(ideasMarkdown(hub));
+      toast(`Copied ${n} idea${n === 1 ? '' : 's'}`);
+    } catch {
+      toast('Couldn’t copy here.');
+    }
+  };
+
+  return (
+    <Sheet onClose={onClose} title="Ideas for Gila Hub">
+      <Composer />
+      {open.length || resolved.length ? null : <p className="ideas__empty">Nothing yet. Write the first one.</p>}
+      {rows.length ? (
+        <Sortable
+          ids={open.map(ideaId)}
+          grips
+          onMove={(next) => hub.reorderIdeas(next)}
+          label={(id) => hub.idea(id)?.text ?? ''}
+          renderOverlay={(id) => {
+            const idea = hub.idea(id);
+            return idea ? <LiftedRow idea={idea} /> : null;
+          }}
+        >
+          {/* A drag here moves an idea, never the sheet. */}
+          <ul className="rows ideas" data-no-pull>
+            {rows.map(({ row, settling }) => (
+              <OpenRow key={row.id} idea={row} settling={settling} onResolve={resolve} />
+            ))}
+          </ul>
+        </Sortable>
+      ) : null}
+      {resolved.length ? (
+        <Disclosure title="Resolved" count={resolved.length}>
+          <ul className="rows ideas">
+            {resolved.map((i) => (
+              <ResolvedRow key={i.id} idea={i} />
+            ))}
+          </ul>
+        </Disclosure>
+      ) : null}
+      {open.length ? (
+        <div className="ideas__foot">
+          <button type="button" className="textbtn" onClick={() => void copy()}>
+            <Icon name="copy" className="icon--sm" />
+            Copy open ideas
+          </button>
+        </div>
+      ) : null}
+    </Sheet>
+  );
+}

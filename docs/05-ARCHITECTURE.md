@@ -47,6 +47,9 @@
 | `log` | Completions of repeating items and purchases (for history, ♡ thanks and buy-again). |
 | `memory` | Learned aisle corrections per item name, shared by both partners. |
 | `store` | (v1.1) Per-store aisle order. |
+| `idea` | Ideas for Gila Hub itself: text, author, manual order, edited / resolved by whom and when. Always household scope. |
+
+A device that meets a table it doesn't know yet (an op from a newer version) keeps and syncs the record but shows nothing until it updates.
 
 ## Privacy model: scopes and keys
 

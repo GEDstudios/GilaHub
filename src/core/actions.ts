@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type Item, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { LINE_COLORS, type Idea, type Item, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { categorize, routeFlavor, type Flavor } from '../smart/categorize';
@@ -707,6 +707,57 @@ export class Hub {
     this.store.mutate('log', logId, { thankedBy: this.meId, thankedAt: Date.now() });
   }
 
+  // ---------- ideas (for Gila Hub itself) ----------
+
+  idea(id: string | null | undefined): Idea | undefined {
+    return id ? this.store.get('idea', id) : undefined;
+  }
+
+  /** A new idea, on top. Household scope, so both of us can edit, resolve and reorder it. */
+  addIdea(text: string): string | null {
+    const t = text.trim();
+    if (!t) return null;
+    const orders = this.store
+      .all('idea')
+      .map((i) => i.order)
+      .filter((o): o is number => typeof o === 'number');
+    const fields: Partial<Idea> = { text: t, by: this.meId, createdAt: Date.now() };
+    // Once they've been arranged, a new one still goes on top.
+    if (orders.length) fields.order = Math.min(...orders) - 1;
+    return this.store.create('idea', fields);
+  }
+
+  editIdea(id: string, text: string): void {
+    const idea = this.idea(id);
+    const t = text.trim();
+    if (!idea || !t || t === idea.text) return;
+    this.store.mutate('idea', id, { text: t, editedBy: this.meId, editedAt: Date.now() });
+  }
+
+  resolveIdea(id: string): void {
+    if (this.idea(id)) this.store.mutate('idea', id, { resolvedAt: Date.now(), resolvedBy: this.meId });
+  }
+
+  reopenIdea(id: string): void {
+    if (this.idea(id)) this.store.mutate('idea', id, { resolvedAt: null, resolvedBy: null });
+  }
+
+  deleteIdea(id: string): Undo {
+    if (!this.idea(id)) return () => {};
+    this.store.mutate('idea', id, { deleted: true });
+    return () => this.store.mutate('idea', id, { deleted: false });
+  }
+
+  /** The open ideas in their new order: each gets its place (only the ones that moved are written). */
+  reorderIdeas(ids: string[]): void {
+    this.store.batch(() => {
+      ids.forEach((id, order) => {
+        const idea = this.idea(id);
+        if (idea && idea.order !== order) this.store.mutate('idea', id, { order });
+      });
+    });
+  }
+
   // ---------- logs ----------
 
   private writeLog(item: Item, entry: Partial<LogEntry> & { id: string; kind: LogEntry['kind']; at: number }): void {
@@ -732,7 +783,7 @@ export class Hub {
    */
   importBackup(data: Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>): number {
     let n = 0;
-    const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member', row: { id: string } & Record<string, unknown>, scope: Scope) => {
+    const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member' | 'idea', row: { id: string } & Record<string, unknown>, scope: Scope) => {
       if (!row?.id || this.store.record(t, row.id)) return;
       const { id, ...fields } = row;
       this.store.init(t, id, scope);
@@ -755,6 +806,7 @@ export class Hub {
       for (const m of data.memory ?? []) put('memory', m, m.id.startsWith('p:') ? `p:${this.meId}` : 'h');
       for (const st of data.store ?? []) put('store', st, 'h');
       for (const st of data.settings ?? []) put('settings', st, 'h');
+      for (const idea of data.idea ?? []) put('idea', idea, 'h');
     });
     return n;
   }

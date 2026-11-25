@@ -1,6 +1,6 @@
 import type { Hub } from '../core/actions';
 import { addDays, diffDays, fromDateStr, today as todayStr } from '../core/dates';
-import type { Item, List, LogEntry } from '../core/model';
+import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
 import { categoryMeta, categoryOrder, type Flavor } from '../smart/categorize';
 import { itemKey } from '../smart/normalize';
@@ -283,6 +283,36 @@ export const choresView = memo((hub: Hub, ref: string): ChoresView => {
     total: rows.length,
   };
 });
+
+// ---------------------------------------------------------------- Ideas
+
+/**
+ * The Ideas sheet: open ideas in our order (never-arranged ones first, newest on top), then
+ * the resolved ones, most recently resolved first.
+ */
+export const ideasView = memo((hub: Hub): { open: Idea[]; resolved: Idea[] } => {
+  const all = hub.store.all('idea');
+  const place = (i: Idea) => (typeof i.order === 'number' ? i.order : -Infinity);
+  return {
+    open: all.filter((i) => !i.resolvedAt).sort((a, b) => place(a) - place(b) || b.createdAt - a.createdAt),
+    resolved: all.filter((i) => !!i.resolvedAt).sort((a, b) => (b.resolvedAt ?? 0) - (a.resolvedAt ?? 0)),
+  };
+});
+
+/** Did my partner add or edit an idea after `seenAt` (when I last opened the sheet on this device)? */
+export function ideasUnseen(hub: Hub, seenAt: number): boolean {
+  return hub.store.all('idea').some((i) => (i.by !== hub.meId && i.createdAt > seenAt) || (!!i.editedBy && i.editedBy !== hub.meId && (i.editedAt ?? 0) > seenAt));
+}
+
+/** The open ideas as a plain Markdown list, "- text (Hila)", to paste somewhere else. */
+export function ideasMarkdown(hub: Hub): string {
+  return ideasView(hub)
+    .open.map((i) => {
+      const who = hub.member(i.by)?.name;
+      return `- ${i.text.replace(/\s*\n\s*/g, ' ')}${who ? ` (${who})` : ''}`;
+    })
+    .join('\n');
+}
 
 // ---------------------------------------------------------------- Lists
 

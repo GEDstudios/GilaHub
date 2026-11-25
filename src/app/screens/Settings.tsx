@@ -2,11 +2,13 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
 import { BarEditor } from '../components/BarEditor';
 import { HomeEditor } from '../components/HomeEditor';
+import { useOpenIdeas } from '../components/Ideas';
 import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
 import { useHub, useRt, useSync } from '../context';
 import { setPrefs, use24h, usePrefs, weekStart } from '../prefs';
 import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
+import { ideasView } from '../views';
 import { back } from '../router';
 import { disablePush, enablePush, isIOS, isStandalone, notifyMembers, pushState, swContainer, type PushState, type Runtime } from '../runtime';
 import { AWAY_ON, awaySub, backupSub, needsBackup, syncAria, syncLabel, usSentence, welcomeBack } from '../settingsCopy';
@@ -29,7 +31,7 @@ const wide = () => typeof matchMedia === 'function' && matchMedia('(min-width: 9
 const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 function exportData(rt: Runtime) {
-  const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings'] as const;
+  const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea'] as const;
   const data: Record<string, unknown[]> = {};
   for (const t of tables) data[t] = rt.store.all(t);
   const blob = new Blob([JSON.stringify({ app: 'gila-hub', v: 1, exportedAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' });
@@ -532,6 +534,12 @@ function ThisDevice() {
             />
           }
         />
+        <OptRow
+          icon="lightbulb"
+          title="Ideas tag"
+          sub="Wishes for Gila Hub, on every screen"
+          trail={<Switch on={prefs.ideasTag} label="Ideas tag" onChange={(on) => setPrefs({ ideasTag: on })} />}
+        />
         {coarse() ? (
           <OptRow
             icon="hand"
@@ -652,25 +660,35 @@ function UpdatePill() {
 }
 
 function About({ me, partner }: { me: Member; partner: Member | undefined }) {
+  const hub = useHub();
+  const openIdeas = useOpenIdeas();
+  const n = ideasView(hub).open.length;
   return (
-    <div className="about">
-      <span className="about__mark">
-        <Logo size={34} />
-      </span>
-      <p>Life together, sorted.</p>
-      <p className="about__build">
-        <span className="about__ver">Version {__BUILD__}</span>
-        <UpdatePill />
-      </p>
-      <p className="about__for" dir="auto">
-        {partner ? `Made for ${me.name} & ${partner.name}` : 'Made for two'} ·{' '}
-        <span dir="rtl" lang="he">
-          גִּילָה
-        </span>{' '}
-        means joy
-      </p>
-      <p className="about__credit">Icons: Phosphor (MIT)</p>
-    </div>
+    <>
+      <Section title="About">
+        <div className="group">
+          <OptRow icon="lightbulb" title="Ideas" value={n ? `${n} open` : undefined} chev onClick={openIdeas} />
+        </div>
+      </Section>
+      <div className="about">
+        <span className="about__mark">
+          <Logo size={34} />
+        </span>
+        <p>Life together, sorted.</p>
+        <p className="about__build">
+          <span className="about__ver">Version {__BUILD__}</span>
+          <UpdatePill />
+        </p>
+        <p className="about__for" dir="auto">
+          {partner ? `Made for ${me.name} & ${partner.name}` : 'Made for two'} ·{' '}
+          <span dir="rtl" lang="he">
+            גִּילָה
+          </span>{' '}
+          means joy
+        </p>
+        <p className="about__credit">Icons: Phosphor (MIT)</p>
+      </div>
+    </>
   );
 }
 

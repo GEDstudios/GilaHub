@@ -3,7 +3,7 @@ import type { Commit, EntityRecord, Op, OutboxEntry, Persistence } from './db';
 import { newId } from './ids';
 import type { Scope, Table, TableTypes } from './model';
 
-const TABLES: Table[] = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings'];
+const TABLES: Table[] = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea'];
 
 type Views = { [T in Table]: Map<string, TableTypes[T]> };
 type Listener = () => void;
@@ -297,7 +297,9 @@ export class Store {
   }
 
   private materialize(rec: EntityRecord): void {
-    const view = this.views[rec.t];
+    const view = this.views[rec.t] as Views[Table] | undefined;
+    // A table from a newer version of the app: kept (and synced) as is, shown once we know it.
+    if (!view) return;
     const scope = ((rec.v._s as Scope | undefined) ?? 'h') as Scope;
     const hasContent = Object.keys(rec.v).some((k) => k !== '_s');
     if (rec.v.deleted === true || !this.canRead(scope) || !hasContent) {

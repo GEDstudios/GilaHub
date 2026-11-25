@@ -1,6 +1,6 @@
 // End-to-end: two people, two browsers, one local relay (wrangler dev).
-// Pairs Guy and Hila, checks live sync both ways, smart routing, and that
-// "Only me" items never reach the partner. Saves screenshots for review.
+// Pairs Guy and Hila, checks live sync both ways, smart routing, that
+// "Only me" items never reach the partner, and the shared Ideas list. Saves screenshots for review.
 //
 // Usage: npm run e2e            (builds, starts `wrangler dev`, runs, stops)
 //        E2E_URL=http://… npm run e2e   (use an already running relay)
@@ -460,6 +460,63 @@ try {
     await alerts.click();
     await waitFor(async () => (await alerts.getAttribute('aria-checked')) === 'false', 3000, 'alerts off');
     await alerts.click();
+  });
+
+  // ---------- Ideas
+  const IDEA = 'Pin a project to the top of Today';
+  const IDEA2 = 'Pin a project to the top of Today, with its count';
+  await check('Ideas: Guy writes one; Hila sees it with his dot and a new-dot on her tag', async () => {
+    await guy.goto(`${url}/`);
+    await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
+    await guy.locator('.ideatag').click();
+    await guy.getByRole('dialog', { name: 'Ideas for Gila Hub' }).waitFor();
+    const box = guy.getByRole('textbox', { name: 'New idea' });
+    await box.fill(IDEA);
+    await box.press('Enter');
+    await guy.getByRole('button', { name: IDEA, exact: true }).waitFor({ timeout: 3000 });
+    await shot(guy, '24-ideas-guy');
+    await guy.keyboard.press('Escape');
+    await guy.getByRole('dialog').waitFor({ state: 'detached', timeout: 3000 });
+
+    await hila.goto(`${url}/`);
+    await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();
+    await hila.locator('.ideatag .ideatag__dot').waitFor({ timeout: 15000 });
+    const label = await hila.locator('.ideatag').getAttribute('aria-label');
+    if (label !== 'Ideas for Gila Hub, 1 open, new from Guy') throw new Error(`tag says: ${label}`);
+    await shot(hila, '25-ideas-hila-tag');
+    await hila.locator('.ideatag').click();
+    const row = hila.locator('li.idea', { hasText: IDEA });
+    await row.waitFor({ timeout: 3000 });
+    const dot = await row.locator('.idea__dot').evaluate((e) => getComputedStyle(e).backgroundColor);
+    if (dot !== 'rgb(36, 209, 254)') throw new Error(`Guy's dot should be sky, got ${dot}`);
+    await row.getByText('Guy · ').waitFor({ timeout: 3000 });
+  });
+
+  await check('Ideas: Hila edits and resolves it; Guy sees it under Resolved by Hila', async () => {
+    await hila.getByRole('button', { name: IDEA, exact: true }).click();
+    const edit = hila.getByRole('textbox', { name: 'Edit idea' });
+    await edit.fill(IDEA2);
+    await edit.press('Enter');
+    const row = hila.locator('li.idea', { hasText: IDEA2 });
+    await row.getByText('edited by Hila').waitFor({ timeout: 3000 });
+    await shot(hila, '26-ideas-hila-edited');
+    await row.getByRole('checkbox', { name: IDEA2 }).click();
+    await hila.locator('.sheet li.idea:not(.is-done)').waitFor({ state: 'detached', timeout: 3000 });
+    await hila.locator('.sheet').getByRole('heading', { name: /Resolved/ }).waitFor({ timeout: 3000 });
+    await hila.keyboard.press('Escape');
+
+    await guy.locator('.ideatag .ideatag__dot').waitFor({ timeout: 15000 });
+    await guy.locator('.ideatag').click();
+    const sheet = guy.locator('.sheet');
+    await sheet.getByRole('heading', { name: /Resolved/ }).waitFor({ timeout: 5000 });
+    if (await sheet.locator('li.idea:not(.is-done)').count()) throw new Error('the idea is still open for Guy');
+    await sheet.getByRole('button', { name: 'Show' }).click();
+    const done = sheet.locator('li.idea.is-done', { hasText: IDEA2 });
+    await done.getByText('Resolved by Hila').waitFor({ timeout: 3000 });
+    await shot(guy, '27-ideas-guy-resolved');
+    await guy.keyboard.press('Escape');
+    await guy.getByRole('dialog').waitFor({ state: 'detached', timeout: 3000 });
+    if (await guy.locator('.ideatag__dot').count()) throw new Error('the new-dot stayed after Guy looked');
   });
 
   // ---------- Desktop

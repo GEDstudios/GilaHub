@@ -122,6 +122,26 @@ export function relativeAgo(ms: number, now = Date.now()): string {
   return dateOfMs(ms);
 }
 
+/** A day of a moment, short: "20 Nov", or "20 Nov 2025" in another year. */
+export function shortDay(ms: number, now = Date.now()): string {
+  const d = new Date(ms);
+  const base = `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+  return d.getFullYear() === new Date(now).getFullYear() ? base : `${base} ${d.getFullYear()}`;
+}
+
+/** A compact age for a meta line: "now", "5m", "3h", "3d", "2w", then the day ("20 Nov"). */
+export function shortAgo(ms: number, now = Date.now()): string {
+  const m = Math.floor(Math.max(0, now - ms) / 60_000);
+  if (m < 1) return 'now';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  if (d < 35) return `${Math.floor(d / 7)}w`;
+  return shortDay(ms, now);
+}
+
 /** Does the locale write dates day-first (13/12) rather than month-first (12/13)? */
 export function prefersDayFirst(locale = typeof navigator !== 'undefined' ? navigator.language : 'en-IL'): boolean {
   return !/^en-(US|PH|CA)$/i.test(locale) && !/^(fil|tl)/i.test(locale);

@@ -4,6 +4,7 @@ import type { Persistence } from '../core/db';
 import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
+import { IdeaTag } from './components/Ideas';
 import { QuickAddSheet } from './components/QuickAddSheet';
 import { TabBar } from './components/TabBar';
 import { RuntimeProvider, useHub, useRt } from './context';
@@ -238,6 +239,7 @@ function Shell() {
         <Screen />
       </main>
       {bar ? <TabBar /> : null}
+      <IdeaTag />
       <Duties />
     </div>
   );

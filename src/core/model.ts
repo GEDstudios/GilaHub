@@ -5,7 +5,7 @@
  * Lists hold items; items nest infinitely through `parentId`.
  */
 
-export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings';
+export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea';
 
 /** Encryption scope: 'h' = household key (both partners), 'p:<memberId>' = personal key. */
 export type Scope = 'h' | `p:${string}`;
@@ -192,6 +192,26 @@ export interface Store {
   deleted?: boolean;
 }
 
+/**
+ * An idea for Gila Hub itself (the Ideas tag). Always household scope: both of us read,
+ * edit, resolve and reorder every one.
+ */
+export interface Idea {
+  id: string;
+  text: string;
+  /** Who wrote it (member id). */
+  by: string;
+  createdAt: number;
+  /** Manual order, lower first. Unset: newest first, above the ordered ones. */
+  order?: number;
+  /** Set when someone changed the text (the meta line says "edited by" when it isn't the author). */
+  editedBy?: string | null;
+  editedAt?: number | null;
+  resolvedAt?: number | null;
+  resolvedBy?: string | null;
+  deleted?: boolean;
+}
+
 export interface TableTypes {
   member: Member;
   list: List;
@@ -200,4 +220,5 @@ export interface TableTypes {
   memory: Memory;
   store: Store;
   settings: Settings;
+  idea: Idea;
 }

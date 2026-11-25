@@ -21,6 +21,8 @@ export interface Prefs {
   inviteHiddenUntil: number;
   /** When this device last downloaded a backup (ms), for Settings and the reset nudge. */
   lastBackupAt: number | null;
+  /** The floating Ideas tag (the sheet stays reachable from Settings either way). */
+  ideasTag: boolean;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -37,6 +39,7 @@ const DEFAULTS: Prefs = {
   earlierOpen: false,
   inviteHiddenUntil: 0,
   lastBackupAt: null,
+  ideasTag: true,
 };
 
 function read(): Prefs {
