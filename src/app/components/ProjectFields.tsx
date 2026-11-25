@@ -125,7 +125,7 @@ export function ProjectFields({
             ) : null}
           </>
         ) : null}
-        {/* Off: a dashed "Add to bar". On: a solid "In the bar" with a check, so it reads at a glance. */}
+        {/* Off: a dashed "Pin to bar". On: "Pinned to bar", filled with my colour, so it reads at a glance. */}
         <button
           type="button"
           className={`echip echip--toggle ${value.pinned ? 'is-on' : 'echip--ghost'}`}
@@ -135,8 +135,8 @@ export function ProjectFields({
             onChange({ pinned: !value.pinned });
           }}
         >
-          <Icon name={value.pinned ? 'check' : 'plus'} className="icon--sm" />
-          <span>{value.pinned ? 'In the bar' : 'Add to bar'}</span>
+          <Icon name="pin" className="icon--sm" />
+          <span>{value.pinned ? 'Pinned to bar' : 'Pin to bar'}</span>
         </button>
       </div>
     </div>

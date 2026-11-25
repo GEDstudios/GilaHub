@@ -1993,11 +1993,18 @@ html.is-dragging * {
   color: var(--text-3);
 }
 
-.echip.is-set {
-  color: var(--text);
+/* On: the chip fills with my colour, so what's set reads at a glance (open stays ink). */
+.echip.is-set,
+.echip.is-low,
+.echip--toggle.is-on {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+  box-shadow: none;
 }
 
-.echip.is-set .icon {
+.echip.is-set .icon,
+.echip.is-low .icon,
+.echip--toggle.is-on .icon {
   color: var(--ink);
 }
 
@@ -2010,13 +2017,7 @@ html.is-dragging * {
   color: inherit;
 }
 
-/* Low priority: quieter, and its row sinks */
-.echip.is-low {
-  background: var(--card);
-  color: var(--text-2);
-  box-shadow: inset 0 0 0 1.5px var(--tile-2);
-}
-
+/* Low priority: its row sinks, quieter */
 .row.is-low .row__title {
   color: var(--text-3);
 }
@@ -2067,15 +2068,9 @@ html.is-dragging * {
   border-color: transparent;
 }
 
-/* An on/off chip (In the bar): on is solid ink with a check, off is a dashed "Add to…" */
+/* An on/off chip (Pin to bar): off is dashed, on fills with my colour (above) with a pop */
 .echip--toggle.is-on {
-  background: var(--cta);
-  color: var(--cta-text);
   animation: pop 240ms var(--spring) both;
-}
-
-.echip--toggle.is-on .icon {
-  color: inherit;
 }
 
 /* A chip's panel opens below the whole chip row, full width */
