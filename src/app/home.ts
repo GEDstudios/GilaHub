@@ -200,6 +200,19 @@ export interface WeekBand {
   /** The big figure: a count, or a feeling. */
   num: number | string;
   label: string;
+  /** What's in it, in a line: the things, the people, the comparison. */
+  detail?: string;
+}
+
+/** Who did how many this week (tasks and chores done, trips' items bought). */
+export function weekBy(hub: Hub, now = Date.now()): Map<string, number> {
+  const since = now - 7 * 86_400_000;
+  const kinds = new Map(hub.lists().map((l) => [l.id, l.kind]));
+  const out = new Map<string, number>();
+  const add = (id: string | null | undefined) => id && out.set(id, (out.get(id) ?? 0) + 1);
+  for (const l of hub.store.all('log')) if (l.at > since) add(l.by);
+  for (const i of hub.store.all('item')) if (i.done && i.doneAt && i.doneAt > since && !i.repeat && kinds.get(i.listId) !== 'shopping') add(i.doneBy);
+  return out;
 }
 
 /** Done this week (tasks, chores, shopping trips), and the week before, for "more than last week". */
@@ -229,25 +242,42 @@ export function choresReady(hub: Hub, v: TodayView, chores: ChoresView): ChoreRo
  */
 export function weekBands(hub: Hub, v: TodayView, chores: ChoresView, shown: ReadonlySet<string> = new Set(visibleHome(hub).map((s) => s.key))): WeekBand[] {
   const out: WeekBand[] = [];
-  if (v.shopping.count && !shown.has('shop')) out.push({ key: 'shop', color: 'lemon', num: v.shopping.count, label: 'to buy' });
+  const names = (xs: string[], n = 3) => (xs.length > n ? `${xs.slice(0, n).join(', ')} +${xs.length - n}` : xs.join(', '));
+  if (v.shopping.count && !shown.has('shop'))
+    out.push({
+      key: 'shop',
+      color: 'lemon',
+      num: v.shopping.count,
+      label: 'to buy',
+      detail: (() => {
+        const shown = v.shopping.preview.slice(0, 3).map((i) => (i.urgent ? `${i.title}!` : i.title));
+        return v.shopping.count > shown.length ? `${shown.join(', ')} +${v.shopping.count - shown.length}` : shown.join(', ');
+      })(),
+    });
   // The same "ready" the Chores widget shows: not what Today already lists.
-  const ready = choresReady(hub, v, chores).length;
-  if (ready && !shown.has('chores')) out.push({ key: 'chores', color: 'pink', num: ready, label: `${ready === 1 ? 'chore' : 'chores'} ready for ${hub.partner()?.name ?? 'them'}` });
-  // How the week went, against the one before.
+  const readyRows = choresReady(hub, v, chores);
+  const ready = readyRows.length;
+  if (ready && !shown.has('chores'))
+    out.push({ key: 'chores', color: 'pink', num: ready, label: `${ready === 1 ? 'chore' : 'chores'} ready for ${hub.partner()?.name ?? 'them'}`, detail: names(readyRows.map((r) => r.item.title)) });
+  // How the week went: who did what, against the week before.
   const { week, last } = weekCounts(hub);
   if (week) {
     const diff = week - last;
-    const vs = !last ? '' : diff > 0 ? ` · ${diff} more than last week` : diff < 0 ? ` · ${-diff} fewer than last week` : ' · same as last week';
-    out.push({ key: 'done', color: 'lilac', num: week, label: `${hub.partner() ? 'done together' : 'done'} this week${vs}` });
+    const vs = !last ? '' : diff > 0 ? `${diff} more than last week` : diff < 0 ? `${-diff} fewer than last week` : 'same as last week';
+    const by = weekBy(hub);
+    const people = hub.partner() ? hub.members().map((m) => `${m.name} ${by.get(m.id) ?? 0}`).join(' · ') : '';
+    out.push({ key: 'done', color: 'lilac', num: week, label: `${hub.partner() ? 'done together' : 'done'} this week`, detail: [people, vs].filter(Boolean).join(' · ') || undefined });
   }
   // Moments: the good bits. A year (or a month) ago today first; else this week's; else an invitation.
   const moments = hub.moments();
   const today = todayStr();
   const back = onThisDay(moments, today);
   const thisWeek = moments.filter((m) => m.day > addDays(today, -7));
-  if (back) out.push({ key: 'moments', color: 'mint', num: back.moment.feel, label: `${back.ago}: ${back.moment.text}` });
-  else if (thisWeek.length) out.push({ key: 'moments', color: 'mint', num: thisWeek[0].feel, label: thisWeek.length > 1 ? `${thisWeek[0].text} · and ${thisWeek.length - 1} more` : thisWeek[0].text });
-  else out.push({ key: 'moments', color: 'mint', num: '+', label: moments.length ? 'Keep a moment from this week' : 'Keep a moment, to look back on' });
+  const who = (id: string) => hub.member(id)?.name ?? '';
+  if (back) out.push({ key: 'moments', color: 'mint', num: back.moment.feel, label: back.moment.text, detail: `${back.ago} · ${who(back.moment.by)}` });
+  else if (thisWeek.length)
+    out.push({ key: 'moments', color: 'mint', num: thisWeek[0].feel, label: thisWeek[0].text, detail: thisWeek.length > 1 ? `and ${thisWeek.length - 1} more this week` : `${who(thisWeek[0].by)} · this week` });
+  else out.push({ key: 'moments', color: 'mint', num: '+', label: moments.length ? 'Keep a moment from this week' : 'Keep a moment', detail: 'Something small counts' });
   return out;
 }
 

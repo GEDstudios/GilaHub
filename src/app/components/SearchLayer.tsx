@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { fold } from '../../smart/normalize';
 import { useHub } from '../context';
 import { navigate, useRoute } from '../router';
-import { clearRecentSearches, closeSearch, recentSearches, rememberSearch, useSearchOpen } from '../search';
+import { clearRecentSearches, closeSearch, recentSearches, rememberSearch, searchEverywhere, useSearchOpen, useSearchScope } from '../search';
 import { Icon } from '../ui/Icon';
 import { ListBullet } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
@@ -47,9 +47,10 @@ function Layer() {
     };
   }, []);
 
+  const scope = hub.list(useSearchScope());
   const term = q.trim();
-  const items = term ? hub.search(term, 30) : [];
-  const lists = term ? hub.lists().filter((l) => fold(l.name).includes(fold(term))) : [];
+  const items = term ? hub.search(term, scope ? 200 : 30).filter((i) => !scope || i.listId === scope.id).slice(0, 30) : [];
+  const lists = term && !scope ? hub.lists().filter((l) => fold(l.name).includes(fold(term))) : [];
   const keep = () => rememberSearch(term);
 
   return (
@@ -64,7 +65,7 @@ function Layer() {
               value={q}
               dir="auto"
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search everything"
+              placeholder={scope ? `Search ${scope.name}` : 'Search everything'}
               aria-label="Search"
               enterKeyHint="search"
               autoComplete="off"
@@ -82,6 +83,15 @@ function Layer() {
       </div>
 
       <div className="searchlayer__body column">
+        {scope ? (
+          <div className="tokens searchlayer__scope">
+            <button type="button" className="token is-on" onClick={searchEverywhere} aria-label={`Only in ${scope.name}. Tap to search everything`}>
+              <ListBullet list={scope} size="xs" />
+              <span dir="auto">In {scope.name}</span>
+              <Icon name="x" className="token__x" />
+            </button>
+          </div>
+        ) : null}
         {!term && recent.length ? (
           <div className="searchlayer__card searchlayer__recent">
             <div className="tokens">

@@ -276,7 +276,7 @@ describe('home blocks', () => {
     hub.toggle(done);
     const v = todayView(hub, today());
     const c = choresView(hub, today());
-    expect(weekBands(hub, v, c).map((b) => b.label)).toEqual(['to buy', 'done this week', 'Keep a moment, to look back on']);
+    expect(weekBands(hub, v, c).map((b) => b.label)).toEqual(['to buy', 'done this week', 'Keep a moment']);
     showHome(hub, 'shop');
     expect(weekBands(hub, todayView(hub, today()), c).map((b) => b.key)).toEqual(['done', 'moments']);
     hub.addMoment('Pancakes in bed', '🥰');

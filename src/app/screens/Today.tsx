@@ -165,7 +165,7 @@ export function Today() {
         top={<SyncBadge />}
         actions={
           <>
-            <IconButton icon="search" label="Search" onClick={openSearch} />
+            <IconButton icon="search" label="Search" onClick={() => openSearch()} />
             <NewButton onClick={openNew} />
           </>
         }

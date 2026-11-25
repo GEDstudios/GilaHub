@@ -320,6 +320,11 @@ function Composer({
               aria-label="Add a subtask"
               enterKeyHint="next"
             />
+            {stepText.trim() ? (
+              <button type="button" className="btn btn--sm composer__stepgo" onMouseDown={(e) => e.preventDefault()} onClick={addStep}>
+                Add
+              </button>
+            ) : null}
           </label>
         </div>
       ) : null}

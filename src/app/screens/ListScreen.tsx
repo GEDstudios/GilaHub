@@ -1,3 +1,4 @@
+import { openSearch } from '../search';
 import type { ReactNode } from 'react';
 import type { List } from '../../core/model';
 import { useAddAction } from '../addAction';
@@ -130,6 +131,7 @@ export function ListScreen({ id }: { id: string }) {
 export function ProjectActions({ listId, label, onNew, menu = true }: { listId: string; label: string; onNew: () => void; menu?: boolean }) {
   return (
     <>
+      <IconButton icon="search" label="Search this project" onClick={() => openSearch(listId)} />
       {menu ? <ProjectMenuButton listId={listId} /> : null}
       <NewButton label={label} onClick={onNew} />
     </>

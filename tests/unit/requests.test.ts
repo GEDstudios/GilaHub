@@ -267,3 +267,19 @@ describe('privacy helpers', () => {
     expect(doerOf(guy, guy.item(turns)!)?.id).toBe('guy');
   });
 });
+
+describe('handing a thing over and back', () => {
+  it('a thing my partner made, that I made theirs, can be made ours or mine again', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(hila, 'To do').id;
+    const id = hila.addItem(todo, { title: 'Book the plumber' });
+    sync(guy, hila);
+    guy.setItemVisibility(id, 'mine', 'hila');
+    expect(guy.ownerOf(guy.item(id)!)).toBe('hila');
+    expect(guy.canSetPrivacy(guy.item(id)!)).toBe(true);
+    guy.setItemVisibility(id, 'mine', 'guy');
+    expect(guy.ownerOf(guy.item(id)!)).toBe('guy');
+    guy.setItemVisibility(id, 'ours');
+    expect(guy.ownerOf(guy.item(id)!)).toBeNull();
+  });
+});

@@ -6,23 +6,49 @@ import { useSyncExternalStore } from 'react';
  * an old link) opens it here instead.
  */
 let open = false;
+/** Search within one project (its page's search button); null = everything. */
+let scope: string | null = null;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
-export function openSearch(): void {
-  if (open) return;
+export function openSearch(inList?: string | null): void {
+  const next = typeof inList === 'string' ? inList : null;
+  if (open && next === scope) return;
   open = true;
+  scope = next;
+  emit();
+}
+
+export function searchScope(): string | null {
+  return scope;
+}
+
+/** Widen to everything (the scope chip's ×). */
+export function searchEverywhere(): void {
+  scope = null;
   emit();
 }
 
 export function closeSearch(): void {
   if (!open) return;
   open = false;
+  scope = null;
   emit();
 }
 
 export function isSearchOpen(): boolean {
   return open;
+}
+
+export function useSearchScope(): string | null {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    searchScope,
+    searchScope,
+  );
 }
 
 export function useSearchOpen(): boolean {

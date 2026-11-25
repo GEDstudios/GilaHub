@@ -75,7 +75,7 @@ function Sidebar() {
             </button>
           ))}
           {tabs.some((t) => t.key === 'search') ? null : (
-            <button type="button" className="navitem" onClick={openSearch}>
+            <button type="button" className="navitem" onClick={() => openSearch()}>
               <Icon name="search" />
               <span className="navitem__label">Search</span>
               <span className="navitem__count kbd">/</span>

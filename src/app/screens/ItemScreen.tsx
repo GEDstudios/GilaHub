@@ -178,7 +178,8 @@ export function ItemScreen({ id }: { id: string }) {
     .logsFor(id)
     .filter((l) => l.kind === 'done')
     .slice(0, 5);
-  const allowed = allowedVis(hub, list, ancestors.at(-1));
+  // My partner's thing can be theirs, ours or mine again, but hiding it from them isn't mine to do.
+  const allowed = allowedVis(hub, list, ancestors.at(-1)).filter((v) => v !== 'private' || itemVisChoice(hub, item) !== 'theirs');
   const visChoice = itemVisChoice(hub, item);
   const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
   const iAsked = item.requestedBy === hub.meId;
@@ -408,6 +409,11 @@ function SubtaskAdd({ listId, parentId }: { listId: string; parentId: string }) 
         aria-label="Add a subtask"
         enterKeyHint="next"
       />
+      {t.trim() ? (
+        <button type="button" className="btn btn--sm composer__stepgo" onMouseDown={(e) => e.preventDefault()} onClick={add}>
+          Add
+        </button>
+      ) : null}
     </label>
   );
 }

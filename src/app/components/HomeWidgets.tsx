@@ -213,11 +213,20 @@ export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: strin
 
 // ---------------------------------------------------------------- this week
 
-function Strip({ color, num, label, onClick }: { color: LineColor; num: number | string; label: string; onClick?: () => void }) {
+function Strip({ color, num, label, detail, onClick }: { color: LineColor; num: number | string; label: string; detail?: string; onClick?: () => void }) {
   return (
-    <button type="button" className="strip" style={lineVars(color)} onClick={onClick} aria-label={`${num} ${label}`} disabled={!onClick}>
+    <button type="button" className="strip" style={lineVars(color)} onClick={onClick} aria-label={`${num} ${label}${detail ? `. ${detail}` : ''}`} disabled={!onClick}>
       <span className="strip__num num">{num}</span>
-      <span className="strip__label">{label}</span>
+      <span className="strip__text">
+        <span className="strip__label" dir="auto">
+          {label}
+        </span>
+        {detail ? (
+          <span className="strip__detail" dir="auto">
+            {detail}
+          </span>
+        ) : null}
+      </span>
     </button>
   );
 }
@@ -238,7 +247,7 @@ export function WeekStrips({ v, chores, shown }: { v: TodayView; chores: ChoresV
     <Section title="This week">
       <div className="stack">
         {bands.map((b) => (
-          <Strip key={b.key} color={b.color} num={b.num} label={b.label} onClick={go[b.key]} />
+          <Strip key={b.key} color={b.color} num={b.num} label={b.label} detail={b.detail} onClick={go[b.key]} />
         ))}
       </div>
     </Section>

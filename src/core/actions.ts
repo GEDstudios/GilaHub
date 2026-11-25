@@ -280,10 +280,13 @@ export class Hub {
     return !owner || owner === this.meId || this.visibilityOf(item) !== 'private';
   }
 
-  /** Who can see it is the owner's call (or anyone's, for shared things) — and whoever made it. */
+  /**
+   * Who can see it: anyone's call while we both see it (so a thing I handed to my partner can
+   * come back); an "Only me" thing is its owner's alone.
+   */
   canSetPrivacy(item: Item): boolean {
     const owner = this.ownerOf(item);
-    return !owner || owner === this.meId || item.createdBy === this.meId;
+    return !owner || owner === this.meId || item.createdBy === this.meId || this.visibilityOf(item) !== 'private';
   }
 
   /** Is assigning this a request to my partner? */
