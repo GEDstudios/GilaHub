@@ -26,6 +26,13 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// "Is this page's code in your build?" — a page running an older build hears "no" and offers
+// Refresh. (iPhone apps often miss the moment the new worker takes over.)
+self.addEventListener('message', (event) => {
+  const d = event.data;
+  if (d && d.type === 'has' && event.ports[0]) event.ports[0].postMessage({ has: PRECACHE.includes(d.path), version: VERSION });
+});
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;

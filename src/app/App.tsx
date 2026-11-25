@@ -1,3 +1,4 @@
+import { updateReady } from './update';
 import { useEffect, useState } from 'react';
 import { seedHousehold } from '../core/actions';
 import type { Persistence } from '../core/db';
@@ -216,6 +217,8 @@ function Duties() {
 
   useEffect(() => {
     const onUpdate = () => toast('A new version is ready', { action: { label: 'Refresh', run: () => location.reload() }, ms: 120_000 });
+    // It may have been found before this screen was up (the check runs at launch).
+    if (updateReady()) onUpdate();
     window.addEventListener('gila:update', onUpdate);
     return () => window.removeEventListener('gila:update', onUpdate);
   }, [toast]);
