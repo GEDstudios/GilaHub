@@ -200,7 +200,9 @@ export interface ShoppingView {
 
 export const shoppingView = memo((hub: Hub, filter: string, dismissed: Record<string, number>): ShoppingView => {
   const all = hub.shoppingLists();
-  const lists = filter === 'all' ? all : all.filter((l) => l.id === filter);
+  // 'all', or the ids of the lists to show, comma-separated.
+  const wanted = new Set(filter.split(','));
+  const lists = filter === 'all' ? all : all.filter((l) => wanted.has(l.id));
   const ids = new Set(lists.map((l) => l.id));
   const items = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
   const withEmoji = (i: Item) => ({ ...i, emoji: hub.categoryFor(i).emoji });

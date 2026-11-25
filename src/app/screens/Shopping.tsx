@@ -12,7 +12,7 @@ import { notifyMembers } from '../runtime';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton, Seg } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton } from '../ui/primitives';
 import { haptic } from '../ui/haptics';
 import { UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
@@ -79,10 +79,22 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
   const allLists = hub.shoppingLists();
-  // With one shopping list, the Shopping tab is that project, and looks like it.
-  const scoped = listId ? hub.list(listId) : allLists.length === 1 ? allLists[0] : undefined;
-  const lists = scoped ? [scoped] : allLists;
-  const filter = scoped ? scoped.id : allLists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
+  // The Shopping tab shows the lists you pick (one, some or all of them). With just one picked
+  // it is that project, and looks like it.
+  const wanted = prefs.shopFilter === 'all' ? [] : prefs.shopFilter.split(',');
+  const picked = listId ? allLists.filter((l) => l.id === listId) : allLists.filter((l) => wanted.includes(l.id));
+  const shown = picked.length ? picked : listId ? [] : allLists;
+  const scoped = listId ? hub.list(listId) : shown.length === 1 ? shown[0] : undefined;
+  const lists = scoped ? [scoped] : shown;
+  const filter = lists.length === allLists.length && !listId ? 'all' : lists.map((l) => l.id).join(',');
+  /** Tap a list's chip: show it too, or not (never none). */
+  const togglePick = (id: string) => {
+    const on = new Set(lists.map((l) => l.id));
+    if (on.has(id)) on.delete(id);
+    else on.add(id);
+    if (!on.size) return;
+    setPrefs({ shopFilter: on.size === allLists.length ? 'all' : [...on].join(',') });
+  };
   const v = shoppingView(hub, filter, prefs.dismissed);
   const [mode, setMode] = useState(false);
   const [arranging, setArranging] = useState(false);
@@ -171,7 +183,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
 
   const destFor = (name: string, listId?: string): List | undefined => {
     if (listId) return hub.list(listId);
-    if (filter !== 'all') return hub.list(filter);
+    if (lists.length === 1) return lists[0];
     return hub.routeShopping(name, lists);
   };
 
@@ -184,7 +196,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   // New: the composer pointed at the list an item would go to (routed per item in "Both").
   const openNew = () =>
     allLists.length
-      ? openSheet((close) => <QuickAddSheet onClose={close} listId={destFor('')?.id ?? lists[0].id} route={filter === 'all'} />)
+      ? openSheet((close) => <QuickAddSheet onClose={close} listId={destFor('')?.id ?? lists[0].id} route={lists.length > 1} />)
       : openSheet((close) => <NewProjectSheet onClose={close} initial={{ kind: 'shopping' }} />);
   useAddAction(openNew, 'Add an item');
   const newBtn = <NewButton label="Add an item" onClick={openNew} />;
@@ -209,22 +221,9 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     });
   };
 
-  const filterOptions = [
-    { value: 'all', label: lists.length > 2 ? 'All' : 'Both' },
-    ...lists.map((l) => ({
-      value: l.id,
-      label: (
-        <>
-          <ListBullet list={l} size="xs" />
-          <span dir="auto">{l.name}</span>
-        </>
-      ),
-    })),
-  ];
-
   // Nothing to buy: a few things you often buy.
   const empty = !v.openCount && !v.inCart.length;
-  const many = filter === 'all' && lists.length > 1;
+  const many = lists.length > 1;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
   const shopper = partnerShopping ? hub.member(partnerShopping.member) : undefined;
   const floating = v.openCount > 0 && !mode && !arranging;
@@ -274,9 +273,17 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             </div>
           </Empty>
         ) : null}
-        {!scoped && lists.length > 1 ? (
-          <div className="filter">
-            <Seg label="Which list" value={filter} onChange={(val) => setPrefs({ shopFilter: val })} options={filterOptions} />
+        {!listId && allLists.length > 1 && !mode ? (
+          <div className="tokens filter" role="group" aria-label="Which lists">
+            {allLists.map((l) => {
+              const on = lists.some((x) => x.id === l.id);
+              return (
+                <button key={l.id} type="button" className={`echip ${on ? 'is-set' : ''}`} aria-pressed={on} onClick={() => togglePick(l.id)}>
+                  <ListBullet list={l} size="xs" />
+                  <span dir="auto">{l.name}</span>
+                </button>
+              );
+            })}
           </div>
         ) : null}
 

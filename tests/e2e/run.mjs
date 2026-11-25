@@ -169,9 +169,10 @@ try {
   });
 
   await check('Smart routing: light bulbs go to Home shopping', async () => {
-    await hila.getByRole('radio', { name: /home shopping/i }).click();
+    // Only Home shopping: tap Groceries off.
+    await hila.locator('.filter .echip', { hasText: 'Groceries' }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'light bulbs' }).count()) > 0, 10000, 'bulbs in home');
-    await hila.getByRole('radio', { name: /both/i }).click();
+    await hila.locator('.filter .echip', { hasText: 'Groceries' }).click();
   });
 
   await check('No duplicates: adding milk again says it exists', async () => {
