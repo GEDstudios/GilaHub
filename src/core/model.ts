@@ -23,6 +23,8 @@ export interface Member {
   createdAt: number;
   /** Wants a push when the partner starts shopping (default on). */
   shopAlerts?: boolean;
+  /** Wants a push when the partner asks for something, or does what I asked (default on). The sender reads it. */
+  requestAlerts?: boolean;
   /** My bottom bar, between Today and Projects, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
   tabs?: string[];
   /** My Today page, in order (undefined = the defaults). Synced to my devices; see app/home.ts. */

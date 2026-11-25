@@ -17,7 +17,10 @@ const firstGrapheme = (s: string): string => {
   return t[0].toUpperCase();
 };
 
-type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+type Size = 'xs' | 'sm' | 'md' | 'lg';
+
+/** The first letter of a name (a whole grapheme, so emoji and accents survive), upper-cased. */
+export const initialOf = (s: string): string => firstGrapheme(s);
 
 /** A person: a round avatar in their color with their initial. */
 export function Avatar({ member, size = 'sm', name, color }: { member?: Member; size?: Size; name?: string; color?: LineColor }) {
@@ -253,14 +256,17 @@ export function Seg<T extends string>({
   options,
   onChange,
   label,
+  small,
 }: {
   value: T;
   options: Array<{ value: T; label: ReactNode; title?: string }>;
   onChange: (v: T) => void;
   label: string;
+  /** The compact size, as a row's trailing control. */
+  small?: boolean;
 }) {
   return (
-    <div className="seg" role="radiogroup" aria-label={label}>
+    <div className={`seg${small ? ' seg--sm' : ''}`} role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button
           key={o.value}

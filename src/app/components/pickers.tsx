@@ -2,11 +2,13 @@ import type { ReactNode } from 'react';
 import { LINE_COLORS, type LineColor, type List } from '../../core/model';
 import { categoryMeta, categoryOrder, type Flavor } from '../../smart/categorize';
 import { useHub } from '../context';
+import { replay } from '../ui/flip';
+import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
 import { Sheet } from '../ui/overlays';
 import { ListBullet, lineVars } from '../ui/primitives';
 
-/** A quiet row inside a grouped card (settings, lists to pick from). */
+/** A quiet row inside a grouped card (settings, lists to pick from). `chev`: it opens something. */
 export function OptRow({
   icon,
   lead,
@@ -17,6 +19,7 @@ export function OptRow({
   on,
   disabled,
   trail,
+  chev,
 }: {
   icon?: IconName;
   lead?: ReactNode;
@@ -27,17 +30,23 @@ export function OptRow({
   on?: boolean;
   disabled?: boolean;
   trail?: ReactNode;
+  chev?: boolean;
 }) {
   const body = (
     <>
       {lead ?? (icon ? <Icon name={icon} className="optrow__icon" /> : null)}
       <span className="optrow__text">
         <span dir="auto">{title}</span>
-        {sub ? <span className="optrow__sub">{sub}</span> : null}
+        {sub ? (
+          <span className="optrow__sub" dir="auto">
+            {sub}
+          </span>
+        ) : null}
       </span>
       {value !== undefined ? <span className="optrow__value">{value}</span> : null}
       {on ? <Icon name="check" /> : null}
       {trail}
+      {chev ? <Icon name="chevron-right" className="optrow__chev" /> : null}
     </>
   );
   return onClick ? (
@@ -109,23 +118,45 @@ export function AisleSheet({ onClose, flavor, value, onPick }: { onClose: () => 
   );
 }
 
-/** Six colors, as round dots. */
-export function Swatches({ value, onChange, taken }: { value: LineColor; onChange: (c: LineColor) => void; taken?: LineColor[] }) {
+/**
+ * Six colors, as round dots. A `taken` color (my person's) shows their initial and can't be
+ * picked: a tap shakes it.
+ */
+export function Swatches({
+  value,
+  onChange,
+  taken,
+  big,
+}: {
+  value: LineColor;
+  onChange: (c: LineColor) => void;
+  taken?: Array<{ color: LineColor; name: string; initial: string }>;
+  big?: boolean;
+}) {
   return (
-    <div className="swatches" role="radiogroup" aria-label="Color">
-      {LINE_COLORS.map((c) => (
-        <button
-          key={c}
-          type="button"
-          role="radio"
-          aria-checked={c === value}
-          aria-label={c}
-          className={`swatch ${c === value ? 'is-on' : ''}`}
-          style={lineVars(c)}
-          onClick={() => onChange(c)}
-          disabled={taken?.includes(c) && c !== value}
-        />
-      ))}
+    <div className={`swatches ${big ? 'swatches--big' : ''}`} role="radiogroup" aria-label="Color">
+      {LINE_COLORS.map((c) => {
+        const owner = c !== value ? taken?.find((t) => t.color === c) : undefined;
+        return (
+          <button
+            key={c}
+            type="button"
+            role="radio"
+            aria-checked={c === value}
+            aria-label={owner ? `${c}, ${owner.name}’s` : c}
+            aria-disabled={owner ? true : undefined}
+            className={`swatch ${c === value ? 'is-on' : ''} ${owner ? 'is-taken' : ''}`}
+            style={lineVars(c)}
+            onClick={(e) => {
+              if (!owner) return onChange(c);
+              haptic('warn');
+              replay(e.currentTarget);
+            }}
+          >
+            {owner ? <span aria-hidden="true">{owner.initial}</span> : null}
+          </button>
+        );
+      })}
     </div>
   );
 }

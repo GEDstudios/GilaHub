@@ -57,11 +57,17 @@ export function HomeEditor() {
     };
   });
 
-  const tokens: ArrangerToken[] = hiddenWidgets(hub).map((k) => ({ key: k, label: WIDGETS[k].title(hub), onClick: () => showHome(hub, k) }));
+  const tokens: ArrangerToken[] = hiddenWidgets(hub).map((k) => ({
+    key: k,
+    label: WIDGETS[k].title(hub),
+    mark: <Icon name={WIDGETS[k].icon} />,
+    onClick: () => showHome(hub, k),
+  }));
   if (free.length) {
     tokens.push({
       key: 'project',
       label: 'A project',
+      mark: <Icon name="folder" />,
       toggle: true,
       open: panel && !full,
       disabled: full,

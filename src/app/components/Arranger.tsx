@@ -1,20 +1,22 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 
 /**
  * The arranger: one pattern for every "what goes where, in what order" editor (DECISIONS #7).
- * Edit Today uses it now; the bottom bar editor reuses it.
+ * Edit Today (HomeEditor) and the bottom bar (BarEditor) both use it.
  *
  *   [locked anchor rows]              e.g. Summary "Always first", or Today / Projects in the bar
  *   [mark][title + live sub][×][grip] sortable rows (Sortable with grips; long-press the body on touch)
- *   Add to …  (+ token) (+ token)     a tray of tokens to bring things back; one may open a panel
+ *   Add to …  ([mark] token +)        a tray of tokens to bring things back; one may open a panel
  *   Back to the default               quiet, only when something changed
  *
  * It saves nothing itself: onMove gets the new order on drop, onHide the key after the row
- * folds away, and tokens run their own onClick. Rows that appear get a lemon flash and scroll
- * into view; tokens that appear pop in.
+ * folds away (onLeave as it starts to), and tokens run their own onClick. Rows that appear get
+ * a lemon flash and scroll into view; tokens that appear pop in. A locked row shakes when
+ * tapped. Every row and anchor carries data-slot={key}, so a preview elsewhere can find it.
  */
 
 export interface ArrangerAnchor {
@@ -114,9 +116,12 @@ export function Arranger({
   moveLabel = (r) => `Move ${r.title}`,
   trayTitle,
   tokens,
+  trayEmpty,
   panel,
   reset,
   onPreview,
+  onLift,
+  onLeave,
 }: {
   /** Locked rows before and after the ones that move. */
   top?: ArrangerAnchor[];
@@ -128,12 +133,18 @@ export function Arranger({
   moveLabel?: (row: ArrangerRow) => string;
   trayTitle: string;
   tokens: ArrangerToken[];
+  /** Said under the tray title when there is nothing left to add (no tray when not given). */
+  trayEmpty?: ReactNode;
   /** Under the tokens: the panel an open toggle token reveals. */
   panel?: ReactNode;
   /** "Back to the default": shown only when given. */
   reset?: { label: string; run: () => void };
   /** The order as it would drop, while dragging (a live preview elsewhere). */
   onPreview?: (keys: string[] | null) => void;
+  /** A row was picked up. */
+  onLift?: (key: string) => void;
+  /** A row starts folding away (onHide follows when it's gone). */
+  onLeave?: (key: string) => void;
 }) {
   const [leaving, setLeaving] = useState<ReadonlySet<string>>(() => new Set());
   const [going, setGoing] = useState<string | null>(null);
@@ -177,6 +188,7 @@ export function Arranger({
     const el = list.current?.querySelector<HTMLElement>(`[data-slot="${CSS.escape(key)}"]`);
     el?.style.setProperty('--h', `${el.offsetHeight}px`);
     setLeaving((s) => new Set(s).add(key));
+    onLeave?.(key);
     later(
       () => {
         setLeaving((s) => {
@@ -209,8 +221,18 @@ export function Arranger({
     locked.length ? (
       <ul className="slots slots--fixed">
         {locked.map((a) => (
-          <li key={a.key} className="slot slot--fixed">
+          // Not a control: a tap only shows (a shake) that it stays put.
+          <li
+            key={a.key}
+            className="slot slot--fixed"
+            data-slot={a.key}
+            onClick={(e) => {
+              haptic('select');
+              replay(e.currentTarget);
+            }}
+          >
             <SlotBody mark={a.mark} title={a.title} sub={a.sub} />
+            <Icon name="lock" className="slot__lock" />
           </li>
         ))}
       </ul>
@@ -224,6 +246,7 @@ export function Arranger({
           ids={rowKeys}
           onMove={onMove}
           onPreview={onPreview}
+          onLift={onLift}
           grips
           label={(k) => byKey.get(k)?.title ?? k}
           liftClass="lift--slot"
@@ -260,11 +283,12 @@ export function Arranger({
       ) : null}
       {anchors(bottom)}
 
-      {tokens.length ? (
+      {tokens.length || trayEmpty ? (
         <section className="section tray">
           <div className="section__head">
             <h2 className="section__title">{trayTitle}</h2>
           </div>
+          {tokens.length ? null : <p className="tray__empty">{trayEmpty}</p>}
           <div className="tokens">
             {tokens.map((t) => (
               <button
@@ -276,9 +300,9 @@ export function Arranger({
                 title={t.title}
                 aria-expanded={t.toggle ? !!t.open : undefined}
               >
-                <Icon name="plus" />
-                {t.mark}
+                {t.mark ?? <Icon name="plus" />}
                 <span dir="auto">{t.label}</span>
+                {t.mark ? <Icon name="plus" className="token__plus" /> : null}
               </button>
             ))}
           </div>

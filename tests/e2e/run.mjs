@@ -105,6 +105,17 @@ try {
   await waitFor(() => guy.locator('.syncdot--synced').count(), 20000, 'guy synced');
   await shot(guy, '03-today-guy');
 
+  await check('Settings on his own: one page, no floating bar, "Your person?" on the card', async () => {
+    await guy.goto(`${url}/settings`);
+    await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
+    await guy.getByRole('button', { name: 'Your person?' }).waitFor({ timeout: 5000 });
+    await guy.waitForTimeout(600);
+    await guy.screenshot({ path: resolve(shots, '03s-settings-solo-full.png'), fullPage: true });
+    if (await guy.locator('.tabbar:not(.tabbar--preview)').count()) throw new Error('the floating tab bar shows on /settings');
+    await guy.goto(`${url}/`);
+    await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
+  });
+
   // ---------- Invite Hila
   await guy.getByText('Bring your person in').click();
   const codeEl = guy.locator('.codepanel__code');
@@ -368,6 +379,87 @@ try {
     const slots = await guy.locator('.slots:not(.slots--fixed) .slot__title').allInnerTexts();
     if (slots.join() !== 'Waiting on you,Today,This week,Coming up,Hila did') throw new Error(`after reset: ${slots.join(', ')}`);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
+  });
+
+  // ---------- Settings
+  await check('Settings: no floating bar; Chores dragged above Shopping by its grip sticks', async () => {
+    await guy.goto(`${url}/settings`);
+    await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
+    await guy.locator('.mecard__tag', { hasText: 'Hila' }).waitFor({ timeout: 5000 });
+    if (await guy.locator('.tabbar:not(.tabbar--preview)').count()) throw new Error('the floating tab bar shows on /settings');
+    await guy.waitForTimeout(600);
+    await guy.screenshot({ path: resolve(shots, '18-settings-paired-full.png'), fullPage: true });
+    const preview = () => guy.locator('.tabbar--preview .tab').evaluateAll((els) => els.map((e) => e.dataset.key).join());
+    if ((await preview()) !== 'today,shop,chores,projects') throw new Error(`unexpected bar: ${await preview()}`);
+    const grip = guy.getByRole('button', { name: 'Move Chores', exact: true });
+    await grip.scrollIntoViewIfNeeded();
+    await guy.evaluate(() => scrollBy(0, 160));
+    await guy.waitForTimeout(300);
+    const from = await grip.boundingBox();
+    const to = await guy.getByRole('button', { name: 'Move Shopping', exact: true }).boundingBox();
+    const x = from.x + from.width / 2;
+    let y = from.y + from.height / 2;
+    await guy.mouse.move(x, y);
+    await guy.mouse.down();
+    while (y > to.y) {
+      y -= 20;
+      await guy.mouse.move(x, y);
+      await guy.waitForTimeout(40);
+    }
+    await guy.waitForTimeout(300);
+    await shot(guy, '19-settings-bar-mid-drag');
+    await guy.mouse.up();
+    await waitFor(async () => (await preview()) === 'today,chores,shop,projects', 3000, 'Chores before Shopping in the preview');
+    await guy.getByRole('button', { name: 'Back' }).first().click();
+    await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
+    const live = await guy.locator('.tabbar .tab').evaluateAll((els) => els.map((e) => e.dataset.key).join());
+    if (live !== 'today,chores,shop,projects') throw new Error(`live bar after going back: ${live}`);
+  });
+
+  await check('Settings: four tray tokens make 8 tabs and the crowded hint appears; Check for updates is honest', async () => {
+    await guy.goto(`${url}/settings`);
+    await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
+    const tray = guy.locator('.bareditor .tray .token');
+    for (let i = 0; i < 4; i++) {
+      await tray.first().click();
+      await guy.waitForTimeout(400);
+    }
+    const n = await guy.locator('.tabbar--preview .tab').count();
+    if (n !== 8) throw new Error(`expected 8 tabs, found ${n}`);
+    const hint = guy.getByRole('button', { name: 'Crowded? Hold the bar and slide to pick.' });
+    await hint.waitFor({ timeout: 3000 });
+    await guy.locator('.barstage').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 120));
+    await hint.click();
+    await guy.waitForTimeout(700);
+    await shot(guy, '20-settings-crowded-demo');
+    await guy.locator('.mecard').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 100));
+    await guy.getByRole('button', { name: 'Color', exact: true }).click();
+    await guy.getByRole('radio', { name: 'pink, Hila’s' }).waitFor({ timeout: 3000 });
+    await shot(guy, '21-settings-color-paired');
+    await guy.getByRole('button', { name: 'Color', exact: true }).click();
+    await guy.evaluate(() => (window.__stay = 'here'));
+    const pill = guy.getByRole('button', { name: 'Check for updates' });
+    await pill.scrollIntoViewIfNeeded();
+    await pill.click();
+    await guy.getByRole('button', { name: 'You’re up to date' }).waitFor({ timeout: 12000 });
+    await shot(guy, '22-settings-up-to-date');
+    if ((await guy.evaluate(() => window.__stay)) !== 'here') throw new Error('the page reloaded');
+    await guy.locator('.bareditor').getByRole('button', { name: 'Back to the default' }).click();
+    await guy.getByText('The bar is back to the default').waitFor({ timeout: 3000 });
+  });
+
+  await check('Settings: Hila sees Guy on her card and can turn request alerts off', async () => {
+    await hila.goto(`${url}/settings`);
+    await hila.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
+    await hila.locator('.mecard__tag', { hasText: 'Guy' }).waitFor({ timeout: 5000 });
+    await hila.getByText('You and Guy · together since').waitFor({ timeout: 5000 });
+    const alerts = hila.getByRole('switch', { name: 'Request alerts' });
+    if ((await alerts.getAttribute('aria-checked')) !== 'true') throw new Error('request alerts should start on');
+    await hila.waitForTimeout(400);
+    await hila.screenshot({ path: resolve(shots, '23-settings-hila-full.png'), fullPage: true });
+    await alerts.click();
+    await waitFor(async () => (await alerts.getAttribute('aria-checked')) === 'false', 3000, 'alerts off');
+    await alerts.click();
   });
 
   // ---------- Desktop

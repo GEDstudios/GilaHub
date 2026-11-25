@@ -19,6 +19,8 @@ export interface Prefs {
   earlierOpen: boolean;
   /** Today: the invite card stays away until then (ms; 0 = shown). */
   inviteHiddenUntil: number;
+  /** When this device last downloaded a backup (ms), for Settings and the reset nudge. */
+  lastBackupAt: number | null;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -34,6 +36,7 @@ const DEFAULTS: Prefs = {
   haptics: true,
   earlierOpen: false,
   inviteHiddenUntil: 0,
+  lastBackupAt: null,
 };
 
 function read(): Prefs {

@@ -857,55 +857,6 @@ button.projcard:active {
   color: var(--text);
 }
 
-/* ============================================================ Settings */
-
-.you {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-top: 6px;
-}
-
-.you__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.you__name {
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 0 0 6px;
-  border: 0;
-  border-bottom: 1.5px solid var(--line);
-  background: transparent;
-  font-family: var(--serif);
-  font-size: 28px;
-  letter-spacing: -0.015em;
-}
-
-.you__name:focus {
-  border-bottom-color: var(--text);
-}
-
-.you .swatches {
-  gap: 10px;
-}
-
-.about {
-  margin-top: 54px;
-  text-align: center;
-}
-
-.about p {
-  margin: 8px 0 0;
-  color: var(--text-2);
-}
-
-.about .hint {
-  max-width: 36ch;
-  margin: 8px auto 0;
-}
-
 /* ============================================================ Pairing */
 
 .pairsteps {
@@ -1242,48 +1193,6 @@ button.projcard:active {
   height: 44px;
 }
 
-/* ============================================================ Bottom bar editor */
-
-.bar .optrow__icon {
-  color: var(--text-2);
-}
-
-.bar .optrow--fixed .optrow__text {
-  color: var(--text-3);
-}
-
-.bar__mark {
-  width: 20px;
-  display: grid;
-  place-items: center;
-}
-
-.bar__btn {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--text-3);
-}
-
-.bar__btn:hover {
-  background: var(--tile-2);
-  color: var(--text);
-}
-
-.bar__btn .icon {
-  --s: 16;
-}
-
-.bar .tokens {
-  margin-top: 12px;
-}
-
-.token:disabled {
-  opacity: 0.4;
-}
-
 .projcard--new {
   transform: none;
   box-shadow: none;
@@ -1410,22 +1319,6 @@ button.projcard:active {
   }
 }
 
-.about__build {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  margin-top: 18px !important;
-  font-size: 13px;
-  color: var(--text-3) !important;
-  font-variant-numeric: tabular-nums;
-}
-
-.about .about__credit {
-  font-size: 12px;
-  color: var(--text-3);
-}
-
 /* The Urgent card: a soft lemon wash; the same items also sit in their aisle with an Urgent tag. */
 .rows--urgent,
 .rows--urgent .row {
@@ -1435,4 +1328,354 @@ button.projcard:active {
 .lift--urgent {
   --land-bg: var(--lemon-soft);
   background: var(--lemon-soft);
+}
+
+/* ============================================================ Settings (SETTINGS, DECISIONS #9)
+ * One calm page: my card is the only big color on it. Everything changes in place.
+ */
+
+/* Copy that differs between a phone and a computer */
+.on-desk {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .on-phone {
+    display: none;
+  }
+  .on-desk {
+    display: inline;
+  }
+}
+
+/* No floating bar here, so no room kept for it */
+.main:has(> .settings) {
+  padding-bottom: calc(var(--safe-bottom) + 112px);
+}
+
+/* Something that can't move or be picked shakes when tapped */
+.is-nudge {
+  animation: refuse 280ms var(--ease);
+}
+
+/* My card: the name in the serif, edited in place; a sync pill; my person's tag on the edge */
+.mecard-wrap {
+  position: relative;
+  margin: 6px 0 30px;
+}
+
+.mecard {
+  min-height: 176px;
+  transition: background-color 320ms var(--ease);
+}
+
+.mecard.is-wobble {
+  animation: wobble 420ms var(--spring);
+}
+
+@keyframes wobble {
+  30% {
+    rotate: -1.2deg;
+  }
+  65% {
+    rotate: 0.6deg;
+  }
+}
+
+.ccard__input.mecard__name {
+  flex: 1;
+  min-width: 0;
+  margin: -2px 0 0 -2px;
+  padding: 0 2px;
+  border-radius: 8px;
+  font-size: 38px;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  caret-color: var(--ink);
+  transition: box-shadow 160ms var(--ease);
+}
+
+.ccard__input.mecard__name:focus {
+  box-shadow: 0 1.5px 0 rgb(10 10 4 / 0.3);
+}
+
+.mecard__sync {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  margin-top: 4px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 140ms var(--ease);
+}
+
+/* A 44px touch area around the 30px pill */
+.mecard__sync::before {
+  content: '';
+  position: absolute;
+  inset: -7px -4px;
+}
+
+.mecard__sync:active {
+  transform: scale(0.95);
+}
+
+.mecard__sync .syncdot {
+  width: 8px;
+  height: 8px;
+  flex-basis: 8px;
+}
+
+.mecard .ccard__sub {
+  max-width: 24ch;
+}
+
+.mecard__tag {
+  position: absolute;
+  right: 26px;
+  bottom: -17px;
+  gap: 7px;
+  transform: rotate(-3deg);
+  box-shadow: var(--lift-1);
+}
+
+.mecard__tag.is-wiggle {
+  animation: wiggle 420ms var(--spring);
+}
+
+@keyframes wiggle {
+  25% {
+    rotate: 5deg;
+  }
+  60% {
+    rotate: -3deg;
+  }
+}
+
+.mecard__tag .live {
+  width: 7px;
+  height: 7px;
+  flex-basis: 7px;
+}
+
+.mecard__tag--empty {
+  gap: 6px;
+  background: var(--card);
+  box-shadow:
+    inset 0 0 0 1.5px var(--tile-2),
+    var(--lift-1);
+  color: var(--text-2);
+}
+
+.mecard__tag--empty:active {
+  transform: rotate(-3deg) scale(0.96);
+}
+
+.mecard__tag--empty .icon {
+  color: var(--text-2);
+}
+
+.echip__dot {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, var(--ink));
+}
+
+.echip.is-open .echip__dot {
+  box-shadow: 0 0 0 1.5px rgb(250 250 248 / 0.5);
+}
+
+/* My person's color: their initial, not a faded dot */
+.swatch.is-taken {
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.7);
+  cursor: not-allowed;
+}
+
+/* The bottom bar on a gray stage, above its arranger; phone-sized on a computer too */
+.barstage {
+  padding: 18px 12px 12px;
+  border-radius: 26px;
+  background: var(--tile);
+}
+
+.barstage > .tabbar--preview {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.barstage__cap {
+  margin: 12px 4px 2px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.barhint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 6px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  transition: transform 140ms var(--ease);
+}
+
+.barhint:active {
+  transform: scale(0.97);
+}
+
+.barhint .icon {
+  color: var(--text-2);
+}
+
+.barstage + .arranger {
+  margin-top: 12px;
+}
+
+/* Rows: chevrons on the ones that open something; white tokens and compact segmented controls as trailers */
+.optrow > .token {
+  flex: 0 0 auto;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.optrow > .icon.optrow__chev {
+  --s: 18;
+  color: var(--text-4);
+}
+
+.optrow__more {
+  margin: -6px 0 0;
+  padding: 0 16px 14px 50px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.seg--sm {
+  flex: 0 0 auto;
+  padding: 3px;
+}
+
+.seg--sm .seg__btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13.5px;
+}
+
+.group--danger {
+  margin-top: 12px;
+}
+
+.leave__backup {
+  margin-top: 16px;
+}
+
+/* About */
+.about {
+  margin-top: 54px;
+  text-align: center;
+}
+
+.about p {
+  margin: 8px 0 0;
+  color: var(--text-2);
+}
+
+.about__mark {
+  display: inline-block;
+  transform: rotate(-4deg);
+}
+
+.about .about__build {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.about__check {
+  position: relative;
+  color: var(--text-2);
+}
+
+/* A 44px touch area around the 34px pill */
+.about__check::before {
+  content: '';
+  position: absolute;
+  inset: -5px 0;
+}
+
+.about__check.is-checking .icon {
+  animation: spin 900ms linear infinite;
+}
+
+.about__check.is-current {
+  color: var(--text);
+}
+
+.about__check.is-current .icon {
+  color: var(--mint);
+}
+
+.about__check.is-ready {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.about__check.is-ready .icon {
+  color: inherit;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.about .about__for {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.about .about__credit {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-nudge,
+  .mecard.is-wobble,
+  .mecard__tag.is-wiggle,
+  .about__check.is-checking .icon {
+    animation: none;
+  }
 }

@@ -17,7 +17,7 @@
  *                                       Rows: 1.5 / 0. Folders: tilt(id) + 3 / tilt(id).
  *     liftClass="…"                     extra class on the lifted wrapper
  *     onPreview={(draft | null) => …}   the order as it would drop, on each new spot; null at the end
- *     onLift={() => …}                  a drag started
+ *     onLift={(id) => …}                a drag started, with the lifted id
  *     grips                             items have a [data-grip] handle (keyboard reordering)
  *     disabled>
  *     …children, whose items call useSortableItem(id)…
@@ -264,7 +264,7 @@ export interface SortableProps {
   lean?: (id: string) => { rest: number; land: number };
   liftClass?: string;
   onPreview?: (draft: string[] | null) => void;
-  onLift?: () => void;
+  onLift?: (id: string) => void;
   grips?: boolean;
   disabled?: boolean;
   children: ReactNode;
@@ -400,7 +400,7 @@ export function Sortable({
     document.documentElement.classList.add('is-dragging');
     setActiveId(id);
     haptic('lift');
-    latest.current.onLift?.();
+    latest.current.onLift?.(id);
   };
 
   const onDragOver = ({ over }: DragOverEvent) => {

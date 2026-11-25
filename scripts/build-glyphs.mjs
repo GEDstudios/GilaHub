@@ -38,7 +38,7 @@ const MAP = {
   cart: ['shopping-cart-simple', 'duo'], link: ['link', 'duo'], eye: ['eye', 'duo'], 'eye-off': ['eye-slash', 'duo'],
   moon: ['moon', 'duo'], hand: ['hand', 'duo'], pin: ['push-pin', 'duo'], urgent: ['lightning', 'duo'],
   layout: ['layout', 'duo'], sliders: ['sliders-horizontal', 'duo'], inbox: ['tray', 'duo'], stack: ['rows', 'duo'],
-  request: ['hand-waving', 'duo'], 'user-plus': ['user-plus', 'duo'],
+  request: ['hand-waving', 'duo'], 'user-plus': ['user-plus', 'duo'], badge: ['notification', 'duo'],
   // projects
   home: ['house', 'duo'], gift: ['gift', 'duo'], book: ['book-open', 'duo'], car: ['car', 'duo'],
   paw: ['paw-print', 'duo'], wallet: ['wallet', 'duo'], film: ['film-slate', 'duo'], utensils: ['fork-knife', 'duo'],

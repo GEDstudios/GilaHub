@@ -2,9 +2,18 @@ import type { Hub } from '../core/actions';
 import type { Item } from '../core/model';
 import { enablePush, notifyMembers, type Runtime } from './runtime';
 
-/** Tell my partner about a request — never for "Only me" things. */
+/**
+ * Should `to` hear about this request? Not me, never for "Only me" things, and not when they
+ * turned request alerts off in Settings (Member.requestAlerts, read here by the sender).
+ */
+export function wantsRequestAlert(hub: Hub, item: Item, to: string | null | undefined): to is string {
+  if (!to || to === hub.meId || hub.visibilityOf(item) === 'private') return false;
+  return hub.member(to)?.requestAlerts !== false;
+}
+
+/** Tell my partner about a request. */
 export function notifyAbout(rt: Runtime, hub: Hub, item: Item, to: string | null | undefined, title: string, body: string): void {
-  if (!to || to === hub.meId || hub.visibilityOf(item) === 'private') return;
+  if (!wantsRequestAlert(hub, item, to)) return;
   void notifyMembers(rt, [to], { title, body, url: `/i/${item.id}`, tag: `req-${item.id}` });
 }
 

@@ -437,10 +437,6 @@
   --size: 46px;
 }
 
-.avatar--xl {
-  --size: 68px;
-}
-
 .dot {
   --size: 10px;
   width: var(--size);
@@ -1223,11 +1219,28 @@ html.is-dragging * {
   color: var(--text-4);
 }
 
-/* Locked: an outline, no buttons */
+/* Locked: an outline and a lock, no buttons; a tap shakes it (is-nudge) */
 .slot--fixed {
-  padding-right: 16px;
+  padding-right: 18px;
   background: transparent;
   box-shadow: inset 0 0 0 1.5px var(--tile);
+}
+
+.slot__lock {
+  --s: 15;
+  color: var(--text-4);
+}
+
+/* Found from a preview (the bar in Settings): a short gray flash */
+.slot.is-flash {
+  animation: slot-flash 600ms var(--ease);
+}
+
+@keyframes slot-flash {
+  0%,
+  45% {
+    background: var(--tile-2);
+  }
 }
 
 /* Where a lifted slot came from */
@@ -1305,6 +1318,12 @@ html.is-dragging * {
 
 .tray .section__head {
   margin-bottom: 4px;
+}
+
+.tray__empty {
+  margin: 0 4px;
+  font-size: 13px;
+  color: var(--text-3);
 }
 
 .token.is-open {
@@ -1701,9 +1720,32 @@ html.is-dragging * {
   transform: scale(0.96);
 }
 
+.token:disabled {
+  opacity: 0.4;
+}
+
 .token .icon {
   --s: 15;
   color: var(--text-2);
+}
+
+/* A token that carries its thing's mark leads with it; the + trails, quieter */
+.token .pmark {
+  --size: 18px;
+  border-radius: 5px;
+}
+
+.token .pmark .glyph-emoji {
+  font-size: 10px;
+}
+
+.token:has(> .token__plus) {
+  padding: 0 10px 0 11px;
+}
+
+.token > .icon.token__plus {
+  --s: 13;
+  color: var(--text-3);
 }
 
 .token.is-parsed {
@@ -2731,9 +2773,18 @@ html.is-dragging * {
   }
 }
 
-/* Settings shows the same bar, standing still (the page still scrolls through it) */
+/*
+ * Settings shows the same bar, standing still (the page still scrolls through it). Its order
+ * follows a drag as it happens; the slot of the row in hand lifts (is-lifted), a slot that
+ * arrives pops (is-new), one that leaves shrinks away (is-leaving). "Crowded?" plays the
+ * hold-and-slide visuals (is-scrubbing, --d) with a finger dot, .scrubdot.
+ */
 .tabbar--preview {
-  position: static;
+  position: relative;
+  z-index: 0;
+  left: auto;
+  right: auto;
+  bottom: auto;
   max-width: none;
   margin: 0;
   background: var(--card);
@@ -2742,6 +2793,82 @@ html.is-dragging * {
 
 .tabbar--preview .tabbar__scroll {
   touch-action: auto;
+}
+
+.tabbar--preview .tab {
+  cursor: pointer;
+}
+
+.tabbar--preview .tab.is-lifted {
+  --light: var(--me-light);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tabbar--preview .tab.is-lifted .icon--project {
+  --light: var(--c);
+}
+
+.tabbar--preview .tab.is-lifted .tab__mark {
+  transform: translateY(-6px) scale(1.12);
+}
+
+.tabbar--preview .tab.is-lifted .pmark {
+  opacity: 1;
+  transform: rotate(-10deg) scale(1.12);
+  box-shadow:
+    inset 0 0 0 1.5px var(--ink),
+    0 4px 10px rgb(10 10 4 / 0.16);
+}
+
+.tabbar--snug .tab.is-lifted .tab__label,
+.tabbar--dock .tab.is-lifted .tab__label {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.tabbar--preview .tab.is-new {
+  animation: tab-pop 320ms var(--spring);
+}
+
+.tabbar--preview .tab.is-leaving {
+  animation: tab-out 200ms var(--ease) forwards;
+}
+
+@keyframes tab-pop {
+  0% {
+    scale: 0.6;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.12;
+  }
+}
+
+@keyframes tab-out {
+  to {
+    scale: 0.4;
+    opacity: 0;
+  }
+}
+
+.scrubdot {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0;
+  transform: translateX(var(--x, 0px));
+  transition: opacity 160ms var(--ease);
+  pointer-events: none;
+}
+
+.tabbar--preview.is-scrubbing .scrubdot {
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2756,8 +2883,12 @@ html.is-dragging * {
     transition: none;
   }
   .tabbar__bubble,
-  .tabbar__hint {
+  .tabbar__hint,
+  .tabbar--preview .tab.is-new {
     animation: none;
+  }
+  .tabbar--preview .tab.is-lifted .tab__mark {
+    transform: translateY(-6px);
   }
 }
 
@@ -2991,7 +3122,6 @@ html.is-dragging * {
 .hero__titleinput:focus-visible,
 .notes:focus-visible,
 .bigfield:focus-visible,
-.you__name:focus-visible,
 .composer__ask input:focus-visible,
 .option--input input:focus-visible,
 .stepper input:focus-visible {

@@ -6,7 +6,7 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { CANCEL_LIFT, centerScroll, clampBubble, edgeSpeed, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../ui/scrub';
 import { useOnce } from '../ui/useOnce';
-import { TabBarView, TabMark } from './TabBarView';
+import { markEdges, TabBarView, TabMark } from './TabBarView';
 
 /** One finger on the bar: waiting for the hold, then scrubbing (`live`). */
 interface Gesture {
@@ -26,12 +26,6 @@ interface Gesture {
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const onPhone = () => typeof matchMedia === 'function' && matchMedia('(max-width: 959px)').matches;
-
-/** Keep the dock's edge fades only on the sides that have more to scroll to. */
-function markEdges(sc: HTMLElement) {
-  sc.classList.toggle('has-before', sc.scrollLeft > 1);
-  sc.classList.toggle('has-after', sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 1);
-}
 
 /**
  * The live bottom bar. A tap goes straight to a tab. Hold it still for a moment and slide:

@@ -3,6 +3,12 @@ import { barDensity, type TabDef } from '../tabs';
 import { Icon } from '../ui/Icon';
 import { ProjectMark } from '../ui/ProjectMark';
 
+/** Keep the dock's edge fades only on the sides that have more to scroll to. */
+export function markEdges(sc: HTMLElement): void {
+  sc.classList.toggle('has-before', sc.scrollLeft > 1);
+  sc.classList.toggle('has-after', sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 1);
+}
+
 /** A tab's mark: a built-in icon, or the project's glyph in its color. */
 export function TabMark({ t }: { t: TabDef }) {
   return t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} />;
@@ -22,6 +28,7 @@ export function TabBarView({
   scrubKey = null,
   preview = false,
   liftedKey = null,
+  slotClass,
   live,
   navRef,
   scrollRef,
@@ -37,6 +44,8 @@ export function TabBarView({
   preview?: boolean;
   /** A slot whose row is being dragged in Settings. */
   liftedKey?: string | null;
+  /** Extra classes per slot in the preview (a slot popping in, or shrinking out). */
+  slotClass?: (key: string) => string | undefined;
   /** Tabs that carry a live dot (my partner is shopping). */
   live?: ReadonlySet<string>;
   navRef?: Ref<HTMLElement>;
@@ -53,7 +62,8 @@ export function TabBarView({
 
   const tab = (t: TabDef) => {
     const on = t.key === activeKey;
-    const className = `tab${on ? ' is-on' : ''}${t.key === scrubKey ? ' is-scrub' : ''}${t.key === liftedKey ? ' is-lifted' : ''}`;
+    const extra = slotClass?.(t.key);
+    const className = `tab${on ? ' is-on' : ''}${t.key === scrubKey ? ' is-scrub' : ''}${t.key === liftedKey ? ' is-lifted' : ''}${extra ? ` ${extra}` : ''}`;
     const inner = (
       <>
         <span className="tab__mark">

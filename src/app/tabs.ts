@@ -61,6 +61,11 @@ export function pinsOf(hub: Hub): string[] {
   return cleanPins(hub.me()?.tabs ?? DEFAULT_PINS, validKeys(hub));
 }
 
+/** Is the bar as it came? (Settings offers "Back to the default" only when not.) */
+export function isDefaultPins(pins: readonly string[]): boolean {
+  return pins.join() === DEFAULT_PINS.join();
+}
+
 export function setPins(hub: Hub, pins: string[]): void {
   hub.upsertMember(hub.meId, { tabs: cleanPins(pins, validKeys(hub)) });
 }
