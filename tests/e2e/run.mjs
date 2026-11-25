@@ -75,6 +75,21 @@ for (const [name, p] of [
   p.on('console', (m) => m.type() === 'error' && console.error(`[${name}]`, m.text()));
 }
 const shot = (p, name) => p.screenshot({ path: resolve(shots, `${name}.png`) });
+
+/** Add through the black + (the only way to add): write on the card, Enter. Shopping stays open: Done closes it. */
+async function addVia(p, lines, { shopping = false } = {}) {
+  for (let i = 0; i < lines.length; i++) {
+    if (!shopping || i === 0) {
+      await p.locator('.band .iconbtn--solid').first().click();
+      await p.locator('.composer__input').waitFor({ timeout: 5000 });
+    }
+    await p.locator('.composer__input').fill(lines[i]);
+    await p.locator('.composer__input').press('Enter');
+    await p.waitForTimeout(250);
+  }
+  if (shopping) await p.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
+  await p.waitForTimeout(300);
+}
 let failures = 0;
 const check = async (label, fn) => {
   try {
@@ -146,13 +161,7 @@ try {
   // ---------- Shopping sync, both ways
   await check('Guy adds groceries; Hila sees them live', async () => {
     await guy.goto(`${url}/shop`);
-    const bar = guy.getByRole('textbox', { name: 'Add an item' });
-    await bar.fill('2 milk');
-    await bar.press('Enter');
-    await bar.fill('עגבניות');
-    await bar.press('Enter');
-    await bar.fill('light bulbs');
-    await bar.press('Enter');
+    await addVia(guy, ['2 milk', 'עגבניות', 'light bulbs'], { shopping: true });
     await hila.goto(`${url}/shop`);
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'milk' }).count()) > 0, 15000, 'milk on hila');
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'עגבניות' }).count()) > 0, 15000, 'tomatoes on hila');
@@ -166,10 +175,11 @@ try {
   });
 
   await check('No duplicates: adding milk again says it exists', async () => {
-    const bar = hila.getByRole('textbox', { name: 'Add an item' });
-    await bar.fill('Milk');
-    await bar.press('Enter');
+    await hila.locator('.band .iconbtn--solid').first().click();
+    await hila.locator('.composer__input').fill('Milk');
+    await hila.locator('.composer__input').press('Enter');
     await hila.getByText(/already on the list/).waitFor({ timeout: 5000 });
+    await hila.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
     const n = await hila.locator('.row__title', { hasText: /^milk/i }).count();
     if (n !== 1) throw new Error(`expected 1 milk row, found ${n}`);
   });
@@ -189,11 +199,7 @@ try {
   await check('An "Only me" item never reaches the partner', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    const add = guy.getByRole('textbox', { name: 'Add to To do' });
-    await add.fill('Ring for Hila 💍');
-    await add.press('Enter');
-    await add.fill('Book dinner friday');
-    await add.press('Enter');
+    await addVia(guy, ['Ring for Hila 💍', 'Book dinner friday']);
     await guy.locator('.row__title', { hasText: 'Ring for Hila' }).click();
     await guy.locator('.echip', { hasText: 'Ours' }).click();
     await guy.getByRole('radio', { name: /only me/i }).click();
@@ -224,9 +230,7 @@ try {
   await check('Requests: Hila asks Guy with no date; it waits on Guy’s Today, tagged "Hila asked"', async () => {
     await hila.goto(`${url}/lists`);
     await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    const add = hila.getByRole('textbox', { name: 'Add to To do' });
-    await add.fill('Fix the kettle @guy');
-    await add.press('Enter');
+    await addVia(hila, ['Fix the kettle @guy']);
     await hila.locator('li.row', { hasText: 'Fix the kettle' }).getByText('Asked Guy').waitFor({ timeout: 5000 });
     await guy.goto(`${url}/`);
     const row = guy.locator('#home-asks li.row', { hasText: 'Fix the kettle' });
@@ -245,11 +249,12 @@ try {
   await check('Requests: Guy asks Hila; it shows under "You asked Hila…" on his Today', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    const add = guy.getByRole('textbox', { name: 'Add to To do' });
-    await add.fill('Water the balcony plants @hila today');
-    await guy.locator('.addrow__chips .echip', { hasText: 'Ask Hila' }).click();
+    await guy.locator('.band .iconbtn--solid').first().click();
+    await guy.locator('.composer__input').fill('Water the balcony plants @hila today');
+    await guy.locator('.composer').getByRole('button', { name: 'More' }).click();
+    await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
-    await add.press('Enter');
+    await guy.locator('.composer__input').press('Enter');
     await guy.goto(`${url}/`);
     const line = guy.locator('.quietline', { hasText: 'You asked Hila for 1 thing' });
     await line.waitFor({ timeout: 5000 });
@@ -288,9 +293,7 @@ try {
   await check('Chores: add one, tick it, it rolls forward', async () => {
     await guy.goto(`${url}/chores`);
     await guy.getByRole('heading', { name: 'Chores', exact: true, level: 1 }).waitFor();
-    const add = guy.getByRole('textbox', { name: 'Add a chore' });
-    await add.fill('Water the plants');
-    await add.press('Enter');
+    await addVia(guy, ['Water the plants']);
     await shot(guy, '10-chores');
     const row = guy.locator('li.row', { hasText: 'Water the plants' });
     await row.getByRole('checkbox').click();
@@ -310,6 +313,7 @@ try {
     await guy.goto(`${url}/`);
     await guy.getByRole('button', { name: 'New', exact: true }).click();
     await guy.getByRole('textbox', { name: 'What needs doing?' }).fill('Return the library books @hila');
+    await guy.locator('.composer').getByRole('button', { name: 'More' }).click();
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
     await shot(guy, '13-composer-ask');
@@ -360,8 +364,11 @@ try {
   await check('Today: the "Hila" tag finds her asks, on the page or in a sheet; "Back to the default" restores it', async () => {
     await guy.locator('.tag--person').click();
     await waitFor(async () => {
-      const top = await guy.locator('#home-asks').evaluate((el) => el.getBoundingClientRect().top);
-      return top >= 0 && top < 200;
+      // Scrolled to it: at the top, or as far as the page goes with it fully in view.
+      return guy.locator('#home-asks').evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top >= 0 && (r.top < 200 || r.bottom <= innerHeight);
+      });
     }, 3000, 'scrolled to Waiting on you');
     await guy.evaluate(() => scrollTo(0, document.body.scrollHeight));
     await guy.getByRole('button', { name: 'Edit Today' }).click();

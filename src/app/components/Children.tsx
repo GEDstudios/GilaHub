@@ -6,7 +6,6 @@ import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
-import { AddRow } from './QuickAdd';
 import { Disclosure } from '../ui/primitives';
 
 const idOf = (i: Item) => i.id;
@@ -35,18 +34,7 @@ function Count({ n }: { n: number }) {
  * Open items (hold to reorder), then the add row, then a collapsible Done group.
  * Ticked rows settle before they leave.
  */
-export function Children({
-  listId,
-  parentId,
-  readonly,
-  add,
-}: {
-  listId: string;
-  parentId: string | null;
-  readonly?: boolean;
-  /** The in-place add, between the open rows and Done. */
-  add?: { placeholder?: string; onAdded?: (id: string) => void };
-}) {
+export function Children({ listId, parentId, readonly }: { listId: string; parentId: string | null; readonly?: boolean }) {
   const hub = useHub();
   const settle = useSettle(idOf);
   const all = parentId ? hub.childrenOf(parentId) : hub.children(listId, null);
@@ -97,7 +85,6 @@ export function Children({
           {matchMedia('(pointer: coarse)').matches ? 'Hold any row to reorder' : 'Drag any row to reorder'}
         </p>
       ) : null}
-      {add && !readonly ? <AddRow listId={listId} parentId={parentId} placeholder={add.placeholder} onAdded={add.onAdded} /> : null}
       {doneRows.length ? (
         <Disclosure title="Done" count={<Count n={doneRows.length} />}>
           <ul className="rows">

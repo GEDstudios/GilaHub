@@ -25,12 +25,12 @@ describe('bottom bar pins', () => {
     expect(tabsOf(hub).at(-1)!.key).toBe('projects');
   });
 
-  it('offers Search, starts from the defaults, and lights Search on its route', async () => {
+  it('offers Search (it opens over the page, so it never lights as a page) and starts from the defaults', async () => {
     const hub = await guy();
     expect(pinsOf(hub)).toEqual(DEFAULT_PINS);
     expect(pinOptions(hub).slice(0, 3).map((o) => o.key)).toEqual(['shop', 'chores', 'search']);
     expect(togglePin(hub, 'search')).toBe(true);
-    expect(activeTabKey(hub, { name: 'search' })).toBe('search');
+    expect(activeTabKey(hub, { name: 'today' })).toBe('today');
   });
 
   it('drops duplicates and unknown keys, when reading and when saving', async () => {
@@ -83,7 +83,8 @@ describe('bottom bar pins', () => {
 
   it('never names two tabs the same: a project called Chores makes the tab "All chores"', async () => {
     const hub = await guy();
-    const labels = () => pinOptions(hub).map((o) => o.label);
+    // What the tray offers never repeats a name (the one Chores project is the Chores tab itself).
+    const labels = () => pinOptions(hub).filter((o) => !o.key.startsWith('l:') || !coveredByTab(hub, o.key.slice(2))).map((o) => o.label);
     expect(new Set(labels()).size).toBe(labels().length);
     const named = hub.createList({ name: 'chores', kind: 'chores' });
     setPins(hub, [...pinsOf(hub), `l:${named}`]);

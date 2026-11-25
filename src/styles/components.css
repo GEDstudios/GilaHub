@@ -1780,11 +1780,7 @@ html.is-dragging * {
   color: var(--text-2);
 }
 
-/* ============================================================ Inline add (AddRow) */
-
-.quickadd {
-  margin-top: 8px;
-}
+/* ============================================================ Write line (the Ideas sheet's composer) */
 
 .addrow {
   display: flex;
@@ -1827,17 +1823,6 @@ html.is-dragging * {
   font-size: 16.5px;
 }
 
-.addrow__go {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--cta);
-  color: var(--cta-text);
-  animation: pop 220ms var(--spring) both;
-}
-
 @keyframes pop {
   from {
     transform: scale(0.6);
@@ -1845,20 +1830,10 @@ html.is-dragging * {
   }
 }
 
-/* Its chips open on focus: who sees it, and for chores how often and who. */
-.inline.addrow__chips {
-  margin-top: 8px;
-  padding: 0 4px 0 16px;
-  animation: fade-in 200ms var(--ease) both;
-}
-
 /* A few gray tokens to add with one tap, while there is nothing yet (chores, buy again) */
-.addrow__suggest {
-  padding-left: 16px;
-}
-
-.addrow__chips .inline__chips {
-  gap: 6px;
+.chores__starters,
+.shop__again {
+  padding-left: 4px;
 }
 
 /* ============================================================ Tokens & chips — the inline controls */
@@ -3554,11 +3529,10 @@ html.is-dragging * {
 .band__title,
 .hero__title,
 .hero__titleinput,
-.suggest__text,
 .optrow__text,
 .ccard__input,
 .addrow input,
-.searchbar input {
+.searchlayer__box input {
   text-align: left;
 }
 
@@ -3566,21 +3540,19 @@ html.is-dragging * {
 :root[dir='rtl'] .band__title,
 :root[dir='rtl'] .hero__title,
 :root[dir='rtl'] .hero__titleinput,
-:root[dir='rtl'] .suggest__text,
 :root[dir='rtl'] .optrow__text,
 :root[dir='rtl'] .ccard__input,
 :root[dir='rtl'] .addrow input,
-:root[dir='rtl'] .searchbar input {
+:root[dir='rtl'] .searchlayer__box input {
   text-align: right;
 }
 
 .addrow input:focus-visible,
-.searchbar input:focus-visible,
+.searchlayer__box input:focus-visible,
 .ccard__input:focus-visible,
 .hero__titleinput:focus-visible,
 .notes:focus-visible,
 .bigfield:focus-visible,
-.composer__ask input:focus-visible,
 .option--input input:focus-visible,
 .stepper input:focus-visible {
   outline: none;

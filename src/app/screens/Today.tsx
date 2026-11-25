@@ -22,7 +22,7 @@ import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { useHub } from '../context';
 import { aheadOf, choresReady, listIdOf, visibleHome, weekBands } from '../home';
-import { navigate } from '../router';
+import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Band, IconButton, NewButton } from '../ui/primitives';
@@ -165,7 +165,7 @@ export function Today() {
         top={<SyncBadge />}
         actions={
           <>
-            <IconButton icon="search" label="Search" onClick={() => navigate({ name: 'search' })} />
+            <IconButton icon="search" label="Search" onClick={openSearch} />
             <NewButton onClick={openNew} />
           </>
         }

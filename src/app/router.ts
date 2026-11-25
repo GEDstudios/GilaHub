@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { openSearch } from './search';
 
 export type Route =
   | { name: 'today' }
@@ -7,8 +8,7 @@ export type Route =
   | { name: 'lists' }
   | { name: 'list'; id: string }
   | { name: 'item'; id: string }
-  | { name: 'settings' }
-  | { name: 'search' };
+  | { name: 'settings' };
 
 export function parseRoute(path: string): Route {
   const p = path.replace(/\/+$/, '') || '/';
@@ -17,7 +17,6 @@ export function parseRoute(path: string): Route {
   if (p === '/chores') return { name: 'chores' };
   if (p === '/lists') return { name: 'lists' };
   if (p === '/settings') return { name: 'settings' };
-  if (p === '/search') return { name: 'search' };
   let m = p.match(/^\/l\/([A-Za-z0-9]+)$/);
   if (m) return { name: 'list', id: m[1] };
   m = p.match(/^\/i\/([A-Za-z0-9]+)$/);
@@ -65,6 +64,11 @@ export function currentPath(): string {
 
 export function navigate(to: Route | string, opts: { replace?: boolean } = {}): void {
   const url = typeof to === 'string' ? to : href(to);
+  // Search isn't a page: it opens over the one you're on.
+  if (url.split('?')[0] === '/search') {
+    openSearch();
+    return;
+  }
   if (url === currentPath() + (memory ? '' : location.search)) return;
   if (!memory) {
     try {

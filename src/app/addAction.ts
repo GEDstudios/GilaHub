@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
+import { primeKeyboard } from './ui/keyboard';
 
 /**
  * "New" means one thing everywhere: open a sheet already pointed at where you are
@@ -33,6 +34,7 @@ export function useAddAction(fn: Fn, label = 'New'): void {
 }
 
 export function runAdd(fallback: Fn): void {
+  primeKeyboard();
   (current?.fn ?? fallback)();
 }
 

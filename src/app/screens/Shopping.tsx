@@ -1,12 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react';
 import type { Item, List } from '../../core/model';
-import { suggestFromCatalog } from '../../smart/categorize';
-import { fold, itemKey, parseQuantity } from '../../smart/normalize';
-import type { ParseResult } from '../../smart/parse';
-import { cadenceLabel, historyMatches } from '../../smart/suggest';
-import { AddRow, type AddRowHandle } from '../components/QuickAdd';
+import { cadenceLabel } from '../../smart/suggest';
 import { QuickAddSheet } from '../components/QuickAddSheet';
-import type { Draft } from '../components/editors';
 import { useShopAdd } from '../components/shopAdd';
 import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, usePartnerShopping, useRt } from '../context';
@@ -93,19 +88,20 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const filter = scoped ? scoped.id : allLists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
   const v = shoppingView(hub, filter, prefs.dismissed);
   const [mode, setMode] = useState(false);
-  const [query, setQuery] = useState('');
   const [flash, setFlash] = useState<Set<string>>(new Set());
   const [cartOpen, setCartOpen] = useState(false);
   const [note, setNote] = useState<CartNote | null>(null);
   const bar = useRef<HTMLDivElement>(null);
   const settle = useSettle<Item>(itemId);
-  /** In "Both", the user can redirect the next add to the other list. */
-  const [override, setOverride] = useState<string | null>(null);
   const partnerShopping = usePartnerShopping();
   const partner = hub.partner();
-  const addRef = useRef<AddRowHandle>(null);
   const shopAdd = useShopAdd();
-  const seen = useRef<{ open: Set<string>; urgent: Set<string>; cart: Set<string>; added: Map<string, number> } | null>(null);
+  const seen = useRef<{
+    open: Set<string>;
+    urgent: Set<string>;
+    cart: Set<string>;
+    added: Map<string, number>;
+  } | null>(null);
 
   useWakeLock(mode);
   // In the store the cart starts open; outside it, folded.
@@ -171,9 +167,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
       .filter((id) => prev.added.get(id) !== added.get(id) && byOther(id))
       // Urgent news first: it's the one the shopper most needs to hear.
       .sort((a, b) => Number(!!hub.item(b)?.urgent) - Number(!!hub.item(a)?.urgent));
-    const urged = [...ids.urgent].filter(
-      (id) => !fresh.includes(id) && !prev.urgent.has(id) && prev.open.has(id) && hub.item(id)?.urgentBy !== hub.meId,
-    );
+    const urged = [...ids.urgent].filter((id) => !fresh.includes(id) && !prev.urgent.has(id) && prev.open.has(id) && hub.item(id)?.urgentBy !== hub.meId);
     if (!fresh.length && !urged.length) return;
     setFlash(new Set([...fresh, ...urged]));
     const item = hub.item(fresh[0] ?? urged[0]);
@@ -182,11 +176,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
       const more = rest > 0 ? ` +${rest}` : '';
       const who = hub.member(fresh.length ? (item.addedBy ?? item.createdBy) : item.urgentBy) ?? hub.partner();
       // Back out of the cart: say why the cart just got smaller.
-      const what = !fresh.length
-        ? `marked ${item.title} urgent`
-        : prev.cart.has(item.id)
-          ? `wants another ${item.title}`
-          : `added ${item.title}`;
+      const what = !fresh.length ? `marked ${item.title} urgent` : prev.cart.has(item.id) ? `wants another ${item.title}` : `added ${item.title}`;
       if (who) toast(`${who.name} ${what}${fresh.length && item.urgent ? ' · urgent' : ''}${more}`);
     }
     const t = setTimeout(() => setFlash(new Set()), 2200);
@@ -196,15 +186,13 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const destFor = (name: string, listId?: string): List | undefined => {
     if (listId) return hub.list(listId);
     if (filter !== 'all') return hub.list(filter);
-    if (override) return hub.list(override);
     return hub.routeShopping(name, lists);
   };
 
-  /** The add row's words → the right list (routed in "Both"), without duplicates. */
-  const add = (p: ParseResult, chips: Draft, opts: { quiet?: boolean } = {}) => {
-    const dest = destFor(p.title, p.listId);
-    if (!dest) return;
-    shopAdd(dest.id, { title: p.title, qty: p.qty ?? null, urgent: chips.urgent, vis: chips.visibility }, opts);
+  /** One tap on a suggestion: straight onto the right list (routed in "Both"), without duplicates. */
+  const quickAdd = (name: string) => {
+    const dest = destFor(name);
+    if (dest) shopAdd(dest.id, { title: name });
   };
 
   // New: the composer pointed at the list an item would go to (routed per item in "Both").
@@ -242,7 +230,9 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     const n = v.inCart.length;
     const undo = hub.finishTrip(v.lists.map((l) => l.id));
     setMode(false);
-    toast(n ? `Trip done · ${n} item${n > 1 ? 's' : ''} filed` : 'Trip done', { action: { label: 'Undo', run: undo } });
+    toast(n ? `Trip done · ${n} item${n > 1 ? 's' : ''} filed` : 'Trip done', {
+      action: { label: 'Undo', run: undo },
+    });
   };
 
   const filterOptions = [
@@ -258,14 +248,12 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     })),
   ];
 
-  const q = query.trim();
-  // Nothing to buy: just the add row and a few things you often buy.
+  // Nothing to buy: a few things you often buy.
   const empty = !v.openCount && !v.inCart.length;
-  const searching = q.length > 0;
   const many = filter === 'all' && lists.length > 1;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
   const shopper = partnerShopping ? hub.member(partnerShopping.member) : undefined;
-  const floating = !searching && (v.openCount > 0 || mode || !!note);
+  const floating = v.openCount > 0 || mode || !!note;
   // Just ticked: it joins the cart once it has settled in its aisle.
   const cart = settle.view('cart', v.inCart);
   useFloatHeight(bar, floating);
@@ -317,23 +305,10 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           </div>
         ) : null}
 
-        {allLists.length ? (
-          <AddRow
-            listId={(filter !== 'all' && hub.list(filter)?.id) || (destFor('') ?? lists[0]).id}
-            placeholder={filter === 'all' ? 'Add an item' : `Add to ${hub.list(filter)?.name}`}
-            text={query}
-            onText={(t) => {
-              setQuery(t);
-              if (!t) setOverride(null);
-            }}
-            onSubmit={add}
-            handle={addRef}
-          />
-        ) : null}
-        {allLists.length && empty && !searching && v.buyAgain.length ? (
-          <div className="tokens addrow__suggest">
+        {allLists.length && empty && v.buyAgain.length ? (
+          <div className="tokens shop__again">
             {v.buyAgain.slice(0, 4).map((s) => (
-              <button key={s.key} type="button" className="token" onClick={() => addRef.current?.submit(s.name)}>
+              <button key={s.key} type="button" className="token" onClick={() => quickAdd(s.name)}>
                 <Icon name="plus" />
                 <span dir="auto">{s.name}</span>
               </button>
@@ -350,100 +325,99 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           </div>
         ) : null}
 
-        {searching ? (
-          <SearchResults
-            query={q}
-            view={v}
-            onAdd={(raw) => addRef.current?.submit(raw)}
-            onTick={tick}
-            onOpen={openItem}
-            filter={filter}
-            lists={lists}
-            dest={destFor(parseQuantity(q).name)}
-            onSwitch={(id) => setOverride(id)}
-          />
-        ) : (
-          <>
-            {!mode && !empty && v.buyAgain.length ? (
-              <div className="buyagain">
-                <p className="inline__prompt">Buy again?</p>
-                <div className="tokens tokens--scroll">
-                  {v.buyAgain.map((s) => (
-                    <span key={s.key} className="token token--split" title={cadenceLabel(s.avgDays)}>
-                      <button type="button" onClick={() => addRef.current?.submit(s.name)}>
-                        <Icon name="plus" />
-                        <span dir="auto">{s.name}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="token__x"
-                        aria-label={`Not now: ${s.name}`}
-                        onClick={() => setPrefs({ dismissed: { ...prefs.dismissed, [s.key]: s.lastAt } })}
-                      >
-                        <Icon name="x" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-
-            {v.urgent.length || v.groups.length ? (
-              <ShopList
-                groups={[
-                  ...(v.urgent.length ? [{ key: 'urgent', label: null, items: v.urgent, showList: many }] : []),
-                  ...v.groups.map((g) => {
-                    // A list's dot only where it tells you something: on rows where an aisle mixes
-                    // lists, or once on the head when two lists share this aisle's flavor.
-                    const one = new Set(g.items.map((i) => i.listId)).size === 1;
-                    const twins = lists.filter((l) => hub.flavorOf(l) === g.flavor).length > 1;
-                    return {
-                      key: g.key,
-                      label: g.label,
-                      items: g.items,
-                      icon: aisleIcon(g.flavor, g.category),
-                      emoji: g.emoji,
-                      showList: many && !one,
-                      dot: many && one && twins ? hub.list(g.items[0].listId) : undefined,
-                    };
-                  }),
-                ]}
-                onTick={tick}
-                onOpen={openItem}
-                flash={flash}
-                draggable={!mode}
-                settle={settle}
-              />
-            ) : null}
-
-            {cart.length ? (
-              <Disclosure
-                title={
-                  <>
-                    <Icon name="cart" className="icon--sm" /> In the cart
-                  </>
-                }
-                count={cart.length}
-                open={cartOpen}
-                onToggle={setCartOpen}
-                // One Finish: the shopbar's in the store, this one otherwise.
-                after={
-                  mode ? null : (
-                    <button type="button" className="btn btn--quiet btn--sm finish" onClick={finish}>
-                      <Icon name="check" className="icon--sm" /> Finish trip
+        <>
+          {!mode && !empty && v.buyAgain.length ? (
+            <div className="buyagain">
+              <p className="inline__prompt">Buy again?</p>
+              <div className="tokens tokens--scroll">
+                {v.buyAgain.map((s) => (
+                  <span key={s.key} className="token token--split" title={cadenceLabel(s.avgDays)}>
+                    <button type="button" onClick={() => quickAdd(s.name)}>
+                      <Icon name="plus" />
+                      <span dir="auto">{s.name}</span>
                     </button>
-                  )
-                }
-              >
-                <ul className="rows">
-                  {cart.map(({ row: i }) => (
-                    <ShopRow key={i.id} item={i} onTick={tick} onOpen={openItem} showList={many} />
-                  ))}
-                </ul>
-              </Disclosure>
-            ) : null}
-          </>
-        )}
+                    <button
+                      type="button"
+                      className="token__x"
+                      aria-label={`Not now: ${s.name}`}
+                      onClick={() =>
+                        setPrefs({
+                          dismissed: { ...prefs.dismissed, [s.key]: s.lastAt },
+                        })
+                      }
+                    >
+                      <Icon name="x" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {v.urgent.length || v.groups.length ? (
+            <ShopList
+              groups={[
+                ...(v.urgent.length
+                  ? [
+                      {
+                        key: 'urgent',
+                        label: null,
+                        items: v.urgent,
+                        showList: many,
+                      },
+                    ]
+                  : []),
+                ...v.groups.map((g) => {
+                  // A list's dot only where it tells you something: on rows where an aisle mixes
+                  // lists, or once on the head when two lists share this aisle's flavor.
+                  const one = new Set(g.items.map((i) => i.listId)).size === 1;
+                  const twins = lists.filter((l) => hub.flavorOf(l) === g.flavor).length > 1;
+                  return {
+                    key: g.key,
+                    label: g.label,
+                    items: g.items,
+                    icon: aisleIcon(g.flavor, g.category),
+                    emoji: g.emoji,
+                    showList: many && !one,
+                    dot: many && one && twins ? hub.list(g.items[0].listId) : undefined,
+                  };
+                }),
+              ]}
+              onTick={tick}
+              onOpen={openItem}
+              flash={flash}
+              draggable={!mode}
+              settle={settle}
+            />
+          ) : null}
+
+          {cart.length ? (
+            <Disclosure
+              title={
+                <>
+                  <Icon name="cart" className="icon--sm" /> In the cart
+                </>
+              }
+              count={cart.length}
+              open={cartOpen}
+              onToggle={setCartOpen}
+              // One Finish: the shopbar's in the store, this one otherwise.
+              after={
+                mode ? null : (
+                  <button type="button" className="btn btn--quiet btn--sm finish" onClick={finish}>
+                    <Icon name="check" className="icon--sm" /> Finish trip
+                  </button>
+                )
+              }
+            >
+              <ul className="rows">
+                {cart.map(({ row: i }) => (
+                  <ShopRow key={i.id} item={i} onTick={tick} onOpen={openItem} showList={many} />
+                ))}
+              </ul>
+            </Disclosure>
+          ) : null}
+        </>
       </div>
 
       {floating ? (
@@ -577,29 +551,29 @@ function ShopList({
                   <ul className="rows">
                     <ShopRow item={item} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} />
                   </ul>
-              ) : null;
-            }}
-          >
-            <ul className="rows">
-              {/* The Urgent card is the screen's one lemon card: its title sits inside it. */}
-              {g.label ? null : (
-                <li className="aisle__cap">
-                  <h2 className="aisle__captitle">Urgent</h2>
-                  <span className="ccard__badge num">{g.items.length}</span>
-                </li>
-              )}
-              {shown.map(({ row: i, settling }) =>
-                settling ? (
-                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} settling />
-                ) : draggable && g.label ? (
-                  <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
-                ) : (
-                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
-                ),
-              )}
-            </ul>
-          </Sortable>
-        </section>
+                ) : null;
+              }}
+            >
+              <ul className="rows">
+                {/* The Urgent card is the screen's one lemon card: its title sits inside it. */}
+                {g.label ? null : (
+                  <li className="aisle__cap">
+                    <h2 className="aisle__captitle">Urgent</h2>
+                    <span className="ccard__badge num">{g.items.length}</span>
+                  </li>
+                )}
+                {shown.map(({ row: i, settling }) =>
+                  settling ? (
+                    <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} settling />
+                  ) : draggable && g.label ? (
+                    <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
+                  ) : (
+                    <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
+                  ),
+                )}
+              </ul>
+            </Sortable>
+          </section>
         ) : null;
       })}
     </>
@@ -675,102 +649,5 @@ export function ShopRow({
         </span>
       ) : null}
     </li>
-  );
-}
-
-function SearchResults({
-  query,
-  view,
-  onAdd,
-  onTick,
-  onOpen,
-  filter,
-  lists,
-  dest,
-  onSwitch,
-}: {
-  query: string;
-  view: ReturnType<typeof shoppingView>;
-  onAdd: (raw: string) => void;
-  onTick: (i: Item) => void;
-  onOpen: (i: Item) => void;
-  filter: string;
-  lists: List[];
-  dest: List | undefined;
-  onSwitch: (listId: string) => void;
-}) {
-  const hub = useHub();
-  const { name } = parseQuantity(query);
-  const q = fold(name);
-  const key = itemKey(name);
-  const ids = new Set(view.lists.map((l) => l.id));
-  const all = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
-  const onList = all.filter((i) => !i.done && !i.archived && fold(i.title).includes(q));
-  const exact = onList.find((i) => itemKey(i.title) === key);
-  const history = historyMatches(view.stats, name, 4).filter((h) => !onList.some((i) => itemKey(i.title) === h.key));
-  const flavor = filter === 'all' ? undefined : hub.flavorOf(hub.list(filter));
-  const catalog = suggestFromCatalog(name, flavor, 5).filter(
-    (c) => !onList.some((i) => itemKey(i.title) === itemKey(c.label)) && !history.some((h) => h.key === itemKey(c.label)),
-  );
-  const other = filter === 'all' ? lists.find((l) => l.id !== dest?.id) : undefined;
-
-  return (
-    <div className="results">
-      {onList.length ? (
-        <>
-          <h2 className="aisle__head">On the list</h2>
-          <ul className="rows">
-            {onList.slice(0, 8).map((i) => (
-              <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={filter === 'all'} />
-            ))}
-          </ul>
-        </>
-      ) : null}
-      <div className="suggest">
-        {!exact ? (
-          <div className="suggest__item is-active suggest__item--add">
-            <button type="button" className="suggest__main" onClick={() => onAdd(query)}>
-              <span className="suggest__icon">
-                <Icon name="plus" className="icon--sm" />
-              </span>
-              <span className="suggest__text" dir="auto">
-                Add “{query}”
-                <span className="suggest__sub">
-                  to {dest?.name}
-                </span>
-              </span>
-            </button>
-            {other ? (
-              <button type="button" className="suggest__tag suggest__switch" onClick={() => onSwitch(other.id)} aria-label={`Add to ${other.name} instead`}>
-                <Icon name="swap" className="icon--xs" />
-                <span dir="auto">{other.name}</span>
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        {history.map((h) => (
-          <button key={h.key} type="button" className="suggest__item" onClick={() => onAdd(h.name)}>
-            <span className="suggest__icon">
-              <Icon name="undo" className="icon--sm" />
-            </span>
-            <span className="suggest__text" dir="auto">
-              {h.name}
-              <span className="suggest__sub">{cadenceLabel(h.avgDays) || `bought ${h.count}×`}</span>
-            </span>
-            <span className="suggest__tag">Again</span>
-          </button>
-        ))}
-        {catalog.map((c) => (
-          <button key={c.label} type="button" className="suggest__item" onClick={() => onAdd(c.label)}>
-            <span className="suggest__icon">
-              <Icon name="plus" className="icon--sm" />
-            </span>
-            <span className="suggest__text" dir="auto">
-              {c.label}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }

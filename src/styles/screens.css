@@ -71,8 +71,7 @@
   background: var(--tile);
 }
 
-.rows + .quietline,
-.quickadd + .quietline {
+.rows + .quietline {
   margin-top: 4px;
 }
 
@@ -547,90 +546,65 @@ button.projcard:active {
   margin-top: 12px;
 }
 
-/* ============================================================ Composer ("New") */
+/* ============================================================ Composer ("New")
+ * You write on the card itself, in its display type. Compact: the card and the two or three
+ * chips that matter here, with More; full: every chip. Shopping keeps it open (Done / Add).
+ */
 
-.composer__ask {
-  display: block;
-  padding: 14px 16px 6px;
-  border-radius: 20px;
-  background: var(--tile);
-  cursor: text;
+.composer__card {
+  min-height: 168px;
+  gap: 18px;
+  /* Clear of the sheet's close button */
+  margin-top: 46px;
 }
 
-.composer__label {
+.composer__input {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  min-height: 1.1em;
+  caret-color: var(--ink);
+}
+
+.composer__tokens,
+.composer__suggest {
+  margin-top: 12px;
+}
+
+.composer .inline__chips,
+.composer .inline {
+  margin-top: 16px;
+}
+
+.composer__added {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 13px;
+  gap: 6px;
+  margin: 14px 2px 0;
+  font-size: 14px;
   color: var(--text-2);
+  animation: row-in 220ms var(--ease) both;
 }
 
-.composer__ask input {
-  width: 100%;
-  height: 40px;
-  border: 0;
-  background: transparent;
-  font-size: 17px;
+.composer__foot {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
 }
 
-.composer__tokens {
-  margin-top: 10px;
+.composer__foot .composer__add:not(.btn--block) {
+  flex: 1;
 }
 
-.composer .ccard {
-  margin-top: 14px;
-}
-
-.composer .inline__prompt {
-  margin-top: 20px;
-}
-
-.composer__add {
-  margin-top: 26px;
+.composer__done {
+  flex: 0 0 auto;
+  min-width: 96px;
 }
 
 /* ============================================================ Shopping */
 
 .filter {
   margin-bottom: 14px;
-}
-
-.searchbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 7px 0 18px;
-  border-radius: 999px;
-  background: var(--tile);
-  color: var(--text-3);
-  transition:
-    background 160ms var(--ease),
-    box-shadow 160ms var(--ease);
-}
-
-.searchbar:focus-within {
-  background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
-}
-
-.searchbar input {
-  flex: 1;
-  min-width: 0;
-  height: 44px;
-  border: 0;
-  background: transparent;
-  font-size: 16.5px;
-  color: var(--text);
-}
-
-.searchbar__clear {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--text-3);
 }
 
 .buyagain {
@@ -664,102 +638,6 @@ button.projcard:active {
   font-size: 15px;
   line-height: 1;
   text-align: center;
-}
-
-.results .aisle__head {
-  margin-top: 22px;
-}
-
-.suggest {
-  margin-top: 14px;
-  border-radius: 20px;
-  background: var(--tile);
-  overflow: hidden;
-}
-
-.suggest__item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 56px;
-  padding: 8px 14px 8px 14px;
-  text-align: start;
-}
-
-.suggest__item + .suggest__item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 54px;
-  right: 0;
-  height: 1px;
-  background: rgb(10 10 4 / 0.06);
-}
-
-.suggest__item:active,
-.suggest__main:active {
-  background: var(--tile-2);
-}
-
-.suggest__item--add {
-  background: var(--card);
-}
-
-.suggest__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-align: start;
-}
-
-.suggest__icon {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--card);
-  color: var(--text-2);
-}
-
-/* The add row's icon is gray like the rest: the add row's arrow is the one black add control. */
-.suggest__item--add .suggest__icon {
-  background: var(--tile-2);
-  color: var(--ink);
-}
-
-.suggest__text {
-  flex: 1;
-  min-width: 0;
-  font-size: 16px;
-}
-
-.suggest__sub {
-  display: block;
-  font-size: 12.5px;
-  color: var(--text-3);
-}
-
-.suggest__tag {
-  flex-shrink: 0;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: var(--card);
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text-2);
-}
-
-.suggest__switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--tile);
 }
 
 .finish {
@@ -854,6 +732,139 @@ button.projcard:active {
 
 .shopmode .row__title {
   font-size: 18.5px;
+}
+
+/* ============================================================ Search (components/SearchLayer.tsx)
+ * Not a page: a field drops into the top of the screen and the results float over the page
+ * you were on, which stays recognisable under a light veil.
+ */
+
+.searchlayer {
+  position: fixed;
+  z-index: 70;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.searchlayer__veil {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(250 250 248 / 0.72);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  animation: fade-in 160ms var(--ease) both;
+}
+
+.searchlayer__top {
+  position: relative;
+  padding-top: calc(var(--safe-top) + 12px);
+  padding-bottom: 10px;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--line);
+  animation: search-drop 220ms var(--spring) both;
+}
+
+@keyframes search-drop {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+.searchlayer__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchlayer__box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 6px 0 16px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  color: var(--text-3);
+  cursor: text;
+}
+
+.searchlayer__box input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  font-size: 16.5px;
+  color: var(--text);
+}
+
+.searchlayer__clear {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.searchlayer__close {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+.searchlayer__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 12px;
+  padding-bottom: 40px;
+  pointer-events: none;
+}
+
+.searchlayer__card {
+  pointer-events: auto;
+  padding: 6px 4px;
+  border-radius: var(--r-l);
+  background: var(--card);
+  box-shadow: var(--lift-2), 0 0 0 1px var(--line);
+  animation: row-in 200ms var(--ease) both;
+}
+
+.searchlayer__card .rows + .rows {
+  margin-top: 4px;
+}
+
+.searchlayer__recent {
+  padding: 4px 12px 12px;
+}
+
+.searchlayer__forget {
+  margin-left: auto;
+}
+
+.searchlayer__none {
+  margin: 0;
+  padding: 18px 14px;
+  color: var(--text-3);
+}
+
+/* While search is open the floating things below it rest. */
+html.is-searching :is(.tabbar:not(.tabbar--preview), .shopbar, .ideatag) {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchlayer__veil,
+  .searchlayer__top,
+  .searchlayer__card {
+    animation: none;
+  }
 }
 
 /* ============================================================ Chores */

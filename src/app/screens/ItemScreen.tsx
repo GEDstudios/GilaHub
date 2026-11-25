@@ -14,7 +14,7 @@ import { back, navigate } from '../router';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Check, Empty, IconButton, lineVars, Section } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, IconButton, lineVars, NewButton, Section } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
 import { AutoTitle } from '../ui/AutoTitle';
 
@@ -62,7 +62,9 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
             const undo = hub.delete(id);
             onClose();
             onGone();
-            toast(`Deleted “${item.title}”`, { action: { label: 'Undo', run: undo } });
+            toast(`Deleted “${item.title}”`, {
+              action: { label: 'Undo', run: undo },
+            });
           }}
         />
       </div>
@@ -81,7 +83,9 @@ function DonePanel({ id, close }: { id: string; close: () => void }) {
   /** Today says what every tick says; an earlier day says which day it counted for. */
   const done = (day: string, label: string | null) => {
     const undo = hub.completeRepeating(id, day);
-    toast(label ?? freshAgain(hub, id), { action: { label: 'Undo', run: undo } });
+    toast(label ?? freshAgain(hub, id), {
+      action: { label: 'Undo', run: undo },
+    });
     close();
   };
   return (
@@ -94,7 +98,12 @@ function DonePanel({ id, close }: { id: string; close: () => void }) {
       </button>
       <label className="option option--input">
         <Icon name="calendar" className="icon--sm" />
-        <input type="date" max={ref} aria-label="Done on a day" onChange={(e) => e.target.value && done(e.target.value, `Counted for ${humanDate(e.target.value, ref)}`)} />
+        <input
+          type="date"
+          max={ref}
+          aria-label="Done on a day"
+          onChange={(e) => e.target.value && done(e.target.value, `Counted for ${humanDate(e.target.value, ref)}`)}
+        />
       </label>
       <button
         type="button"
@@ -129,8 +138,9 @@ export function ItemScreen({ id }: { id: string }) {
   const item = hub.item(id);
   const [notes, setNotes] = useState(item?.notes ?? '');
   useEffect(() => setNotes(item?.notes ?? ''), [item?.notes]);
-  // No "+" here, but N and the sidebar's New add to this item's project.
-  useAddAction(() => openSheet((close) => <QuickAddSheet onClose={close} listId={item?.listId} />));
+  // The + adds a step of this item (a chip in the sheet makes it its own task instead).
+  const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={item?.listId} parentId={item?.id} />);
+  useAddAction(openNew, 'Add a step');
 
   useEffect(() => {
     // Shopping items edit in their own sheet.
@@ -155,12 +165,19 @@ export function ItemScreen({ id }: { id: string }) {
   const vis = hub.visibilityOf(item);
   const partner = hub.partner();
   const partnerName = partner?.name ?? 'your partner';
-  const logs = hub.logsFor(id).filter((l) => l.kind === 'done').slice(0, 5);
+  const logs = hub
+    .logsFor(id)
+    .filter((l) => l.kind === 'done')
+    .slice(0, 5);
   const allowed = allowedVis(hub, list, ancestors.at(-1));
   const visChoice = itemVisChoice(hub, item);
   const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
   const iAsked = item.requestedBy === hub.meId;
-  const upTo = ancestors.length ? { name: 'item' as const, id: ancestors[ancestors.length - 1].id } : list ? { name: 'list' as const, id: list.id } : { name: 'today' as const };
+  const upTo = ancestors.length
+    ? { name: 'item' as const, id: ancestors[ancestors.length - 1].id }
+    : list
+      ? { name: 'list' as const, id: list.id }
+      : { name: 'today' as const };
   const steps = hub.childrenOf(id);
 
   const onToggle = () => {
@@ -207,7 +224,14 @@ export function ItemScreen({ id }: { id: string }) {
       <Band
         onBack={() => back(upTo)}
         mini={item.title}
-        actions={editable ? <IconButton icon="more" label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} /> : undefined}
+        actions={
+          editable ? (
+            <>
+              <IconButton icon="more" label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} />
+              <NewButton label="Add a step" onClick={openNew} />
+            </>
+          ) : undefined
+        }
         crumbs={
           <nav className="crumbs" aria-label="Path">
             <button type="button" onClick={() => list && navigate({ name: 'list', id: list.id })} dir="auto">
@@ -251,7 +275,18 @@ export function ItemScreen({ id }: { id: string }) {
 
         {editable ? (
           <InlineEditor
-            extras={item.repeat ? [{ key: 'done', label: 'Done…', icon: 'check', panel: (close) => <DonePanel id={id} close={close} /> }] : []}
+            extras={
+              item.repeat
+                ? [
+                    {
+                      key: 'done',
+                      label: 'Done…',
+                      icon: 'check',
+                      panel: (close) => <DonePanel id={id} close={close} />,
+                    },
+                  ]
+                : []
+            }
             value={draft}
             onChange={change}
             fields={(['when', 'repeat', 'remind', 'who', 'vis', 'urgent'] as const).filter(
@@ -283,7 +318,7 @@ export function ItemScreen({ id }: { id: string }) {
 
         {steps.length || editable ? (
           <Section title="Steps" count={steps.length}>
-            <Children listId={item.listId} parentId={id} readonly={!editable} add={{ placeholder: 'Add a step' }} />
+            <Children listId={item.listId} parentId={id} readonly={!editable} />
           </Section>
         ) : null}
 
@@ -299,12 +334,24 @@ export function ItemScreen({ id }: { id: string }) {
                       <span className="row__title">
                         {by?.id === hub.meId ? 'You' : by?.name}{' '}
                         <span className="row__aside">
-                          {new Date(l.at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                          {new Date(l.at).toLocaleString(undefined, {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                          })}
                         </span>
                       </span>
                     </div>
                     {l.by !== hub.meId ? (
-                      <button type="button" className={`heart ${l.thankedBy ? 'is-on' : ''}`} onClick={() => hub.thank(l.id)} aria-label="Say thanks" aria-pressed={!!l.thankedBy}>
+                      <button
+                        type="button"
+                        className={`heart ${l.thankedBy ? 'is-on' : ''}`}
+                        onClick={() => hub.thank(l.id)}
+                        aria-label="Say thanks"
+                        aria-pressed={!!l.thankedBy}
+                      >
                         <Icon name={l.thankedBy ? 'heart-fill' : 'heart'} />
                       </button>
                     ) : l.thankedBy ? (

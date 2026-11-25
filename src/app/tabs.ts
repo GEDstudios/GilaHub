@@ -1,6 +1,6 @@
 import type { Hub } from '../core/actions';
 import { fold } from '../smart/normalize';
-import type { LineColor } from '../core/model';
+import type { LineColor, List } from '../core/model';
 import type { Route } from './router';
 import type { IconName } from './ui/Icon';
 
@@ -42,11 +42,13 @@ export function barDensity(n: number, { editing = false }: { editing?: boolean }
 
 export function pinOptions(hub: Hub): TabDef[] {
   const lists = hub.lists();
-  // A project called "Chores" next to the Chores tab: the tab says it gathers them all.
-  const label = (name: string) => (lists.some((l) => fold(l.name) === fold(name)) ? `All ${name.toLowerCase()}` : name);
+  // A project called "Chores" beside other chores projects: the tab says it gathers them all.
+  // When it's the only one, tab and project are the same thing, so the tab is just "Chores".
+  const label = (name: string, kind: List['kind']) =>
+    lists.some((l) => fold(l.name) === fold(name)) && lists.filter((l) => l.kind === kind).length > 1 ? `All ${name.toLowerCase()}` : name;
   return [
-    { key: 'shop', label: label('Shopping'), path: '/shop', icon: 'basket' },
-    { key: 'chores', label: label('Chores'), path: '/chores', icon: 'broom' },
+    { key: 'shop', label: label('Shopping', 'shopping'), path: '/shop', icon: 'basket' },
+    { key: 'chores', label: label('Chores', 'chores'), path: '/chores', icon: 'broom' },
     { key: 'search', label: 'Search', path: '/search', icon: 'search' },
     ...lists.map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
@@ -178,8 +180,6 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
       return 'shop';
     case 'chores':
       return 'chores';
-    case 'search':
-      return 'search';
     case 'lists':
       return 'projects';
     case 'list':

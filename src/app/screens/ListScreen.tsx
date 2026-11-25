@@ -166,7 +166,7 @@ function TaskProject({ id }: { id: string }) {
       </Band>
       <div className="column">
         <ProjectChips list={list} />
-        <Children listId={id} parentId={null} add={{ placeholder: label }} />
+        <Children listId={id} parentId={null} />
       </div>
     </>
   );

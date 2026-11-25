@@ -5,19 +5,20 @@ import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
 import { IdeaTag } from './components/Ideas';
+import { SearchLayer } from './components/SearchLayer';
+import { openSearch } from './search';
 import { QuickAddSheet } from './components/QuickAddSheet';
 import { TabBar } from './components/TabBar';
 import { RuntimeProvider, useHub, useRt } from './context';
 import { usePrefs } from './prefs';
 import { LocalReminders, ReminderSync } from './reminders';
-import { navigate, useRoute } from './router';
+import { currentPath, navigate, useRoute } from './router';
 import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime } from './runtime';
 import { Chores } from './screens/Chores';
 import { ItemScreen } from './screens/ItemScreen';
 import { ListScreen } from './screens/ListScreen';
 import { Lists } from './screens/Lists';
 import { Onboarding, type OnboardResult } from './screens/Onboarding';
-import { Search } from './screens/Search';
 import { Settings } from './screens/Settings';
 import { Shopping } from './screens/Shopping';
 import { SyncDot } from './components/SyncBadge';
@@ -72,7 +73,7 @@ function Sidebar() {
             </button>
           ))}
           {tabs.some((t) => t.key === 'search') ? null : (
-            <button type="button" className={`navitem ${route.name === 'search' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'search' })}>
+            <button type="button" className="navitem" onClick={openSearch}>
               <Icon name="search" />
               <span className="navitem__label">Search</span>
               <span className="navitem__count kbd">/</span>
@@ -130,8 +131,6 @@ function Screen() {
       return <ItemScreen key={route.id} id={route.id} />;
     case 'settings':
       return <Settings />;
-    case 'search':
-      return <Search />;
   }
 }
 
@@ -229,7 +228,7 @@ function Duties() {
       if (document.querySelector('.sheet') || document.documentElement.classList.contains('is-editing')) return;
       if (e.key === '/') {
         e.preventDefault();
-        navigate({ name: 'search' });
+        openSearch();
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         add();
@@ -252,6 +251,13 @@ function Shell() {
   useEffect(() => {
     document.documentElement.classList.toggle('no-tabbar', !bar);
   }, [bar]);
+  // An old /search link (or bookmark): Today, with search open over it.
+  useEffect(() => {
+    if (currentPath() === '/search') {
+      navigate('/', { replace: true });
+      openSearch();
+    }
+  }, []);
   return (
     <div className="app">
       <Sidebar />
@@ -260,6 +266,7 @@ function Shell() {
       </main>
       {bar ? <TabBar /> : null}
       <IdeaTag />
+      <SearchLayer />
       <Duties />
     </div>
   );

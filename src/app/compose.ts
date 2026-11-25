@@ -1,5 +1,5 @@
 /**
- * Adding, as pure rules shared by the in-place AddRow and the New composer
+ * Adding, as pure rules behind the New composer
  * (docs/03-DESIGN-SYSTEM.md, "Adding"): what the typed words mean, what a chip
  * overrides, and which mode a project puts the add in.
  */
@@ -64,12 +64,4 @@ export function composerPlaceholder(mode: AddMode, partnerName: string | null | 
   if (mode === 'chore') return 'Water plants every 3 days';
   const all = ['Call mom tomorrow 6pm', 'Pay rent every 1st', ...(partnerName ? [`Fix the tap @${partnerName}`] : [])];
   return all[Math.min(all.length - 1, Math.floor(rand * all.length))];
-}
-
-/** What an add row says when nothing is typed. */
-export function addRowPlaceholder(mode: AddMode, listName: string | undefined, isStep: boolean): string {
-  if (isStep) return 'Add a step';
-  if (mode === 'chore') return 'Add a chore';
-  if (mode === 'shopping') return 'Add an item';
-  return `Add to ${listName ?? 'list'}`;
 }

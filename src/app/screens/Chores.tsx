@@ -1,9 +1,7 @@
-import { useRef } from 'react';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
 import { humanDate, relativeAgo, sinceDate, today as todayStr } from '../../core/dates';
 import { useAddAction } from '../addAction';
 import { ruleShort } from '../components/editors';
-import { AddRow, type AddRowHandle } from '../components/QuickAdd';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
@@ -33,7 +31,11 @@ export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: 
   const meta = [
     item.repeat ? ruleShort(item.repeat) : 'Once',
     item.assignee === 'turns' && who ? (who.id === hub.meId ? 'your turn' : `${who.name}’s turn`) : null,
-    item.due && item.due < ref ? sinceDate(item.due, ref) : item.lastDoneAt ? `${item.lastDoneBy === hub.meId ? 'you' : (hub.member(item.lastDoneBy)?.name ?? '')}, ${relativeAgo(item.lastDoneAt)}` : null,
+    item.due && item.due < ref
+      ? sinceDate(item.due, ref)
+      : item.lastDoneAt
+        ? `${item.lastDoneBy === hub.meId ? 'you' : (hub.member(item.lastDoneBy)?.name ?? '')}, ${relativeAgo(item.lastDoneAt)}`
+        : null,
   ].filter(Boolean);
 
   const done = () => {
@@ -80,17 +82,21 @@ export function Chores({ listId }: { listId?: string } = {}) {
   const all = choresView(hub, ref);
   const scoped = listId ? hub.list(listId) : undefined;
   const only = (rows: ChoreRow[]) => (scoped ? rows.filter((r) => r.list.id === scoped.id) : rows);
-  const v = { ...all, now: only(all.now), soon: only(all.soon), fresh: only(all.fresh), paused: only(all.paused) };
+  const v = {
+    ...all,
+    now: only(all.now),
+    soon: only(all.soon),
+    fresh: only(all.fresh),
+    paused: only(all.paused),
+  };
   const rows = [...v.now, ...v.soon, ...v.fresh, ...v.paused];
   const away = hub.isAway();
   const list = scoped ?? all.lists[0];
-  const addRef = useRef<AddRowHandle>(null);
-
-  const openNew = () =>
+  const openNew = (text?: string) =>
     list
-      ? openSheet((close) => <QuickAddSheet onClose={close} listId={list.id} />)
+      ? openSheet((close) => <QuickAddSheet onClose={close} listId={list.id} text={text} />)
       : openSheet((close) => <NewProjectSheet onClose={close} initial={{ kind: 'chores' }} />);
-  useAddAction(openNew, 'New chore');
+  useAddAction(() => openNew(), 'New chore');
 
   const toggleAway = () => {
     if (!away) {
@@ -128,11 +134,15 @@ export function Chores({ listId }: { listId?: string } = {}) {
   return (
     <>
       {scoped ? (
-        <Band onBack={() => back({ name: 'lists' })} mini={scoped.name} actions={<ProjectActions listId={scoped.id} label="New chore" onNew={openNew} />}>
+        <Band
+          onBack={() => back({ name: 'lists' })}
+          mini={scoped.name}
+          actions={<ProjectActions listId={scoped.id} label="New chore" onNew={() => openNew()} />}
+        >
           <ProjectHero list={scoped} sub={`${sub ?? 'Empty'}${heroVis(hub, scoped)}`} />
         </Band>
       ) : (
-        <Band top={<SyncBadge />} title="Chores" sub={sub} actions={<NewButton label="New chore" onClick={openNew} />} />
+        <Band top={<SyncBadge />} title="Chores" sub={sub} actions={<NewButton label="New chore" onClick={() => openNew()} />} />
       )}
       <div className="column">
         {scoped ? <ProjectChips list={scoped} /> : null}
@@ -151,11 +161,10 @@ export function Chores({ listId }: { listId?: string } = {}) {
 
         {list ? (
           <div>
-            <AddRow listId={list.id} handle={addRef} />
             {starters.length ? (
-              <div className="tokens addrow__suggest">
+              <div className="tokens chores__starters">
                 {starters.map((t) => (
-                  <button key={t} type="button" className="token" onClick={() => addRef.current?.submit(t)}>
+                  <button key={t} type="button" className="token" onClick={() => openNew(t)}>
                     <Icon name="plus" />
                     {t}
                   </button>

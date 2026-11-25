@@ -5,7 +5,6 @@ import { Store } from '../../src/core/store';
 import { parseQuickAdd, type ParseContext } from '../../src/smart/parse';
 import { addLabel, registerAdd, runAdd } from '../../src/app/addAction';
 import {
-  addRowPlaceholder,
   CHORE_REPEAT,
   composeDraft,
   composerPlaceholder,
@@ -104,10 +103,6 @@ describe('Adding: words, chips and modes', () => {
     expect(composerPlaceholder('task', 'Hila', 0.99)).toBe('Fix the tap @Hila');
     expect(composerPlaceholder('task', null, 0.99)).toBe('Pay rent every 1st');
     expect(composerPlaceholder('task', null, 0)).toBe('Call mom tomorrow 6pm');
-    expect(addRowPlaceholder('task', 'To do', false)).toBe('Add to To do');
-    expect(addRowPlaceholder('task', 'To do', true)).toBe('Add a step');
-    expect(addRowPlaceholder('chore', 'Chores', false)).toBe('Add a chore');
-    expect(addRowPlaceholder('shopping', 'Groceries', false)).toBe('Add an item');
   });
 });
 

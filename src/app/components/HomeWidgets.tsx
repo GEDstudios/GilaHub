@@ -4,7 +4,7 @@ import type { Item, LineColor } from '../../core/model';
 import { byOrder } from '../../core/order';
 import { useHub, usePartnerShopping } from '../context';
 import { AHEAD_MAX, aheadDay, aheadOf, choresReady, summaryOf, things, weekBands, WIDGETS } from '../home';
-import { getPrefs, setPrefs, use24h, usePrefs } from '../prefs';
+import { setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { useLater } from '../tick';
 import { ChoreItem } from '../screens/Chores';
@@ -20,7 +20,6 @@ import { choresView, openCount, todayView, type ChoreRow, type ChoresView, type 
 import { AsksWidget } from './Asks';
 import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
-import { AddRow } from './QuickAdd';
 import { QuickAddSheet } from './QuickAddSheet';
 import { ShopItemSheet } from './ShopItemSheet';
 
@@ -138,9 +137,9 @@ export function HomeNotices() {
 // ---------------------------------------------------------------- today
 
 /**
- * Today's rows, the add row, and "n from earlier" folded under them. With nothing due and
- * nothing above it, it drops its label and the add row sits right under the summary.
- * The section keeps one shape so the add row (and its focus) stays put as rows come and go.
+ * Today's rows and "n from earlier" folded under them. With nothing due and nothing from
+ * earlier it isn't drawn at all (the summary already says the day is clear; + adds).
+ * With nothing above it, it drops its label.
  */
 export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: string; settle: Settle<Item>; bare: boolean }) {
   const hub = useHub();
@@ -148,12 +147,9 @@ export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: strin
   const later = useLater();
   const rows = settle.view('today', v.today);
   const earlier = settle.view('earlier', v.earlier);
-  // Today's add row puts things in the last task project used (To do, at first).
-  const taskLists = hub.lists().filter((l) => l.kind === 'tasks');
-  const last = getPrefs().lastList;
-  const addTo = (last && taskLists.find((l) => l.id === last)) || taskLists.find((l) => l.name === 'To do') || taskLists[0];
   const head = !bare || rows.length > 0;
   const open = prefs.earlierOpen;
+  if (!rows.length && !earlier.length) return null;
 
   return (
     <section className={`section ${head ? '' : 'section--bare'}`} id="today">
@@ -172,7 +168,6 @@ export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: strin
           ))}
         </ul>
       ) : null}
-      {addTo ? <AddRow listId={addTo.id} defaultDue={day} placeholder="Add something for today" allowListChange /> : null}
       {earlier.length ? (
         <>
           <button type="button" className="quietline" aria-expanded={open} onClick={() => setPrefs({ earlierOpen: !open })}>
@@ -365,12 +360,11 @@ function ShopRows({ items, group, settle, showList }: { items: Item[]; group: st
   );
 }
 
-/** To buy: the top of the shopping lists (urgent first, newest), and an add row that sorts things into the right list. */
+/** To buy: the top of the shopping lists (urgent first, newest). */
 export function ToBuyWidget({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
   const hub = useHub();
   const lists = hub.shoppingLists();
   if (!v.shopping.count || !lists.length) return null;
-  const dest = hub.routeShopping('', lists) ?? lists[0];
   return (
     <Section
       title="To buy"
@@ -382,7 +376,6 @@ export function ToBuyWidget({ v, settle }: { v: TodayView; settle: Settle<Item> 
       }
     >
       <ShopRows items={v.shopping.preview} group="shop" settle={settle} showList={lists.length > 1} />
-      <AddRow listId={dest.id} placeholder="Add to the list" route={lists.length > 1} />
     </Section>
   );
 }
@@ -466,7 +459,6 @@ export function ProjectWidget({ listId, day, settle }: { listId: string; day: st
       }
     >
       {body}
-      <AddRow listId={listId} placeholder={`Add to ${list.name}`} />
     </Section>
   );
 }
