@@ -2,9 +2,9 @@
 
 **A shared home for two people's groceries, chores, plans and private lists.** It's free, private, and runs on iPhone, Android, Mac and Windows.
 
-<p align="center"><img src="public/icons/icon-512.png" width="128" alt="Gila Hub icon: the word gila in a soft black serif on an acid-yellow tile"></p>
+<p align="center"><img src="public/icons/icon-512.png" width="128" alt="Gila Hub icon: the word gila in a black serif on an acid-yellow tile"></p>
 
-**G**uy + H**ila** = **Gila**, and גִּילָה means *joy* in Hebrew. The look follows Tasky by H3Y Lab: bold color cards, a soft serif and playful name-tag cursors.
+**G**uy + H**ila** = **Gila**, and גִּילָה means *joy* in Hebrew. The look follows Tasky by H3Y Lab: a calm light canvas, one color card per screen, inline chips and two name-tag cursors.
 
 | | |
 |---|---|
@@ -47,7 +47,7 @@ You'll get an address like `https://gila-hub.<you>.workers.dev`.
 
 ### 3. Pair
 
-1. Open Gila Hub, tap **Get started**, type your name, pick a color and tap the projects you want.
+1. Open Gila Hub, tap **Get started**, type your name, pick a color and choose the projects you want.
 2. Tap **Bring your person in** to get a one-time code.
 3. On their phone, open the installed app → **I have a code**.
 4. To add your own laptop, use **Settings → Add another device**.

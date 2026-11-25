@@ -17,9 +17,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: var(--fs-body);
+  font-size: 16px;
   line-height: 1.45;
-  font-feature-settings: normal;
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -61,17 +60,27 @@ svg {
 }
 
 :focus-visible {
-  outline: 3px solid var(--text);
+  outline: 2px solid var(--text);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--lemon) 70%, transparent);
+  background: color-mix(in srgb, var(--lemon) 75%, transparent);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-3);
+  opacity: 1;
 }
 
 .num {
   font-variant-numeric: tabular-nums;
+}
+
+.serif {
+  font-family: var(--serif);
 }
 
 .sr-only {

@@ -8,49 +8,47 @@
 
 ---
 
-## What we stole
+## What we stole, read closely
 
-**Tasky, AI Task Organizer**, by [H3Y Lab](https://www.h3ylab.com/details/tasky-productivity) (Buenos Aires, 2024; [Behance case study](https://www.behance.net/gallery/200074661/Tasky-AI-Task-Organizer-UX-UI-Design)). The system is bold and joyful: saturated color cards on near-white, a sturdy grotesk for the interface and a soft serif for big numbers and titles. It also has a playful collaboration motif of cursors carrying people's name tags.
+**Tasky, AI Task Organizer**, by [H3Y Lab](https://www.h3ylab.com/details/tasky-productivity) (Buenos Aires, 2024; [Behance case study](https://www.behance.net/gallery/200074661/Tasky-AI-Task-Organizer-UX-UI-Design)).
 
-*This replaces the first direction (the 1970 NYC subway manual). The structure stayed; only the look changed.*
+A first pass copied Tasky's surface: color everywhere, heavy black buttons, a bubbly serif. That missed the point. Looked at closely, Tasky's screens are mostly **calm near-white and soft gray**, with **one moment of saturated color** per screen. Its controls are **small gray pills**, and you change things **inline** ("Want to modify something?" followed by chips). This version follows that.
 
-### What we took
-
-| Tasky | In Gila Hub |
+| Tasky does | Gila Hub does |
 |---|---|
-| **Color cards.** Big rounded tiles in acid yellow, pink, purple, light blue, green and orange, with black text. | Every **project** is a color card. Project screens paint their header in the project's color. |
-| **Stacked strips.** Overlapping colored bands, each with a big serif number ("24 · Completed tasks"). | **Today's summary:** to buy, chores ready, done together this week, coming up. |
-| **Overlapping tag pills.** "Health · Study · Team". | Today's "You have 4 things to tackle today" card, with the projects involved. |
-| **Name tags with cursors.** "Juan", "Delfina". | The onboarding splash ("Guy", "Hila"), and your own name tag when you pick your color. |
-| **Outfit + a soft serif.** | **Outfit** for the interface and **Fraunces** (soft) for titles, numbers and the wordmark. **Heebo** and **Frank Ruhl Libre** cover Hebrew. |
-| **Black pill CTAs and black circle buttons.** "Get started →", the bell, the centered "+". | The same: one black "+" on the tab bar does the obvious thing on each screen. |
+| Near-white canvas (`#FAFAFA`), gray tiles (`#ECEDEE`), ink text | Canvas `#FAFAF8`, tiles `#F0F0ED`, ink `#0A0A04`. Light only. |
+| One big color card per screen: "Biology test, starting tomorrow, 2 times a week" | Every project, item and new thing is a color card: serif title, one plain sentence underneath ("Tomorrow at 6 pm, then every Sun.") |
+| "Want to modify something?" with gray chips under the card | The same, everywhere: **Date · Repeat · Remind me · Who · Ours · Urgent**. Tap a chip and its options open right below it. |
+| "You have 4 tasks to tackle today" next to overlapping tag pills | Today's summary card, with the projects involved |
+| Stacked color strips with big serif numbers | "This week": to buy, chores ready, done together. Only the numbers that aren't zero. |
+| Name tags with cursors ("Juan", "Delfina") | The welcome screen: "Guy" and "Hila" pointing at the headline. Your own tag when you pick your color. |
+| A refined serif for titles and numbers, a clean sans for everything else | **Newsreader** (titles, numbers, wordmark) and **Figtree** (interface). **Frank Ruhl Libre** and **Heebo** for Hebrew. |
 
 ### What we changed
 
-- **Two people, not a team.** The cursor tags are always the two of you.
+- **Two people, not a team.** The cursors are always the two of you.
 - **No scores.** Tasky celebrates streaks and percentages. We show one shared number ("done together this week") and never compare partners.
-- **Privacy is visible.** "Ours / Mine / Only me" are part of every project and item.
-- **Bilingual.** Hebrew sits naturally beside English; every string keeps its own direction.
+- **Privacy is visible.** Ours, Mine and Only me sit in the same chip row as the date.
+- **Fewer choices.** Six colors, four starter projects, four repeat options plus "custom". No themes.
 
 ## Logo
 
-The wordmark is **gila hub** in lowercase Fraunces at its heaviest, softest setting, a cousin of Tasky's chunky logotype. The **app icon** is the word *gila* in black on an acid-yellow tile.
+The wordmark is **gila** *hub*: Newsreader Medium, with *hub* in italic. The app icon is "gila" in black on a lemon tile.
 
 ## Palette
 
 | Name | Hex | Use |
 |---|---|---|
-| Lemon | `#EAFF00` | Signature. Groceries, the icon, highlights |
+| Lemon | `#EAFF00` | Signature. Groceries, the icon, urgent |
 | Pink | `#FBC6F2` | Chores |
-| Lilac | `#B88EFE` | Together, trips |
+| Lilac | `#B88EFE` | Trips, together |
 | Sky | `#24D1FE` | To do |
-| Mint | `#1BB36A` | Success, gifts |
-| Amber | `#EFB43D` | Movies, warm accents |
-| Orange | `#FF8C1A` | Home shopping |
-| Ink | `#0A0A04` | Text, CTAs, the "+" |
-| White / Gray | `#FAFAFA` / `#F2F2F0` | Background and tiles |
+| Mint | `#1BB36A` | Gifts, sync is healthy |
+| Amber | `#EFB43D` | Home shopping |
+| Ink | `#0A0A04` | Text, primary buttons |
+| Canvas / Tile | `#FAFAF8` / `#F0F0ED` | Background and grouped rows |
 
-Text on every color is ink. Dark mode keeps the colored cards and turns the canvas near-black.
+Text on every color is ink.
 
 ## Voice
 
@@ -59,7 +57,7 @@ Warm, short, encouraging, never nagging.
 | Say | Not |
 |---|---|
 | You have 4 things to tackle today | 4 OVERDUE TASKS |
-| Nothing to tackle today. Enjoy it. | You have 0 tasks! 🎉🎉 |
+| Nothing due today. Enjoy it. | You have 0 tasks! 🎉🎉 |
 | since Tuesday | Overdue by 3 days |
-| Hila is shopping now | Shopping session started by user Hila |
-| This will disappear for Hila. | Changing visibility will restrict access permissions. |
+| Hila is shopping now. | Shopping session started by user Hila |
+| This will disappear for Hila | Changing visibility will restrict access permissions. |

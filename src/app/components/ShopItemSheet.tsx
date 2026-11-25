@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import type { ItemVisibility } from '../../core/actions';
 import { categoryMeta } from '../../smart/categorize';
 import { useHub } from '../context';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { ListBullet, Seg, Switch } from '../ui/primitives';
-import { AisleSheet, OptRow, VIS_HINT, VisibilityControl } from './pickers';
+import { lineVars } from '../ui/primitives';
+import { Options, visHint } from './editors';
+import { AisleSheet } from './pickers';
 
 export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const hub = useHub();
@@ -30,111 +32,94 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
 
   return (
     <Sheet onClose={() => (commitTitle(), onClose())} label={item.title}>
-      <input
-        className="titleinput"
-        value={title}
-        dir="auto"
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={commitTitle}
-        readOnly={!editable}
-        aria-label="Name"
-        style={{ paddingRight: 44 }}
-      />
-      {!editable ? <p className="hint" style={{ margin: '6px 0 0' }}>This is {hub.member(hub.ownerOf(item))?.name}’s — you can still tick it off.</p> : null}
+      <div className="ccard ccard--md ccard--edit" style={lineVars(list?.color)}>
+        <input className="ccard__input" value={title} dir="auto" onChange={(e) => setTitle(e.target.value)} onBlur={commitTitle} readOnly={!editable} aria-label="Name" />
+        <span className="ccard__sub">
+          {list?.name} · {meta.en}
+        </span>
+      </div>
+      {!editable ? <p className="hint">This is {hub.member(hub.ownerOf(item))?.name}’s. You can still tick it off.</p> : null}
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="optrow">
-          <span className="optrow__icon">
-            <Icon name="tag" className="icon--sm" />
+      <div className="choose">
+        <span className="choose__label">How many</span>
+        <div className="options">
+          <span className="stepper">
+            <button type="button" aria-label="Less" disabled={!editable || !qtyNum || qtyNum <= 1} onClick={() => hub.updateItem(id, { qty: qtyNum && qtyNum > 2 ? String(qtyNum - 1) : null })}>
+              −
+            </button>
+            <input
+              className="num"
+              value={item.qty ?? ''}
+              placeholder="1"
+              readOnly={!editable}
+              onChange={(e) => hub.updateItem(id, { qty: e.target.value || null })}
+              aria-label="Quantity"
+            />
+            <button type="button" aria-label="More" disabled={!editable} onClick={() => hub.bump(id)}>
+              +
+            </button>
           </span>
-          <span className="optrow__text">How many</span>
-          <button type="button" className="iconbtn" aria-label="Less" disabled={!editable || !qtyNum || qtyNum <= 1} onClick={() => hub.updateItem(id, { qty: qtyNum && qtyNum > 2 ? String(qtyNum - 1) : null })}>
-            −
+          <button
+            type="button"
+            className={`option ${item.urgent ? 'is-urgent' : ''}`}
+            onClick={() => editable && hub.updateItem(id, { urgent: !item.urgent })}
+            aria-pressed={!!item.urgent}
+          >
+            <span className="echip__diamond" aria-hidden="true" /> Urgent
           </button>
-          <input
-            className="input num"
-            style={{ width: 92, height: 40, textAlign: 'center', fontSize: 16 }}
-            value={item.qty ?? ''}
-            placeholder="—"
-            readOnly={!editable}
-            onChange={(e) => hub.updateItem(id, { qty: e.target.value || null })}
-            aria-label="Quantity"
-          />
-          <button type="button" className="iconbtn" aria-label="More" disabled={!editable} onClick={() => hub.bump(id)}>
-            <Icon name="plus" className="icon--sm" />
+          <button
+            type="button"
+            className="option"
+            disabled={!editable}
+            onClick={() => openSheet((close) => <AisleSheet onClose={close} flavor={flavor} value={category} onPick={(c) => hub.setCategory(id, c)} />)}
+          >
+            {meta.en} <Icon name="chevron-down" className="icon--sm" />
           </button>
-        </div>
-        <OptRow
-          lead={<span className="optrow__icon" style={{ fontSize: 17 }}>{meta.e}</span>}
-          title="Aisle"
-          value={meta.en}
-          disabled={!editable}
-          onClick={() => openSheet((close) => <AisleSheet onClose={close} flavor={flavor} value={category} onPick={(c) => hub.setCategory(id, c)} />)}
-        />
-        <div className="optrow">
-          <span className="optrow__icon">◆</span>
-          <span className="optrow__text">
-            Urgent <span className="optrow__sub">Pins it to the top</span>
-          </span>
-          <Switch on={!!item.urgent} onChange={(on) => hub.updateItem(id, { urgent: on })} label="Urgent" />
         </div>
       </div>
 
       {lists.length > 1 && editable ? (
-        <div className="field">
-          <span className="field__label">List</span>
-          <Seg
-            label="List"
-            value={item.listId}
-            onChange={(lid) => hub.move(id, { listId: lid })}
-            options={lists.map((l) => ({
-              value: l.id,
-              label: (
-                <>
-                  <ListBullet list={l} size="xs" /> <span dir="auto">{l.name}</span>
-                </>
-              ),
-            }))}
-          />
+        <div className="choose">
+          <span className="choose__label">List</span>
+          <Options value={item.listId} onPick={(lid) => hub.move(id, { listId: lid })} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
         </div>
       ) : null}
 
       {editable ? (
-        <div className="field">
-          <span className="field__label">Who can see it</span>
-          <VisibilityControl
+        <div className="choose">
+          <span className="choose__label">Who it’s for</span>
+          <Options
             value={vis}
-            allowed={list?.visibility === 'private' ? ['private'] : ['ours', 'mine', 'private']}
-            partnerName={partnerName}
-            onChange={(nv) => {
+            onPick={(nv) => {
               if (nv === 'private' && vis !== 'private' && hub.partner()) toast(`Hidden from ${partnerName}`);
-              hub.setItemVisibility(id, nv);
+              hub.setItemVisibility(id, nv as ItemVisibility);
             }}
+            options={(list?.visibility === 'private' ? (['private'] as const) : (['ours', 'mine', 'private'] as const)).map((v) => ({
+              value: v,
+              label: v === 'ours' ? 'Both of us' : v === 'mine' ? 'Me' : 'Only me',
+              icon: v === 'ours' ? ('ours' as const) : v === 'mine' ? ('mine' as const) : ('lock' as const),
+            }))}
           />
-          <p className="hint" style={{ margin: '8px 2px 0' }}>{vis === 'mine' ? 'Marked as for you — anyone can still buy it.' : VIS_HINT(vis, partnerName)}</p>
+          <p className="panel__hint">{vis === 'mine' ? 'Marked as yours. Anyone can still buy it.' : visHint(vis, partnerName)}</p>
         </div>
       ) : null}
 
-      <div className="field">
-        <span className="field__label">Note</span>
-        <textarea
-          className="input"
-          dir="auto"
-          rows={2}
-          style={{ minHeight: 64 }}
-          placeholder="Brand, size, “the blue one”…"
-          value={notes}
-          readOnly={!editable}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={() => notes !== (item.notes ?? '') && hub.updateItem(id, { notes })}
-        />
-      </div>
+      <textarea
+        className="notes"
+        dir="auto"
+        rows={2}
+        placeholder="Add a note: brand, size, “the blue one”…"
+        value={notes}
+        readOnly={!editable}
+        onChange={(e) => setNotes(e.target.value)}
+        onBlur={() => notes !== (item.notes ?? '') && hub.updateItem(id, { notes })}
+        aria-label="Note"
+      />
 
       {editable ? (
         <button
           type="button"
-          className="btn btn--ghost btn--block"
-          style={{ marginTop: 18 }}
+          className="textbtn textbtn--danger"
           onClick={() => {
             const undo = hub.delete(id);
             onClose();

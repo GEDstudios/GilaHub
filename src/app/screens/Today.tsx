@@ -4,12 +4,13 @@ import type { LineColor } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { ItemRow } from '../components/ItemRow';
 import { PairSheet } from '../components/PairSheet';
-import { QuickAddSheet } from '../components/QuickAddSheet';
+import { QuickAdd } from '../components/QuickAdd';
 import { useHub, usePartnerShopping, useSync } from '../context';
+import { getPrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Band, lineVars, PersonBullet, Section, Tag } from '../ui/primitives';
+import { Avatar, Band, IconButton, lineVars, Section, Tag } from '../ui/primitives';
 import { choresView, todayView } from '../views';
 
 function greeting(): string {
@@ -20,7 +21,7 @@ function greeting(): string {
   return 'Evening';
 }
 
-/** My avatar with the sync state; opens Settings. */
+/** My avatar with a quiet sync dot; opens Settings. */
 export function SyncBadge() {
   const hub = useHub();
   const { status } = useSync();
@@ -28,17 +29,23 @@ export function SyncBadge() {
   const label =
     status === 'synced' ? 'Synced' : status === 'local' ? 'On this device only' : status === 'offline' ? 'Offline · saved on this device' : 'Syncing';
   return (
-    <button type="button" className="band__people" onClick={() => navigate({ name: 'settings' })} aria-label={`Settings · ${label}`} title={label}>
-      <PersonBullet member={me} size="lg" />
+    <button type="button" className="me" onClick={() => navigate({ name: 'settings' })} aria-label={`Settings · ${label}`} title={label}>
+      <Avatar member={me} size="md" />
       <span className={`syncdot syncdot--${status}`} />
     </button>
   );
 }
 
+/** Just the dot, for places that are already a button. */
+export function SyncDot() {
+  const { status } = useSync();
+  return <span className={`syncdot syncdot--${status}`} style={{ marginLeft: 'auto' }} title={status} />;
+}
+
 function Strip({ color, num, label, onClick }: { color: LineColor; num: number; label: string; onClick?: () => void }) {
   return (
-    <button type="button" className="strip" style={lineVars(color)} onClick={onClick} aria-label={`${num} ${label}`}>
-      <span className="strip__num">{num}</span>
+    <button type="button" className="strip" style={lineVars(color)} onClick={onClick} aria-label={`${num} ${label}`} disabled={!onClick}>
+      <span className="strip__num num">{num}</span>
       <span className="strip__label">{label}</span>
     </button>
   );
@@ -53,94 +60,91 @@ export function Today() {
   const me = hub.me();
   const partner = hub.partner();
   const shopping = usePartnerShopping();
-  const [showAll, setShowAll] = useState(false);
   const [earlierOpen, setEarlierOpen] = useState(false);
-  const shown = showAll ? v.today : v.today.slice(0, 5);
   const due = v.today.length + v.earlier.length;
-  const dueProjects = [...new Set([...v.today, ...v.earlier].map((i) => i.listId))].map((id) => hub.list(id)).filter(Boolean).slice(0, 3);
-  const upcomingCount = v.upcoming.reduce((n, g) => n + g.items.length, 0);
+  const dueProjects = [...new Set([...v.today, ...v.earlier].map((i) => i.listId))].map((id) => hub.list(id)!).filter(Boolean).slice(0, 3);
+  const taskLists = hub.lists().filter((l) => l.kind !== 'shopping');
+  const last = getPrefs().lastList;
+  const addTo = (last && taskLists.find((l) => l.id === last)) || taskLists.find((l) => l.kind === 'tasks') || taskLists[0];
+  const shopper = shopping ? hub.member(shopping.member) : undefined;
 
-  useAddAction(() => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={ref} />));
+  useAddAction(() => document.querySelector<HTMLInputElement>('.today-add input')?.focus());
+
+  const strips = [
+    v.shopping.count ? { color: 'lemon' as const, num: v.shopping.count, label: 'to buy', go: () => navigate({ name: 'shop' }) } : null,
+    chores.now.length ? { color: 'pink' as const, num: chores.now.length, label: chores.now.length === 1 ? 'chore ready' : 'chores ready', go: () => navigate({ name: 'chores' }) } : null,
+    v.together ? { color: 'lilac' as const, num: v.together, label: 'done together this week' } : null,
+  ].filter(Boolean) as Array<{ color: LineColor; num: number; label: string; go?: () => void }>;
 
   return (
     <>
       <Band
         top={<SyncBadge />}
-        actions={
-          <button type="button" className="iconbtn" onClick={() => navigate({ name: 'search' })} aria-label="Search">
-            <Icon name="search" />
-          </button>
-        }
+        actions={<IconButton icon="search" label="Search" onClick={() => navigate({ name: 'search' })} />}
         title={`${greeting()}, ${me?.name ?? 'you'}!`}
-        sub={fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+        mini={fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
       />
       <div className="column">
-        <div className="hero">
-          <p className="hero__text">
-            {due
-              ? `You have ${due} ${due === 1 ? 'thing' : 'things'} to tackle today`
-              : 'Nothing to tackle today. Enjoy it.'}
+        <div className="summary">
+          <p className="summary__text">
+            {due ? (
+              <>
+                You have {due} {due === 1 ? 'thing' : 'things'}
+                <br />
+                to tackle today
+              </>
+            ) : (
+              <>
+                Nothing due today.
+                <br />
+                Enjoy it.
+              </>
+            )}
           </p>
           {dueProjects.length ? (
             <span className="tags">
               {dueProjects.map((l) => (
-                <Tag key={l!.id} color={l!.color}>
-                  <span dir="auto">{l!.name}</span>
+                <Tag key={l.id} color={l.color}>
+                  <span dir="auto">{l.name}</span>
                 </Tag>
               ))}
             </span>
-          ) : null}
+          ) : (
+            <span className="summary__date">{fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
+          )}
         </div>
 
-        {shopping && hub.member(shopping.member) ? (
-          <button type="button" className="banner" style={lineVars(hub.member(shopping.member)!.color)} onClick={() => navigate({ name: 'shop' })}>
-            <span className="live" />
-            <span className="banner__text">
-              {hub.member(shopping.member)!.name} is shopping now
-              <span className="banner__sub">Need anything? Add it and it lands on their list.</span>
+        {shopper ? (
+          <button type="button" className="notice" onClick={() => navigate({ name: 'shop' })}>
+            <Avatar member={shopper} size="sm" />
+            <span className="notice__text">
+              <strong>{shopper.name} is shopping now.</strong> Need anything? Add it and it lands on their list.
             </span>
-            <Icon name="arrow" />
+            <Icon name="chevron-right" />
           </button>
         ) : null}
 
-        {!partner ? (
-          <button type="button" className="banner" style={lineVars('lilac')} onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
-            <span className="banner__text">
-              Bring your person in
-              <span className="banner__sub">Share a code and your projects sync, privately.</span>
-            </span>
-            <Icon name="arrow" />
-          </button>
-        ) : null}
-
-        <div className="stack">
-          {hub.shoppingLists().length ? <Strip color="lemon" num={v.shopping.count} label="To buy" onClick={() => navigate({ name: 'shop' })} /> : null}
-          {chores.lists.length ? <Strip color="pink" num={chores.now.length} label="Chores ready" onClick={() => navigate({ name: 'chores' })} /> : null}
-          <Strip color="lilac" num={v.together} label="Done together this week" />
-          <Strip color="sky" num={upcomingCount} label="Coming up this week" onClick={() => document.getElementById('upcoming')?.scrollIntoView({ behavior: 'smooth' })} />
-        </div>
-
-        {v.today.length ? (
-          <Section title="Today" count={v.today.length}>
+        <Section title="Today" id="today">
+          {v.today.length ? (
             <ul className="rows">
-              {shown.map((i) => (
+              {v.today.map((i) => (
                 <ItemRow key={i.id} item={i} showList />
               ))}
             </ul>
-            {v.today.length > 5 && !showAll ? (
-              <button type="button" className="hint linkbtn" onClick={() => setShowAll(true)} style={{ marginLeft: 'var(--gutter)' }}>
-                {v.today.length - 5} more if you’re up for it
-              </button>
-            ) : null}
-          </Section>
-        ) : null}
+          ) : null}
+          {addTo ? (
+            <div className="today-add">
+              <QuickAdd listId={addTo.id} defaultDue={ref} placeholder="Add something for today" allowListChange />
+            </div>
+          ) : null}
+        </Section>
 
         {v.earlier.length ? (
           <Section
             title="From earlier"
             count={v.earlier.length}
             action={
-              <button type="button" className="section__action" onClick={() => setEarlierOpen(!earlierOpen)} aria-expanded={earlierOpen}>
+              <button type="button" className="textbtn" onClick={() => setEarlierOpen(!earlierOpen)} aria-expanded={earlierOpen}>
                 {earlierOpen ? 'Hide' : 'Show'}
               </button>
             }
@@ -155,12 +159,12 @@ export function Today() {
                     trailing={
                       hub.canEdit(i) ? (
                         <span className="catchup" onClick={(e) => e.stopPropagation()}>
-                          <button type="button" className="chip" onClick={() => (i.repeat ? hub.skip(i.id) : hub.snooze(i.id, ref))}>
+                          <button type="button" className="mini" onClick={() => (i.repeat ? hub.skip(i.id) : hub.snooze(i.id, ref))}>
                             {i.repeat ? 'Skip' : 'Today'}
                           </button>
                           {!i.repeat ? (
-                            <button type="button" className="chip" onClick={() => hub.snooze(i.id, addDays(ref, 1))}>
-                              Tmrw
+                            <button type="button" className="mini" onClick={() => hub.snooze(i.id, addDays(ref, 1))}>
+                              Tomorrow
                             </button>
                           ) : null}
                         </span>
@@ -170,21 +174,26 @@ export function Today() {
                 ))}
               </ul>
             ) : (
-              <p className="hint">No rush. They’ll wait here until you’re ready.</p>
+              <p className="hint">No rush. They wait here until you’re ready.</p>
             )}
           </Section>
         ) : null}
 
-        {v.upcoming.length ? (
-          <section className="section" id="upcoming">
-            <div className="section__head">
-              <h2 className="section__title">
-                Coming up <span className="section__count">{upcomingCount}</span>
-              </h2>
+        {strips.length ? (
+          <Section title="This week">
+            <div className="stack">
+              {strips.map((s) => (
+                <Strip key={s.label} color={s.color} num={s.num} label={s.label} onClick={s.go} />
+              ))}
             </div>
+          </Section>
+        ) : null}
+
+        {v.upcoming.length ? (
+          <Section title="Coming up" id="upcoming">
             {v.upcoming.map((g) => (
-              <div key={g.date}>
-                <div className="dayhead">{humanDate(g.date, ref)}</div>
+              <div key={g.date} className="day">
+                <div className="day__head">{humanDate(g.date, ref)}</div>
                 <ul className="rows">
                   {g.items.map((i) => (
                     <ItemRow key={i.id} item={i} showList dateMode="none" />
@@ -192,7 +201,7 @@ export function Today() {
                 </ul>
               </div>
             ))}
-          </section>
+          </Section>
         ) : null}
 
         {v.recent.length && partner ? (
@@ -200,17 +209,19 @@ export function Today() {
             <ul className="rows">
               {v.recent.map((r) => (
                 <li key={r.log?.id ?? r.item.id} className="row">
-                  <PersonBullet member={partner} size="md" />
+                  <Avatar member={partner} size="sm" />
                   <div className="row__body">
                     <span className="row__title" dir="auto">
                       {r.item.title}
                     </span>
-                    <span className="row__meta">{relativeAgo(r.at)}</span>
+                    <span className="row__meta">
+                      <span className="meta">{relativeAgo(r.at)}</span>
+                    </span>
                   </div>
                   {r.log ? (
                     <button
                       type="button"
-                      className={`iconbtn heart ${r.log.thankedBy ? 'is-on' : ''}`}
+                      className={`heart ${r.log.thankedBy ? 'is-on' : ''}`}
                       onClick={() => hub.thank(r.log!.id)}
                       aria-label={`Thank ${partner.name}`}
                       aria-pressed={!!r.log.thankedBy}
@@ -222,6 +233,22 @@ export function Today() {
               ))}
             </ul>
           </Section>
+        ) : null}
+
+        {!partner ? (
+          <button type="button" className="invite" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
+            <span className="invite__people" aria-hidden="true">
+              <Avatar member={me} size="md" />
+              <span className="invite__empty">
+                <Icon name="plus" className="icon--sm" />
+              </span>
+            </span>
+            <span className="invite__text">
+              <strong>Bring your person in</strong>
+              <span>Share a code and your projects sync, privately.</span>
+            </span>
+            <Icon name="chevron-right" />
+          </button>
         ) : null}
       </div>
     </>

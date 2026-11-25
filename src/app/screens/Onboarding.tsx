@@ -5,7 +5,7 @@ import { LINE_COLORS, type LineColor } from '../../core/model';
 import { claimInvite, InviteError, type InvitePayload } from '../../core/session';
 import { query } from '../router';
 import { Icon } from '../ui/Icon';
-import { lineVars, Logo, NameTag } from '../ui/primitives';
+import { IconButton, lineVars, Logo, NameTag } from '../ui/primitives';
 
 export interface OnboardResult {
   kind: 'new' | 'partner' | 'device';
@@ -17,26 +17,21 @@ export interface OnboardResult {
 
 type Step = 'welcome' | 'name' | 'projects' | 'code';
 
+const STARTERS = PROJECT_TEMPLATES.filter((t) => ['groceries', 'home', 'chores', 'todo'].includes(t.key));
+
 const SHAPES: Array<{ c: LineColor; style: React.CSSProperties }> = [
-  { c: 'lilac', style: { left: '-6%', top: '14%', width: 70, height: 86, borderRadius: 22, transform: 'rotate(8deg)' } },
-  { c: 'orange', style: { right: '-4%', top: '10%', width: 64, height: 120, borderRadius: 20, transform: 'rotate(-6deg)' } },
-  { c: 'pink', style: { right: '18%', top: '22%', width: 92, height: 64, borderRadius: 20, transform: 'rotate(8deg)' } },
-  { c: 'lemon', style: { left: '14%', top: '26%', width: 160, height: 142, borderRadius: 30, transform: 'rotate(10deg)' } },
-  { c: 'sky', style: { right: '-8%', top: '34%', width: 96, height: 104, borderRadius: '50% 42% 50% 46%' } },
-  { c: 'pink', style: { left: '5%', top: '44%', width: 38, height: 110, borderRadius: 20, transform: 'rotate(-4deg)' } },
-  { c: 'mint', style: { right: '8%', top: '50%', width: 104, height: 76, borderRadius: 22, transform: 'rotate(8deg)' } },
+  { c: 'lilac', style: { left: -34, top: '9%', width: 92, height: 92, borderRadius: 26, transform: 'rotate(-8deg)' } },
+  { c: 'lemon', style: { right: -40, top: '16%', width: 118, height: 96, borderRadius: 28, transform: 'rotate(7deg)' } },
+  { c: 'sky', style: { left: '12%', bottom: '24%', width: 54, height: 54, borderRadius: '50%' } },
+  { c: 'pink', style: { right: '9%', bottom: '27%', width: 120, height: 44, borderRadius: 22, transform: 'rotate(-5deg)' } },
 ];
 
 function Splash() {
   return (
     <div className="splash" aria-hidden="true">
       {SHAPES.map((s, i) => (
-        <span key={i} className="splash__shape" style={{ ...lineVars(s.c), ...s.style, animationDelay: `${i * 70}ms` }} />
+        <span key={i} className="splash__shape" style={{ ...lineVars(s.c), ...s.style, animationDelay: `${i * 90}ms` }} />
       ))}
-      <span className="splash__outline" style={{ left: '32%', top: '36%', width: 54, height: 40, borderRadius: 16 }} />
-      <span className="splash__outline" style={{ right: '12%', top: '49%', width: 100, height: 88, borderRadius: 20, transform: 'rotate(8deg)' }} />
-      <NameTag name="Guy" color="pink" style={{ position: 'absolute', left: '52%', top: '34%' }} />
-      <NameTag name="Hila" color="lemon" style={{ position: 'absolute', left: '28%', top: '55%' }} />
     </div>
   );
 }
@@ -87,19 +82,28 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
   if (step === 'welcome') {
     return (
       <main className="onboard onboard--splash">
-        <div className="onboard__logo">
-          <Logo size={44} />
-        </div>
         <Splash />
+        <div className="onboard__logo">
+          <Logo size={30} />
+        </div>
+        <div className="welcome">
+          <h1 className="welcome__title">
+            <NameTag name="Guy" color="pink" style={{ position: 'absolute', left: -6, top: -40 }} />
+            Life together,
+            <br />
+            sorted.
+            <NameTag name="Hila" color="lemon" flip style={{ position: 'absolute', right: -14, bottom: -40 }} />
+          </h1>
+          <p className="welcome__sub">Groceries, chores and plans for the two of you. Free, private and yours.</p>
+        </div>
         <div className="onboard__bottom">
-          <h1 className="onboard__headline display">Life together, sorted.</h1>
-          <button type="button" className="btn btn--light btn--block onboard__go" onClick={() => setStep('name')}>
+          <button type="button" className="go" onClick={() => setStep('name')}>
             Get started
-            <span className="btn__arrow">
+            <span className="go__arrow">
               <Icon name="arrow" className="icon--sm" />
             </span>
           </button>
-          <button type="button" className="onboard__link" onClick={() => setStep('code')}>
+          <button type="button" className="textbtn onboard__link" onClick={() => setStep('code')}>
             I have a code
           </button>
         </div>
@@ -111,9 +115,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     return (
       <main className="onboard">
         <div className="onboard__body">
-          <button type="button" className="iconbtn iconbtn--solid" onClick={() => setStep('welcome')} aria-label="Back">
-            <Icon name="arrow-back" />
-          </button>
+          <IconButton icon="arrow-back" label="Back" onClick={() => setStep('welcome')} />
           <h1 className="onboard__q">Type the code from the other phone</h1>
           <form
             onSubmit={(e) => {
@@ -122,7 +124,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             }}
           >
             <input
-              className="input input--big codeinput num"
+              className="bigfield codeinput num"
               value={code}
               autoFocus
               inputMode="text"
@@ -136,8 +138,8 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
                 setCode(n.length > 4 ? `${n.slice(0, 4)}-${n.slice(4)}` : n);
               }}
             />
-            {error ? <p className="onboard__error">{error}</p> : <p className="hint" style={{ margin: '10px 0 0' }}>It’s on their phone under “Bring your person in”.</p>}
-            <button type="submit" className="btn btn--block" style={{ marginTop: 22 }} disabled={normalizeInviteCode(code).length !== 8 || busy}>
+            {error ? <p className="onboard__error">{error}</p> : <p className="hint">It’s on their phone, under “Bring your person in”.</p>}
+            <button type="submit" className="btn btn--block onboard__cta" disabled={normalizeInviteCode(code).length !== 8 || busy}>
               {busy ? 'Opening the invite…' : 'Join'}
             </button>
           </form>
@@ -150,40 +152,29 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     return (
       <main className="onboard">
         <div className="onboard__body">
-          <button type="button" className="iconbtn iconbtn--solid" onClick={() => setStep('name')} aria-label="Back">
-            <Icon name="arrow-back" />
-          </button>
+          <IconButton icon="arrow-back" label="Back" onClick={() => setStep('name')} />
           <p className="onboard__step">2 of 2</p>
           <h1 className="onboard__q">What do you want to keep track of?</h1>
-          <p className="onboard__lede">Tap to pick. You can add or remove projects any time.</p>
-          <div className="pickgrid">
-            {PROJECT_TEMPLATES.map((t) => {
+          <p className="onboard__lede">Pick a few to start. You can add your own projects any time.</p>
+          <div className="picks">
+            {STARTERS.map((t) => {
               const on = picked.includes(t.key);
               return (
-                <button
-                  key={t.key}
-                  type="button"
-                  className={`pickcard ${on ? 'is-on' : ''}`}
-                  style={lineVars(t.color)}
-                  onClick={() => toggle(t.key)}
-                  aria-pressed={on}
-                >
-                  <span className="pickcard__top">
-                    <span className="pickcard__icon">{t.icon}</span>
-                    <span className="pickcard__check">{on ? <Icon name="check" className="icon--sm" /> : null}</span>
+                <button key={t.key} type="button" className={`pick ${on ? 'is-on' : ''}`} style={lineVars(t.color)} onClick={() => toggle(t.key)} aria-pressed={on}>
+                  <span className="pick__swatch" />
+                  <span className="pick__text">
+                    <span className="pick__name">{t.name}</span>
+                    <span className="pick__blurb">{t.blurb}</span>
                   </span>
-                  <span className="pickcard__name">{t.name}</span>
-                  <span className="pickcard__blurb">{t.blurb}</span>
+                  <span className="pick__check">{on ? <Icon name="check" className="icon--sm" /> : null}</span>
                 </button>
               );
             })}
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
-          <div className="onboard__actions">
-            <button type="button" className="btn btn--block" disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked })}>
-              {busy ? 'Setting up…' : picked.length ? `Start with ${picked.length} project${picked.length > 1 ? 's' : ''}` : 'Start empty'}
-            </button>
-          </div>
+          <button type="button" className="btn btn--block onboard__cta" disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked })}>
+            {busy ? 'Setting up…' : picked.length ? `Start with ${picked.length} project${picked.length > 1 ? 's' : ''}` : 'Start empty'}
+          </button>
         </div>
       </main>
     );
@@ -192,11 +183,9 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
   return (
     <main className="onboard">
       <div className="onboard__body">
-        <button type="button" className="iconbtn iconbtn--solid" onClick={() => setStep(invite ? 'code' : 'welcome')} aria-label="Back">
-          <Icon name="arrow-back" />
-        </button>
-        {invite?.fromName ? <p className="onboard__invited">{invite.fromName} invited you 👋</p> : <p className="onboard__step">1 of 2</p>}
-        <h1 className="onboard__q">Hey! What should we call you?</h1>
+        <IconButton icon="arrow-back" label="Back" onClick={() => setStep(invite ? 'code' : 'welcome')} />
+        {invite?.fromName ? <p className="onboard__step">{invite.fromName} invited you</p> : <p className="onboard__step">1 of 2</p>}
+        <h1 className="onboard__q">What should we call you?</h1>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -205,33 +194,30 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             else setStep('projects');
           }}
         >
-          <input className="input input--big" value={name} dir="auto" autoFocus autoComplete="given-name" placeholder="Your name" aria-label="Your name" onChange={(e) => setName(e.target.value)} />
-          <div className="field" style={{ marginTop: 26 }}>
-            <span className="field__label">Pick your color</span>
-            <div className="colorrow" role="radiogroup" aria-label="Color">
-              {LINE_COLORS.filter((c) => c !== 'ink').map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  role="radio"
-                  aria-checked={c === color}
-                  aria-label={c}
-                  disabled={taken.includes(c)}
-                  className={`colordot ${c === color ? 'is-on' : ''}`}
-                  style={lineVars(c)}
-                  onClick={() => setColor(c)}
-                />
-              ))}
-            </div>
+          <input className="bigfield" value={name} dir="auto" autoFocus autoComplete="given-name" placeholder="Your name" aria-label="Your name" onChange={(e) => setName(e.target.value)} />
+          <p className="choose__label onboard__label">Your color</p>
+          <div className="swatches swatches--big" role="radiogroup" aria-label="Color">
+            {LINE_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={c === color}
+                aria-label={c}
+                disabled={taken.includes(c)}
+                className={`swatch ${c === color ? 'is-on' : ''}`}
+                style={lineVars(c)}
+                onClick={() => setColor(c)}
+              />
+            ))}
           </div>
           <div className="onboard__preview">
             <NameTag name={name.trim() || 'You'} color={color} />
             <span>This is you, everywhere in the app.</span>
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
-          <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim() || busy}>
+          <button type="submit" className="btn btn--block onboard__cta" disabled={!name.trim() || busy}>
             {busy ? 'Setting up…' : invite ? 'Join' : 'Next'}
-            <Icon name="arrow" className="icon--sm" />
           </button>
         </form>
       </div>

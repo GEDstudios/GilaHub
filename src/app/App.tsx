@@ -6,7 +6,7 @@ import { loadSession, newSession, saveSession, sessionFromInvite } from '../core
 import { runAdd } from './addAction';
 import { QuickAddSheet } from './components/QuickAddSheet';
 import { RuntimeProvider, useHub, usePartnerShopping, useRt } from './context';
-import { applyTheme, getPrefs, usePrefs } from './prefs';
+import { usePrefs } from './prefs';
 import { LocalReminders, ReminderSync } from './reminders';
 import { navigate, useRoute, type Route } from './router';
 import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime } from './runtime';
@@ -18,7 +18,7 @@ import { Onboarding, type OnboardResult } from './screens/Onboarding';
 import { Search } from './screens/Search';
 import { Settings } from './screens/Settings';
 import { Shopping } from './screens/Shopping';
-import { SyncBadge, Today } from './screens/Today';
+import { SyncDot, Today } from './screens/Today';
 import { Icon, type IconName } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
 import { ListBullet, Logo } from './ui/primitives';
@@ -52,37 +52,26 @@ function TabBar() {
   const rt = useRt();
   useHub();
   const shopping = usePartnerShopping();
-  const add = useAdd();
   const on = activeTab(route, rt);
-  const tab = (t: (typeof TABS)[number]) => (
-    <a
-      key={t.route}
-      href={t.path}
-      className={`tab ${on === t.route ? 'is-on' : ''}`}
-      aria-current={on === t.route ? 'page' : undefined}
-      onClick={(e) => {
-        e.preventDefault();
-        navigate(t.path);
-      }}
-    >
-      <Icon name={t.icon} />
-      {t.label}
-      {t.route === 'shop' && shopping ? <span className="tab__live live" /> : null}
-    </a>
-  );
   return (
-    <>
-      <nav className="tabbar" aria-label="Main">
-        {tab(TABS[0])}
-        {tab(TABS[1])}
-        <span aria-hidden="true" />
-        {tab(TABS[2])}
-        {tab(TABS[3])}
-      </nav>
-      <button type="button" className="fab" aria-label="Add" onClick={add}>
-        <Icon name="plus" className="icon--lg" />
-      </button>
-    </>
+    <nav className="tabbar" aria-label="Main">
+      {TABS.map((t) => (
+        <a
+          key={t.route}
+          href={t.path}
+          className={`tab ${on === t.route ? 'is-on' : ''}`}
+          aria-current={on === t.route ? 'page' : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            navigate(t.path);
+          }}
+        >
+          <Icon name={t.icon} />
+          <span>{t.label}</span>
+          {t.route === 'shop' && shopping ? <span className="tab__live live" /> : null}
+        </a>
+      ))}
+    </nav>
   );
 }
 
@@ -99,8 +88,9 @@ function Sidebar() {
       <div className="sidebar__brand">
         <Logo size={30} />
       </div>
-      <button type="button" className="btn btn--block sidebar__new" onClick={add}>
+      <button type="button" className="sidebar__new" onClick={add}>
         <Icon name="plus" className="icon--sm" /> New
+        <span className="kbd">N</span>
       </button>
       <nav className="sidebar__nav">
         {TABS.map((t) => (
@@ -122,7 +112,7 @@ function Sidebar() {
             key={l.id}
             type="button"
             className={`navitem ${route.name === 'list' && route.id === l.id ? 'is-on' : ''}`}
-            onClick={() => navigate(l.kind === 'shopping' ? '/shop' : { name: 'list', id: l.id })}
+            onClick={() => navigate({ name: 'list', id: l.id })}
           >
             <ListBullet list={l} size="sm" />
             <span dir="auto" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -137,9 +127,7 @@ function Sidebar() {
         <button type="button" className={`navitem ${route.name === 'settings' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'settings' })}>
           <Icon name="gear" />
           Settings
-          <span style={{ marginLeft: 'auto' }}>
-            <SyncBadge />
-          </span>
+          <SyncDot />
         </button>
       </div>
     </aside>
@@ -180,7 +168,6 @@ function Duties() {
     if (!me) return;
     const root = document.documentElement.style;
     root.setProperty('--me', `var(--${me.color})`);
-    root.setProperty('--me-ink', `var(--${me.color}-ink)`);
   }, [me?.color, me]);
 
   useEffect(() => {
@@ -305,15 +292,10 @@ export function App() {
   const [phase, setPhase] = useState<Phase>({ name: 'boot' });
 
   useEffect(() => {
-    applyTheme(getPrefs().theme);
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => applyTheme(getPrefs().theme);
-    mq.addEventListener('change', onChange);
     let alive = true;
     void boot().then((p) => alive && setPhase(p));
     return () => {
       alive = false;
-      mq.removeEventListener('change', onChange);
     };
   }, []);
 

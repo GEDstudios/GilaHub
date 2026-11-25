@@ -58,8 +58,8 @@ const P: Record<IconName, ReactNode> = {
   'chevron-right': <path d="M9.5 5.5L16 12l-6.5 6.5" />,
   'chevron-left': <path d="M14.5 5.5L8 12l6.5 6.5" />,
   'chevron-down': <path d="M5.5 9.5L12 16l6.5-6.5" />,
-  arrow: <path d="M4 12h15M13 5.5l6.5 6.5-6.5 6.5" strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2.6} />,
-  'arrow-back': <path d="M20 12H5M11 5.5L4.5 12l6.5 6.5" strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2.6} />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  'arrow-back': <path d="M19 12H5M11 6l-6 6 6 6" />,
   search: (
     <>
       <circle cx="10.5" cy="10.5" r="6" />
@@ -296,7 +296,7 @@ export function Icon({ name, className, style, title }: { name: IconName; classN
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.7}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden={title ? undefined : true}

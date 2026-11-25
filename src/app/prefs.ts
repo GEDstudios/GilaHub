@@ -3,12 +3,10 @@ import { prefersDayFirst, weekStartsOn } from '../core/dates';
 
 /** Device-local conveniences (never synced, never needed for correctness). */
 export interface Prefs {
-  theme: 'system' | 'light' | 'dark';
   h24: boolean | null;
   weekStart: 0 | 1 | null;
   badge: boolean;
   shoppingAlerts: boolean;
-  emoji: boolean;
   lastList: string | null;
   shopFilter: string;
   /** Buy-again dismissals: item key → lastAt it was dismissed for. */
@@ -19,12 +17,10 @@ export interface Prefs {
 
 const KEY = 'gila-hub:prefs';
 const DEFAULTS: Prefs = {
-  theme: 'system',
   h24: null,
   weekStart: null,
   badge: false,
   shoppingAlerts: true,
-  emoji: true,
   lastList: null,
   shopFilter: 'all',
   dismissed: {},
@@ -98,12 +94,4 @@ export function dayFirst(): boolean {
 /** Working days: Israel works Sunday–Thursday. */
 export function workdays(): number[] {
   return inIsrael() || /-IL$/i.test(locale()) || /^he/i.test(locale()) ? [0, 1, 2, 3, 4] : [1, 2, 3, 4, 5];
-}
-
-export function applyTheme(theme: Prefs['theme']): void {
-  const root = document.documentElement;
-  if (theme === 'system') root.removeAttribute('data-theme');
-  else root.setAttribute('data-theme', theme);
-  const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0c0c09' : '#fafafa');
 }

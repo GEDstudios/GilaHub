@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { addDays, humanDate, humanTime, relativeAgo, today as todayStr, weekdayName } from '../../core/dates';
-import { describeRule, isFlexible } from '../../smart/recurrence';
+import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
+import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { useCarrier } from '../components/ItemRow';
-import { DateSheet, ListPickerSheet, OptRow, RemindSheet, RepeatSheet, VIS_HINT, VisibilityControl, WhoSheet, remindLabel, whoLabel } from '../components/pickers';
+import { InlineEditor, useSummary, type Draft } from '../components/editors';
+import { ListPickerSheet, OptRow } from '../components/pickers';
 import { QuickAdd } from '../components/QuickAdd';
 import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, useRt } from '../context';
-import { use24h, usePrefs } from '../prefs';
 import { back, navigate } from '../router';
 import { enablePush } from '../runtime';
 import { Icon } from '../ui/Icon';
-import { useOverlays } from '../ui/overlays';
-import { Band, Check, Empty, PersonBullet, Section, Switch } from '../ui/primitives';
+import { Sheet, useOverlays } from '../ui/overlays';
+import { Avatar, Band, Check, Empty, IconButton, lineVars, Section } from '../ui/primitives';
 
 function AutoTitle({ value, onSave, readOnly }: { value: string; onSave: (v: string) => void; readOnly: boolean }) {
   const [v, setV] = useState(value);
@@ -28,7 +27,7 @@ function AutoTitle({ value, onSave, readOnly }: { value: string; onSave: (v: str
   return (
     <textarea
       ref={ref}
-      className="bandtitle"
+      className="hero__titleinput"
       dir="auto"
       rows={1}
       value={v}
@@ -50,15 +49,65 @@ function AutoTitle({ value, onSave, readOnly }: { value: string; onSave: (v: str
   );
 }
 
+function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; onGone: () => void }) {
+  const hub = useHub();
+  const { openSheet, toast } = useOverlays();
+  const item = hub.item(id);
+  if (!item) return null;
+  return (
+    <Sheet onClose={onClose} title="More">
+      <div className="group">
+        <OptRow
+          icon="move"
+          title="Move to another project"
+          onClick={() => {
+            onClose();
+            openSheet((close) => (
+              <ListPickerSheet
+                onClose={close}
+                current={item.listId}
+                filter={(l) => l.kind !== 'shopping' && (!l.owner || l.owner === hub.meId)}
+                onPick={(l) => {
+                  hub.move(id, { listId: l.id });
+                  toast(`Moved to ${l.name}`);
+                }}
+              />
+            ));
+          }}
+        />
+        <OptRow
+          icon="copy"
+          title="Duplicate"
+          onClick={() => {
+            const nid = hub.duplicate(id);
+            onClose();
+            if (nid) navigate({ name: 'item', id: nid }, { replace: true });
+            toast('Duplicated');
+          }}
+        />
+        <OptRow
+          icon="trash"
+          title="Delete"
+          onClick={() => {
+            const undo = hub.delete(id);
+            onClose();
+            onGone();
+            toast(`Deleted “${item.title}”`, { action: { label: 'Undo', run: undo } });
+          }}
+        />
+      </div>
+    </Sheet>
+  );
+}
+
 export function ItemScreen({ id }: { id: string }) {
   const hub = useHub();
   const rt = useRt();
-  const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
+  const summarize = useSummary();
   const item = hub.item(id);
   const [notes, setNotes] = useState(item?.notes ?? '');
   const [freshId, setFreshId] = useState<string | null>(null);
-  const carrier = useCarrier(item ?? ({} as never));
   useEffect(() => setNotes(item?.notes ?? ''), [item?.notes]);
 
   useEffect(() => {
@@ -85,8 +134,7 @@ export function ItemScreen({ id }: { id: string }) {
   const partner = hub.partner();
   const partnerName = partner?.name ?? 'your partner';
   const ref = todayStr();
-  const h24 = use24h(prefs);
-  const logs = hub.logsFor(id).filter((l) => l.kind === 'done').slice(0, 6);
+  const logs = hub.logsFor(id).filter((l) => l.kind === 'done').slice(0, 5);
   const parentVis = ancestors.length ? hub.visibilityOf(ancestors[ancestors.length - 1]) : null;
   const allowed =
     list?.visibility === 'private' || parentVis === 'private'
@@ -95,6 +143,7 @@ export function ItemScreen({ id }: { id: string }) {
         ? (['mine', 'private'] as const)
         : (['ours', 'mine', 'private'] as const);
   const upTo = ancestors.length ? { name: 'item' as const, id: ancestors[ancestors.length - 1].id } : list ? { name: 'list' as const, id: list.id } : { name: 'today' as const };
+  const steps = hub.childrenOf(id);
 
   const onToggle = () => {
     if (!hub.canTick(item)) return;
@@ -104,34 +153,51 @@ export function ItemScreen({ id }: { id: string }) {
     } else hub.toggle(id);
   };
 
-  const setReminder = (v: number | null) => {
-    hub.updateItem(id, { remind: v, due: v !== null && !item.due ? ref : item.due });
-    if (v !== null) {
-      void enablePush(rt).then((s) => {
-        if (s === 'install') toast('Add Gila Hub to your Home Screen to get reminders on iPhone.');
-        else if (s === 'denied') toast('Notifications are blocked in your settings — reminders will show in the app.');
-        else if (s === 'no-relay') toast('Reminder set. It will pop up while Gila Hub is open.');
-      });
-    }
+  const draft: Draft = {
+    due: item.due ?? null,
+    dueTime: item.dueTime ?? null,
+    repeat: item.repeat ?? null,
+    remind: item.remind ?? null,
+    assignee: item.assignee ?? null,
+    urgent: !!item.urgent,
+    visibility: vis,
   };
 
-  const dateValue = item.due ? `${humanDate(item.due, ref)}${item.dueTime ? ` · ${humanTime(item.dueTime, h24)}` : ''}` : 'Someday';
+  const change = (p: Partial<Draft>) => {
+    if ('visibility' in p && p.visibility && p.visibility !== vis) {
+      if (p.visibility === 'private' && partner) toast(`This will disappear for ${partnerName}`);
+      hub.setItemVisibility(id, p.visibility);
+      return;
+    }
+    if ('assignee' in p) {
+      hub.updateItem(id, { assignee: p.assignee ?? null, turn: p.assignee === 'turns' ? (item.turn ?? hub.meId) : null });
+      return;
+    }
+    if ('remind' in p && p.remind !== null && p.remind !== undefined) {
+      void enablePush(rt).then((s) => {
+        if (s === 'install') toast('Add Gila Hub to your Home Screen to get reminders on iPhone.');
+        else if (s === 'denied') toast('Notifications are blocked in your settings. Reminders will show in the app.');
+        else if (s === 'no-relay') toast('Reminder set. It pops up while Gila Hub is open.');
+      });
+    }
+    const { visibility: _v, ...rest } = p;
+    void _v;
+    hub.updateItem(id, rest);
+  };
 
   return (
     <>
       <Band
-        className="band--item"
-        title={<AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} />}
-        mini={item.title}
-        lead={<Check on={item.done} color={list?.color} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />}
         onBack={() => back(upTo)}
+        mini={item.title}
+        actions={editable ? <IconButton icon="more" label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} /> : undefined}
         crumbs={
           <nav className="crumbs" aria-label="Path">
             <button type="button" onClick={() => list && navigate({ name: 'list', id: list.id })} dir="auto">
               {list?.name}
             </button>
             {ancestors.map((a) => (
-              <span key={a.id} style={{ display: 'contents' }}>
+              <span key={a.id} className="crumbs__step">
                 <Icon name="chevron-right" className="icon--sm" />
                 <button type="button" onClick={() => navigate({ name: 'item', id: a.id })} dir="auto">
                   {a.title}
@@ -140,209 +206,127 @@ export function ItemScreen({ id }: { id: string }) {
             ))}
           </nav>
         }
-      />
+      >
+        <div className={`hero hero--item ${item.done ? 'is-done' : ''}`} style={lineVars(list?.color)}>
+          <div className="hero__top">
+            <AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} />
+            <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />
+          </div>
+          <p className="hero__sub">{item.done ? `Done${item.doneAt ? ` ${relativeAgo(item.doneAt)}` : ''}.` : summarize(draft)}</p>
+        </div>
+      </Band>
+
       <div className="column">
-        {!editable ? (
-          <p className="hint" style={{ marginTop: 16 }}>
-            This is {hub.member(hub.ownerOf(item))?.name}’s. You can see it — only they change it.
-          </p>
-        ) : null}
+        {!editable ? <p className="hint">This is {hub.member(hub.ownerOf(item))?.name}’s. You can see it; only they change it.</p> : null}
 
         {item.repeat && editable ? (
-          <div className="chorepanel">
-            <div className="chorepanel__row">
-              <span className="chorepanel__label">Done</span>
-              <div className="chips">
-                <button type="button" className="chip chip--on" onClick={onToggle}>
-                  <Icon name="check" /> Today
-                </button>
+          <div className="doneas">
+            <p className="inline__prompt">
+              {item.paused
+                ? 'Paused. It won’t come due until you resume it.'
+                : item.lastDoneAt
+                  ? `Last done ${relativeAgo(item.lastDoneAt)} by ${item.lastDoneBy === hub.meId ? 'you' : (hub.member(item.lastDoneBy)?.name ?? 'someone')}.`
+                  : 'Mark it done any time. The clock restarts from there.'}
+            </p>
+            <div className="tokens">
+              <button type="button" className="token token--ink" onClick={onToggle}>
+                <Icon name="check" /> Done today
+              </button>
+              <button
+                type="button"
+                className="token"
+                onClick={() => {
+                  const undo = hub.completeRepeating(id, addDays(ref, -1));
+                  toast('Counted for yesterday', { action: { label: 'Undo', run: undo } });
+                }}
+              >
+                Yesterday
+              </button>
+              {isFlexible(item.repeat) ? (
                 <button
                   type="button"
-                  className="chip"
+                  className="token"
                   onClick={() => {
-                    const undo = hub.completeRepeating(id, addDays(ref, -1));
-                    toast('Counted for yesterday', { action: { label: 'Undo', run: undo } });
+                    const undo = hub.snooze(id, addDays(ref, 1));
+                    toast('Tomorrow, then', { action: { label: 'Undo', run: undo } });
                   }}
                 >
-                  Yesterday
+                  Not today
                 </button>
-                <label className="chip">
-                  Pick a day
-                  <input
-                    type="date"
-                    className="sr-only"
-                    max={ref}
-                    onChange={(e) => {
-                      if (!e.target.value) return;
-                      const undo = hub.completeRepeating(id, e.target.value);
-                      toast(`Counted for ${humanDate(e.target.value, ref)}`, { action: { label: 'Undo', run: undo } });
-                    }}
-                  />
-                </label>
-              </div>
-            </div>
-            <div className="chorepanel__row">
-              <span className="chorepanel__label">Not now</span>
-              <div className="chips">
-                {isFlexible(item.repeat) ? (
-                  <button
-                    type="button"
-                    className="chip chip--outline"
-                    onClick={() => {
-                      const undo = hub.snooze(id, addDays(ref, 1));
-                      toast('Tomorrow, then', { action: { label: 'Undo', run: undo } });
-                    }}
-                  >
-                    <Icon name="snooze" /> Tomorrow
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="chip chip--outline"
-                    onClick={() => {
-                      const undo = hub.skip(id);
-                      toast(`Skipped — next: ${humanDate(hub.item(id)!.due!, ref)}`, { action: { label: 'Undo', run: undo } });
-                    }}
-                  >
-                    <Icon name="skip" /> Skip this one
-                  </button>
-                )}
-                <button type="button" className="chip chip--outline" onClick={() => hub.setPaused(id, !item.paused)}>
-                  <Icon name="pause" /> {item.paused ? 'Resume' : 'Pause'}
+              ) : (
+                <button
+                  type="button"
+                  className="token"
+                  onClick={() => {
+                    const undo = hub.skip(id);
+                    toast(`Skipped. Next: ${humanDate(hub.item(id)!.due!, ref)}`, { action: { label: 'Undo', run: undo } });
+                  }}
+                >
+                  Skip this one
                 </button>
-              </div>
+              )}
+              <button type="button" className="token" onClick={() => hub.setPaused(id, !item.paused)}>
+                {item.paused ? 'Resume' : 'Pause'}
+              </button>
             </div>
-            <p className="chorepanel__next">
-              {item.paused ? 'Paused — it won’t come due until you resume it.' : item.due ? `Next: ${humanDate(item.due, ref)}` : ''}
-              {item.lastDoneAt ? ` · last done ${relativeAgo(item.lastDoneAt)} by ${hub.member(item.lastDoneBy)?.name ?? '—'}` : ''}
-            </p>
           </div>
         ) : null}
 
-        <div className="card" style={{ margin: '18px var(--gutter) 0' }}>
-          <OptRow
-            icon="calendar"
-            title="When"
-            value={dateValue}
-            disabled={!editable}
-            onClick={() =>
-              openSheet((close) => <DateSheet onClose={close} due={item.due} time={item.dueTime} onSave={(d, t) => hub.updateItem(id, { due: d, dueTime: t })} />)
-            }
+        {editable ? (
+          <InlineEditor
+            value={draft}
+            onChange={change}
+            fields={['when', 'repeat', 'remind', 'who', 'vis', 'urgent']}
+            allowedVis={[...allowed]}
+            repeatFrom={list?.kind === 'chores' ? 'done' : 'schedule'}
           />
-          <OptRow
-            icon="repeat"
-            title="Repeat"
-            value={item.repeat ? describeRule(item.repeat, (n) => weekdayName(n)) : 'Never'}
-            disabled={!editable}
-            onClick={() =>
-              openSheet((close) => (
-                <RepeatSheet
-                  onClose={close}
-                  rule={item.repeat}
-                  defaultFrom={list?.kind === 'chores' ? 'done' : 'schedule'}
-                  onSave={(r) => hub.updateItem(id, { repeat: r, due: r && !item.due ? ref : item.due })}
-                />
-              ))
-            }
-          />
-          <OptRow icon="bell" title="Remind me" value={remindLabel(item.remind)} disabled={!editable} onClick={() => openSheet((close) => <RemindSheet onClose={close} value={item.remind} onSave={setReminder} />)} />
-          {vis === 'ours' ? (
-            <OptRow
-              icon="user"
-              title="Who"
-              lead={carrier ? <PersonBullet member={carrier} size="md" /> : undefined}
-              value={whoLabel(hub, item.assignee, item.turn)}
-              disabled={!editable}
-              onClick={() =>
-                openSheet((close) => (
-                  <WhoSheet onClose={close} value={item.assignee} repeating={!!item.repeat} onSave={(a) => hub.updateItem(id, { assignee: a, turn: a === 'turns' ? (item.turn ?? hub.meId) : null })} />
-                ))
-              }
-            />
-          ) : null}
-          <div className="optrow">
-            <span className="optrow__icon">◆</span>
-            <span className="optrow__text">
-              Urgent <span className="optrow__sub">Floats to the top</span>
-            </span>
-            <Switch on={!!item.urgent} onChange={(on) => editable && hub.updateItem(id, { urgent: on })} label="Urgent" />
-          </div>
-        </div>
+        ) : null}
 
         {vis === 'ours' && !item.assignee && editable && partner && !item.done ? (
-          <div style={{ margin: '12px var(--gutter) 0' }}>
-            <button type="button" className="btn btn--quiet btn--sm" onClick={() => hub.takeIt(id)}>
-              <Icon name="hand" className="icon--sm" /> I’ll take it
-            </button>
-          </div>
+          <button type="button" className="textbtn takeit" onClick={() => hub.takeIt(id)}>
+            <Icon name="hand" className="icon--sm" /> I’ll take it
+          </button>
         ) : null}
 
-        {editable && allowed.length > 1 ? (
-          <div className="field" style={{ margin: '22px var(--gutter) 0' }}>
-            <span className="field__label">Who can see it</span>
-            <VisibilityControl
-              value={vis}
-              allowed={[...allowed]}
-              partnerName={partnerName}
-              onChange={(nv) => {
-                if (nv === 'private' && vis !== 'private' && partner) toast(`This will disappear for ${partnerName}`);
-                hub.setItemVisibility(id, nv);
-              }}
-            />
-            <p className="hint" style={{ margin: '8px 2px 0' }}>
-              {VIS_HINT(vis, partnerName)}
-            </p>
-          </div>
-        ) : vis === 'private' ? (
-          <p className="hint" style={{ marginTop: 18 }}>
-            <Icon name="lock" className="icon--sm" style={{ display: 'inline', verticalAlign: '-3px' }} /> Only you can see this.
-          </p>
-        ) : null}
+        <textarea
+          className="notes"
+          dir="auto"
+          value={notes}
+          readOnly={!editable}
+          placeholder={editable ? 'Add a note…' : ''}
+          onChange={(e) => setNotes(e.target.value)}
+          onBlur={() => notes !== (item.notes ?? '') && hub.updateItem(id, { notes })}
+          aria-label="Notes"
+        />
 
-        <div className="field" style={{ margin: '22px var(--gutter) 0' }}>
-          <span className="field__label">Notes</span>
-          <textarea
-            className="input"
-            dir="auto"
-            value={notes}
-            readOnly={!editable}
-            placeholder={editable ? 'Anything worth remembering…' : ''}
-            onChange={(e) => setNotes(e.target.value)}
-            onBlur={() => notes !== (item.notes ?? '') && hub.updateItem(id, { notes })}
-          />
-        </div>
-
-        <Section title="Steps" count={hub.childrenOf(id).length || undefined}>
-          {editable ? (
-            <div style={{ marginTop: -8 }}>
-              <QuickAdd listId={item.listId} parentId={id} onAdded={setFreshId} placeholder="Add a step" />
-            </div>
-          ) : null}
-          <div style={{ marginTop: 10 }}>
-            <Children listId={item.listId} parentId={id} freshId={freshId} readonly={!editable} />
-          </div>
-          {!hub.childrenOf(id).length && editable ? <p className="hint">Break it down. Steps can have their own steps, as deep as you like.</p> : null}
+        <Section title="Steps" count={steps.length}>
+          <Children listId={item.listId} parentId={id} freshId={freshId} readonly={!editable} />
+          {editable ? <QuickAdd listId={item.listId} parentId={id} onAdded={setFreshId} placeholder="Add a step" /> : null}
         </Section>
 
         {logs.length ? (
           <Section title="History">
-            <ul className="rows">
+            <ul className="rows rows--plain">
               {logs.map((l) => {
                 const by = hub.member(l.by);
                 return (
                   <li key={l.id} className="row">
-                    <PersonBullet member={by} size="md" />
+                    <Avatar member={by} size="xs" />
                     <div className="row__body">
-                      <span className="row__title">{by?.id === hub.meId ? 'You' : by?.name}</span>
-                      <span className="row__meta">{new Date(l.at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</span>
+                      <span className="row__title">
+                        {by?.id === hub.meId ? 'You' : by?.name}{' '}
+                        <span className="row__aside">
+                          {new Date(l.at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                        </span>
+                      </span>
                     </div>
                     {l.by !== hub.meId ? (
-                      <button type="button" className={`iconbtn heart ${l.thankedBy ? 'is-on' : ''}`} onClick={() => hub.thank(l.id)} aria-label="Say thanks" aria-pressed={!!l.thankedBy}>
+                      <button type="button" className={`heart ${l.thankedBy ? 'is-on' : ''}`} onClick={() => hub.thank(l.id)} aria-label="Say thanks" aria-pressed={!!l.thankedBy}>
                         <Icon name={l.thankedBy ? 'heart-fill' : 'heart'} />
                       </button>
                     ) : l.thankedBy ? (
-                      <span className="meta" style={{ color: '#ff3d7f' }}>
-                        <Icon name="heart-fill" className="icon--sm" /> thanked
+                      <span className="heart is-on" title="Thanked">
+                        <Icon name="heart-fill" />
                       </span>
                     ) : null}
                   </li>
@@ -350,52 +334,6 @@ export function ItemScreen({ id }: { id: string }) {
               })}
             </ul>
           </Section>
-        ) : null}
-
-        {editable ? (
-          <div className="itemactions">
-            <button
-              type="button"
-              className="btn btn--quiet btn--sm"
-              onClick={() =>
-                openSheet((close) => (
-                  <ListPickerSheet
-                    onClose={close}
-                    current={item.listId}
-                    filter={(l) => l.kind !== 'shopping' && (!l.owner || l.owner === hub.meId)}
-                    onPick={(l) => {
-                      hub.move(id, { listId: l.id });
-                      toast(`Moved to ${l.name}`);
-                    }}
-                  />
-                ))
-              }
-            >
-              <Icon name="move" className="icon--sm" /> Move
-            </button>
-            <button
-              type="button"
-              className="btn btn--quiet btn--sm"
-              onClick={() => {
-                const nid = hub.duplicate(id);
-                if (nid) navigate({ name: 'item', id: nid }, { replace: true });
-                toast('Duplicated');
-              }}
-            >
-              <Icon name="copy" className="icon--sm" /> Duplicate
-            </button>
-            <button
-              type="button"
-              className="btn btn--quiet btn--sm"
-              onClick={() => {
-                const undo = hub.delete(id);
-                back(upTo);
-                toast(`Deleted “${item.title}”`, { action: { label: 'Undo', run: undo } });
-              }}
-            >
-              <Icon name="trash" className="icon--sm" /> Delete
-            </button>
-          </div>
         ) : null}
       </div>
     </>

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { LineColor, List, Member } from '../../core/model';
 import { haptic } from './haptics';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 
 export const lineVars = (c: LineColor | undefined): CSSProperties =>
-  ({ '--c': c ? `var(--${c})` : 'var(--surface-2)', '--ci': c ? `var(--${c}-ink)` : 'var(--text)' }) as CSSProperties;
+  ({ '--c': c ? `var(--${c})` : 'var(--tile-2)', '--c-soft': c ? `var(--${c}-soft)` : 'var(--tile)' }) as CSSProperties;
 
 const firstGrapheme = (s: string): string => {
   const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
@@ -14,48 +14,34 @@ const firstGrapheme = (s: string): string => {
   return t[0].toUpperCase();
 };
 
-export function Bullet({
-  color,
-  label,
-  emoji,
-  size,
-  ring,
-  className,
-  title,
-}: {
-  color: LineColor | undefined;
-  label?: string;
-  emoji?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hero';
-  ring?: boolean;
-  className?: string;
-  title?: string;
-}) {
-  const text = emoji || firstGrapheme(label ?? '');
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
+/** A person: a round avatar in their color with their initial. */
+export function Avatar({ member, size = 'sm', name, color }: { member?: Member; size?: Size; name?: string; color?: LineColor }) {
+  const n = member?.name ?? name ?? '';
+  const c = member?.color ?? color;
+  if (!n && !c) return null;
   return (
-    <span
-      className={`bullet ${size && size !== 'md' ? `bullet--${size}` : ''} ${emoji ? 'bullet--emoji' : ''} ${ring ? 'bullet--ring' : ''} ${className ?? ''}`}
-      style={lineVars(color)}
-      title={title}
-      aria-hidden={title ? undefined : true}
-    >
-      {text}
+    <span className={`avatar avatar--${size}`} style={lineVars(c)} title={n} aria-hidden="true">
+      {firstGrapheme(n)}
     </span>
   );
 }
 
-export function ListBullet({ list, size }: { list: Pick<List, 'name' | 'color' | 'icon'> | undefined; size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hero' }) {
-  return <Bullet color={list?.color} label={list?.name} emoji={list?.icon || undefined} size={size} title={list?.name} />;
+/** Back-compat name used across screens. */
+export function PersonBullet({ member, size = 'sm' }: { member: Member | undefined; size?: Size }) {
+  if (!member) return null;
+  return <Avatar member={member} size={size} />;
 }
 
-export function PersonBullet({ member, size = 'sm' }: { member: Member | undefined; size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }) {
-  if (!member) return null;
-  return <Bullet color={member.color} label={member.name} size={size} title={member.name} className="bullet--round" />;
+/** A project: a small soft square of its color. */
+export function ListBullet({ list, size = 'sm' }: { list: Pick<List, 'name' | 'color' | 'icon'> | undefined; size?: Size }) {
+  return <span className={`dot dot--${size}`} style={lineVars(list?.color)} title={list?.name} aria-hidden="true" />;
 }
 
 export function Diamond({ title = 'Urgent' }: { title?: string }) {
   return (
-    <span className="diamond" title={title} aria-label={title} role="img">
+    <span className="urgent" title={title} aria-label={title} role="img">
       Urgent
     </span>
   );
@@ -67,19 +53,17 @@ export function Check({
   onToggle,
   label,
   disabled,
-  square,
 }: {
   on: boolean;
   color?: LineColor;
   onToggle: () => void;
   label: string;
   disabled?: boolean;
-  square?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`check ${on ? 'is-on' : ''} ${square ? 'check--square' : ''}`}
+      className={`check ${on ? 'is-on' : ''}`}
       style={lineVars(color)}
       role="checkbox"
       aria-checked={on}
@@ -91,44 +75,64 @@ export function Check({
         onToggle();
       }}
     >
-      <span className="check__fill" />
-      <svg className="check__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 12.5l4.5 4.5L19 7.5" />
+      <svg className="check__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 12.5l4 4L18 8" />
       </svg>
     </button>
   );
 }
 
-/** Observe when an element scrolls out of view (for the mini band). */
+/** Observe when an element scrolls out of view (for the compact header). */
 export function useScrolledPast<T extends HTMLElement>(): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [past, setPast] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(([e]) => setPast(!e.isIntersecting), { rootMargin: '-40px 0px 0px 0px' });
+    const io = new IntersectionObserver(([e]) => setPast(!e.isIntersecting), { rootMargin: '-56px 0px 0px 0px' });
     io.observe(el);
     return () => io.disconnect();
   }, []);
   return [ref, past];
 }
 
+export function IconButton({
+  icon,
+  label,
+  onClick,
+  solid,
+  pressed,
+}: {
+  icon: IconName;
+  label: string;
+  onClick: () => void;
+  solid?: boolean;
+  pressed?: boolean;
+}) {
+  return (
+    <button type="button" className={`iconbtn ${solid ? 'iconbtn--solid' : ''}`} onClick={onClick} aria-label={label} title={label} aria-pressed={pressed}>
+      <Icon name={icon} />
+    </button>
+  );
+}
+
+/**
+ * A screen header: a quiet top row (back or avatar, actions) and a serif title.
+ * When the title scrolls away, a compact bar keeps the context.
+ */
 export function Band({
   title,
   sub,
-  lead,
   top,
   actions,
   crumbs,
   mini,
   onBack,
   className,
-  style,
+  children,
 }: {
-  title: ReactNode;
+  title?: ReactNode;
   sub?: ReactNode;
-  /** Beside the title (a check, a project mark). */
-  lead?: ReactNode;
   /** Top-left corner (an avatar) when there is no Back button. */
   top?: ReactNode;
   actions?: ReactNode;
@@ -136,42 +140,108 @@ export function Band({
   mini?: string;
   onBack?: () => void;
   className?: string;
-  style?: CSSProperties;
+  /** Rendered below the title (e.g. a color card). */
+  children?: ReactNode;
 }) {
   const [ref, past] = useScrolledPast<HTMLElement>();
   return (
     <>
-      <header className={`band ${className ?? ''}`} ref={ref} style={style}>
+      <header className={`band ${className ?? ''}`} ref={ref}>
         {onBack || top || actions ? (
           <div className="band__top">
-            {onBack ? (
-              <button type="button" className="iconbtn" onClick={onBack} aria-label="Back">
-                <Icon name="arrow-back" />
-              </button>
-            ) : (
-              top
-            )}
+            {onBack ? <IconButton icon="arrow-back" label="Back" onClick={onBack} /> : (top ?? <span />)}
             {actions ? <div className="band__actions">{actions}</div> : null}
           </div>
         ) : null}
         {crumbs}
-        <div className="band__lead">
-          {lead}
+        {title ? (
           <h1 className="band__title" dir="auto">
             {title}
           </h1>
-        </div>
+        ) : null}
         {sub ? <p className="band__sub">{sub}</p> : null}
+        {children}
       </header>
       <div className={`miniband ${past ? 'is-on' : ''}`} aria-hidden={!past}>
         {onBack ? (
-          <button type="button" className="iconbtn miniband__back" onClick={onBack} aria-label="Back" tabIndex={past ? 0 : -1}>
+          <button type="button" className="miniband__back" onClick={onBack} aria-label="Back" tabIndex={past ? 0 : -1}>
             <Icon name="arrow-back" />
           </button>
         ) : null}
         <span dir="auto">{mini ?? (typeof title === 'string' ? title : '')}</span>
       </div>
     </>
+  );
+}
+
+/** Tasky's signature: a big rounded card of one color, a serif title, a quiet line under it. */
+export function ColorCard({
+  color,
+  title,
+  sub,
+  badge,
+  children,
+  onClick,
+  className,
+  size = 'lg',
+}: {
+  color: LineColor | undefined;
+  title: ReactNode;
+  sub?: ReactNode;
+  badge?: ReactNode;
+  children?: ReactNode;
+  onClick?: () => void;
+  className?: string;
+  size?: 'md' | 'lg';
+}) {
+  const Tag = onClick ? 'button' : 'div';
+  return (
+    <Tag type={onClick ? 'button' : undefined} className={`ccard ccard--${size} ${className ?? ''}`} style={lineVars(color)} onClick={onClick}>
+      <span className="ccard__top">
+        <span className="ccard__title" dir="auto">
+          {title}
+        </span>
+        {badge ? <span className="ccard__badge">{badge}</span> : null}
+      </span>
+      {children}
+      {sub ? <span className="ccard__sub">{sub}</span> : null}
+    </Tag>
+  );
+}
+
+/** A soft pill you tap to change something — the inline control. */
+export function Chip({
+  children,
+  onClick,
+  on,
+  icon,
+  color,
+  title,
+  disabled,
+  pressed,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  on?: boolean;
+  icon?: IconName;
+  color?: LineColor;
+  title?: string;
+  disabled?: boolean;
+  pressed?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={`chip ${on ? 'is-on' : ''} ${color ? 'chip--color' : ''}`}
+      style={color ? lineVars(color) : undefined}
+      onClick={onClick}
+      title={title}
+      disabled={disabled}
+      aria-pressed={pressed}
+    >
+      {icon ? <Icon name={icon} className="icon--sm" /> : null}
+      {children}
+    </button>
   );
 }
 
@@ -185,11 +255,11 @@ export function Tag({ color, children, small }: { color?: LineColor; children: R
 }
 
 /** A name tag with a cursor — two people working in the same space. */
-export function NameTag({ name, color, style }: { name: string; color: LineColor; style?: CSSProperties }) {
+export function NameTag({ name, color, style, flip }: { name: string; color: LineColor; style?: CSSProperties; flip?: boolean }) {
   return (
-    <span className="nametag" style={{ ...lineVars(color), ...style }}>
+    <span className={`nametag ${flip ? 'nametag--flip' : ''}`} style={{ ...lineVars(color), ...style }}>
       <svg className="nametag__cursor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M5 3l14 7-6 2-2 6z" fill="currentColor" stroke="var(--bg)" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M4 3l15 7.5-6.5 1.8L10.5 19z" fill="currentColor" />
       </svg>
       <span dir="auto">{name}</span>
     </span>
@@ -210,11 +280,11 @@ export function Section({
   id?: string;
 }) {
   return (
-    <section className="section" aria-labelledby={id}>
+    <section className="section" id={id}>
       <div className="section__head">
-        <h2 className="section__title" id={id}>
+        <h2 className="section__title">
           {title}
-          {count !== undefined ? <span className="section__count num">{count}</span> : null}
+          {count ? <span className="section__count num">{count}</span> : null}
         </h2>
         {action}
       </div>
@@ -257,10 +327,9 @@ export function Seg<T extends string>({
   );
 }
 
-export function Empty({ mark, title, text, children }: { mark?: ReactNode; title: string; text?: ReactNode; children?: ReactNode }) {
+export function Empty({ title, text, children }: { title: string; text?: ReactNode; children?: ReactNode }) {
   return (
     <div className="empty">
-      {mark ? <div className="empty__mark">{mark}</div> : null}
       <p className="empty__title">{title}</p>
       {text ? <p className="empty__text">{text}</p> : null}
       {children}
@@ -268,11 +337,11 @@ export function Empty({ mark, title, text, children }: { mark?: ReactNode; title
   );
 }
 
-/** The wordmark: "gila hub" set in a soft, heavy serif. */
-export function Logo({ size = 28, short }: { size?: number; short?: boolean }) {
+/** The wordmark: "gila hub" in the display serif. */
+export function Logo({ size = 28 }: { size?: number }) {
   return (
     <span className="wordmark" style={{ fontSize: size }} aria-label="Gila Hub" role="img">
-      {short ? 'gila' : 'gila hub'}
+      gila<span className="wordmark__hub">hub</span>
     </span>
   );
 }
@@ -283,19 +352,9 @@ export function StepRing({ done, total }: { done: number; total: number }) {
   const c = 2 * Math.PI * r;
   const p = total ? done / total : 0;
   return (
-    <svg className="steps__ring" viewBox="0 0 14 14" aria-hidden="true">
-      <circle cx="7" cy="7" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="2.2" />
-      <circle
-        cx="7"
-        cy="7"
-        r={r}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeDasharray={`${c * p} ${c}`}
-        strokeLinecap="round"
-        transform="rotate(-90 7 7)"
-      />
+    <svg className="ring" viewBox="0 0 14 14" aria-hidden="true">
+      <circle cx="7" cy="7" r={r} fill="none" stroke="var(--tile-2)" strokeWidth="2" />
+      <circle cx="7" cy="7" r={r} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray={`${c * p} ${c}`} strokeLinecap="round" transform="rotate(-90 7 7)" />
     </svg>
   );
 }

@@ -15,36 +15,38 @@ export function Search() {
     <>
       <Band title="Search" onBack={() => back({ name: 'today' })} />
       <div className="column">
-        <div className="addbar">
-          <Icon name="search" className="icon--sm" style={{ color: 'var(--text-3)' }} />
+        <div className="searchbar">
+          <Icon name="search" className="icon--sm" />
           <input autoFocus value={q} dir="auto" onChange={(e) => setQ(e.target.value)} placeholder="Everything you can see…" aria-label="Search" enterKeyHint="search" />
           {q ? (
-            <button type="button" className="iconbtn" onClick={() => setQ('')} aria-label="Clear">
+            <button type="button" className="searchbar__clear" onClick={() => setQ('')} aria-label="Clear">
               <Icon name="x" className="icon--sm" />
             </button>
           ) : null}
         </div>
         {lists.length ? (
-          <ul className="rows" style={{ marginTop: 12 }}>
+          <ul className="rows" style={{ marginTop: 16 }}>
             {lists.map((l) => (
-              <li key={l.id} className="row row--tap" onClick={() => navigate(l.kind === 'shopping' ? '/shop' : { name: 'list', id: l.id })}>
-                <ListBullet list={l} size="lg" />
+              <li key={l.id} className="row row--tap" onClick={() => navigate({ name: 'list', id: l.id })}>
+                <ListBullet list={l} size="md" />
                 <div className="row__body">
                   <span className="row__title" dir="auto">
                     {l.name}
                   </span>
-                  <span className="row__meta">List</span>
+                  <span className="row__meta">
+                    <span className="meta">Project</span>
+                  </span>
                 </div>
               </li>
             ))}
           </ul>
         ) : null}
-        <ul className="rows" style={{ marginTop: 12 }}>
+        <ul className="rows" style={{ marginTop: 16 }}>
           {results.map((i) => (
             <ItemRow key={i.id} item={i} showList />
           ))}
         </ul>
-        {q.trim() && !results.length && !lists.length ? <Empty title="Nothing matches" text="Search looks through every list you can see — Hebrew and English." /> : null}
+        {q.trim() && !results.length && !lists.length ? <Empty title="Nothing matches" text="Search looks through every project you can see, in Hebrew and English." /> : null}
       </div>
     </>
   );

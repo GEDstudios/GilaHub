@@ -700,14 +700,12 @@ export interface ProjectTemplate {
 
 /** Starting points offered at onboarding and in "New project". Nothing is created unless picked. */
 export const PROJECT_TEMPLATES: ProjectTemplate[] = [
-  { key: 'groceries', name: 'Groceries', icon: '🛒', kind: 'shopping', flavor: 'grocery', color: 'lemon', blurb: 'Sorted by aisle' },
-  { key: 'home', name: 'Home shopping', icon: '🏠', kind: 'shopping', flavor: 'home', color: 'orange', blurb: 'Bulbs, towels, a new pan' },
-  { key: 'chores', name: 'Chores', icon: '🧽', kind: 'chores', color: 'pink', blurb: 'Repeats, fairly' },
-  { key: 'todo', name: 'To do', icon: '✅', kind: 'tasks', color: 'sky', blurb: 'Everything else' },
-  { key: 'trip', name: 'Next trip', icon: '✈️', kind: 'tasks', color: 'lilac', blurb: 'Plans and packing' },
-  { key: 'gifts', name: 'Gift ideas', icon: '🎁', kind: 'tasks', color: 'mint', visibility: 'private', blurb: 'Only you see it' },
-  { key: 'movies', name: 'Movies & shows', icon: '🎬', kind: 'tasks', color: 'amber', blurb: 'For date nights' },
-  { key: 'bills', name: 'Bills & admin', icon: '🧾', kind: 'tasks', color: 'ink', blurb: 'Due dates, reminders' },
+  { key: 'groceries', name: 'Groceries', icon: '', kind: 'shopping', flavor: 'grocery', color: 'lemon', blurb: 'Sorted by aisle, for both of you' },
+  { key: 'home', name: 'Home shopping', icon: '', kind: 'shopping', flavor: 'home', color: 'amber', blurb: 'Bulbs, towels, a new pan' },
+  { key: 'chores', name: 'Chores', icon: '', kind: 'chores', color: 'pink', blurb: 'Things that repeat, shared fairly' },
+  { key: 'todo', name: 'To do', icon: '', kind: 'tasks', color: 'sky', blurb: 'Everything else, with dates and steps' },
+  { key: 'trip', name: 'Next trip', icon: '', kind: 'tasks', color: 'lilac', blurb: 'Plans and packing' },
+  { key: 'gifts', name: 'Gift ideas', icon: '', kind: 'tasks', color: 'mint', visibility: 'private', blurb: 'Only you can see it' },
 ];
 
 export function createFromTemplate(hub: Hub, t: ProjectTemplate): string {

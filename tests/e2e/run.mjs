@@ -89,6 +89,7 @@ const check = async (label, fn) => {
 try {
   // ---------- Guy starts the household
   await guy.goto(url);
+  await guy.waitForTimeout(1200);
   await shot(guy, '01-welcome');
   await guy.getByRole('button', { name: /get started/i }).click();
   await guy.getByLabel('Your name').fill('Guy');
@@ -181,6 +182,7 @@ try {
     await add.fill('Book dinner friday');
     await add.press('Enter');
     await guy.locator('.row__title', { hasText: 'Ring for Hila' }).click();
+    await guy.locator('.echip', { hasText: 'Ours' }).click();
     await guy.getByRole('radio', { name: /only me/i }).click();
     await shot(guy, '08-private-item');
     await guy.goBack();
@@ -209,8 +211,7 @@ try {
   await check('Chores: add one, tick it, it rolls forward', async () => {
     await guy.goto(`${url}/chores`);
     await guy.getByRole('heading', { name: 'Chores', exact: true, level: 1 }).waitFor();
-    await guy.getByRole('button', { name: 'Add', exact: true }).click();
-    await guy.getByLabel('Chore', { exact: true }).fill('Water the plants');
+    await guy.getByLabel('Add a chore').fill('Water the plants');
     await guy.getByRole('button', { name: /add chore/i }).click();
     await shot(guy, '10-chores');
     const row = guy.locator('li.row', { hasText: 'Water the plants' });
@@ -221,17 +222,18 @@ try {
   await check('Projects: create a new one from a template', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard--new').first().click();
-    await guy.getByRole('button', { name: /movies & shows/i }).click();
+    await guy.getByRole('button', { name: /next trip/i }).click();
     await guy.getByRole('button', { name: /create project/i }).click();
-    await guy.getByRole('heading', { name: 'Movies & shows', level: 1 }).waitFor({ timeout: 5000 });
+    await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
     await shot(guy, '12-project');
   });
 
-  // ---------- Desktop & dark
-  const desk = await browser.newContext({ viewport: { width: 1280, height: 860 }, colorScheme: 'dark' });
+  // ---------- Desktop
+  const desk = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const deskPage = await desk.newPage();
   await deskPage.goto(url);
-  await shot(deskPage, '11-desktop-welcome-dark');
+  await deskPage.waitForTimeout(1500);
+  await shot(deskPage, '11-desktop-welcome');
   await desk.close();
 } finally {
   await browser.close();

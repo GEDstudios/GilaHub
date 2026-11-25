@@ -1,5 +1,6 @@
-import '@fontsource-variable/outfit';
-import '@fontsource-variable/fraunces/soft.css';
+import '@fontsource-variable/figtree';
+import '@fontsource-variable/newsreader/opsz.css';
+import '@fontsource-variable/newsreader/opsz-italic.css';
 import '@fontsource-variable/frank-ruhl-libre';
 import '@fontsource-variable/heebo';
 import './styles/tokens.css';

@@ -1,121 +1,116 @@
-import { useState } from 'react';
-import type { Visibility } from '../../core/model';
+import { useState, type ReactNode } from 'react';
+import type { List, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { Children } from '../components/Children';
-import { Swatches } from '../components/pickers';
+import { Options } from '../components/editors';
+import { OptRow, Swatches } from '../components/pickers';
 import { QuickAdd } from '../components/QuickAdd';
-import { Chores } from './Chores';
-import { Shopping } from './Shopping';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
-import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Empty, lineVars, Seg } from '../ui/primitives';
+import { Band, Empty, IconButton, lineVars } from '../ui/primitives';
 import { openCount } from '../views';
+import { Chores } from './Chores';
+import { visLabel } from './Lists';
+import { Shopping } from './Shopping';
 
 export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const list = hub.list(listId);
   const [name, setName] = useState(list?.name ?? '');
-  const [icon, setIcon] = useState(list?.icon ?? '');
   if (!list) return null;
   const mineToChange = !list.owner || list.owner === hub.meId;
   const partner = hub.partner()?.name ?? 'your partner';
   const save = () => {
-    if (name.trim() && (name !== list.name || icon !== (list.icon ?? ''))) hub.updateList(listId, { name: name.trim(), icon: icon.trim() });
+    if (name.trim() && name.trim() !== list.name) hub.updateList(listId, { name: name.trim() });
   };
   return (
-    <Sheet onClose={() => (save(), onClose())} title="List settings">
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <input className="input" style={{ width: 64, textAlign: 'center', fontSize: 22 }} value={icon} onChange={(e) => setIcon(e.target.value.slice(0, 4))} placeholder="🙂" aria-label="Emoji (optional)" />
-        <input className="input" dir="auto" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} aria-label="Name" />
+    <Sheet onClose={() => (save(), onClose())} title="Project">
+      <div className="ccard ccard--md ccard--edit" style={lineVars(list.color)}>
+        <input className="ccard__input" dir="auto" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} aria-label="Name" />
+        <span className="ccard__sub">{visLabel(hub, list)}</span>
       </div>
-      <div className="field">
-        <span className="field__label">Line color</span>
-        <Swatches value={list.color} onChange={(c) => hub.updateList(listId, { color: c })} label={icon || name} />
+      <div className="choose">
+        <span className="choose__label">Color</span>
+        <Swatches value={list.color} onChange={(c) => hub.updateList(listId, { color: c })} />
       </div>
       {mineToChange ? (
-        <div className="field">
-          <span className="field__label">Who can see it</span>
-          <Seg
-            label="Who can see it"
+        <div className="choose">
+          <span className="choose__label">Who sees it</span>
+          <Options
             value={list.visibility}
-            onChange={(vis: Visibility) => {
+            onPick={(vis) => {
               if (vis === 'private' && list.visibility !== 'private' && hub.partner()) toast(`Hidden from ${partner}`);
-              hub.setListVisibility(listId, vis);
+              hub.setListVisibility(listId, vis as Visibility);
             }}
             options={[
-              { value: 'shared', label: <><Icon name="ours" className="icon--sm" /> Ours</> },
-              { value: 'visible', label: <><Icon name="mine" className="icon--sm" /> Mine</> },
-              { value: 'private', label: <><Icon name="lock" className="icon--sm" /> Only me</> },
+              { value: 'shared', label: 'Ours', icon: 'ours' },
+              { value: 'visible', label: 'Mine', icon: 'mine' },
+              { value: 'private', label: 'Only me', icon: 'lock' },
             ]}
           />
         </div>
       ) : null}
-      <div className="card" style={{ marginTop: 20 }}>
+      <div className="group" style={{ marginTop: 24 }}>
         {list.kind === 'tasks' ? (
-          <button
-            type="button"
-            className="optrow"
+          <OptRow
+            icon="refresh"
+            title="Uncheck all"
+            sub="Reuse it for packing, trips, routines"
             onClick={() => {
               const undo = hub.uncheckAll(listId);
               onClose();
-              toast('Everything unticked — ready to reuse', { action: { label: 'Undo', run: undo } });
+              toast('Everything unticked, ready to reuse', { action: { label: 'Undo', run: undo } });
             }}
-          >
-            <span className="optrow__icon">
-              <Icon name="refresh" className="icon--sm" />
-            </span>
-            <span className="optrow__text">
-              Uncheck all <span className="optrow__sub">Reuse it: packing, trips, routines</span>
-            </span>
-          </button>
+          />
         ) : null}
-        <button
-          type="button"
-          className="optrow"
+        <OptRow
+          icon="archive"
+          title="Archive"
           onClick={() => {
             hub.updateList(listId, { archived: true });
             onClose();
             navigate({ name: 'lists' }, { replace: true });
             toast(`Archived ${list.name}`, { action: { label: 'Undo', run: () => hub.updateList(listId, { archived: false }) } });
           }}
-        >
-          <span className="optrow__icon">
-            <Icon name="archive" className="icon--sm" />
-          </span>
-          <span className="optrow__text">Archive</span>
-        </button>
+        />
         {mineToChange ? (
-          <button
-            type="button"
-            className="optrow"
+          <OptRow
+            icon="trash"
+            title="Delete project"
             onClick={() => {
               const undo = hub.deleteList(listId);
               onClose();
               navigate({ name: 'lists' }, { replace: true });
               toast(`Deleted ${list.name}`, { action: { label: 'Undo', run: undo } });
             }}
-          >
-            <span className="optrow__icon">
-              <Icon name="trash" className="icon--sm" />
-            </span>
-            <span className="optrow__text">Delete list</span>
-          </button>
+          />
         ) : null}
       </div>
     </Sheet>
   );
 }
 
-/** Settings button for a project header (rename, color, who sees it, archive, delete). */
+/** The project's settings button. */
 export function ProjectMenuButton({ listId }: { listId: string }) {
   const { openSheet } = useOverlays();
+  return <IconButton icon="more" label="Project settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
+}
+
+/** A project's one color moment: its name on a card of its color. */
+export function ProjectHero({ list, sub, stat, children }: { list: List; sub: ReactNode; stat?: ReactNode; children?: ReactNode }) {
   return (
-    <button type="button" className="iconbtn" aria-label="Project settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)}>
-      <Icon name="more" />
-    </button>
+    <div className="hero" style={lineVars(list.color)}>
+      <div className="hero__top">
+        <h1 className="hero__title" dir="auto">
+          {list.name}
+        </h1>
+        {stat !== undefined ? <span className="hero__stat num">{stat}</span> : null}
+      </div>
+      <p className="hero__sub">{sub}</p>
+      {children}
+    </div>
   );
 }
 
@@ -147,33 +142,31 @@ function TaskProject({ id }: { id: string }) {
   const n = openCount(hub, id);
   const all = hub.children(id, null);
   const done = all.filter((i) => i.done).length;
-  const vis = list.visibility === 'shared' ? 'Ours' : list.visibility === 'private' ? 'Only me' : owner?.id === hub.meId ? 'Mine' : `${owner?.name}’s`;
+  const pct = all.length ? Math.round((done / all.length) * 100) : null;
 
   return (
     <>
-      <Band
-        className="band--tone"
-        style={lineVars(list.color)}
-        title={list.name}
-        lead={list.icon ? <span className="band__icon">{list.icon}</span> : undefined}
-        sub={`${vis} · ${n ? `${n} open` : 'all done'}${all.length ? ` · ${Math.round((done / all.length) * 100)}% done` : ''}`}
-        onBack={() => back({ name: 'lists' })}
-        actions={<ProjectMenuButton listId={id} />}
-      />
+      <Band onBack={() => back({ name: 'lists' })} actions={<ProjectMenuButton listId={id} />} mini={list.name}>
+        <ProjectHero
+          list={list}
+          stat={pct !== null && done ? `${pct}%` : undefined}
+          sub={
+            <>
+              {n ? `${n} open` : all.length ? 'All done. Nice.' : 'Nothing here yet'}
+              {` · ${visLabel(hub, list)}`}
+            </>
+          }
+        />
+      </Band>
       <div className="column">
         {readonly ? (
-          <p className="hint" style={{ marginTop: 16 }}>
+          <p className="hint">
             This is {owner?.name}’s project. You can see it; only {owner?.name} changes it.
           </p>
-        ) : (
-          <QuickAdd listId={id} onAdded={setFreshId} />
-        )}
-        <div style={{ marginTop: 14 }}>
-          <Children listId={id} parentId={null} freshId={freshId} readonly={readonly} />
-        </div>
-        {!all.length ? (
-          <Empty title="Fresh start" text={readonly ? 'Nothing here yet.' : 'Add the first thing above. Anything can hold steps, as deep as you need.'} />
         ) : null}
+        <Children listId={id} parentId={null} freshId={freshId} readonly={readonly} />
+        {!readonly ? <QuickAdd listId={id} onAdded={setFreshId} /> : null}
+        {!all.length && !readonly ? <p className="hint">Add the first thing. Anything can hold steps, as deep as you need.</p> : null}
       </div>
     </>
   );

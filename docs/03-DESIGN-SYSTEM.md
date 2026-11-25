@@ -4,22 +4,23 @@ Tokens live in [`src/styles/tokens.css`](../src/styles/tokens.css). The visual l
 
 ## Principles
 
-1. **One thing at a time.** One job per screen, and one black "+" that does the obvious thing there.
-2. **Color says *which project*.** It is never used for alarms. Late things get words ("since Tue").
-3. **Big, soft, friendly.** Large serif titles and numbers, rounded tiles, generous spacing.
-4. **Progressive disclosure.** A new item is a circle and a title; everything else appears when you open it.
+1. **Calm canvas, one color moment.** Screens are near-white and soft gray. Color is reserved for the card that says *which project*: never for alarms, never on every row.
+2. **Inline, not forms.** You change things where they are. Chips under a card open their options in place. Adding happens in a row at the end of the list.
+3. **Say it in a sentence.** Every card has one plain line underneath ("Friday at 8 pm, for Hila."), so you don't have to read settings.
+4. **Few choices.** Six colors. Four repeat options plus custom. No themes or display toggles.
+5. **Tactile.** Things press in (scale 0.96–0.98), checks spring, panels lift with a soft shadow, switches slide.
 
 ## Type
 
 | Role | Font | Size | Use |
 |---|---|---|---|
-| Title | Fraunces (soft) 450 | 32 | Screen titles ("Morning, Guy!") |
-| Number | Fraunces 420 | 40 | Stacked strips, big counts |
-| Wordmark | Fraunces 900, SOFT 100 | — | "gila hub" |
-| Subheading | Outfit 400 | 20 | "You have 4 things to tackle today" |
-| Row | Outfit 450 | 17 | Item titles |
-| Body | Outfit 400 | 16 | Notes, descriptions |
-| Caption | Outfit 500 | 12–13 | Meta, tags |
+| Title | Newsreader 400 | 38 | Screen titles ("Morning, Guy!") |
+| Card title | Newsreader 400 | 25–38 | Project and item cards |
+| Number | Newsreader 400 | 30–36 | Strips, percentages |
+| Summary | Figtree 400 | 19 | "You have 4 things to tackle today" |
+| Row | Figtree 400 | 16.5 | Item titles |
+| Control | Figtree 500 | 14–14.5 | Chips, options, section labels |
+| Meta | Figtree 400 | 13 | Project, date, steps |
 
 Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user string uses `dir="auto"`.
 
@@ -27,21 +28,20 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 
 | Component | Spec |
 |---|---|
-| **Header** | Avatar (or a black circle Back button) top-left, black circle actions top-right, serif title below. On project screens the header is painted in the project color, with rounded bottom corners. |
-| **Project card** | Color tile, radius 22, emoji top-left, serif name, "3 open · Tasks". |
-| **Stacked strips** | Overlapping color bands (−16 px), each with a big serif number on the left and a label on the right. |
-| **Tags** | Pastel pills that overlap by 8 px. |
-| **Name tag** | Pill in a person's color with a cursor arrow. |
-| **Row tile** | Gray tile (`--surface`), radius 18, 6 px gap. Check circle on the left. |
-| **Check** | 28 px ink ring; when done it fills with the project color and shows an ink tick. |
-| **Buttons** | Black pill (primary), gray pill (quiet), white pill with a black arrow circle (onboarding). |
-| **Tab bar** | Four tabs plus a raised 66 px black "+" in the middle. On desktop it becomes a sidebar with a black "+ New" pill. |
-| **Sheets** | Bottom sheets, radius 28, serif title, gray close button. |
+| **Header** | Quiet top row (a 42 px gray circle for back and actions, or your avatar), then a serif title. On scroll, a frosted bar keeps the name. Every tab's title sits at the same height. |
+| **Color card** | Radius 24–30, the project color, serif title top-left, a sentence bottom-left, an optional black badge top-right. |
+| **Rows** | One gray tile (radius 20) per group, rows 58 px with hairline dividers. A thin 24 px check ring; done fills with the project color. Done rows are struck through in gray. |
+| **Add row** | At the end of each list: a dashed plus and an input. It lifts into a white card while you type, and shows what it understood as chips. |
+| **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open. Urgent is lemon. |
+| **Panel** | Opens under a chip: white, radius 22, soft shadow, with 36 px option pills (the chosen one is black). |
+| **Strips** | Overlapping bands (−16 px) with a big serif number and a small label. |
+| **Tab bar** | A floating white bar, 4 tabs, no central button. On desktop, a light sidebar with a black "New" pill. |
+| **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", project settings and pickers. |
 
 ## Motion
 
-120–300 ms with `cubic-bezier(.2,.8,.2,1)`. A spring on the check, float-in on the splash shapes. `prefers-reduced-motion` turns transforms off.
+140–320 ms with `cubic-bezier(.2,.8,.2,1)`. A spring on checks, switches and swatches. `prefers-reduced-motion` turns movement off.
 
 ## Accessibility
 
-Ink on every palette color passes WCAG AA. Visible 3 px focus rings, 44 px minimum targets, desktop shortcuts (`N`, `/`, `1–4`).
+Ink on every palette color passes WCAG AA. Visible focus rings, 44 px minimum touch targets on checks, and desktop shortcuts (`N`, `/`, `1–4`).

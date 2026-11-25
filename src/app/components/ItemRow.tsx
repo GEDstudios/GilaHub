@@ -96,52 +96,46 @@ export const ItemRow = memo(function ItemRow({
       className={`row row--tap ${item.done ? 'is-done' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
-      <Check on={item.done} color={list?.color} onToggle={onToggle} label={item.title} disabled={false} />
+      <Check on={item.done} color={list?.color} onToggle={onToggle} label={item.title} />
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
         </span>
-        <span className="row__meta">
-          {showList && list ? (
-            <span className="meta">
-              <ListBullet list={list} size="xs" />
-              <span dir="auto">{list.name}</span>
-            </span>
-          ) : null}
-          {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
-          {item.repeat ? (
-            <span className="meta" title={describeRule(item.repeat, (n) => weekdayName(n))}>
-              <Icon name="repeat" />
-            </span>
-          ) : null}
-          {item.remind !== null && item.remind !== undefined && item.due ? (
-            <span className="meta">
-              <Icon name="bell" />
-            </span>
-          ) : null}
-          {steps.total ? (
-            <span className="meta steps">
-              <StepRing done={steps.done} total={steps.total} />
-              {steps.done}/{steps.total}
-            </span>
-          ) : null}
-          {item.notes ? (
-            <span className="meta">
-              <Icon name="note" />
-            </span>
-          ) : null}
-          {vis === 'private' && list?.visibility !== 'private' ? (
-            <span className="meta" title="Only me">
-              <Icon name="lock" />
-            </span>
-          ) : null}
-        </span>
+        {(showList && list) || due || item.repeat || steps.total || (vis === 'private' && list?.visibility !== 'private') ? (
+          <span className="row__meta">
+            {showList && list ? (
+              <span className="meta">
+                <ListBullet list={list} size="xs" />
+                <span dir="auto">{list.name}</span>
+              </span>
+            ) : null}
+            {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
+            {item.repeat ? (
+              <span className="meta" title={describeRule(item.repeat, (n) => weekdayName(n))}>
+                <Icon name="repeat" />
+              </span>
+            ) : null}
+            {steps.total ? (
+              <span className="meta">
+                <StepRing done={steps.done} total={steps.total} />
+                {steps.done}/{steps.total}
+              </span>
+            ) : null}
+            {vis === 'private' && list?.visibility !== 'private' ? (
+              <span className="meta" title="Only me">
+                <Icon name="lock" />
+              </span>
+            ) : null}
+          </span>
+        ) : null}
       </div>
-      <span className="row__trail">
-        {trailing}
-        {item.urgent ? <Diamond /> : null}
-        {carrier && (list?.visibility === 'shared' || carrier.id !== list?.owner) ? <PersonBullet member={carrier} size="sm" /> : null}
-      </span>
+      {trailing || item.urgent || (carrier && (list?.visibility === 'shared' || carrier.id !== list?.owner)) ? (
+        <span className="row__trail">
+          {trailing}
+          {item.urgent ? <Diamond /> : null}
+          {carrier && (list?.visibility === 'shared' || carrier.id !== list?.owner) ? <PersonBullet member={carrier} size="xs" /> : null}
+        </span>
+      ) : null}
     </li>
   );
 });

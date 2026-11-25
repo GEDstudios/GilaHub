@@ -13,7 +13,8 @@ export type Scope = 'h' | `p:${string}`;
 /** Palette ids — the Tasky color system (see docs/02-BRAND.md). */
 export type LineColor = 'lemon' | 'pink' | 'lilac' | 'sky' | 'mint' | 'amber' | 'orange' | 'ink';
 
-export const LINE_COLORS: LineColor[] = ['lemon', 'pink', 'lilac', 'sky', 'mint', 'amber', 'orange', 'ink'];
+/** The colors offered in pickers. 'orange' and 'ink' stay valid for older data. */
+export const LINE_COLORS: LineColor[] = ['lemon', 'pink', 'lilac', 'sky', 'mint', 'amber'];
 
 export interface Member {
   id: string;

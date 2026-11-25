@@ -8,7 +8,8 @@ import { useHub } from '../context';
 import { dayFirst, setPrefs, use24h, usePrefs, weekStart, workdays } from '../prefs';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { ListBullet } from '../ui/primitives';
+import { ColorCard, ListBullet } from '../ui/primitives';
+import { useSummary } from './editors';
 import { ListPickerSheet } from './pickers';
 
 export function useParseContext(list: List | undefined): ParseContext {
@@ -38,6 +39,7 @@ export function QuickAdd({
   onAdded,
   allowListChange,
   autoFocus,
+  composer,
 }: {
   listId: string;
   parentId?: string | null;
@@ -46,6 +48,8 @@ export function QuickAdd({
   onAdded?: (id: string) => void;
   allowListChange?: boolean;
   autoFocus?: boolean;
+  /** The big "New" composer: a live preview card and an Add button. */
+  composer?: boolean;
 }) {
   const hub = useHub();
   const { openSheet, toast } = useOverlays();
@@ -114,43 +118,54 @@ export function QuickAdd({
 
   const chips = parsed.tokens.map((t) => ({ key: t.key, label: t.label, kind: t.kind }));
   const showDefaultDue = !parsed.due && defaultDue && !dropDefaultDue;
+  const summarize = useSummary();
 
-  return (
-    <div className="quickadd">
+  if (composer) {
+    const due = parsed.due ?? (dropDefaultDue ? null : (defaultDue ?? null));
+    const title = parsed.title.trim();
+    return (
       <form
-        className="addbar"
+        className="composer"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
         }}
       >
-        <Icon name="plus" className="icon--sm" style={{ color: 'var(--text-3)' }} />
-        <input
-          ref={input}
-          value={text}
-          dir="auto"
-          onChange={(e) => setText(e.target.value)}
-          onPaste={onPaste}
-          placeholder={hintText}
-          aria-label={hintText}
-          enterKeyHint="done"
-          autoFocus={autoFocus}
-          data-autofocus={autoFocus ? '' : undefined}
+        <label className="composer__ask">
+          <span className="composer__label">
+            <Icon name="sparkle" className="icon--sm" /> What needs doing?
+          </span>
+          <input
+            ref={input}
+            value={text}
+            dir="auto"
+            onChange={(e) => setText(e.target.value)}
+            onPaste={onPaste}
+            placeholder="Call mom tomorrow 6pm"
+            aria-label="What needs doing?"
+            enterKeyHint="done"
+            autoFocus={autoFocus}
+            data-autofocus={autoFocus ? '' : undefined}
+          />
+        </label>
+        <ColorCard
+          color={dest?.color}
+          className={title ? '' : 'ccard--ghost'}
+          title={title || 'A new thing'}
+          badge={parsed.repeat ? <Icon name="repeat" className="icon--sm" /> : parsed.urgent ? '!' : undefined}
+          sub={summarize({ due, dueTime: parsed.dueTime ?? null, repeat: parsed.repeat ?? null, assignee: parsed.assignee ?? null }, { listName: dest?.name })}
         />
-        <button type="submit" className="addbar__go" disabled={!parsed.title.trim()} aria-label="Add">
-          <Icon name="arrow" className="icon--sm" />
-        </button>
-      </form>
-      {text.trim() || allowListChange ? (
-        <div className="chips chips--scroll" style={{ margin: '10px 0 0', padding: '0 var(--gutter)' }}>
+        <p className="inline__prompt">Want to change something?</p>
+        <div className="tokens">
           {allowListChange && dest ? (
             <button
               type="button"
-              className="chip chip--outline"
+              className="token token--list"
               onClick={() =>
                 openSheet((close) => (
                   <ListPickerSheet
                     onClose={close}
+                    title="Add to"
                     current={dest.id}
                     filter={(l) => l.kind !== 'shopping'}
                     onPick={(l) => {
@@ -167,27 +182,101 @@ export function QuickAdd({
             </button>
           ) : null}
           {showDefaultDue ? (
-            <button type="button" className="chip chip--token" onClick={() => setDropDefaultDue(true)} title="Remove date">
-              <Icon name="calendar" />
+            <button type="button" className="token" onClick={() => setDropDefaultDue(true)} title="Remove date">
               {humanDate(defaultDue!, todayStr())}
-              <Icon name="x" className="x" />
+              <Icon name="x" className="token__x" />
             </button>
           ) : null}
           {chips.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              className="chip chip--token"
-              onClick={() => setIgnore((s) => new Set([...s, c.key]))}
-              title="Tap to keep this as text"
-            >
-              <Icon name={c.kind === 'date' ? 'calendar' : c.kind === 'time' ? 'clock' : c.kind === 'repeat' ? 'repeat' : c.kind === 'assignee' ? 'user' : c.kind === 'list' ? 'lines' : c.kind === 'qty' ? 'tag' : 'bell'} />
+            <button key={c.key} type="button" className="token is-parsed" onClick={() => setIgnore((s) => new Set([...s, c.key]))} title="Tap to keep this as text">
               {c.label}
-              <Icon name="x" className="x" />
+              <Icon name="x" className="token__x" />
+            </button>
+          ))}
+          {allowed.length > 1 ? (
+            <button type="button" className="token" onClick={cycleVis} title="Who can see this">
+              <Icon name={VIS_ICON[visibility]} />
+              {VIS_LABEL[visibility]}
+            </button>
+          ) : null}
+        </div>
+        <button type="submit" className="btn btn--block composer__add" disabled={!title}>
+          Add
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div className={`quickadd ${text.trim() ? 'is-typing' : ''}`}>
+      <form
+        className="addrow"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <span className="addrow__plus" aria-hidden="true">
+          <Icon name="plus" className="icon--sm" />
+        </span>
+        <input
+          ref={input}
+          value={text}
+          dir="auto"
+          onChange={(e) => setText(e.target.value)}
+          onPaste={onPaste}
+          placeholder={hintText}
+          aria-label={hintText}
+          enterKeyHint="done"
+          autoFocus={autoFocus}
+          data-autofocus={autoFocus ? '' : undefined}
+        />
+        {parsed.title.trim() ? (
+          <button type="submit" className="addrow__go" aria-label="Add">
+            <Icon name="arrow" className="icon--sm" />
+          </button>
+        ) : null}
+      </form>
+      {text.trim() ? (
+        <div className="tokens">
+          {allowListChange && dest ? (
+            <button
+              type="button"
+              className="token token--list"
+              onClick={() =>
+                openSheet((close) => (
+                  <ListPickerSheet
+                    onClose={close}
+                    title="Add to"
+                    current={dest.id}
+                    filter={(l) => l.kind !== 'shopping'}
+                    onPick={(l) => {
+                      setTarget(l.id);
+                      setVis(null);
+                    }}
+                  />
+                ))
+              }
+            >
+              <ListBullet list={dest} size="xs" />
+              <span dir="auto">{dest.name}</span>
+              <Icon name="chevron-down" />
+            </button>
+          ) : null}
+          {showDefaultDue ? (
+            <button type="button" className="token" onClick={() => setDropDefaultDue(true)} title="Remove date">
+              {humanDate(defaultDue!, todayStr())}
+              <Icon name="x" className="token__x" />
+            </button>
+          ) : null}
+          {chips.map((c) => (
+            <button key={c.key} type="button" className="token is-parsed" onClick={() => setIgnore((s) => new Set([...s, c.key]))} title="Tap to keep this as text">
+              {c.label}
+              <Icon name="x" className="token__x" />
             </button>
           ))}
           {allowed.length > 1 && text.trim() ? (
-            <button type="button" className="chip chip--outline" onClick={cycleVis} title="Who can see this">
+            <button type="button" className="token" onClick={cycleVis} title="Who can see this">
               <Icon name={VIS_ICON[visibility]} />
               {VIS_LABEL[visibility]}
             </button>

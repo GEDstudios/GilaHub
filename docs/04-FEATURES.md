@@ -4,10 +4,11 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 0 · Simplicity & clarity: the rules every feature obeys
 
-- **●** Onboarding is three light steps: your name, your color, and the projects you want (tap template cards, or start empty). No account, no email, no tour.
+- **●** Onboarding is two light steps: your name and color, then the projects you want (four starters, or start empty). No account, no email, no tour.
 - **●** A new item is a circle and a title. Details stay out of sight until the item is opened.
-- **●** Four tabs: **Today · Shopping · Chores · Projects**, plus one black **+** that does the obvious thing on each screen.
-- **●** Quick add shows what it understood as chips. Tap a chip to undo it.
+- **●** Four tabs: **Today · Shopping · Chores · Projects**. Adding happens inline, in a row at the end of each list. `N` opens the **New** composer on desktop.
+- **●** Quick add shows what it understood as chips. Tap a chip to undo it. **New** shows a live color card that says, in one sentence, what you're adding.
+- **●** Inline controls: under every item, *Date · Repeat · Remind me · Who · Ours · Urgent* chips open their options in place. No forms.
 - **●** No red, no badge spam, no streaks. Late items say "since Tue".
 - **●** Nothing is imposed: every project, including shopping and chores, can be renamed, recolored, archived or deleted.
 
@@ -17,7 +18,6 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** No duplicates. An item already on the list is highlighted with **+1**. One you crossed off comes back with **Bring back**.
 - **●** Quantities are optional and parsed in English and Hebrew: `2 milk`, `milk x2`, `500g cheese`, `1 ק"ג עגבניות`, `חצי קילו גבינה`.
 - **●** Auto-aisles, ordered the way an Israeli supermarket is walked. Correct an item once and both phones remember it.
-- **●** Item emoji, so the list scans at a glance (🥛 🍅 🧻).
 - **●** Priority means a single **Urgent** flag that pins the item to the top. Drag to reorder within an aisle.
 - **●** Search matches across spelling variants (עגבניה / עגבנייה, with or without geresh or niqqud, final letters, plurals).
 - **●** Paste a list from WhatsApp and it splits into items, each sorted into its aisle.
@@ -55,10 +55,10 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 - **●** Items nest without limit. Opening an item drills into its own screen with a breadcrumb, so you never wade through deep indentation.
 - **●** Progress like "3/5" on parents. Completing a parent asks whether to complete its steps too.
-- **●** Unlimited lists, each with a line color and a letter or emoji bullet, and a type (Tasks · Shopping · Chores).
+- **●** Unlimited projects, each with one of six colors and a type (Tasks · Shopping · Chores).
 - **●** Drag to reorder items and lists. Move items between lists. Duplicate, archive, delete — all with undo.
 - **●** **Uncheck all** for reusable checklists (packing, trips).
-- **●** Quick-start names when creating a list: Packing 🧳, Movies 🎬, Gift ideas 🎁, Trip ✈️, Restaurants 🍜.
+- **●** New project: a live color card you name in place, plus a few starters (Groceries, Home shopping, Chores, To do, Next trip, Gift ideas).
 - **●** Global search across every list you can see.
 
 ## 6 · Private + shared, per list *and* per item
@@ -76,7 +76,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 7 · Gila Hub
 
-- **●** Bold brand after Tasky by H3Y Lab: color cards, stacked strips, soft-serif wordmark, name-tag cursors. See [Brand](02-BRAND.md).
+- **●** A calm, light brand after Tasky by H3Y Lab: one color card per screen, inline chips, stacked strips, name-tag cursors, Newsreader and Figtree. See [Brand](02-BRAND.md).
 
 ## 8 · Extras we think you'll love
 
@@ -86,7 +86,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** **"I'll take it"** on any unowned shared task.
 - **●** Works fully offline, with honest sync status ("Saved on this phone · syncs when online").
 - **●** One-tap **export** (JSON) and import. Your data is yours.
-- **●** Dark mode, app badge for today's items (opt-in), haptics, and desktop keyboard shortcuts.
+- **●** App badge for today's items (opt-in), haptics, and desktop keyboard shortcuts. Light only, on purpose.
 - **◐** Share-sheet import (Android), Hebrew interface, month calendar, small item photos, import from Microsoft To Do (it retires June 2027), Todoist and Reminders.
 - **○** Meal plan → groceries, household info card (Wi-Fi, landlord, plumber), shared expenses, home-screen widgets via a native shell.
 
