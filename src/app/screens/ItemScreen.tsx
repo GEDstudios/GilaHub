@@ -242,6 +242,21 @@ export function ItemScreen({ id }: { id: string }) {
             <Icon name="x" className="token__x" />
             <span dir="auto">Remove from {(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}</span>
           </button>
+          <button
+            type="button"
+            className="token"
+            onClick={() => {
+              // Out of here: this copy goes, the one in the other place stays (and opens).
+              const here = (item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here';
+              const undo = hub.removeTwin(twin.id);
+              close();
+              navigate(twinList.kind === 'shopping' ? { name: 'shop' } : { name: 'item', id: twin.id }, { replace: true });
+              toast(`Taken out of ${here}`, { action: { label: 'Undo', run: undo } });
+            }}
+          >
+            <Icon name="x" className="token__x" />
+            <span dir="auto">Remove from {(item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here'}</span>
+          </button>
         </div>
       ) : (
         <PlacePicker

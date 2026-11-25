@@ -9,7 +9,7 @@ import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 
 /**
- * Arrange categories, on Shopping itself: the categories in your walk through the store, as
+ * Manage categories, on Shopping itself: the categories in your walk through the store, as
  * rows you drag into order; tap a name to rename it, its icon to pick another; add categories
  * of your own at the end, with an icon picked as you name them (and take them away with ×). Each change saves at
  * once and shows for both of you.

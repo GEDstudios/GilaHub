@@ -533,3 +533,19 @@ describe('also inside a task', () => {
     expect(guy.alsoIn(fix, chores, fix)).toBeNull();
   });
 });
+
+describe('remove from here', () => {
+  it('taking it out of this place keeps the other one', async () => {
+    const guy = await person('guy');
+    guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    seedHousehold(guy, ['todo', 'chores']);
+    const todo = guy.lists().find((l) => l.name === 'To do')!.id;
+    const chores = guy.lists().find((l) => l.name === 'Chores')!.id;
+    const a = guy.addItem(todo, { title: 'Paint the door' });
+    const b = guy.alsoIn(a, chores)!;
+    guy.removeTwin(b);
+    expect(guy.item(a)).toBeUndefined();
+    expect(guy.item(b)).toBeDefined();
+    expect(guy.linked(guy.item(b))).toBeUndefined();
+  });
+});

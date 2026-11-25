@@ -379,7 +379,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             <div className="homeedit">
               <button type="button" className="textbtn" onClick={() => setArranging(true)}>
                 <Icon name="layout" />
-                Arrange categories
+                Manage categories
               </button>
             </div>
           ) : null}
