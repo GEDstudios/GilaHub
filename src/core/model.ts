@@ -63,6 +63,8 @@ export interface List {
   owner: string | null;
   visibility: Visibility;
   order: string;
+  /** The project it sits inside (a folder in a folder). Unset, or one I can't see: top level. */
+  parentId?: string | null;
   archived?: boolean;
   createdAt: number;
   createdBy: string;

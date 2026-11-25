@@ -24,8 +24,9 @@ import { projectCount } from '../views';
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
 
 /** A name on a card of its color, a few ideas to start from, then the same chips as a project's page. */
-export function NewProjectSheet({ onClose, initial }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }> }) {
+export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }>; parentId?: string }) {
   const hub = useHub();
+  const parent = hub.list(parentId);
   const [name, setName] = useState('');
   const [look, setLook] = useState<ProjectLook>(() => ({
     kind: initial?.kind ?? 'tasks',
@@ -43,14 +44,14 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
 
   const create = () => {
     if (!name.trim()) return;
-    const id = hub.createList({ name, kind, color: look.color, icon, flavor: kind === 'shopping' ? look.flavor : undefined, visibility: look.visibility });
+    const id = hub.createList({ name, kind, color: look.color, icon, flavor: kind === 'shopping' ? look.flavor : undefined, visibility: look.visibility, parentId: parent?.id });
     if (look.pinned) togglePin(hub, `l:${id}`);
     onClose();
     navigate({ name: 'list', id });
   };
 
   return (
-    <Sheet onClose={onClose} title="New project">
+    <Sheet onClose={onClose} title={parent ? `New project in ${parent.name}` : 'New project'}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -152,7 +153,7 @@ function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: num
 }
 
 /** Drag a folder to reorder projects (a long press on phones), or onto the bar to pin it there. */
-function SortableProject({ list, arranging, pins, index }: { list: List; arranging: boolean; pins: string[]; index: number }) {
+export function SortableProject({ list, arranging, pins, index }: { list: List; arranging: boolean; pins: string[]; index: number }) {
   const hub = useHub();
   const s = useSortableItem(list.id);
   return (
@@ -170,15 +171,18 @@ function SortableProject({ list, arranging, pins, index }: { list: List; arrangi
 }
 
 /** A folder lifts with its own tilt, plus 3deg, and lands back at its tilt. */
-const folderLean = (id: string) => ({ rest: tilt(id) + 3, land: tilt(id) });
+export const folderLean = (id: string) => ({ rest: tilt(id) + 3, land: tilt(id) });
 
-function ProjectCard({ list, onClick }: { list: List; onClick?: () => void }) {
+export function ProjectCard({ list, onClick }: { list: List; onClick?: () => void }) {
   const hub = useHub();
   const count = projectCount(hub, list);
+  // A folder with folders in it looks it: more sheets peek out behind.
+  const inside = hub.subLists(list.id).length;
   return (
     <button
       type="button"
-      className="ccard ccard--md projcard"
+      className={`ccard ccard--md projcard${inside ? ' projcard--stack' : ''}`}
+      data-inside={inside || undefined}
       style={{ ...lineVars(list.color), ['--tilt' as string]: `${tilt(list.id)}deg` }}
       onClick={onClick ?? (() => navigate({ name: 'list', id: list.id }))}
       data-drag
@@ -232,7 +236,7 @@ export function Lists() {
   const hub = useHub();
   const { openSheet, toast } = useOverlays();
   const { arranging } = useBarEdit();
-  const lists = hub.lists();
+  const lists = hub.topLists();
   const pins = pinsOf(hub);
   const newProject = () => openSheet((close) => <NewProjectSheet onClose={close} />);
 

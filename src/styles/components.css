@@ -4099,27 +4099,41 @@ html:has(.sheet) .ideatag {
 .fab {
   position: fixed;
   z-index: 36;
-  right: max(20px, calc((100% - var(--column)) / 2 - var(--gutter) + 20px));
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px);
-  width: 60px;
-  height: 60px;
+  right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px);
+  width: 68px;
+  height: 68px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  /* A little card of its own: rounded like the folders, tilted like them, straight when pressed. */
+  border-radius: 24px;
   background: var(--cta);
-  color: var(--cta-text);
+  color: var(--me-light, var(--lemon));
+  transform: rotate(-7deg);
   box-shadow:
-    0 10px 24px -8px rgb(10 10 4 / 0.45),
-    0 2px 6px rgb(10 10 4 / 0.18);
-  transition: transform 180ms var(--spring), opacity 160ms var(--ease);
+    0 14px 28px -10px rgb(10 10 4 / 0.5),
+    0 3px 8px rgb(10 10 4 / 0.2);
+  transition: transform 220ms var(--spring), opacity 160ms var(--ease), box-shadow 200ms var(--ease);
 }
 
 .fab .icon {
-  --s: 26;
+  --s: 32;
+}
+
+/* A bold plus: the main thing in the app. */
+.fab .icon__line {
+  stroke-width: 1.6px;
+}
+
+@media (hover: hover) {
+  .fab:hover {
+    transform: rotate(0deg) translateY(-2px);
+  }
 }
 
 .fab:active {
-  transform: scale(0.92);
+  transform: rotate(0deg) scale(0.9);
+  box-shadow: 0 6px 14px -6px rgb(10 10 4 / 0.5);
 }
 
 /* Out of the way while something else has the stage */
@@ -4131,7 +4145,7 @@ html:has(.aislearr) .fab,
 html:has(.shopmode) .fab {
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.8);
+  transform: rotate(-7deg) scale(0.8);
 }
 
 /* A computer has New in the sidebar */
@@ -4139,4 +4153,69 @@ html:has(.shopmode) .fab {
   .fab {
     display: none;
   }
+}
+
+/* ============================================================ Projects inside projects */
+/* A folder holding folders: another sheet peeks out behind it, top right. */
+.projcard--stack {
+  box-shadow:
+    7px -7px 0 -1px color-mix(in srgb, var(--c) 72%, #0a0a04),
+    var(--fold-shadow);
+}
+
+.hero__up {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 8px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.42);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  vertical-align: 1px;
+}
+
+.hero__up:active {
+  transform: scale(0.96);
+}
+
+.subprojects {
+  margin-top: 30px;
+}
+
+.inside {
+  margin-top: 26px;
+}
+
+.inside__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 2px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  text-align: start;
+}
+
+.inside__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inside__head .icon--xs {
+  color: var(--text-3);
+}
+
+.inside__none {
+  margin: 2px 0 0 36px;
+  color: var(--text-3);
+  font-size: 14px;
 }

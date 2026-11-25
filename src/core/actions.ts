@@ -103,6 +103,8 @@ export class Hub {
     icon?: string;
     flavor?: ShoppingFlavor;
     visibility?: Visibility;
+    /** Make it inside this project. */
+    parentId?: string | null;
     id?: string;
   }): string {
     const visibility = input.visibility ?? 'shared';
@@ -120,6 +122,7 @@ export class Hub {
         owner,
         visibility,
         order: keyBetween(last?.order ?? null, null),
+        parentId: input.parentId && this.list(input.parentId) ? input.parentId : undefined,
         createdAt: Date.now(),
         createdBy: this.meId,
       });
@@ -173,6 +176,58 @@ export class Hub {
     }
   }
 
+  // ---------- projects inside projects ----------
+
+  /** Where a project sits: its parent if I can see it (archived or private ones let it surface). */
+  parentOf(id: string): List | undefined {
+    const p = this.list(id)?.parentId;
+    return p ? this.lists().find((l) => l.id === p) : undefined;
+  }
+
+  /** The projects at the top of Projects. */
+  topLists(): List[] {
+    return this.lists().filter((l) => !this.parentOf(l.id));
+  }
+
+  /** The projects right inside this one. */
+  subLists(id: string): List[] {
+    return this.lists().filter((l) => l.parentId === id && this.parentOf(l.id)?.id === id);
+  }
+
+  /** Everything inside, all the way down, in reading order (a project, then what's inside it). */
+  nestedLists(id: string): List[] {
+    const out: List[] = [];
+    const walk = (pid: string, seen: Set<string>) => {
+      for (const l of this.subLists(pid)) {
+        if (seen.has(l.id)) continue;
+        seen.add(l.id);
+        out.push(l);
+        walk(l.id, seen);
+      }
+    };
+    walk(id, new Set([id]));
+    return out;
+  }
+
+  /** The way down from the top to here: [grandparent, parent]. */
+  listPath(id: string): List[] {
+    const out: List[] = [];
+    const seen = new Set([id]);
+    for (let p = this.parentOf(id); p && !seen.has(p.id); p = this.parentOf(p.id)) {
+      seen.add(p.id);
+      out.unshift(p);
+    }
+    return out;
+  }
+
+  /** Put a project inside another (null: back to the top). Never inside itself or its own insides. */
+  setListParent(id: string, parentId: string | null): boolean {
+    if (parentId && (parentId === id || this.nestedLists(id).some((l) => l.id === parentId) || !this.list(parentId))) return false;
+    const last = this.lists().filter((l) => l.id !== id).at(-1);
+    this.store.mutate('list', id, { parentId: parentId ?? null, order: keyBetween(last?.order ?? null, null) });
+    return true;
+  }
+
   updateList(id: string, fields: Partial<Pick<List, 'name' | 'color' | 'icon' | 'kind' | 'flavor' | 'archived'>>): void {
     this.store.mutate('list', id, fields);
   }
@@ -189,8 +244,10 @@ export class Hub {
     });
   }
 
+  /** Reorder among its neighbours (the projects in the same place). */
   moveList(id: string, beforeId: string | null): void {
-    const lists = this.lists().filter((l) => l.id !== id);
+    const p = this.parentOf(id)?.id;
+    const lists = (p ? this.subLists(p) : this.topLists()).filter((l) => l.id !== id);
     const idx = beforeId ? lists.findIndex((l) => l.id === beforeId) : lists.length;
     const prev = lists[idx - 1]?.order ?? null;
     const next = lists[idx]?.order ?? null;
