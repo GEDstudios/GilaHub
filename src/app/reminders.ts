@@ -15,7 +15,7 @@ export interface ReminderSpec {
 }
 
 export const REMIND_OPTIONS: Array<{ value: number; label: string }> = [
-  { value: 0, label: 'At the time' },
+  { value: 0, label: 'When due' },
   { value: 15, label: '15 min before' },
   { value: 60, label: '1 hour before' },
   { value: 24 * 60, label: '1 day before' },

@@ -9,6 +9,7 @@ const GROCERY: Partial<Record<string, IconName>> = {
   meat: 'fish',
   deli: 'bowl',
   pantry: 'jar',
+  spices: 'pepper',
   snacks: 'cookie',
   frozen: 'snowflake',
   drinks: 'drink',

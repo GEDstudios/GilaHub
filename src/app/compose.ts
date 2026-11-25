@@ -21,12 +21,18 @@ export function parsedDraft(p: ParseResult, d: { mode: AddMode; defaultDue?: str
     due: p.due ?? d.defaultDue ?? null,
     dueTime: p.dueTime ?? null,
     repeat: p.repeat ?? (d.mode === 'chore' ? CHORE_REPEAT : null),
-    remind: null,
+    // A date in the words (or the screen's day) turns the notification on, "When due".
+    remind: (p.due ?? d.defaultDue) ? 0 : null,
     assignee: p.assignee ?? null,
     urgent: !!p.urgent,
     visibility: d.visibility,
     needsOk: false,
   };
+}
+
+/** A date turns the notification on ("When due") unless one is already set. */
+export function withNotification(value: Pick<Draft, 'remind'>, due: string | null | undefined): Partial<Draft> {
+  return due && value.remind == null ? { remind: 0 } : {};
 }
 
 /** Chips win over words. A privacy the project doesn't allow falls back to its default. */

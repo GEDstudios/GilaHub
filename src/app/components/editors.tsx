@@ -5,6 +5,7 @@ import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
 import { useHub } from '../context';
 import { use24h, usePrefs, weekStart } from '../prefs';
 import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
+import { withNotification } from '../compose';
 import { REMIND_OPTIONS } from '../reminders';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -58,7 +59,7 @@ export function useSummary() {
       parts.push(d.assignee === 'both' ? 'together' : d.assignee === 'turns' ? 'taking turns' : who === 'Me' ? 'for you' : `for ${who}`);
     }
     const r = remindText(d.remind);
-    if (r) parts.push(`reminder ${r.toLowerCase()}`);
+    if (r) parts.push(`notify ${r.toLowerCase()}`);
     if (!parts.length) return opts.listName ? `In ${opts.listName}` : 'No date';
     const s = parts.join(', ');
     return `${s[0].toUpperCase()}${s.slice(1)}.`;
@@ -292,8 +293,8 @@ export function InlineEditor({
   const [open, setOpen] = useState<string | null>(null);
   const ref = todayStr();
   const toggle = (f: string) => setOpen(open === f ? null : f);
-  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode) => (
-    <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={() => toggle(f)} disabled={readOnly} compact={compact} />
+  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f)) => (
+    <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} disabled={readOnly} compact={compact} />
   );
 
   const chips: ReactNode[] = [];
@@ -304,7 +305,7 @@ export function InlineEditor({
   for (const f of fields) {
     if (f === 'when') {
       chips.push(chip('when', value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date', 'calendar', !!value.due));
-      if (open === 'when') chips.push(<WhenPanel key="when:panel" due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime })} />);
+      if (open === 'when') chips.push(<WhenPanel key="when:panel" due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime, ...withNotification(value, due) })} />);
     }
     if (f === 'repeat') {
       chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
@@ -315,18 +316,27 @@ export function InlineEditor({
             rule={value.repeat}
             defaultFrom={repeatFrom}
             // Calendar repeats (set days, days of the month) decide the date; "every N" keeps yours.
-            onChange={(repeat) => onChange({ repeat, due: repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due })}
+            onChange={(repeat) => {
+              const due = repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due;
+              onChange({ repeat, due, ...(due !== value.due ? withNotification(value, due) : {}) });
+            }}
           />,
         );
     }
     if (f === 'remind') {
-      chips.push(chip('remind', remindText(value.remind) ?? 'Remind me', 'bell', value.remind !== null));
+      const off = value.remind == null;
+      // Tapping the chip while it's off turns it on ("When due", today if undated) and shows the options.
+      const turnOn = () => {
+        onChange({ remind: 0, due: value.due ?? ref });
+        setOpen('remind');
+      };
+      chips.push(chip('remind', off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, 'bell', !off, undefined, off ? turnOn : undefined));
       if (open === 'remind')
         chips.push(
           <Panel key="remind:panel">
             <Options
-              value={value.remind === null ? 'none' : String(value.remind)}
-              options={[{ value: 'none', label: 'No reminder' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
+              value={value.remind == null ? 'none' : String(value.remind)}
+              options={[{ value: 'none', label: 'No notification' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
               onPick={(v) => {
                 onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due });
                 setOpen(null);

@@ -115,6 +115,8 @@ export interface SendResult {
   status: number;
   /** Subscription is gone (404/410) — delete it. */
   gone: boolean;
+  /** The push service's reason, when it refused (for `wrangler tail`). */
+  reason?: string;
 }
 
 export async function sendPush(
@@ -135,7 +137,8 @@ export async function sendPush(
   if (opts.topic) headers.Topic = opts.topic.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32);
   try {
     const res = await fetch(sub.endpoint, { method: 'POST', headers, body });
-    return { ok: res.ok, status: res.status, gone: res.status === 404 || res.status === 410 };
+    const reason = res.ok ? undefined : (await res.text().catch(() => '')).slice(0, 200);
+    return { ok: res.ok, status: res.status, gone: res.status === 404 || res.status === 410, reason };
   } catch {
     return { ok: false, status: 0, gone: false };
   }

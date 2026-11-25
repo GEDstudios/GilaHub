@@ -143,3 +143,15 @@ describe('Shopping adds carry who it’s for', () => {
     expect(guy.addShopping(groceries.id, 'Eggs', { qty: null }).kind).toBe('exists');
   });
 });
+
+describe('a date turns the notification on', () => {
+  it('parsed or screen dates notify when due; undated stays off', async () => {
+    const { withNotification } = await import('../../src/app/compose');
+    expect(parsedDraft(parseQuickAdd('Call mom tomorrow 6pm', ctx), { mode: 'task', visibility: 'ours' }).remind).toBe(0);
+    expect(parsedDraft(parseQuickAdd('Call mom', ctx), { mode: 'task', visibility: 'ours', defaultDue: '2026-11-25' }).remind).toBe(0);
+    expect(parsedDraft(parseQuickAdd('Call mom', ctx), { mode: 'task', visibility: 'ours' }).remind).toBeNull();
+    expect(withNotification({ remind: null }, '2026-11-26')).toEqual({ remind: 0 });
+    expect(withNotification({ remind: 60 }, '2026-11-26')).toEqual({});
+    expect(withNotification({ remind: null }, null)).toEqual({});
+  });
+});

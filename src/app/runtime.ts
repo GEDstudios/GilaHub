@@ -65,6 +65,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
       rt.sync = sync;
       await sync.start();
       for (const fn of relayListeners) fn();
+      void registerPush(rt);
     },
   };
   await saveSession(persistence, session);
@@ -119,18 +120,81 @@ function urlB64ToUint8Array(s: string): Uint8Array<ArrayBuffer> {
 /** Ask permission (only when the person sets their first reminder) and register push. */
 export async function enablePush(rt: Runtime): Promise<PushState> {
   const state = await pushState(rt);
-  if (state === 'on' || state === 'unsupported' || state === 'install' || state === 'no-relay' || state === 'denied') return state;
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') return perm === 'denied' ? 'denied' : 'off';
-  const reg = await swContainer()!.ready;
-  const { publicKey } = await api<{ publicKey: string }>(rt.session, 'vapid');
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(publicKey) });
-  await api(rt.session, 'subscribe', {
-    method: 'POST',
-    body: JSON.stringify({ dev: rt.session.deviceId, member: rt.session.memberId, sub: sub.toJSON() }),
-  });
-  return 'on';
+  if (state === 'unsupported' || state === 'install' || state === 'no-relay' || state === 'denied') return state;
+  if (state === 'off') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return perm === 'denied' ? 'denied' : 'off';
+  }
+  return (await registerPush(rt, true)) ? 'on' : 'off';
+}
+
+/** false only when we know the keys differ (some browsers don't report the key: then trust it). */
+function sameKey(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
+  if (!a) return true;
+  if (a.byteLength !== b.length) return false;
+  const x = new Uint8Array(a);
+  for (let i = 0; i < x.length; i++) if (x[i] !== b[i]) return false;
+  return true;
+}
+
+/**
+ * Make sure this device's push subscription is the one the hub can use: signed for the hub's
+ * current key, and stored under this household and this person. Each household has its own key,
+ * so a phone that subscribed before joining (or before a reset) holds a subscription the hub
+ * can't send to; that one is replaced. Safe to call often. `create` subscribes if there is none;
+ * `fresh` replaces the subscription even when it looks right (the push service refused it).
+ */
+export async function registerPush(rt: Runtime, create = false, fresh = false): Promise<boolean> {
+  try {
+    const sw = swContainer();
+    if (!rt.relay || !sw || !('PushManager' in window) || Notification.permission !== 'granted') return false;
+    const reg = await sw.ready;
+    const key = urlB64ToUint8Array((await api<{ publicKey: string }>(rt.session, 'vapid')).publicKey);
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && (fresh || !sameKey(sub.options?.applicationServerKey, key))) {
+      await sub.unsubscribe().catch(() => {});
+      sub = null;
+      create = true;
+    }
+    if (!sub && !create) return false;
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    await api(rt.session, 'subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ dev: rt.session.deviceId, member: rt.session.memberId, sub: sub.toJSON() }),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export type TestPush =
+  | { kind: 'sent' }
+  | { kind: 'not-registered' }
+  | { kind: 'refused'; status: number }
+  | { kind: 'offline' };
+
+/** Send a test to this device only, and say truthfully what happened. */
+export async function testPush(rt: Runtime): Promise<TestPush> {
+  const once = async (): Promise<TestPush> => {
+    const payload = await sealNote(rt, { title: 'Gila Hub', body: 'This is how reminders will look.', url: '/settings', tag: 'test' });
+    const res = await api<{ sent: number; tried: number; statuses?: number[] }>(rt.session, 'notify', {
+      method: 'POST',
+      body: JSON.stringify({ members: [rt.session.memberId], dev: rt.session.deviceId, payload, topic: 'test' }),
+    });
+    if (res.sent > 0) return { kind: 'sent' };
+    if (!res.tried) return { kind: 'not-registered' };
+    return { kind: 'refused', status: res.statuses?.[0] ?? 0 };
+  };
+  try {
+    const first = await once();
+    if (first.kind === 'sent') return first;
+    // Re-register (a fresh subscription when the old one was refused or missing) and try once more.
+    if (!(await registerPush(rt, true, first.kind === 'refused'))) return first;
+    return await once();
+  } catch {
+    return { kind: 'offline' };
+  }
 }
 
 export async function disablePush(rt: Runtime): Promise<void> {

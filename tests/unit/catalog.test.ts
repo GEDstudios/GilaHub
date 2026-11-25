@@ -84,3 +84,14 @@ describe('catalog', () => {
     expect(categorize('Zaatar crackers', 'grocery', learned).category).toBe('snacks');
   });
 });
+
+describe('spices aisle', () => {
+  it('files spices under Spices, not Pantry, in both languages', async () => {
+    const { categorize } = await import('../../src/smart/categorize');
+    const none = () => undefined;
+    for (const n of ['salt', 'כמון', 'paprika', 'זעתר', 'black pepper', 'cinnamon', 'garlic powder', 'chili flakes', 'hawaij', 'פפריקה'])
+      expect([n, categorize(n, 'grocery', none).category]).toEqual([n, 'spices']);
+    for (const n of ['pasta', 'אורז', 'olive oil']) expect([n, categorize(n, 'grocery', none).category]).toEqual([n, 'pantry']);
+    expect(categorize('rosemary', 'grocery', none).category).toBe('produce');
+  });
+});

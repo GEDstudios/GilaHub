@@ -19,6 +19,7 @@ export type GroceryCategory =
   | 'meat'
   | 'deli'
   | 'pantry'
+  | 'spices'
   | 'snacks'
   | 'frozen'
   | 'drinks'
