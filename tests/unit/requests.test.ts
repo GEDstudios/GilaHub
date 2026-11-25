@@ -74,29 +74,29 @@ describe('Today: requests between us', () => {
     expect(hv.asked).toHaveLength(0);
   });
 
-  it('a request dated today stays in Today (with its tag); a later one is asked, not upcoming', async () => {
+  it('every request waits in "Waiting on you", dated or not, and is never also in Today or Coming up', async () => {
     const { guy, hila } = await couple();
     const todo = listNamed(hila, 'To do').id;
     const now = hila.addItem(todo, { title: 'Pay the bill', assignee: 'guy', due: today() });
     const later = hila.addItem(todo, { title: 'Book the plumber', assignee: 'guy', due: addDays(today(), 2) });
     sync(guy, hila);
     const v = todayView(guy, today());
-    expect(ids(v.today)).toContain(now);
-    expect(ids(v.asked)).toEqual([later]);
+    expect(ids(v.today)).not.toContain(now);
+    expect(ids(v.asked)).toEqual([now, later]);
     expect(v.upcoming.flatMap((g) => ids(g.items))).not.toContain(later);
     expect(requestState(guy, guy.item(now)!)?.kind).toBe('they-asked');
   });
 
-  it('repeating asks and chores are not asks', async () => {
+  it('repeating asks are not asks; a one-off chore asked of me is', async () => {
     const { guy, hila } = await couple();
     const rep = hila.addItem(listNamed(hila, 'To do').id, { title: 'Water plants', assignee: 'guy', repeat: { type: 'interval', every: 1, unit: 'week', from: 'schedule' } });
     const chore = hila.addItem(listNamed(hila, 'Chores').id, { title: 'Bins', assignee: 'guy' });
     sync(guy, hila);
     const v = todayView(guy, today());
     expect(ids(v.asked)).not.toContain(rep);
-    expect(ids(v.asked)).not.toContain(chore);
+    expect(ids(v.asked)).toContain(chore);
     expect(requestState(guy, guy.item(rep)!)).toBeNull();
-    expect(ids(todayView(hila, today()).outgoing)).not.toContain(chore);
+    expect(ids(todayView(hila, today()).outgoing)).toContain(chore);
   });
 
   it('something Hila made Guy’s is an ask too', async () => {

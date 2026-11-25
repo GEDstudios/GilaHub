@@ -254,8 +254,9 @@ describe('home blocks', () => {
     expect(s.n).toBe(0);
     expect(s.mood).toBe('free');
     expect(s.person).toBe(true);
-    // On its day it counts, from Today.
-    expect(summaryOf(guy, todayView(guy, guy.item(id)!.due!)).n).toBe(1);
+    // On its day it counts (from Waiting on you).
+    const due = guy.item(id)!.due!;
+    expect(todayView(guy, due).asked.map((i) => i.id)).toContain(id);
   });
 
   it('the summary says all done once I have finished things today', async () => {

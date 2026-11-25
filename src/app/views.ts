@@ -71,14 +71,14 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
-  const today = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
-  const earlier = mine.filter((i) => i.due! < ref).sort((a, b) => a.due!.localeCompare(b.due!) || byUrgentThenTime(a, b));
+  const todayAll = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
+  const earlierAll = mine.filter((i) => i.due! < ref).sort((a, b) => a.due!.localeCompare(b.due!) || byUrgentThenTime(a, b));
   // Requests between us: one-off things in task projects (not chores, not shopping).
   const partnerId = hub.partner()?.id;
   const items = hub.store.all('item');
   const live = (i: Item) => {
     const l = lists.get(i.listId);
-    return !!l && !i.done && !i.archived && !i.repeat && l.kind !== 'shopping' && l.kind !== 'chores';
+    return !!l && !i.done && !i.archived && !i.repeat && l.kind !== 'shopping';
   };
   const asked = partnerId
     ? items
@@ -87,12 +87,14 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
             live(i) &&
             !i.submittedAt &&
             isForMe(hub, i) &&
-            (i.requestedBy === partnerId || (i.owner === hub.meId && i.createdBy === partnerId && !i.requestedBy)) &&
-            !(i.due && i.due <= ref),
+            (i.requestedBy === partnerId || (i.owner === hub.meId && i.createdBy === partnerId && !i.requestedBy)),
         )
         .sort(byDueThenTime)
     : [];
+  // Everything I'm asked waits in one place, "Waiting on you", whatever its date: not twice.
   const askedIds = new Set(asked.map((i) => i.id));
+  const today = todayAll.filter((i) => !askedIds.has(i.id));
+  const earlier = earlierAll.filter((i) => !askedIds.has(i.id));
   const outgoing = partnerId
     ? items.filter((i) => live(i) && !i.submittedAt && i.requestedBy === hub.meId && i.assignee === partnerId).sort(byDueThenTime)
     : [];

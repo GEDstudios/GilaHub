@@ -177,8 +177,9 @@ export function showHome(hub: Hub, key: string): boolean {
 
 /** The summary: how many things today, and which projects (and person) they're in. */
 export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | 'done' | 'free'; lists: List[]; person: boolean } {
-  // An ask with a date counts on its day (it moves into today or earlier then), not before.
-  const askedNow = v.asked.filter((i) => !i.due);
+  // An ask counts when it's undated or due by today; a later one waits for its day.
+  const ref = todayStr();
+  const askedNow = v.asked.filter((i) => !i.due || i.due <= ref);
   const counted: Item[] = [...v.today, ...v.earlier, ...v.awaitingOk, ...askedNow];
   const n = counted.length;
   const person = !!hub.partner() && v.awaitingOk.length + v.asked.length > 0;
