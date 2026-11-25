@@ -58,7 +58,7 @@ export function useSummary() {
       parts.push(d.assignee === 'both' ? 'together' : d.assignee === 'turns' ? 'taking turns' : who === 'Me' ? 'for you' : `for ${who}`);
     }
     const r = remindText(d.remind);
-    if (r) parts.push(`reminder ${r.toLowerCase()}`);
+    if (r) parts.push(`notify ${r.toLowerCase()}`);
     if (!parts.length) return opts.listName ? `In ${opts.listName}` : 'No date';
     const s = parts.join(', ');
     return `${s[0].toUpperCase()}${s.slice(1)}.`;
@@ -320,13 +320,13 @@ export function InlineEditor({
         );
     }
     if (f === 'remind') {
-      chips.push(chip('remind', remindText(value.remind) ?? 'Remind me', 'bell', value.remind !== null));
+      chips.push(chip('remind', value.remind == null ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, 'bell', value.remind !== null));
       if (open === 'remind')
         chips.push(
           <Panel key="remind:panel">
             <Options
               value={value.remind === null ? 'none' : String(value.remind)}
-              options={[{ value: 'none', label: 'No reminder' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
+              options={[{ value: 'none', label: 'No notification' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
               onPick={(v) => {
                 onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due });
                 setOpen(null);
