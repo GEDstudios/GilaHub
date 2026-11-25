@@ -1013,20 +1013,6 @@ button.projcard:active {
   outline: none;
 }
 
-.composer__step:has(.composer__stepset) {
-  flex-wrap: wrap;
-}
-
-.composer__stepset {
-  flex: 0 0 100%;
-  padding: 0 0 10px 28px;
-}
-
-.composer__stepx.is-set {
-  color: var(--ink);
-  background: var(--me-light, var(--lemon));
-}
-
 .composer__stepdot {
   width: 16px;
   height: 16px;

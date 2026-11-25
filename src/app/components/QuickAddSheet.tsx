@@ -1,3 +1,4 @@
+import { navigate } from '../router';
 import { useAlsoShop } from '../alsoShop';
 import { useEffect, useRef, useState } from 'react';
 import type { Item } from '../../core/model';
@@ -11,7 +12,7 @@ import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
-import { EChip, InlineEditor, useSummary, type Draft, type Field } from './editors';
+import { EChip, InlineEditor, useSummary, type Field } from './editors';
 import { listChip, ParsedToken, useCompose } from './QuickAdd';
 
 /**
@@ -98,9 +99,6 @@ function Composer({
   const [asStep, setAsStep] = useState(!!parentId);
   const [added, setAdded] = useState<string[]>([]);
   const [own, setOwn] = useState<string[]>([]);
-  // Each subtask's own settings (date, notification, who, urgent), set right here before saving.
-  const [stepSet, setStepSet] = useState<Record<number, Partial<Draft>>>({});
-  const [openStep, setOpenStep] = useState<number | null>(null);
   const [stepText, setStepText] = useState('');
   const field = useRef<HTMLTextAreaElement>(null);
   // "Task: a, b and c" puts its steps in the words (not for shopping, nor for a step itself).
@@ -149,40 +147,40 @@ function Composer({
       clear();
       return;
     }
+    if (save(raw)) onDone();
+  };
+
+  /** Save the task and its subtasks; returns the new ids (the task, then each subtask). */
+  const save = (raw?: string): { id: string; kids: string[] } | null => {
     const id = c.commit(raw === undefined ? undefined : raw, { announce: true });
-    if (!id) return;
+    if (!id) return null;
     const made = hub.item(id);
-    if (made)
-      steps.forEach((t, i) => {
-        const d = stepSet[i] ?? {};
-        alsoShop(
-          hub.addItem(made.listId, {
-            title: t,
-            parentId: id,
-            due: d.due ?? null,
-            dueTime: d.dueTime ?? null,
-            remind: d.remind ?? null,
-            assignee: d.assignee ?? null,
-            urgent: !!d.urgent,
-            needsOk: !!d.needsOk,
-          }),
-        );
-      });
+    const kids = made
+      ? steps.map((t) => {
+          const kid = hub.addItem(made.listId, { title: t, parentId: id });
+          alsoShop(kid);
+          return kid;
+        })
+      : [];
+    return { id, kids };
+  };
+
+  /** Open a subtask fully: the task is saved (with all its subtasks) and that subtask's page opens. */
+  const openSub = (i: number) => {
+    if (!title) return;
+    const r = save();
+    if (!r) return;
     onDone();
+    const kid = r.kids[i];
+    // Through the task, so Back from the subtask lands on it.
+    if (kid)
+      setTimeout(() => {
+        navigate({ name: 'item', id: r.id });
+        navigate({ name: 'item', id: kid });
+      }, 0);
   };
 
   /** Change the subtasks in place. Ones that came from the words ("Pack: a, b") move into the list, and the words keep only the task. */
-  const stepDraft = (i: number): Draft => ({
-    due: null,
-    dueTime: null,
-    repeat: null,
-    remind: null,
-    assignee: null,
-    urgent: false,
-    visibility: draft.visibility,
-    ...stepSet[i],
-  });
-
   const editSteps = (next: string[]) => {
     if (words.steps.length) setText(words.head);
     setOwn(next);
@@ -333,14 +331,8 @@ function Composer({
                     onBlur={() => !t.trim() && editSteps(steps.filter((_, j) => j !== i))}
                     aria-label={`Subtask ${i + 1}`}
                   />
-                  <button
-                    type="button"
-                    className={`composer__stepx ${stepSet[i] && Object.values(stepSet[i]).some((v) => v) ? 'is-set' : ''}`}
-                    aria-label={`Settings for ${t}`}
-                    aria-expanded={openStep === i}
-                    onClick={() => setOpenStep(openStep === i ? null : i)}
-                  >
-                    <Icon name="sliders" className="icon--sm" />
+                  <button type="button" className="composer__stepx" aria-label={`Open ${t}`} disabled={!title} onClick={() => openSub(i)}>
+                    <Icon name="chevron-right" className="icon--sm" />
                   </button>
                   <button
                     type="button"
@@ -348,24 +340,10 @@ function Composer({
                     aria-label={`Remove ${t}`}
                     onClick={() => {
                       editSteps(steps.filter((_, j) => j !== i));
-                      setStepSet({});
-                      setOpenStep(null);
                     }}
                   >
                     <Icon name="x" className="icon--xs" />
                   </button>
-                  {openStep === i ? (
-                    <div className="composer__stepset">
-                      <InlineEditor
-                        compact
-                        whoMode="compose"
-                        value={stepDraft(i)}
-                        onChange={(patch) => setStepSet((m) => ({ ...m, [i]: { ...m[i], ...patch } }))}
-                        fields={['when', 'remind', 'who', 'urgent']}
-                        allowedVis={c.allowed}
-                      />
-                    </div>
-                  ) : null}
                 </li>
               ))}
             </ul>
