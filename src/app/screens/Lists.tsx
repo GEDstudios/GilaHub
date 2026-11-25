@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { PROJECT_TEMPLATES } from '../../core/actions';
-import { LINE_COLORS, type LineColor, type List, type ListKind, type ShoppingFlavor, type Visibility } from '../../core/model';
+import { pickColor, PROJECT_TEMPLATES } from '../../core/actions';
+import type { LineColor, List, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { Options } from '../components/editors';
 import { Swatches } from '../components/pickers';
@@ -25,7 +25,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
   const [name, setName] = useState('');
   const [kind, setKind] = useState<ListKind>(initial?.kind ?? 'tasks');
   const [flavor, setFlavor] = useState<ShoppingFlavor>('grocery');
-  const [color, setColor] = useState<LineColor>(() => randomColor(hub.lists().map((l) => l.color)));
+  const [color, setColor] = useState<LineColor>(() => pickColor(hub.lists().map((l) => l.color)));
   const [visibility, setVisibility] = useState<Visibility>(initial?.visibility ?? 'shared');
   const taken = new Set(hub.lists().map((l) => l.name.toLowerCase()));
   const starts = PROJECT_TEMPLATES.filter((t) => !taken.has(t.name.toLowerCase())).slice(0, 4);
@@ -64,12 +64,11 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
                   onClick={() => {
                     setName(t.name);
                     setKind(t.kind);
-                    setColor(t.color);
                     if (t.flavor) setFlavor(t.flavor);
                     if (t.visibility) setVisibility(t.visibility);
                   }}
                 >
-                  <span className="dot dot--xs" style={lineVars(t.color)} />
+                  <Icon name="plus" />
                   {t.name}
                 </button>
               ))}
@@ -124,13 +123,6 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
       </form>
     </Sheet>
   );
-}
-
-/** A new project gets a color nobody uses yet, picked at random. */
-export function randomColor(used: LineColor[]): LineColor {
-  const free = LINE_COLORS.filter((c) => !used.includes(c));
-  const pool = free.length ? free : LINE_COLORS;
-  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 /** A small, stable tilt per project, so the cards sit like real folders. */

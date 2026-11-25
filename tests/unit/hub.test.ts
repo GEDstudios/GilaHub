@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Hub, seedHousehold } from '../../src/core/actions';
+import { Hub, pickColor, pickColors, seedHousehold } from '../../src/core/actions';
+import { LINE_COLORS } from '../../src/core/model';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
@@ -200,5 +201,24 @@ describe('Hub: backup import', () => {
     expect(fresh.item(secret)).toBeUndefined();
     expect(fresh.item(step)).toBeUndefined();
     expect(fresh.lists().some((l) => l.name === 'To do')).toBe(true);
+  });
+
+  it('new projects get a random palette color, avoiding ones in use, and can be recolored', async () => {
+    const guy = await person('guy');
+    const ids = LINE_COLORS.map((_, i) => guy.createList({ name: `P${i}`, kind: 'tasks' }));
+    const colors = ids.map((id) => guy.list(id)!.color);
+    expect(new Set(colors).size).toBe(LINE_COLORS.length);
+    for (const c of colors) expect(LINE_COLORS).toContain(c);
+    guy.updateList(ids[0], { color: 'mint' });
+    expect(guy.list(ids[0])!.color).toBe('mint');
+  });
+
+  it('picks colors at random, preferring free ones', () => {
+    expect(pickColor(['lemon', 'pink', 'lilac', 'sky', 'mint'], () => 0.99)).toBe('amber');
+    expect(LINE_COLORS).toContain(pickColor([...LINE_COLORS], () => 0.5));
+    const many = pickColors(['a', 'b', 'c', 'd']);
+    expect(new Set(Object.values(many)).size).toBe(4);
+    const seen = new Set(Array.from({ length: 60 }, () => pickColor([])));
+    expect(seen.size).toBeGreaterThan(1);
   });
 });

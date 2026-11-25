@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PROJECT_TEMPLATES } from '../../core/actions';
+import { pickColors, PROJECT_TEMPLATES } from '../../core/actions';
 import { formatInviteCode, normalizeInviteCode } from '../../core/ids';
 import { LINE_COLORS, type LineColor } from '../../core/model';
 import { claimInvite, InviteError, type InvitePayload } from '../../core/session';
@@ -13,6 +13,7 @@ export interface OnboardResult {
   color?: LineColor;
   invite?: InvitePayload;
   projects?: string[];
+  colors?: Record<string, LineColor>;
 }
 
 type Step = 'welcome' | 'name' | 'projects' | 'code';
@@ -43,6 +44,8 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
   const [name, setName] = useState('');
   const [color, setColor] = useState<LineColor>('lemon');
   const [picked, setPicked] = useState<string[]>(['groceries', 'chores', 'todo']);
+  /** Each starter gets a random color now, so what you see is what you get. */
+  const [colors] = useState(() => pickColors(STARTERS.map((t) => t.key)));
   const [code, setCode] = useState(joinParam ? formatInviteCode(normalizeInviteCode(joinParam)) : '');
   const [invite, setInvite] = useState<InvitePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +162,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             {STARTERS.map((t) => {
               const on = picked.includes(t.key);
               return (
-                <button key={t.key} type="button" className={`pick ${on ? 'is-on' : ''}`} style={lineVars(t.color)} onClick={() => toggle(t.key)} aria-pressed={on}>
+                <button key={t.key} type="button" className={`pick ${on ? 'is-on' : ''}`} style={lineVars(colors[t.key])} onClick={() => toggle(t.key)} aria-pressed={on}>
                   <span className="pick__swatch" />
                   <span className="pick__name">{t.name}</span>
                   <span className="pick__check">{on ? <Icon name="check" className="icon--sm" /> : null}</span>
@@ -168,7 +171,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             })}
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
-          <button type="button" className="btn btn--block onboard__cta" disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked })}>
+          <button type="button" className="btn btn--block onboard__cta" disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked, colors })}>
             {busy ? 'Setting up…' : picked.length ? `Start with ${picked.length} project${picked.length > 1 ? 's' : ''}` : 'Start empty'}
           </button>
         </div>

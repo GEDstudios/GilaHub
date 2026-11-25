@@ -39,16 +39,16 @@ The wordmark is **gila** *hub*: Newsreader Medium, with *hub* in italic. The app
 
 | Name | Hex | Use |
 |---|---|---|
-| Lemon | `#EAFF00` | Signature. Groceries, the icon, urgent |
-| Pink | `#FBC6F2` | Chores |
-| Lilac | `#B88EFE` | Trips, together |
-| Sky | `#24D1FE` | To do |
-| Mint | `#1BB36A` | Gifts, sync is healthy |
-| Amber | `#EFB43D` | Home shopping |
+| Lemon | `#EAFF00` | Signature. The icon, urgent |
+| Pink | `#FBC6F2` | Projects |
+| Lilac | `#B88EFE` | Projects, done together |
+| Sky | `#24D1FE` | Projects |
+| Mint | `#1BB36A` | Projects, sync is healthy |
+| Amber | `#EFB43D` | Projects |
 | Ink | `#0A0A04` | Text, primary buttons |
 | Canvas / Tile | `#FAFAF8` / `#F0F0ED` | Background and grouped rows |
 
-Text on every color is ink.
+Every new project gets one of the six at random, preferring colors no other project uses. You can change it any time. Text on every color is ink.
 
 ## Voice
 

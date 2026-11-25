@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import type { Item, LineColor, List, ListKind, LogEntry, Member, Scope, ShoppingFlavor, Visibility } from './model';
+import { LINE_COLORS, type Item, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { categorize, routeFlavor, type Flavor } from '../smart/categorize';
@@ -83,7 +83,8 @@ export class Hub {
   createList(input: {
     name: string;
     kind: ListKind;
-    color: LineColor;
+    /** Leave it out and the project gets a random color nobody is using yet. */
+    color?: LineColor;
     icon?: string;
     flavor?: ShoppingFlavor;
     visibility?: Visibility;
@@ -99,7 +100,7 @@ export class Hub {
         name: input.name.trim() || 'Untitled',
         kind: input.kind,
         flavor: input.kind === 'shopping' ? (input.flavor ?? 'grocery') : undefined,
-        color: input.color,
+        color: input.color ?? pickColor(this.lists().map((l) => l.color)),
         icon: input.icon ?? '',
         owner,
         visibility,
@@ -703,31 +704,48 @@ export interface ProjectTemplate {
   icon: string;
   kind: ListKind;
   flavor?: ShoppingFlavor;
-  color: LineColor;
   visibility?: Visibility;
   blurb: string;
 }
 
 /** Starting points offered at onboarding and in "New project". Nothing is created unless picked. */
 export const PROJECT_TEMPLATES: ProjectTemplate[] = [
-  { key: 'groceries', name: 'Groceries', icon: '', kind: 'shopping', flavor: 'grocery', color: 'lemon', blurb: 'Sorted by aisle, for both of you' },
-  { key: 'home', name: 'Home shopping', icon: '', kind: 'shopping', flavor: 'home', color: 'amber', blurb: 'Bulbs, towels, a new pan' },
-  { key: 'chores', name: 'Chores', icon: '', kind: 'chores', color: 'pink', blurb: 'Things that repeat, shared fairly' },
-  { key: 'todo', name: 'To do', icon: '', kind: 'tasks', color: 'sky', blurb: 'Everything else, with dates and steps' },
-  { key: 'trip', name: 'Next trip', icon: '', kind: 'tasks', color: 'lilac', blurb: 'Plans and packing' },
-  { key: 'gifts', name: 'Gift ideas', icon: '', kind: 'tasks', color: 'mint', visibility: 'private', blurb: 'Only you can see it' },
+  { key: 'groceries', name: 'Groceries', icon: '', kind: 'shopping', flavor: 'grocery', blurb: 'Sorted by aisle, for both of you' },
+  { key: 'home', name: 'Home shopping', icon: '', kind: 'shopping', flavor: 'home', blurb: 'Bulbs, towels, a new pan' },
+  { key: 'chores', name: 'Chores', icon: '', kind: 'chores', blurb: 'Things that repeat, shared fairly' },
+  { key: 'todo', name: 'To do', icon: '', kind: 'tasks', blurb: 'Everything else, with dates and steps' },
+  { key: 'trip', name: 'Next trip', icon: '', kind: 'tasks', blurb: 'Plans and packing' },
+  { key: 'gifts', name: 'Gift ideas', icon: '', kind: 'tasks', visibility: 'private', blurb: 'Only you can see it' },
 ];
 
-export function createFromTemplate(hub: Hub, t: ProjectTemplate): string {
-  return hub.createList({ name: t.name, kind: t.kind, flavor: t.flavor, color: t.color, icon: t.icon, visibility: t.visibility ?? 'shared' });
+export function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineColor): string {
+  return hub.createList({ name: t.name, kind: t.kind, flavor: t.flavor, color, icon: t.icon, visibility: t.visibility ?? 'shared' });
+}
+
+/** A random color from the palette, preferring ones no project uses yet. */
+export function pickColor(used: LineColor[], rand: () => number = Math.random): LineColor {
+  const free = LINE_COLORS.filter((c) => !used.includes(c));
+  const pool = free.length ? free : LINE_COLORS;
+  return pool[Math.floor(rand() * pool.length)];
+}
+
+/** Distinct random colors for several new projects at once. */
+export function pickColors(keys: string[], used: LineColor[] = [], rand: () => number = Math.random): Record<string, LineColor> {
+  const out: Record<string, LineColor> = {};
+  const taken = [...used];
+  for (const k of keys) {
+    out[k] = pickColor(taken, rand);
+    taken.push(out[k]);
+  }
+  return out;
 }
 
 /** A brand-new household: only the projects the person picked. */
-export function seedHousehold(hub: Hub, templateKeys: string[]): void {
+export function seedHousehold(hub: Hub, templateKeys: string[], colors: Record<string, LineColor> = {}): void {
   hub.store.batch(() => {
     for (const key of templateKeys) {
       const t = PROJECT_TEMPLATES.find((x) => x.key === key);
-      if (t) createFromTemplate(hub, t);
+      if (t) createFromTemplate(hub, t, colors[key]);
     }
   });
 }

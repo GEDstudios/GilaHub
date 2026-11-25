@@ -260,7 +260,7 @@ async function completeOnboarding(persistence: Persistence, r: OnboardResult): P
   if (r.kind === 'new' || r.kind === 'partner') {
     rt.store.batch(() => {
       rt.hub.upsertMember(session.memberId, { name: r.name!, color: r.color as LineColor, createdAt: Date.now(), shopAlerts: true });
-      if (r.kind === 'new') seedHousehold(rt.hub, r.projects ?? []);
+      if (r.kind === 'new') seedHousehold(rt.hub, r.projects ?? [], r.colors);
     });
   }
   return rt;

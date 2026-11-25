@@ -76,7 +76,7 @@ function AddChore({ listId, focusRef, suggest }: { listId: string | undefined; f
 
   const save = () => {
     if (!title.trim()) return;
-    const target = listId ?? hub.createList({ name: 'Chores', kind: 'chores', color: 'pink' });
+    const target = listId ?? hub.createList({ name: 'Chores', kind: 'chores' });
     hub.addItem(target, { title: title.trim(), repeat: OFTEN.find((o) => o.key === often)!.rule, assignee: who });
     toast(`Added ${title.trim()}`, { ms: 1800 });
     setTitle('');
