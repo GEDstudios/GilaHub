@@ -6,7 +6,7 @@
 
 .main {
   min-height: 100dvh;
-  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 120px);
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 120px + var(--float-h, 0px));
 }
 
 .column {
@@ -99,7 +99,6 @@
 .ccard,
 .pmark,
 .echip.is-urgent,
-.option.is-urgent,
 .on-color {
   --light: var(--light-on-color);
   --shift: 0;
@@ -385,11 +384,6 @@
 .textbtn:hover {
   color: var(--text);
   text-decoration-color: currentColor;
-}
-
-.textbtn--danger {
-  margin-top: 22px;
-  color: #b4232c;
 }
 
 .mini {
@@ -829,6 +823,19 @@ button.ccard:active {
   font-size: 32px;
   line-height: 1.08;
   letter-spacing: -0.02em;
+}
+
+/* A project's name, renamed in place, at the hero's full size */
+.hero--project .hero__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero--project .hero__titleinput {
+  display: block;
+  font-size: 38px;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
 }
 
 .hero .check {
@@ -1547,13 +1554,15 @@ html.is-dragging * {
   margin-top: 28px;
 }
 
+/* Every label over a block (sections, aisles, "Want to modify something?") reads the same:
+ * 14px, medium, gray, a hair in from the card's edge. */
 .section__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   min-height: 24px;
-  margin: 0 4px 10px;
+  margin: 0 2px 10px;
 }
 
 .section__title {
@@ -1562,7 +1571,7 @@ html.is-dragging * {
   gap: 7px;
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0;
   color: var(--text-2);
 }
@@ -1792,9 +1801,14 @@ html.is-dragging * {
   margin-top: 20px;
 }
 
+/* A project's chips, between its hero and its list */
+.column > .projfields {
+  margin-bottom: 30px;
+}
+
 .inline__prompt {
   margin: 0 0 10px 2px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--text-2);
 }
 
@@ -1851,6 +1865,20 @@ html.is-dragging * {
 .echip.is-urgent {
   background: var(--lemon);
   color: var(--ink);
+}
+
+/* A color chip (my color, a project's) shows the color itself */
+.echip__dot {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, var(--ink));
+}
+
+.echip.is-open .echip__dot {
+  box-shadow: 0 0 0 1.5px rgb(250 250 248 / 0.5);
 }
 
 /* The add row's size, beside its parsed tokens */
@@ -1996,10 +2024,6 @@ html.is-dragging * {
   color: inherit;
 }
 
-.option.is-urgent {
-  background: var(--lemon);
-}
-
 .option .avatar {
   margin-left: -6px;
 }
@@ -2073,14 +2097,10 @@ html.is-dragging * {
   color: var(--cta-text);
 }
 
-.choose {
-  margin-top: 22px;
-}
-
 .choose__label {
   display: block;
   margin: 0 0 9px 2px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
 }
@@ -2184,6 +2204,12 @@ html.is-dragging * {
 
 .optrow > .icon:last-child {
   color: var(--text);
+}
+
+/* Deletes or removes: last in its group, red */
+.optrow--danger,
+.optrow--danger .optrow__icon {
+  color: var(--danger);
 }
 
 .switch {
@@ -2304,12 +2330,31 @@ html.is-dragging * {
   animation: fade-out 210ms var(--ease) both;
 }
 
+/* Pull it (or the title) down to close; the hit area is taller than the bar. */
 .sheet__handle {
+  position: relative;
   width: 38px;
   height: 5px;
   border-radius: 3px;
   background: var(--tile-2);
   margin: 0 auto 16px;
+  touch-action: none;
+}
+
+.sheet__handle::before {
+  content: '';
+  position: absolute;
+  inset: -12px -44px -11px;
+}
+
+.sheet__title {
+  touch-action: none;
+}
+
+.sheet__panel.is-pulling {
+  animation: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .sheet__title {
@@ -2748,7 +2793,8 @@ html.is-dragging * {
 .tabbar__hint {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 12px);
+  /* Above whatever floats on the bar (the shopbar) */
+  bottom: calc(100% + 12px + var(--float-h, 0px));
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -3011,12 +3057,13 @@ html.is-dragging * {
 
 /* ============================================================ Toast */
 
+/* Above the tab bar and whatever floats on it (the shopbar sets --float-h). */
 .toasts {
   position: fixed;
   z-index: 80;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 84px);
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px + var(--float-h, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3025,10 +3072,22 @@ html.is-dragging * {
   padding: 0 16px;
 }
 
+/* No floating bar (Settings): they sit lower. */
+.no-tabbar .toasts {
+  bottom: calc(var(--safe-bottom) + 22px);
+}
+
+/* Typing near the bottom: the keyboard would hide them, so they show at the top. */
+.toasts.toasts--top {
+  top: calc(var(--safe-top) + 12px);
+  bottom: auto;
+  flex-direction: column-reverse;
+}
+
 @media (min-width: 960px) {
   .toasts {
     left: var(--sidebar-w);
-    bottom: 96px;
+    bottom: calc(28px + var(--float-h, 0px));
   }
 }
 
@@ -3046,6 +3105,10 @@ html.is-dragging * {
   font-size: 14.5px;
   box-shadow: var(--lift-2);
   animation: toast-in 280ms var(--spring) both;
+  /* Swipe sideways to send it away */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .toast:not(:has(.toast__action)) {
@@ -3054,6 +3117,17 @@ html.is-dragging * {
 
 .toast.is-leaving {
   animation: fade-out 200ms var(--ease) both;
+}
+
+/* Another of the same group folded in ("3 in the cart") */
+.toast.is-bumped {
+  animation: toast-bump 280ms var(--spring) both;
+}
+
+@keyframes toast-bump {
+  50% {
+    transform: scale(1.04);
+  }
 }
 
 .toast__action {
@@ -3144,17 +3218,18 @@ html.is-dragging * {
   outline: none;
 }
 
-.sheet__meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: var(--text-3);
-}
-
 .sheet__chips {
   margin-top: 20px;
+}
+
+/* A stepper among chips is a chip's height */
+.inline__chips > .stepper {
+  height: 38px;
+}
+
+/* The sheet's last, quiet row (e.g. Remove from list) */
+.sheet__end {
+  margin-top: 22px;
 }
 
 /* ============================================================ Project marks & icons */

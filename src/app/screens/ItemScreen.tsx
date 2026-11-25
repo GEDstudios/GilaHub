@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
@@ -15,42 +15,7 @@ import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Empty, IconButton, lineVars, Section } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
-
-function AutoTitle({ value, onSave, readOnly }: { value: string; onSave: (v: string) => void; readOnly: boolean }) {
-  const [v, setV] = useState(value);
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => setV(value), [value]);
-  useEffect(() => {
-    const el = ref.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = `${el.scrollHeight}px`;
-    }
-  }, [v]);
-  return (
-    <textarea
-      ref={ref}
-      className="hero__titleinput"
-      dir="auto"
-      rows={1}
-      value={v}
-      readOnly={readOnly}
-      aria-label="Title"
-      onChange={(e) => setV(e.target.value.replace(/\n/g, ' '))}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          (e.target as HTMLTextAreaElement).blur();
-        }
-      }}
-      onBlur={() => {
-        const t = v.trim();
-        if (t && t !== value) onSave(t);
-        else setV(value);
-      }}
-    />
-  );
-}
+import { AutoTitle } from '../ui/AutoTitle';
 
 function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; onGone: () => void }) {
   const hub = useHub();
@@ -91,6 +56,7 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
         <OptRow
           icon="trash"
           title="Delete"
+          danger
           onClick={() => {
             const undo = hub.delete(id);
             onClose();

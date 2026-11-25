@@ -3,7 +3,7 @@ import { GLYPHS, type IconName } from '../../src/app/ui/icons.gen';
 import { parseGlyph, PROJECT_ICONS } from '../../src/app/ui/ProjectMark';
 import { lightVar } from '../../src/app/ui/primitives';
 
-const CONTROLS: IconName[] = ['plus', 'check', 'x', 'chevron-right', 'chevron-left', 'chevron-down', 'chevron-up', 'arrow', 'arrow-back', 'more', 'grip', 'undo', 'refresh'];
+const CONTROLS: IconName[] = ['plus', 'check', 'x', 'chevron-right', 'chevron-left', 'chevron-down', 'chevron-up', 'arrow', 'arrow-back', 'more', 'grip', 'undo', 'refresh', 'swap'];
 
 /** Icons a project could store as "i:<name>" before Gila Duo: they must keep parsing. */
 const OLD_PROJECT_ICONS = [

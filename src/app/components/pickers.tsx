@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { LINE_COLORS, type LineColor, type List } from '../../core/model';
-import { categoryMeta, categoryOrder, type Flavor } from '../../smart/categorize';
 import { useHub } from '../context';
 import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
@@ -8,7 +7,10 @@ import { Icon, type IconName } from '../ui/Icon';
 import { Sheet } from '../ui/overlays';
 import { ListBullet, lineVars } from '../ui/primitives';
 
-/** A quiet row inside a grouped card (settings, lists to pick from). `chev`: it opens something. */
+/**
+ * A quiet row inside a grouped card (settings, lists to pick from). `chev`: it opens something.
+ * `danger`: it deletes or removes; it goes last in its group and is red.
+ */
 export function OptRow({
   icon,
   lead,
@@ -20,6 +22,7 @@ export function OptRow({
   disabled,
   trail,
   chev,
+  danger,
 }: {
   icon?: IconName;
   lead?: ReactNode;
@@ -31,6 +34,7 @@ export function OptRow({
   disabled?: boolean;
   trail?: ReactNode;
   chev?: boolean;
+  danger?: boolean;
 }) {
   const body = (
     <>
@@ -50,11 +54,11 @@ export function OptRow({
     </>
   );
   return onClick ? (
-    <button type="button" className="optrow optrow--tap" onClick={onClick} disabled={disabled} aria-pressed={on}>
+    <button type="button" className={`optrow optrow--tap ${danger ? 'optrow--danger' : ''}`} onClick={onClick} disabled={disabled} aria-pressed={on}>
       {body}
     </button>
   ) : (
-    <div className="optrow">{body}</div>
+    <div className={`optrow ${danger ? 'optrow--danger' : ''}`}>{body}</div>
   );
 }
 
@@ -89,30 +93,6 @@ export function ListPickerSheet({
             }}
           />
         ))}
-      </div>
-    </Sheet>
-  );
-}
-
-export function AisleSheet({ onClose, flavor, value, onPick }: { onClose: () => void; flavor: Flavor; value: string; onPick: (c: string) => void }) {
-  return (
-    <Sheet onClose={onClose} title="Which aisle?">
-      <div className="group">
-        {categoryOrder(flavor).map((c) => {
-          const m = categoryMeta(flavor, c);
-          return (
-            <OptRow
-              key={c}
-              title={m.en}
-              sub={m.he}
-              on={c === value}
-              onClick={() => {
-                onPick(c);
-                onClose();
-              }}
-            />
-          );
-        })}
       </div>
     </Sheet>
   );

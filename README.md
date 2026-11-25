@@ -8,7 +8,7 @@
 
 | | |
 |---|---|
-| 🛒 **Shopping** | One bar adds and searches. It never creates duplicates, sorts items into aisles automatically (Hebrew and English), parses quantities like `2 milk` and `1 ק"ג עגבניות`, and suggests what to buy again. Groceries and Home shopping can be shown together or apart. **Shopping mode** keeps the screen awake, and your partner sees "Guy is shopping. Need anything?" |
+| 🛒 **Shopping** | One bar adds and searches. It never creates duplicates, sorts items into a card per aisle automatically (Hebrew and English), keeps urgent things in their own lemon card too, parses quantities like `2 milk` and `1 ק"ג עגבניות`, and suggests what to buy again. Groceries and Home shopping can be shown together or apart. **Shopping mode** keeps the screen awake, and your partner sees "Guy is shopping. Need anything?" |
 | ✨ **Chores** | Two repeat types, in plain words: *every N days after it's done* and *on set days*. Tick a chore any time; it never piles up. Also: Away mode, taking turns, and ♡ thanks instead of scores. |
 | 📋 **Projects** | Make as many as you like (or start from templates); each gets its own color page. Steps can hold steps, as deep as you need. Drag to reorder. Quick add understands `call mom tomorrow 6pm`, `every sun`, `@hila`, `!` and `מחר`. |
 | 🔒 **Privacy** | **Ours · Mine · Only me** on every list *and* every item. "Only me" is encrypted with your personal key, so your partner's phone can't read it. |
@@ -50,7 +50,7 @@ You'll get an address like `https://gila-hub.<you>.workers.dev`.
 1. Open Gila Hub, tap **Get started**, type your name, pick a color and choose the projects you want.
 2. Tap **Bring your person in** to get a one-time code.
 3. On their phone, open the installed app → **I have a code**.
-4. To add your own laptop, use **Settings → Add another device**.
+4. To add your own laptop, tap **Add a device** under your card in Settings.
 
 ## How it stays private
 

@@ -88,3 +88,62 @@ export function settleMerge<T>(
   });
   return out;
 }
+
+// ---------------------------------------------------------------- sheets and toasts
+
+/** Speed (px/ms) of the last stretch of a gesture, from samples of [time ms, position px]. */
+export function flickSpeed(samples: ReadonlyArray<readonly [number, number]>, window = 90): number {
+  if (samples.length < 2) return 0;
+  const [tEnd, pEnd] = samples[samples.length - 1];
+  let i = samples.length - 2;
+  while (i > 0 && tEnd - samples[i - 1][0] <= window) i--;
+  const [t0, p0] = samples[i];
+  return tEnd > t0 ? (pEnd - p0) / (tEnd - t0) : 0;
+}
+
+/** Where a pulled sheet sits: it follows the finger down, and only gives a little upward. */
+export function sheetPull(dy: number): number {
+  return dy >= 0 ? dy : Math.max(dy * 0.18, -24);
+}
+
+/** Let go of a pulled sheet: close past 28% of its height (at most 140px), or on a flick down. */
+export function sheetCloses(dy: number, height: number, speed: number): boolean {
+  return dy > Math.min(140, height * 0.28) || (speed > 0.55 && dy > 0);
+}
+
+/** Let go of a swiped toast: gone past 64px, or on a flick either way. */
+export function toastSwipedAway(dx: number, speed: number): boolean {
+  return Math.abs(dx) > 64 || (Math.abs(speed) > 0.5 && Math.abs(dx) > 8);
+}
+
+/** A toast that shares a group with the next one turns into a count ("3 in the cart"). */
+export interface ToastLike {
+  message: string;
+  group?: string;
+  count: number;
+  many?: (n: number) => string;
+  action?: { label: string; run: () => void };
+}
+
+/**
+ * Fold `next` into `prev` when they share a group: the count goes up, the message says how
+ * many, and Undo undoes all of them, newest first. Returns null when they don't fold.
+ */
+export function foldToast<T extends ToastLike>(prev: T, next: Omit<ToastLike, 'count'> & Partial<T>): T | null {
+  if (!prev.group || prev.group !== next.group) return null;
+  const count = prev.count + 1;
+  const many = next.many ?? prev.many;
+  const a = prev.action;
+  const b = next.action;
+  const action =
+    a && b && a.label === b.label
+      ? {
+          label: b.label,
+          run: () => {
+            b.run();
+            a.run();
+          },
+        }
+      : (b ?? a);
+  return { ...prev, ...next, count, many, message: many ? many(count) : next.message, action } as T;
+}

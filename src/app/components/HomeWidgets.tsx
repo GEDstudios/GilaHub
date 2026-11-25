@@ -344,7 +344,7 @@ function ShopRows({ items, group, settle, showList }: { items: Item[]; group: st
     if (i.done) return;
     settle.hold(i.id);
     const undo = hub.toggle(i.id);
-    toast(`${i.title} is in the cart`, { action: { label: 'Undo', run: undo }, ms: 2600 });
+    toast(`${i.title} is in the cart`, { action: { label: 'Undo', run: undo }, ms: 2600, group: 'cart', many: (n) => `${n} in the cart` });
   };
   return (
     <ul className="rows">

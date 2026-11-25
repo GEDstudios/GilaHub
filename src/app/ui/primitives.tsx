@@ -247,6 +247,48 @@ export function Section({
   );
 }
 
+/**
+ * A Section that folds: title and count on the left, a quiet Show / Hide on the right.
+ * Done, In the cart, Paused and Archived all fold this way. `after` shows either way.
+ */
+export function Disclosure({
+  title,
+  count,
+  open: openProp,
+  onToggle,
+  children,
+  after,
+}: {
+  title: ReactNode;
+  count?: number | ReactNode;
+  /** Controlled; leave it out and the section keeps its own state (closed at first). */
+  open?: boolean;
+  onToggle?: (open: boolean) => void;
+  children: ReactNode;
+  after?: ReactNode;
+}) {
+  const [own, setOwn] = useState(false);
+  const open = openProp ?? own;
+  const toggle = () => {
+    setOwn(!open);
+    onToggle?.(!open);
+  };
+  return (
+    <Section
+      title={title}
+      count={count}
+      action={
+        <button type="button" className="textbtn" onClick={toggle} aria-expanded={open}>
+          {open ? 'Hide' : 'Show'}
+        </button>
+      }
+    >
+      {open ? children : null}
+      {after}
+    </Section>
+  );
+}
+
 export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return <button type="button" role="switch" aria-checked={on} aria-label={label} className={`switch ${on ? 'is-on' : ''}`} onClick={() => onChange(!on)} />;
 }

@@ -28,6 +28,14 @@ export function syncLabel(status: SyncStatus, wide = false): string {
   return 'Syncing…';
 }
 
+/** The sync dot's title, wherever it shows (my avatar, the sidebar's Settings). */
+export function syncTitle(status: SyncStatus): string {
+  if (status === 'synced') return 'Synced';
+  if (status === 'local') return 'On this device only';
+  if (status === 'offline') return 'Offline · saved on this device';
+  return 'Syncing';
+}
+
 /** Read aloud on the pill: what it says, and what a tap does. */
 export function syncAria(status: SyncStatus, lastSyncedAt: number, now = Date.now()): string {
   if (status === 'synced') return `Synced ${lastSyncedAt ? relativeAgo(lastSyncedAt, now) : 'just now'}. Tap to sync now.`;
@@ -57,6 +65,9 @@ export function awaySub(away: { since: DateStr; by: string | null } | null, me: 
   const who = away.by && away.by !== me && partnerName ? ` · ${partnerName} turned it on` : '';
   return `Since ${when} · chores are paused${who}`;
 }
+
+/** Turning Away mode on (from Settings or from Chores). */
+export const AWAY_ON = 'Chores paused. Have a good trip.';
 
 /** Coming back: how far the chore clocks moved. */
 export function welcomeBack(since: DateStr | null | undefined, ref: DateStr = dateOfMs(Date.now())): string {

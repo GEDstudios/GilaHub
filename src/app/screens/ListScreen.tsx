@@ -1,79 +1,31 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { List } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { Children } from '../components/Children';
-import { IconPicker } from '../components/IconPicker';
-import { Glyph } from '../ui/ProjectMark';
-import { OptRow, Swatches } from '../components/pickers';
+import { OptRow } from '../components/pickers';
+import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
+import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Empty, IconButton, lineVars, NewButton, Switch } from '../ui/primitives';
+import { Band, Empty, IconButton, lineVars, NewButton } from '../ui/primitives';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { openCount } from '../views';
 import { Chores } from './Chores';
-import { ListVisOptions } from './Lists';
 import { Shopping } from './Shopping';
 
+/** The project's "…": the rare things only. Everything else is edited in place on its page. */
 export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const list = hub.list(listId);
-  const [name, setName] = useState(list?.name ?? '');
   if (!list) return null;
-  const pinned = pinsOf(hub).includes(`l:${listId}`);
   const mineToChange = !list.owner || list.owner === hub.meId;
-  const partner = hub.partner()?.name ?? 'your partner';
-  const save = () => {
-    if (name.trim() && name.trim() !== list.name) hub.updateList(listId, { name: name.trim() });
-  };
   return (
-    <Sheet onClose={() => (save(), onClose())} title="Project">
-      <div className="ccard ccard--md ccard--edit" style={lineVars(list.color)}>
-        <span className="ccard__top">
-          <input className="ccard__input" dir="auto" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} aria-label="Name" />
-          {list.icon ? <Glyph icon={list.icon} className="ccard__glyph" /> : null}
-        </span>
-        <span className="ccard__sub">{listVisLabel(hub, list)}</span>
-      </div>
-      <div className="choose">
-        <span className="choose__label">Color</span>
-        <Swatches value={list.color} onChange={(c) => hub.updateList(listId, { color: c })} />
-      </div>
-      <div className="choose">
-        <span className="choose__label">Icon</span>
-        <IconPicker value={list.icon} color={list.color} onChange={(icon) => hub.updateList(listId, { icon })} />
-      </div>
-      {mineToChange ? (
-        <div className="choose">
-          <span className="choose__label">Who sees it</span>
-          <ListVisOptions
-            value={list.visibility}
-            onPick={(vis) => {
-              if (vis === 'private' && list.visibility !== 'private' && hub.partner()) toast(`Hidden from ${partner}`);
-              hub.setListVisibility(listId, vis);
-            }}
-          />
-        </div>
-      ) : null}
-      <div className="group" style={{ marginTop: 24 }}>
-        <OptRow
-          icon="pin"
-          title="Show in bottom bar"
-          trail={
-            <Switch
-              on={pinned}
-              label="Show in bottom bar"
-              onChange={() => {
-                const before = pinsOf(hub);
-                const now = togglePin(hub, `l:${listId}`);
-                toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
-              }}
-            />
-          }
-        />
+    <Sheet onClose={onClose} title={list.name}>
+      <div className="group">
         {list.kind === 'tasks' ? (
           <OptRow
             icon="refresh"
@@ -99,6 +51,7 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
           <OptRow
             icon="trash"
             title="Delete project"
+            danger
             onClick={() => {
               const undo = hub.deleteList(listId);
               onClose();
@@ -118,13 +71,14 @@ export function ProjectMenuButton({ listId }: { listId: string }) {
   return <IconButton icon="more" label="Project settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
 }
 
-/** A project's one color moment: its name on a card of its color. */
+/** A project's one color moment: its name on a card of its color. Tap the name to rename it. */
 export function ProjectHero({ list, sub, stat, children }: { list: List; sub: ReactNode; stat?: ReactNode; children?: ReactNode }) {
+  const hub = useHub();
   return (
-    <div className="hero" style={lineVars(list.color)}>
+    <div className="hero hero--project" style={lineVars(list.color)}>
       <div className="hero__top">
-        <h1 className="hero__title" dir="auto">
-          {list.name}
+        <h1 className="hero__title">
+          <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Project name" />
         </h1>
         {stat !== undefined ? <span className="hero__stat num">{stat}</span> : null}
       </div>
@@ -132,6 +86,33 @@ export function ProjectHero({ list, sub, stat, children }: { list: List; sub: Re
       {children}
     </div>
   );
+}
+
+const canSetListVis = (hub: ReturnType<typeof useHub>, list: List) => !list.owner || list.owner === hub.meId;
+
+/** " · Hila's" on the hero, only when the privacy chip isn't there to say whose it is. */
+export const heroVis = (hub: ReturnType<typeof useHub>, list: List): string => (canSetListVis(hub, list) ? '' : ` · ${listVisLabel(hub, list)}`);
+
+/** Under a project's hero, like an item's: Color, Icon, who sees it and In bar, changed in place. */
+export function ProjectChips({ list }: { list: List }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const pinned = pinsOf(hub).includes(`l:${list.id}`);
+  const partner = hub.partner();
+  const onChange = (p: Partial<ProjectLook>) => {
+    if (p.color) hub.updateList(list.id, { color: p.color });
+    if (p.icon !== undefined) hub.updateList(list.id, { icon: p.icon });
+    if (p.visibility) {
+      if (p.visibility === 'private' && list.visibility !== 'private' && partner) toast(`Hidden from ${partner.name}`);
+      hub.setListVisibility(list.id, p.visibility);
+    }
+    if (p.pinned !== undefined) {
+      const before = pinsOf(hub);
+      const now = togglePin(hub, `l:${list.id}`);
+      toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
+    }
+  };
+  return <ProjectFields value={{ color: list.color, icon: list.icon, visibility: list.visibility, pinned }} onChange={onChange} canVis={canSetListVis(hub, list)} />;
 }
 
 export function ListScreen({ id }: { id: string }) {
@@ -180,15 +161,11 @@ function TaskProject({ id }: { id: string }) {
         <ProjectHero
           list={list}
           stat={pct !== null && done ? `${pct}%` : undefined}
-          sub={
-            <>
-              {n ? `${n} open` : all.length ? 'All done' : 'Empty'}
-              {` · ${listVisLabel(hub, list)}`}
-            </>
-          }
+          sub={`${n ? `${n} open` : all.length ? 'All done' : 'Empty'}${heroVis(hub, list)}`}
         />
       </Band>
       <div className="column">
+        <ProjectChips list={list} />
         <Children listId={id} parentId={null} add={{ placeholder: label }} />
       </div>
     </>

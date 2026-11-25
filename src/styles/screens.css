@@ -529,14 +529,6 @@ button.projcard:active {
   color: var(--text);
 }
 
-.archived {
-  margin-top: 30px;
-}
-
-.archived .rows {
-  margin-top: 10px;
-}
-
 /* ============================================================ Item */
 
 .doneas {
@@ -638,15 +630,15 @@ button.projcard:active {
 }
 
 .aisle {
-  margin-top: 26px;
+  margin-top: 20px;
 }
 
 .aisle__head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 2px 10px;
-  font-size: 13.5px;
+  margin: 0 2px 8px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
 }
@@ -755,11 +747,18 @@ button.projcard:active {
 }
 
 .suggest__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: var(--tile);
 }
 
 .finish {
   margin-top: 12px;
+}
+
+.aisle .row {
+  min-height: 54px;
 }
 
 .shopbar {
@@ -794,13 +793,36 @@ button.projcard:active {
   box-shadow: var(--lift-2);
 }
 
+/* Light on ink: the Urgent card stays the screen's one lemon moment */
 .shopbar__inner .btn {
-  background: var(--lemon);
+  background: var(--bg);
   color: var(--ink);
 }
 
 .shopbar__text {
   font-size: 14.5px;
+}
+
+/* What just went in the cart, for a moment */
+.shopbar__text.is-note {
+  max-width: 46vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: toast-in 240ms var(--spring) both;
+}
+
+.shopbar__undo {
+  height: 36px;
+  margin: 0 -6px;
+  padding: 0 6px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgb(250 250 248 / 0.4);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
 }
 
 @media (min-width: 960px) {
@@ -991,7 +1013,7 @@ button.projcard:active {
 .onboard__error {
   margin: 12px 0 0;
   font-size: 14px;
-  color: #b4232c;
+  color: var(--danger);
 }
 
 .bigfield {
@@ -1203,59 +1225,6 @@ button.projcard:active {
   display: none;
 }
 
-/* One continuous shopping list: aisles are slim labels inside it. */
-.rows--shop {
-  margin-top: 20px;
-}
-
-.aisle-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 18px 4px;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text-3);
-  list-style: none;
-}
-
-.aisle-row:first-child {
-  padding-top: 14px;
-}
-
-.aisle-row .num {
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.row + .aisle-row {
-  margin-top: 6px;
-}
-
-.row + .aisle-row::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: rgb(10 10 4 / 0.08);
-}
-
-.aisle-row + .row::before {
-  display: none;
-}
-
-.aisle-row--urgent {
-  padding-bottom: 6px;
-}
-
-.rows--shop .row {
-  min-height: 54px;
-}
-
 .projslot {
   position: relative;
   display: flex;
@@ -1319,15 +1288,42 @@ button.projcard:active {
   }
 }
 
-/* The Urgent card: a soft lemon wash; the same items also sit in their aisle with an Urgent tag. */
-.rows--urgent,
-.rows--urgent .row {
-  background: var(--lemon-soft);
+/*
+ * The Urgent card: the screen's one lemon card, its title inside it. The same items also
+ * sit in their aisle with an Urgent tag.
+ */
+.aisle--urgent .rows {
+  background: var(--lemon);
+}
+
+.aisle--urgent .row {
+  background: transparent;
+}
+
+.aisle--urgent .row + .row::before {
+  background: rgb(10 10 4 / 0.1);
+}
+
+.aisle__cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 6px 20px;
+}
+
+.aisle__captitle {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .lift--urgent {
-  --land-bg: var(--lemon-soft);
-  background: var(--lemon-soft);
+  --land-bg: var(--lemon);
+  background: var(--lemon);
 }
 
 /* ============================================================ Settings (SETTINGS, DECISIONS #9)
@@ -1435,6 +1431,10 @@ button.projcard:active {
   flex-basis: 8px;
 }
 
+.mecard__spin {
+  animation: spin 900ms linear infinite;
+}
+
 .mecard .ccard__sub {
   max-width: 24ch;
 }
@@ -1482,19 +1482,6 @@ button.projcard:active {
 
 .mecard__tag--empty .icon {
   color: var(--text-2);
-}
-
-.echip__dot {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-  border-radius: 50%;
-  background: var(--c);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, var(--ink));
-}
-
-.echip.is-open .echip__dot {
-  box-shadow: 0 0 0 1.5px rgb(250 250 248 / 0.5);
 }
 
 /* My person's color: their initial, not a faded dot */

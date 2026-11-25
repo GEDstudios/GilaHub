@@ -7,7 +7,7 @@ import { Sortable, useSortableItem } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 import { AddRow } from './QuickAdd';
-import { Section } from '../ui/primitives';
+import { Disclosure } from '../ui/primitives';
 
 const idOf = (i: Item) => i.id;
 
@@ -49,7 +49,6 @@ export function Children({
 }) {
   const hub = useHub();
   const settle = useSettle(idOf);
-  const [showDone, setShowDone] = useState(false);
   const all = parentId ? hub.childrenOf(parentId) : hub.children(listId, null);
   const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
@@ -100,23 +99,13 @@ export function Children({
       ) : null}
       {add && !readonly ? <AddRow listId={listId} parentId={parentId} placeholder={add.placeholder} onAdded={add.onAdded} /> : null}
       {doneRows.length ? (
-        <Section
-          title="Done"
-          count={<Count n={doneRows.length} />}
-          action={
-            <button type="button" className="textbtn" onClick={() => setShowDone(!showDone)} aria-expanded={showDone}>
-              {showDone ? 'Hide' : 'Show'}
-            </button>
-          }
-        >
-          {showDone ? (
-            <ul className="rows">
-              {doneRows.map(({ row }) => (
-                <ItemRow key={row.id} item={row} />
-              ))}
-            </ul>
-          ) : null}
-        </Section>
+        <Disclosure title="Done" count={<Count n={doneRows.length} />}>
+          <ul className="rows">
+            {doneRows.map(({ row }) => (
+              <ItemRow key={row.id} item={row} />
+            ))}
+          </ul>
+        </Disclosure>
       ) : null}
     </SettleContext.Provider>
   );

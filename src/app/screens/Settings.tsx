@@ -9,7 +9,7 @@ import { setPrefs, use24h, usePrefs, weekStart } from '../prefs';
 import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { back } from '../router';
 import { disablePush, enablePush, isIOS, isStandalone, notifyMembers, pushState, swContainer, type PushState, type Runtime } from '../runtime';
-import { awaySub, backupSub, needsBackup, syncAria, syncLabel, usSentence, welcomeBack } from '../settingsCopy';
+import { AWAY_ON, awaySub, backupSub, needsBackup, syncAria, syncLabel, usSentence, welcomeBack } from '../settingsCopy';
 import { checkForUpdate, updateReady, useUpdateReady, type UpdateCheck } from '../update';
 import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
@@ -159,15 +159,37 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
     replay(card.current, 'is-wobble');
   };
 
+  // A tap on the pill: a short spin, then "Synced just now" with a tick once it is.
+  const [poked, setPoked] = useState<{ at: number; done: boolean } | null>(null);
   const syncNow = async () => {
     if (sync.status === 'local') {
       await rt.ensureSync();
       if (!rt.sync) toast('No hub yet. Everything’s safe on this device.');
       return;
     }
+    haptic('select');
+    setPoked({ at: Date.now(), done: false });
     rt.sync?.poke();
-    haptic('tick');
   };
+  useEffect(() => {
+    if (!poked) return;
+    if (poked.done) {
+      const t = setTimeout(() => setPoked(null), 1800);
+      return () => clearTimeout(t);
+    }
+    if (sync.status !== 'synced') {
+      const t = setTimeout(() => setPoked(null), 8000);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(
+      () => {
+        setPoked({ ...poked, done: true });
+        haptic('tick');
+      },
+      Math.max(0, poked.at + 700 - Date.now()),
+    );
+    return () => clearTimeout(t);
+  }, [poked, sync.status]);
 
   const here = !!partner && sync.others.some((o) => o.member === partner.id);
 
@@ -190,9 +212,9 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
               spellCheck={false}
               aria-label="Your name"
             />
-            <button type="button" className="mecard__sync" onClick={() => void syncNow()} aria-label={syncAria(sync.status, sync.lastSyncedAt)}>
-              <span className={`syncdot syncdot--${sync.status}`} />
-              {syncLabel(sync.status, wide())}
+            <button type="button" className="mecard__sync" onClick={() => void syncNow()} aria-label={syncAria(sync.status, sync.lastSyncedAt)} aria-live="polite">
+              {poked && !poked.done ? <Icon name="refresh" className="icon--xs mecard__spin" /> : <span className={`syncdot syncdot--${sync.status}`} />}
+              {poked ? (poked.done ? 'Synced just now' : 'Syncing…') : syncLabel(sync.status, wide())}
             </button>
           </span>
           <span className="ccard__sub" dir="auto">
@@ -223,7 +245,7 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
         )}
       </div>
 
-      <p className="inline__prompt">Want to change something?</p>
+      <p className="inline__prompt">Want to modify something?</p>
       <div className="inline__chips" ref={chips}>
         <button type="button" className={`echip is-set ${colors ? 'is-open' : ''}`} aria-expanded={colors} onClick={() => setColors(!colors)}>
           <span className="echip__dot" style={lineVars(me.color)} />
@@ -449,7 +471,7 @@ function Together({ partner }: { partner: Member | undefined }) {
               onChange={(on) => {
                 if (on) {
                   hub.setAway(true);
-                  toast('Chores paused. Have a good trip.');
+                  toast(AWAY_ON);
                   return;
                 }
                 const msg = welcomeBack(s?.awaySince);
@@ -563,6 +585,7 @@ function YourData() {
           icon="trash"
           title="Reset this device"
           sub="Removes Gila Hub from this device only"
+          danger
           chev
           onClick={() => openSheet((close) => <LeaveSheet onClose={close} />)}
         />

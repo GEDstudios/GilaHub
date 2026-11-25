@@ -1,20 +1,27 @@
 import { useState } from 'react';
-import { categoryMeta } from '../../smart/categorize';
+import { categoryMeta, categoryOrder } from '../../smart/categorize';
+import { aisleIcon } from '../aisles';
 import { useHub } from '../context';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { lineVars } from '../ui/primitives';
+import { ListBullet } from '../ui/primitives';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
-import { Options, VisChip } from './editors';
-import { AisleSheet } from './pickers';
+import { EChip, Options, Panel, VisChip } from './editors';
+import { OptRow } from './pickers';
 
+type Open = 'aisle' | 'list' | 'vis' | null;
+
+/**
+ * One thing to buy, edited in place: its name, then a row of chips (how many, which aisle,
+ * urgent, which list, who sees it) whose panels open right below, and a note.
+ */
 export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const hub = useHub();
-  const { openSheet, toast } = useOverlays();
+  const { toast } = useOverlays();
   const item = hub.item(id);
   const [title, setTitle] = useState(item?.title ?? '');
   const [notes, setNotes] = useState(item?.notes ?? '');
-  const [visOpen, setVisOpen] = useState(false);
+  const [open, setOpen] = useState<Open>(null);
   if (!item) return null;
   const list = hub.list(item.listId);
   const flavor = hub.flavorOf(list);
@@ -25,14 +32,19 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
   const partner = hub.partner();
   const lists = hub.shoppingLists();
   const qtyNum = item.qty && /^\d+$/.test(item.qty) ? +item.qty : null;
+  const toggle = (k: Exclude<Open, null>) => setOpen(open === k ? null : k);
+  const icon = aisleIcon(flavor, category);
 
   const commitTitle = () => {
     const t = title.trim();
     if (t && t !== item.title) hub.updateItem(id, { title: t });
   };
+  const commitNotes = () => {
+    if (notes !== (item.notes ?? '')) hub.updateItem(id, { notes });
+  };
 
   return (
-    <Sheet onClose={() => (commitTitle(), onClose())} label={item.title}>
+    <Sheet onClose={() => (commitTitle(), commitNotes(), onClose())} label={item.title}>
       <input
         className="sheet__titleinput"
         value={title}
@@ -42,12 +54,8 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
         readOnly={!editable}
         aria-label="Name"
       />
-      <p className="sheet__meta">
-        <span className="dot dot--sm" style={lineVars(list?.color)} />
-        {list?.name} · {meta.en}
-      </p>
 
-      <div className="options sheet__chips">
+      <div className="inline__chips sheet__chips">
         <span className="stepper">
           <button type="button" aria-label="Less" disabled={!editable || !qtyNum || qtyNum <= 1} onClick={() => hub.updateItem(id, { qty: qtyNum && qtyNum > 2 ? String(qtyNum - 1) : null })}>
             −
@@ -57,43 +65,83 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
             +
           </button>
         </span>
-        <button type="button" className={`option ${item.urgent ? 'is-urgent' : ''}`} onClick={() => editable && hub.updateItem(id, { urgent: !item.urgent })} aria-pressed={!!item.urgent}>
-          <Icon name="urgent" className="icon--sm" /> Urgent
-        </button>
+
+        <EChip
+          label={meta.en}
+          icon={icon}
+          lead={icon ? undefined : <span aria-hidden="true">{meta.e}</span>}
+          set
+          open={open === 'aisle'}
+          onToggle={() => toggle('aisle')}
+          disabled={!editable}
+        />
+        {open === 'aisle' ? (
+          <Panel>
+            <Options
+              value={category}
+              onPick={(c) => {
+                hub.setCategory(id, c);
+                setOpen(null);
+              }}
+              options={categoryOrder(flavor).map((c) => {
+                const m = categoryMeta(flavor, c);
+                const i = aisleIcon(flavor, c);
+                return { value: c, label: i ? m.en : `${m.e} ${m.en}`, icon: i };
+              })}
+            />
+          </Panel>
+        ) : null}
+
         <button
           type="button"
-          className="option"
+          className={`echip ${item.urgent ? 'is-urgent' : ''}`}
+          onClick={() => hub.updateItem(id, { urgent: !item.urgent })}
+          aria-pressed={!!item.urgent}
           disabled={!editable}
-          onClick={() => openSheet((close) => <AisleSheet onClose={close} flavor={flavor} value={category} onPick={(c) => hub.setCategory(id, c)} />)}
         >
-          {meta.en} <Icon name="chevron-down" className="icon--sm" />
+          <Icon name="urgent" className="icon--sm" />
+          <span>Urgent</span>
         </button>
+
+        {lists.length > 1 && editable ? (
+          <>
+            <EChip label={list?.name ?? 'List'} lead={<ListBullet list={list} size="xs" />} set open={open === 'list'} onToggle={() => toggle('list')} />
+            {open === 'list' ? (
+              <Panel>
+                <Options
+                  value={item.listId}
+                  onPick={(lid) => {
+                    hub.move(id, { listId: lid });
+                    setOpen(null);
+                  }}
+                  options={lists.map((l) => ({
+                    value: l.id,
+                    label: (
+                      <>
+                        <ListBullet list={l} size="xs" />
+                        <span dir="auto">{l.name}</span>
+                      </>
+                    ),
+                  }))}
+                />
+              </Panel>
+            ) : null}
+          </>
+        ) : null}
+
+        {editable && hub.canSetPrivacy(item) ? (
+          <VisChip
+            value={vis}
+            allowed={allowedVis(hub, list)}
+            open={open === 'vis'}
+            onToggle={() => toggle('vis')}
+            onChange={(nv) => {
+              if (nv === 'private' && vis !== 'private' && partner) toast(`Hidden from ${partner.name}`);
+              setItemVis(hub, id, nv);
+            }}
+          />
+        ) : null}
       </div>
-
-      {lists.length > 1 && editable ? (
-        <div className="choose">
-          <span className="choose__label">List</span>
-          <Options value={item.listId} onPick={(lid) => hub.move(id, { listId: lid })} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
-        </div>
-      ) : null}
-
-      {editable && hub.canSetPrivacy(item) ? (
-        <div className="choose">
-          <span className="choose__label">Who sees it</span>
-          <div className="inline__chips">
-            <VisChip
-              value={vis}
-              allowed={allowedVis(hub, list)}
-              open={visOpen}
-              onToggle={() => setVisOpen(!visOpen)}
-              onChange={(nv) => {
-                if (nv === 'private' && vis !== 'private' && partner) toast(`Hidden from ${partner.name}`);
-                setItemVis(hub, id, nv);
-              }}
-            />
-          </div>
-        </div>
-      ) : null}
 
       <textarea
         className="notes"
@@ -103,22 +151,23 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
         value={notes}
         readOnly={!editable}
         onChange={(e) => setNotes(e.target.value)}
-        onBlur={() => notes !== (item.notes ?? '') && hub.updateItem(id, { notes })}
+        onBlur={commitNotes}
         aria-label="Note"
       />
 
       {editable ? (
-        <button
-          type="button"
-          className="textbtn textbtn--danger"
-          onClick={() => {
-            const undo = hub.delete(id);
-            onClose();
-            toast(`Removed ${item.title}`, { action: { label: 'Undo', run: undo } });
-          }}
-        >
-          <Icon name="trash" className="icon--sm" /> Remove from list
-        </button>
+        <div className="group sheet__end">
+          <OptRow
+            icon="trash"
+            title="Remove from list"
+            danger
+            onClick={() => {
+              const undo = hub.delete(id);
+              onClose();
+              toast(`Removed ${item.title}`, { action: { label: 'Undo', run: undo } });
+            }}
+          />
+        </div>
       ) : null}
     </Sheet>
   );

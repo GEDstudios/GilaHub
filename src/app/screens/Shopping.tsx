@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react';
 import type { Item, List } from '../../core/model';
 import { suggestFromCatalog } from '../../smart/categorize';
 import { fold, itemKey, parseQuantity } from '../../smart/normalize';
@@ -15,19 +15,48 @@ import { notifyMembers } from '../runtime';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton, Section, Seg } from '../ui/primitives';
+import { Avatar, Band, Check, Disclosure, Empty, IconButton, ListBullet, NewButton, Seg } from '../ui/primitives';
 import { UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
+import { useSettle, type Settle } from '../ui/useSettle';
 import { visTagFor } from '../privacy';
 import { back } from '../router';
 import { useAddAction } from '../addAction';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
-import { ProjectHero, ProjectMenuButton } from './ListScreen';
+import { heroVis, ProjectChips, ProjectHero, ProjectMenuButton } from './ListScreen';
 import { NewProjectSheet } from './Lists';
 import { SyncBadge } from '../components/SyncBadge';
 import { shoppingView } from '../views';
+import { aisleIcon } from '../aisles';
 
 type Row = Item & { emoji: string };
+
+const cartMany = (n: number) => `${n} in the cart`;
+const itemId = (i: Item) => i.id;
+
+/** While the shopbar floats over the page, the page and the toasts make room for it. */
+function useFloatHeight(ref: RefObject<HTMLDivElement | null>, on: boolean) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!on || !el) return;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty('--float-h', `${el.offsetHeight + 12}px`);
+    set();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(set);
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      root.style.removeProperty('--float-h');
+    };
+  }, [ref, on]);
+}
+
+/** In the store the shopbar says what just went in the cart, with Undo, instead of a toast. */
+interface CartNote {
+  text: string;
+  n: number;
+  undo: () => void;
+}
 
 function useWakeLock(on: boolean) {
   useEffect(() => {
@@ -68,6 +97,9 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const [query, setQuery] = useState('');
   const [flash, setFlash] = useState<Set<string>>(new Set());
   const [cartOpen, setCartOpen] = useState(false);
+  const [note, setNote] = useState<CartNote | null>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  const settle = useSettle<Item>(itemId);
   /** In "Both", the user can redirect the next add to the other list. */
   const [override, setOverride] = useState<string | null>(null);
   const partnerShopping = usePartnerShopping();
@@ -77,6 +109,16 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const seen = useRef<Set<string> | null>(null);
 
   useWakeLock(mode);
+  // In the store the cart starts open; outside it, folded.
+  useEffect(() => {
+    setCartOpen(mode);
+    setNote(null);
+  }, [mode]);
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(null), 2600);
+    return () => clearTimeout(t);
+  }, [note]);
 
   // Presence: tell the other phone we're in the store (and, once in a while, push them).
   useEffect(() => {
@@ -143,8 +185,26 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const pause = <IconButton icon="pause" label="Pause shopping" onClick={() => setMode(false)} />;
 
   const tick = (i: Item) => {
+    // The row strikes and folds where it is, then shows up in the cart.
+    if (!i.done) settle.hold(i.id);
     const undo = hub.toggle(i.id);
-    if (!i.done) toast(`${i.title} is in the cart`, { action: { label: 'Undo', run: undo }, ms: 2600 });
+    if (i.done) return;
+    if (mode) {
+      setNote((prev) =>
+        prev
+          ? {
+              text: `${prev.n + 1} in the cart`,
+              n: prev.n + 1,
+              undo: () => {
+                undo();
+                prev.undo();
+              },
+            }
+          : { text: `${i.title} is in the cart`, n: 1, undo },
+      );
+      return;
+    }
+    toast(`${i.title} is in the cart`, { action: { label: 'Undo', run: undo }, ms: 2600, group: 'cart', many: cartMany });
   };
 
   const openItem = (i: Item) => openSheet((close) => <ShopItemSheet id={i.id} onClose={close} />);
@@ -176,6 +236,10 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const many = filter === 'all' && lists.length > 1;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
   const shopper = partnerShopping ? hub.member(partnerShopping.member) : undefined;
+  const floating = !searching && (v.openCount > 0 || mode);
+  // Just ticked: it joins the cart once it has settled in its aisle.
+  const cart = settle.view('cart', v.inCart);
+  useFloatHeight(bar, floating);
 
   return (
     <div className={mode ? 'shopmode' : undefined}>
@@ -190,7 +254,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           }
           mini={scoped.name}
         >
-          <ProjectHero list={scoped} sub={mode ? `Shopping now · ${sub}` : sub} />
+          <ProjectHero list={scoped} sub={mode ? `Shopping now · ${sub}` : `${sub}${heroVis(hub, scoped)}`} />
         </Band>
       ) : (
         <Band
@@ -206,6 +270,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
         />
       )}
       <div className="column">
+        {scoped && !mode ? <ProjectChips list={scoped} /> : null}
         {!allLists.length ? (
           <Empty title="No shopping lists yet">
             <div className="tokens tokens--center">
@@ -298,53 +363,66 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               <ShopList
                 groups={[
                   ...(v.urgent.length ? [{ key: 'urgent', label: null, items: v.urgent }] : []),
-                  ...v.groups.map((g) => ({ key: g.key, label: g.label, items: g.items, icon: g.flavor === 'grocery' ? AISLE_ICON[g.category] : undefined, emoji: g.emoji })),
+                  ...v.groups.map((g) => ({ key: g.key, label: g.label, items: g.items, icon: aisleIcon(g.flavor, g.category), emoji: g.emoji })),
                 ]}
                 onTick={tick}
                 onOpen={openItem}
                 flash={flash}
                 showList={many}
                 draggable={!mode}
+                settle={settle}
               />
             ) : null}
 
-            {v.inCart.length ? (
-              <Section
+            {cart.length ? (
+              <Disclosure
                 title={
                   <>
                     <Icon name="cart" className="icon--sm" /> In the cart
                   </>
                 }
-                count={v.inCart.length}
-                action={
-                  <button type="button" className="textbtn" onClick={() => setCartOpen(!cartOpen)}>
-                    {cartOpen || mode ? 'Hide' : 'Show'}
-                  </button>
+                count={cart.length}
+                open={cartOpen}
+                onToggle={setCartOpen}
+                // One Finish: the shopbar's in the store, this one otherwise.
+                after={
+                  mode ? null : (
+                    <button type="button" className="btn btn--quiet btn--sm finish" onClick={finish}>
+                      <Icon name="check" className="icon--sm" /> Finish trip
+                    </button>
+                  )
                 }
               >
-                {cartOpen || mode ? (
-                  <ul className="rows">
-                    {v.inCart.map((i) => (
-                      <ShopRow key={i.id} item={i} onTick={tick} onOpen={openItem} showList={many} />
-                    ))}
-                  </ul>
-                ) : null}
-                <button type="button" className="textbtn finish" onClick={finish}>
-                  <Icon name="check" className="icon--sm" /> Finish trip
-                </button>
-              </Section>
+                <ul className="rows">
+                  {cart.map(({ row: i }) => (
+                    <ShopRow key={i.id} item={i} onTick={tick} onOpen={openItem} showList={many} />
+                  ))}
+                </ul>
+              </Disclosure>
             ) : null}
           </>
         )}
       </div>
 
-      {!searching && (v.openCount > 0 || mode) ? (
-        <div className="shopbar">
+      {floating ? (
+        <div className="shopbar" ref={bar}>
           {mode ? (
             <div className="shopbar__inner">
-              <span className="shopbar__text num">
-                {v.openCount} left · {v.inCart.length} in the cart
+              <span className={`shopbar__text num ${note ? 'is-note' : ''}`} key={note?.n ?? 0} dir="auto" aria-live="polite">
+                {note ? note.text : `${v.openCount} left · ${v.inCart.length} in the cart`}
               </span>
+              {note ? (
+                <button
+                  type="button"
+                  className="shopbar__undo"
+                  onClick={() => {
+                    note.undo();
+                    setNote(null);
+                  }}
+                >
+                  Undo
+                </button>
+              ) : null}
               <button type="button" className="btn btn--sm" onClick={finish}>
                 Finish
               </button>
@@ -370,24 +448,6 @@ interface ShopGroup {
   emoji?: string;
 }
 
-/** Grocery aisles drawn as icons in their card's header. */
-const AISLE_ICON: Partial<Record<string, IconName>> = {
-  produce: 'carrot',
-  bakery: 'bread',
-  dairy: 'cheese',
-  meat: 'fish',
-  deli: 'bowl',
-  pantry: 'jar',
-  snacks: 'cookie',
-  frozen: 'snowflake',
-  drinks: 'drink',
-  household: 'spray',
-  personal: 'soap',
-  baby: 'baby',
-  pets: 'paw',
-  other: 'cart',
-};
-
 function SortableShopRow(props: Parameters<typeof ShopRow>[0]) {
   const s = useSortableItem(props.item.id);
   return <ShopRow {...props} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
@@ -395,12 +455,13 @@ function SortableShopRow(props: Parameters<typeof ShopRow>[0]) {
 
 /** A card per aisle (and the Urgent card on top). Hold a row to reorder it within its aisle. */
 function ShopList({
-  groups,
+  groups: live,
   onTick,
   onOpen,
   flash,
   showList,
   draggable,
+  settle,
 }: {
   groups: ShopGroup[];
   onTick: (i: Item) => void;
@@ -408,8 +469,16 @@ function ShopList({
   flash: Set<string>;
   showList: boolean;
   draggable: boolean;
+  settle: Settle<Item>;
 }) {
   const hub = useHub();
+  // An aisle whose last item was just ticked stays until that row has settled.
+  const last = useRef<ShopGroup[]>([]);
+  const groups = [...live];
+  last.current.forEach((g, at) => {
+    if (!groups.some((x) => x.key === g.key) && g.items.some((i) => settle.held.has(i.id))) groups.splice(Math.min(at, groups.length), 0, { ...g, items: [] });
+  });
+  last.current = live;
   /** Order within one aisle; an item only moves among rows of its own list. */
   const onMove = (next: string[], id: string) => {
     const at = next.indexOf(id);
@@ -419,11 +488,12 @@ function ShopList({
   };
   return (
     <>
-      {groups.map((g) => (
-        <section key={g.key} className="aisle" aria-label={g.label ?? 'Urgent'} data-sort-bounds>
-          <h2 className="aisle__head">
+      {groups.map((g) => {
+        const shown = settle.view(g.key, g.items);
+        return shown.length ? (
+          <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--urgent'}`} aria-label={g.label ?? 'Urgent'} data-sort-bounds>
             {g.label ? (
-              <>
+              <h2 className="aisle__head">
                 {g.icon ? (
                   <Icon name={g.icon} />
                 ) : g.emoji ? (
@@ -433,30 +503,36 @@ function ShopList({
                 ) : null}
                 {g.label}
                 <span className="num">{g.items.length}</span>
-              </>
-            ) : (
-              <UrgentTag />
-            )}
-          </h2>
-          <Sortable
-            ids={g.items.map((i) => i.id)}
-            onMove={onMove}
-            bounds="refuse"
-            disabled={!draggable}
-            liftClass={g.label ? undefined : 'lift--urgent'}
-            label={(id) => hub.item(id)?.title ?? ''}
-            renderOverlay={(id) => {
-              const item = g.items.find((i) => i.id === id);
-              return item ? (
-                <ul className={`rows ${g.label ? '' : 'rows--urgent'}`}>
-                  <ShopRow item={item} onTick={onTick} onOpen={onOpen} showList={showList} inUrgent={!g.label} />
-                </ul>
+              </h2>
+            ) : null}
+            <Sortable
+              ids={g.items.map((i) => i.id)}
+              onMove={onMove}
+              bounds="refuse"
+              disabled={!draggable}
+              liftClass={g.label ? undefined : 'lift--urgent'}
+              label={(id) => hub.item(id)?.title ?? ''}
+              renderOverlay={(id) => {
+                const item = g.items.find((i) => i.id === id);
+                return item ? (
+                  <ul className="rows">
+                    <ShopRow item={item} onTick={onTick} onOpen={onOpen} showList={showList} inUrgent={!g.label} />
+                  </ul>
               ) : null;
             }}
           >
-            <ul className={`rows ${g.label ? '' : 'rows--urgent'}`}>
-              {g.items.map((i) =>
-                draggable ? (
+            <ul className="rows">
+              {/* The Urgent card is the screen's one lemon card: its title sits inside it. */}
+              {g.label ? null : (
+                <li className="aisle__cap">
+                  <h2 className="aisle__captitle">Urgent</h2>
+                  <span className="ccard__badge num">{g.items.length}</span>
+                </li>
+              )}
+              {shown.map(({ row: i, settling }) =>
+                settling ? (
+                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={showList} inUrgent={!g.label} settling />
+                ) : draggable ? (
                   <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
                 ) : (
                   <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
@@ -465,7 +541,8 @@ function ShopList({
             </ul>
           </Sortable>
         </section>
-      ))}
+        ) : null;
+      })}
     </>
   );
 }
@@ -603,12 +680,11 @@ function SearchResults({
               </span>
             </button>
             {other ? (
-              <button type="button" className="suggest__tag suggest__switch" onClick={() => onSwitch(other.id)} title={`Add to ${other.name} instead`}>
-                ⇄ {other.name}
+              <button type="button" className="suggest__tag suggest__switch" onClick={() => onSwitch(other.id)} aria-label={`Add to ${other.name} instead`}>
+                <Icon name="swap" className="icon--xs" />
+                <span dir="auto">{other.name}</span>
               </button>
-            ) : (
-              null
-            )}
+            ) : null}
           </div>
         ) : null}
         {history.map((h) => (

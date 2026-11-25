@@ -29,10 +29,12 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 | Component | Spec |
 |---|---|
 | **Header** | Quiet top row (a 42 px gray circle for back and actions, or your avatar), then a serif title. On scroll, a frosted bar keeps the name. Every tab's title sits at the same height. The right slot holds at most one gray button and then **New**, the black "+" (always rightmost). |
-| **Color card** | Radius 24–30, the project color, serif title top-left, a sentence bottom-left, an optional black badge top-right. |
+| **Color card** | Radius 24–30, the project color, serif title top-left, a sentence bottom-left, an optional black badge top-right. On an item's or a project's page it's the hero, and its title is edited in place (tap it, type, Enter). |
+| **Project page** | The hero, then "Want to modify something?" and *Color · Icon · Ours · In bar* chips, each opening its panel in place ([`ProjectFields`](../src/app/components/ProjectFields.tsx), the same chips as New project, which adds *Kind*). *In bar* is a toggle: lit in my color when the project is in the bottom bar. The "…" keeps only the rare things: Uncheck all, Archive, and Delete project in red, last. |
 | **Rows** | One gray tile (radius 20) per group, rows 58 px with hairline dividers. A thin 24 px check ring; done fills with the project color. Done rows are struck through in gray. |
 | **Add row** | One component (`AddRow`) in every list: a dashed plus, the input, and a black arrow once there's text. It sits after the open rows and before Done (Shopping pins it at the top, where it also filters). On focus it lifts into a white card and opens a row of small chips: who sees it always, plus *Every week* and *Who* for chores. What it understood from your words shows as tokens. |
-| **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open (its icon lit in my color). Urgent is lemon, with a lightning icon. A dashed ghost chip is an invitation, not a setting ("Ask your person" while on your own). |
+| **Labels** | Everything that labels a block reads the same: section titles, aisle names, "Want to modify something?" (the one prompt above chips, on items, projects, the composer and my card in Settings). 14 px, medium, `text-2`, 2 px in from the card's edge, a count in `text-3` beside it. |
+| **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open (its icon lit in my color). Urgent is lemon, with a lightning icon. A toggle chip with no panel (*In bar*) lights its icon when on and says so with `aria-pressed`. A dashed ghost chip is an invitation, not a setting ("Ask your person" while on your own). A quantity stepper sits among chips at their height. |
 | **Panel** | Opens under the whole chip row, full width: white, radius 22, soft shadow, with 36 px option pills (the chosen one is black) and at most one quiet line of explanation. |
 | **Row tags** | 22 px word pills in a row's meta (`ui/tags.tsx`): lemon **Urgent** with its lightning (in the trail); **whose** only when it differs from the project: an ink "Only me" with a lock, "Mine" in my soft color, "Hila's" in hers, "Ours" in gray inside a Mine project; **who asked whom** in the other person's soft color with Tasky's cursor ("Hila asked", "Asked Hila", "Hila did it · OK?"). The row's avatar is the doer, never the owner. |
 | **Strips** | Overlapping bands (−16 px) with a big serif number and a small label. The one colour moment on Today. |
@@ -42,7 +44,9 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 | **Arranger** | One editor for "what goes where" ([`Arranger`](../src/app/components/Arranger.tsx)): Edit Today and the bottom bar in Settings. Locked anchors are outlined with a small lock and shake when tapped (Summary "Always first"; Today "Always first", Projects "Always last"); slots are 66 px gray tiles: mark, title, one-line live preview, × to hide, a grip to drag (or hold the slot on touch). Then "Add to …" with tokens to bring things back, each led by its mark with a quiet + after it (one can open a white panel of choices), and a quiet "Back to the default" once something changed. Hidden slots fold away; returning ones flash lemon. |
 | **Settings** | One calm page ([`Settings.tsx`](../src/app/screens/Settings.tsx)) where everything changes in place: my color card (the name is the serif title, edited in place; a black sync pill; one line about us; my person's name tag on its edge, or a white "Your person?" tag), then *Color · Name · Add a device* chips. The bottom bar on a gray stage, the real bar's markup ([`TabBarView`](../src/app/components/TabBarView.tsx)) following a drag as it happens, above its arranger; past 5 tabs, "Crowded?" plays the hold-and-slide in the preview. Then the Today page arranger and grouped rows: one plain line under each, a chevron on rows that open something, a separate group for Reset. The update pill says what it found and never reloads by itself. |
 | **Tab bar** | A floating white bar ([`TabBarView`](../src/app/components/TabBarView.tsx)): Today, your pins, Projects, no central button and no limit. A soft gray pill marks the active tab. Up to 5 tabs show icon and label; 6–7 show icons only and the active one rises to show its name; 8 or more dock: Today and Projects stay put around a middle that scrolls sideways, fades at its edges and keeps the active tab centered. Hidden on Settings, which previews it. On desktop, a light sidebar with a black "New" pill lists the same tabs. |
-| **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", project settings and pickers. Never a sheet on a sheet: a choice inside a sheet opens as an inline panel. |
+| **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", the "…" menus and a shopping item. Never a sheet on a sheet: a choice inside a sheet opens as an inline panel (the shopping item's *Aisle* and *List* chips too). Pull one down by its handle or title, or by its body once it's scrolled to the top: the scrim fades with the finger, a pull past 28% of its height (140 px at most) or a flick closes it, anything less springs back. Pulled up, it gives 24 px at most. |
+| **Toasts** | A black pill above the tab bar with at most one lemon action (Undo). At most two show; the older steps aside. Toasts of one kind fold into one while it shows ("3 done", "3 in the cart") and its Undo undoes them all, newest first. Swipe one sideways to send it away; a finger on it keeps it. They sit above anything floating on the bar (the shopbar sets `--float-h`), lower where there's no bar (Settings), and at the top while you type in a field near the bottom. In the store the shopbar itself says what went in the cart, with Undo, instead of a toast. |
+| **Shopping** | A card per aisle, the aisle's glyph and name above it. Urgent things get the screen's one lemon card, its serif title and count inside it, and keep a lemon *Urgent* tag in their own aisle. A ticked row strikes and folds in its aisle, then joins **In the cart**. The floating shopbar is *Start shopping*, or in the store "n left · n in the cart" with the one **Finish**; outside the store, Finish trip is a quiet button under the cart. |
 
 ### Adding
 
@@ -71,7 +75,10 @@ One job per family.
 | `.urgent` `.vtag` `.rtag` (+ project `.tag`) | Read-only status | 22 (project tag 30) | Urgent, Mine, Hila asked |
 
 - Nothing but New is a black circle. Dashed borders mean "create or bring in", and nothing else: the add row's plus, the New project tile, the invite card and the ghost Who chip.
-- **Disclosure:** a section title with its count, and "Show" / "Hide" on the right (From earlier, In the cart, Done, Paused).
+- **Disclosure** (`Disclosure` in [`primitives.tsx`](../src/app/ui/primitives.tsx)): a section title with its count, and "Show" / "Hide" on the right. In the cart, Done, Paused and Archived all fold this way. ("n from earlier" on Today is a quiet line instead, because it lives inside the Today block.)
+- **"…" menus** hold only rare or destructive things. Whatever deletes or removes goes last and is red (`OptRow danger`, `--danger`): Delete, Delete project, Remove from list, Reset this device.
+- **One Finish.** The shopbar's in the store; a quiet button under the cart otherwise.
+- **Same words for the same thing.** Away mode says "Chores paused. Have a good trip." from Chores and from Settings; the sync dot has one set of titles wherever it shows.
 
 ## Icons — Gila Duo
 
@@ -104,8 +111,30 @@ Every icon is an **ink line** and a solid **light** behind it, drawn from Phosph
 - **Drag to reorder** is one component, [`ui/Sortable.tsx`](../src/app/ui/Sortable.tsx), for rows, steps, aisles, folders and the Settings arrangers. A long-press (220 ms) lifts a row on a phone; a grip starts after 3 px. The lifted copy floats above everything at 1.035×, leans 1.5° and tilts up to ±3° with the finger's speed, with a deep shadow (`--lift-3`). Folders keep their own tilt and add 3°. The spot it left is a dashed slot; neighbours slide over 260 ms with a little overshoot, and the drop settles in 320 ms. A shopping row stays in its aisle: pull it out and the aisle shakes no.
 - **Ticking** ([`ui/useSettle.ts`](../src/app/ui/useSettle.ts)): the ring pops, the tick draws itself, a line strikes the title, and the row folds away after about half a second. The data changes at once; only the row waits.
 - **Hold and slide** ([`TabBar.tsx`](../src/app/components/TabBar.tsx)): hold the bar still for 240 ms and slide. The tab under the finger lights up, swells with its neighbours (`--d`) and is named in a black bubble; letting go goes there, lifting the finger 72 px above the bar cancels. Near a dock edge the middle scrolls by itself. A tap is still instant and a quick swipe still scrolls the dock. The first time the bar holds 6 or more, it says so once: "Hold and slide to pick".
+- **Sheets and toasts** follow the finger ([`ui/overlays.tsx`](../src/app/ui/overlays.tsx), the math in [`ui/motion.ts`](../src/app/ui/motion.ts)): a sheet pulled short springs back over 420 ms with `cubic-bezier(.34,1.4,.64,1)`; a toast swiped past 64 px (or flicked) flies off. A folded toast pops once more.
 - **Haptics** ([`ui/haptics.ts`](../src/app/ui/haptics.ts)): `haptic('select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn')`, off with the device's Vibration switch in Settings (phones and tablets only).
 - With reduced motion there is no tilt, scale or overshoot; the shadow and the slot stay. The bar's pill doesn't slide and nothing swells while scrubbing.
+
+### Drag recipe
+
+To make a new list reorderable, wrap it in `Sortable` and let each item call `useSortableItem` ([`ui/Sortable.tsx`](../src/app/ui/Sortable.tsx); `Children.tsx` is the simplest example):
+
+```tsx
+<Sortable ids={rows.map((r) => r.id)} onMove={(next, id) => save(next, id)} label={(id) => titleOf(id)} renderOverlay={(id) => <ul className="rows"><Row id={id} /></ul>}>
+  <ul className="rows">{rows.map((r) => <SortableRow key={r.id} row={r} />)}</ul>
+</Sortable>
+
+function SortableRow({ row }) {
+  const s = useSortableItem(row.id);
+  return <li ref={s.ref} style={s.style} className={`row ${s.className}`} {...s.props}>…</li>;
+}
+```
+
+- `renderOverlay` draws the lifted copy; it floats in a portal, so a card's rounded clip never cuts it.
+- Rows: the default `layout="rows"`; cards in a grid: `layout="grid"` with `lean={(id) => ({ rest, land })}` for their own tilt.
+- `bounds="refuse"` keeps a row in its section (`data-sort-bounds`) and shakes it no; `"soft"` rubber-bands at the list's edges.
+- Editors with a handle pass `grips` and put `<button data-grip ref={s.gripRef} {...s.gripProps} aria-label="Move …">` on it; the keyboard then moves a row from its grip (Space, arrows, Space).
+- Save in `onMove` only: it runs once, on drop. `onPreview(draft | null)` follows the drag live, for a preview like the Settings bar.
 
 ## Accessibility
 

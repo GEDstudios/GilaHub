@@ -22,7 +22,7 @@ const MAP = {
   'chevron-down': ['caret-down', 'line'], 'chevron-up': ['caret-up', 'line'],
   arrow: ['arrow-right', 'line'], 'arrow-back': ['arrow-left', 'line'],
   more: ['dots-three', 'line'], grip: ['dots-six-vertical', 'line'],
-  undo: ['arrow-u-up-left', 'line'], refresh: ['arrow-clockwise', 'line'],
+  undo: ['arrow-u-up-left', 'line'], refresh: ['arrow-clockwise', 'line'], swap: ['arrows-left-right', 'line'],
   // interface
   search: ['magnifying-glass', 'duo'], gear: ['gear-six', 'duo'], bell: ['bell', 'duo'],
   repeat: ['repeat', 'duo'], calendar: ['calendar-blank', 'duo'], clock: ['clock', 'duo'],

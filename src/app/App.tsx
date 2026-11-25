@@ -149,7 +149,7 @@ function Duties() {
   useEffect(() => {
     const reminders = new ReminderSync(rt);
     const local = new LocalReminders(hub, (r) => {
-      toast(`⏰ ${r.note.title}`);
+      toast(`Reminder: ${r.note.title}`);
       // With a relay, push already delivers the system notification.
       if (!rt.relay && 'Notification' in window && Notification.permission === 'granted') {
         void swContainer()?.getRegistration().then((reg) => reg?.showNotification(r.note.title, { body: r.note.body, tag: r.note.tag, data: { url: r.note.url } }));
@@ -227,13 +227,17 @@ function Duties() {
 function Shell() {
   // Settings arranges the bar and shows its own preview, so the floating one steps aside there.
   const route = useRoute();
+  const bar = route.name !== 'settings';
+  useEffect(() => {
+    document.documentElement.classList.toggle('no-tabbar', !bar);
+  }, [bar]);
   return (
     <div className="app">
       <Sidebar />
       <main className="main">
         <Screen />
       </main>
-      {route.name === 'settings' ? null : <TabBar />}
+      {bar ? <TabBar /> : null}
       <Duties />
     </div>
   );

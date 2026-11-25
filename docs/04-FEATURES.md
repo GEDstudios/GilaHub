@@ -6,14 +6,15 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 - **●** Onboarding is two light steps: your name and color, then the projects you want (four starters, or start empty). No account, no email, no tour.
 - **●** A new item is a circle and a title. Details stay out of sight until the item is opened.
-- **●** A bottom bar you arrange: **Today**, then as many as you like (Shopping, Chores, Search or any project), then **Projects**. Change it in Settings, or with "Show in bottom bar" on any project. When it gets crowded it goes icons-only, then scrolls; hold it and slide to pick a tab. It follows you across your own devices.
+- **●** A bottom bar you arrange: **Today**, then as many as you like (Shopping, Chores, Search or any project), then **Projects**. Change it in Settings, or with the **In bar** chip on any project's page. When it gets crowded it goes icons-only, then scrolls; hold it and slide to pick a tab. It follows you across your own devices.
 - **●** Two ways to add, the same on every screen: the add row in each list, and **New** (the black "+" at the top right, or `N` on desktop), which opens a sheet pointed at where you are.
 - **●** Today links straight to what's due: tap a project tag or a project name to open it. The summary counts everything waiting on you today (asks included), and a tag in your partner's color jumps to what they asked.
 - **●** **Today is yours to arrange.** Below the fixed summary come blocks in your order: Waiting on you, Today (with "n from earlier" folded under it), This week, Coming up (tiles for the next 7 days, ending in a hatched "+" to plan something), {Partner} did, and, if you add them, To buy, Chores ready and up to 3 projects. A block with nothing to show disappears; nothing shows twice. **Edit Today** at the bottom (or Settings → Today page) lets you drag to arrange, tap × to hide, and tap + to bring things back; every change saves at once and follows you to your other devices. "Back to the default" undoes it all.
 - **●** Quick add shows what it understood as chips. Tap a chip to undo it. **New** shows a live color card that says, in one sentence, what you're adding.
-- **●** Inline controls: under every item, *Date · Repeat · Remind me · Who · Ours · Urgent* chips open their options in place. No forms.
+- **●** Inline controls: under every item, *Date · Repeat · Remind me · Who · Ours · Urgent* chips open their options in place; under every project, *Color · Icon · Ours · In bar*. No forms.
+- **●** Feedback you can feel and undo: a tick pops, strikes and folds the row away; several ticks in a row become one note ("3 done", "3 in the cart") whose Undo undoes them all. Swipe a note away; pull a sheet down to close it.
 - **●** No red, no badge spam, no streaks. Late items say "since Tue".
-- **●** Nothing is imposed: every project, including shopping and chores, can be renamed, recolored, archived or deleted.
+- **●** Nothing is imposed: every project, including shopping and chores, can be renamed (tap its name), recolored, archived or deleted.
 
 ## 1 · Smart shared grocery list
 
@@ -21,11 +22,12 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** No duplicates. An item already on the list is highlighted with **+1**. One you crossed off comes back with **Bring back**.
 - **●** Quantities are optional and parsed in English and Hebrew: `2 milk`, `milk x2`, `500g cheese`, `1 ק"ג עגבניות`, `חצי קילו גבינה`.
 - **●** Auto-aisles, ordered the way an Israeli supermarket is walked. Correct an item once and both phones remember it.
-- **●** Priority means a single **Urgent** flag that pins the item to the top. Drag to reorder within an aisle.
+- **●** A card per aisle. Priority means a single **Urgent** flag: the item shows in a lemon **Urgent** card on top *and* stays in its aisle with an Urgent tag. Drag to reorder within an aisle.
+- **●** Tap an item for its sheet: name, then *quantity · aisle · Urgent · list · who sees it* chips that open in place, a note, and Remove from list.
 - **●** Search matches across spelling variants (עגבניה / עגבנייה, with or without geresh or niqqud, final letters, plurals).
 - **●** Paste a list from WhatsApp and it splits into items, each sorted into its aisle.
 - **●** **Buy again**: at most 6 calm, dismissible suggestions. They're based on how often *you* buy things, appear only after two purchases, and never show during a trip.
-- **●** **Shopping mode** turns on tall rows and keeps the screen awake. Checked items slide into **In the cart** with undo. Your partner's additions arrive live and highlighted, and **Finish** files the trip into history.
+- **●** **Shopping mode** turns on tall rows and keeps the screen awake. Checked items strike, fold and slide into **In the cart**, and the bar at the bottom says what went in, with Undo. Your partner's additions arrive live and highlighted, and **Finish** files the trip into history (one Finish: in the bar while shopping, under the cart otherwise).
 - **◐** Per-store aisle order, learned from the order you check things off.
 - **○** Recipe → list, pantry, prices (deliberately left out; see Research).
 
@@ -41,7 +43,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** Two repeat types in plain words: **"Every N days after it's done"** and **"On set days"**. A new chore starts fresh: it first comes due one period from now, not today.
 - **●** **Done** is always available, not only when a chore is due. Pick *Today*, *Yesterday*, or a date. An early tick on a set-days chore "counts for Thursday", and a late one collapses every missed occurrence into one, so chores never pile up.
 - **●** **Not now**: Snooze (flexible chores), Skip this one (set days), or Pause (seasonal).
-- **●** **Away mode** freezes every chore clock while you travel. Turn it on with "Going away? Pause chores" under the chores add row, or in Settings.
+- **●** **Away mode** freezes every chore clock while you travel. Turn it on with "Going away? Pause chores" under the chores add row, or in Settings → Together; coming back says how far the clocks moved.
 - **●** Owner per chore: **Me · Partner · Either · Take turns**. With Take turns, the turn moves only when the chore is done.
 - **●** Freshness in words and a draining bar: *Fresh → Soon → Today → When you can*.
 - **●** History of who did what and when. A one-tap **♡ thanks** on your partner's work, and no scores.
@@ -62,7 +64,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** Unlimited projects, each with one of six colors (a new project gets one nobody's using) and a type (Tasks · Shopping · Chores). They sit like folders, each with a slight tilt.
 - **●** Drag to reorder items, shopping items within an aisle, and project folders (long-press on phones). Move items between lists. Duplicate, archive, delete — all with undo.
 - **●** **Uncheck all** for reusable checklists (packing, trips).
-- **●** New project: a live color card you name in place, plus a few starters (Groceries, Home shopping, Chores, To do, Next trip, Gift ideas).
+- **●** New project: a live color card you name in place, a few starters (Groceries, Home shopping, Chores, To do, Next trip, Gift ideas), then the same chips as a project's page plus its kind: *Tasks · Color · Icon · Ours · In bar*.
 - **●** Global search across every list you can see.
 
 ## 6 · Private + shared, per list *and* per item
@@ -90,8 +92,8 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** **"I'll take it"** on any unowned shared task.
 - **●** **Requests**: set Who to your partner (or type `@hila`) and it's a request, tagged "Guy asked" on their rows. It lands on their Today, dated or not: under **Waiting on you** when it has no date or a later one, in Today itself when it's due. Turn on **Needs my OK when done** and their tick waits for you in Waiting on you (OK / Not yet); confirming credits them. What you asked shows as a quiet line, "You asked Hila for 2 things". Each step can notify the other phone. On your own, Who is a dashed "Ask your person" chip that leads to pairing.
 - **●** **Make it theirs**: any item can be Ours, Mine, *Hila's* or Only me, and rows say so with a small tag whenever it differs from the project (an ink "Only me", "Mine" in your color, "Hila's" in hers). Theirs lands on their Today, under Waiting on you when it has no date. The rules live in `src/app/privacy.ts`.
-- **●** **Project icons**: 26 line icons or any emoji, shown on the project's tile in the bottom bar and on its folder.
-- **●** Works fully offline, with honest sync status. When a new version is published, a small "A new version is ready · Refresh" note appears. **Check for updates** in Settings says what it found ("You're up to date", "Refresh to update", or that you're offline) and never reloads without a tap.
+- **●** **Project icons**: 32 Gila Duo icons or any emoji, shown on the project's tile in the bottom bar and on its folder.
+- **●** Works fully offline, with honest sync status: tap the pill on your card in Settings and it spins, then says "Synced just now". When a new version is published, a small "A new version is ready · Refresh" note appears. **Check for updates** in Settings says what it found ("You're up to date", "Refresh to update", or that you're offline) and never reloads without a tap.
 - **●** **Settings, in place**: your name and color on your own card (your person's color shows their initial and can't be taken), the bottom bar and Today arranged by dragging, notifications that say what each switch does (and only show the ones that can work: alerts about your person once they join, the app-icon count only where supported, request alerts you can turn off), Away mode with when and who, a plain "Ours, Mine and Only me" explainer, week start and 12/24-hour clock for this device, and backups that remember when you last made one.
 - **●** One-tap **backup** (JSON) and restore, which only adds what's missing. Resetting a device offers a backup first when you haven't made one in a week. Your data is yours.
 - **●** App badge for today's items (opt-in), haptics, and desktop keyboard shortcuts. Light only, on purpose.

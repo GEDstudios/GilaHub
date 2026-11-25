@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
 import { humanDate, relativeAgo, sinceDate, today as todayStr } from '../../core/dates';
 import { useAddAction } from '../addAction';
@@ -8,16 +8,17 @@ import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { Icon } from '../ui/Icon';
-import { useOverlays } from '../ui/overlays';
+import { doneMany, useOverlays } from '../ui/overlays';
 import { doerOf, requestState } from '../privacy';
-import { Avatar, Band, Check, Empty, lineVars, NewButton, Section } from '../ui/primitives';
+import { Avatar, Band, Check, Disclosure, Empty, lineVars, NewButton, Section } from '../ui/primitives';
 import { useFresh } from '../ui/fresh';
 import { ReqTag, VisTag } from '../ui/tags';
 import { useSettle } from '../ui/useSettle';
 import { choresView, type ChoreRow } from '../views';
-import { ProjectActions, ProjectHero } from './ListScreen';
+import { heroVis, ProjectActions, ProjectChips, ProjectHero } from './ListScreen';
 import { NewProjectSheet } from './Lists';
 import { SyncBadge } from '../components/SyncBadge';
+import { AWAY_ON, welcomeBack } from '../settingsCopy';
 
 /** One chore row; ticking it gives the "Fresh again. Next: …" toast. Also on Today (Chores ready). */
 export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
@@ -38,7 +39,7 @@ export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: 
     onHold(item.id);
     if (!item.repeat) {
       const undo = hub.toggle(item.id);
-      toast('Done.', { action: { label: 'Undo', run: undo } });
+      toast('Done', { action: { label: 'Undo', run: undo }, group: 'done', many: doneMany });
       return;
     }
     const undo = hub.completeRepeating(item.id);
@@ -91,7 +92,6 @@ export function Chores({ listId }: { listId?: string } = {}) {
   const away = hub.isAway();
   const list = scoped ?? all.lists[0];
   const addRef = useRef<AddRowHandle>(null);
-  const [showPaused, setShowPaused] = useState(false);
 
   const openNew = () =>
     list
@@ -100,8 +100,14 @@ export function Chores({ listId }: { listId?: string } = {}) {
   useAddAction(openNew, 'New chore');
 
   const toggleAway = () => {
-    hub.setAway(!away);
-    toast(away ? 'Welcome back. The chores waited for you.' : 'Have a good trip. Chore clocks are paused.');
+    if (!away) {
+      hub.setAway(true);
+      toast(AWAY_ON);
+      return;
+    }
+    const msg = welcomeBack(hub.settings()?.awaySince);
+    hub.setAway(false);
+    toast(msg);
   };
   const sub = away ? 'Away · clocks paused' : v.now.length ? `${v.now.length} ready` : rows.length ? 'All fresh' : undefined;
   // A finished chore stays a moment in its group (check, strike, fold), then shows up fresh.
@@ -130,12 +136,13 @@ export function Chores({ listId }: { listId?: string } = {}) {
     <>
       {scoped ? (
         <Band onBack={() => back({ name: 'lists' })} mini={scoped.name} actions={<ProjectActions listId={scoped.id} label="New chore" onNew={openNew} />}>
-          <ProjectHero list={scoped} sub={sub ?? 'Empty'} />
+          <ProjectHero list={scoped} sub={`${sub ?? 'Empty'}${heroVis(hub, scoped)}`} />
         </Band>
       ) : (
         <Band top={<SyncBadge />} title="Chores" sub={sub} actions={<NewButton label="New chore" onClick={openNew} />} />
       )}
       <div className="column">
+        {scoped ? <ProjectChips list={scoped} /> : null}
         {away ? (
           <button type="button" className="notice" onClick={toggleAway}>
             <Icon name="plane" />
@@ -181,17 +188,9 @@ export function Chores({ listId }: { listId?: string } = {}) {
         )}
 
         {paused.length ? (
-          <Section
-            title="Paused"
-            count={v.paused.length}
-            action={
-              <button type="button" className="textbtn" onClick={() => setShowPaused(!showPaused)} aria-expanded={showPaused}>
-                {showPaused ? 'Hide' : 'Show'}
-              </button>
-            }
-          >
-            {showPaused ? choreRows(paused) : null}
-          </Section>
+          <Disclosure title="Paused" count={v.paused.length}>
+            {choreRows(paused)}
+          </Disclosure>
         ) : null}
       </div>
     </>
