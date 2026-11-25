@@ -923,12 +923,12 @@ export class Hub {
   }
 
   /** A new aisle of our own, at the end of the walk. Returns its id. */
-  addAisle(flavor: Flavor, name: string): string | null {
+  addAisle(flavor: Flavor, name: string, icon?: string): string | null {
     const t = name.trim();
     if (!t) return null;
     const id = `c:${newId(10)}`;
     const byId = new Map(this.aisleConf(flavor).map((a) => [a.id, a]));
-    this.saveAisles(flavor, [...this.aisleOrder(flavor).map((x) => byId.get(x) ?? { id: x }), { id, name: t }]);
+    this.saveAisles(flavor, [...this.aisleOrder(flavor).map((x) => byId.get(x) ?? { id: x }), { id, name: t, ...(icon ? { icon } : {}) }]);
     return id;
   }
 

@@ -4,14 +4,14 @@ import { categoryMark } from '../aisles';
 import { IconPicker } from './IconPicker';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
-import { Icon } from '../ui/Icon';
+import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 
 /**
  * Arrange categories, on Shopping itself: the categories in your walk through the store, as
- * rows you drag into order; tap a name to rename it, tap its icon to pick another; add
- * categories of your own at the end (and take them away again with ×). Each change saves at
+ * rows you drag into order; tap a name to rename it; add categories of your own at the end,
+ * with an icon picked as you name them (and take them away again with ×). Each change saves at
  * once and shows for both of you.
  */
 export function AisleArrange({ flavors, counts, onDone }: { flavors: Array<{ flavor: Flavor; name: string }>; counts: Map<string, number>; onDone: () => void }) {
@@ -33,11 +33,15 @@ function FlavorAisles({ flavor, name, counts }: { flavor: Flavor; name: string |
   const hub = useHub();
   const { toast } = useOverlays();
   const [fresh, setFresh] = useState('');
+  const [icon, setIcon] = useState<string | undefined>(undefined);
+  const [picking, setPicking] = useState(false);
   const ids = hub.aisleOrder(flavor);
   const add = () => {
-    if (hub.addAisle(flavor, fresh)) {
+    if (hub.addAisle(flavor, fresh, icon)) {
       haptic('tick');
       setFresh('');
+      setIcon(undefined);
+      setPicking(false);
     }
   };
   return (
@@ -61,8 +65,11 @@ function FlavorAisles({ flavor, name, counts }: { flavor: Flavor; name: string |
           ))}
         </Sortable>
       </ul>
-      <label className="composer__stepadd aislearr__new">
-        <Icon name="plus" className="icon--sm" />
+      <div className="composer__stepadd aislearr__new">
+        {/* Its icon first: tap to pick one as you name it. */}
+        <button type="button" className="aislearr__markbtn aislearr__newmark" aria-label="Icon for the new category" aria-expanded={picking} onClick={() => setPicking(!picking)}>
+          {icon?.startsWith('i:') ? <Icon name={icon.slice(2) as IconName} /> : icon ? <span aria-hidden="true">{icon}</span> : <Icon name="plus" className="icon--sm" />}
+        </button>
         <input
           value={fresh}
           dir="auto"
@@ -81,7 +88,19 @@ function FlavorAisles({ flavor, name, counts }: { flavor: Flavor; name: string |
             Add
           </button>
         ) : null}
-      </label>
+      </div>
+      {picking ? (
+        <div className="aislearr__pick">
+          <IconPicker
+            value={icon}
+            color="lemon"
+            onChange={(v) => {
+              setIcon(v);
+              setPicking(false);
+            }}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -97,16 +116,13 @@ function AisleRow({ flavor, id, n, onRemove }: { flavor: Flavor; id: string; n: 
   const s = useSortableItem(id);
   const meta = hub.aisleMeta(flavor, id);
   const [name, setName] = useState(meta.name);
-  const [picking, setPicking] = useState(false);
   const save = () => {
     if (name.trim() && name.trim() !== meta.name) hub.renameAisle(flavor, id, name);
     else setName(meta.name);
   };
   return (
-    <li ref={s.ref} style={s.style as CSSProperties} className={`row aislearr__row ${picking ? 'is-picking' : ''} ${s.className}`} {...s.props}>
-      <button type="button" className="aislearr__markbtn" aria-label={`Icon for ${meta.name}`} aria-expanded={picking} onClick={() => setPicking(!picking)}>
-        <Mark flavor={flavor} id={id} />
-      </button>
+    <li ref={s.ref} style={s.style as CSSProperties} className={`row aislearr__row ${s.className}`} {...s.props}>
+      <Mark flavor={flavor} id={id} />
       <input
         className="aislearr__name"
         value={name}
@@ -125,18 +141,6 @@ function AisleRow({ flavor, id, n, onRemove }: { flavor: Flavor; id: string; n: 
       <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="homecard__grip" aria-label={`Move ${meta.name}`}>
         <Icon name="grip" />
       </button>
-      {picking ? (
-        <div className="aislearr__pick">
-          <IconPicker
-            value={meta.icon}
-            color="lemon"
-            onChange={(icon) => {
-              hub.setAisleIcon(flavor, id, icon);
-              setPicking(false);
-            }}
-          />
-        </div>
-      ) : null}
     </li>
   );
 }
