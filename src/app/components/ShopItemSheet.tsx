@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import type { ItemVisibility } from '../../core/actions';
 import { categoryMeta } from '../../smart/categorize';
 import { useHub } from '../context';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
-import { Options, visHint } from './editors';
+import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
+import { Options, VisChip } from './editors';
 import { AisleSheet } from './pickers';
 
 export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void }) {
@@ -14,14 +14,15 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
   const item = hub.item(id);
   const [title, setTitle] = useState(item?.title ?? '');
   const [notes, setNotes] = useState(item?.notes ?? '');
+  const [visOpen, setVisOpen] = useState(false);
   if (!item) return null;
   const list = hub.list(item.listId);
   const flavor = hub.flavorOf(list);
   const { category } = hub.categoryFor(item);
   const meta = categoryMeta(flavor, category);
   const editable = hub.canEdit(item);
-  const vis = hub.visibilityOf(item);
-  const partnerName = hub.partner()?.name ?? 'your partner';
+  const vis = itemVisChoice(hub, item);
+  const partner = hub.partner();
   const lists = hub.shoppingLists();
   const qtyNum = item.qty && /^\d+$/.test(item.qty) ? +item.qty : null;
 
@@ -79,19 +80,18 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
       {editable && hub.canSetPrivacy(item) ? (
         <div className="choose">
           <span className="choose__label">Who sees it</span>
-          <Options
-            value={vis}
-            onPick={(nv) => {
-              if (nv === 'private' && vis !== 'private' && hub.partner()) toast(`Hidden from ${partnerName}`);
-              hub.setItemVisibility(id, nv as ItemVisibility);
-            }}
-            options={(list?.visibility === 'private' ? (['private'] as const) : (['ours', 'mine', 'private'] as const)).map((v) => ({
-              value: v,
-              label: v === 'ours' ? 'Ours' : v === 'mine' ? 'Mine' : 'Only me',
-              icon: v === 'ours' ? ('ours' as const) : v === 'mine' ? ('mine' as const) : ('lock' as const),
-            }))}
-          />
-          {vis === 'private' ? <p className="panel__hint">{visHint(vis, partnerName)}</p> : null}
+          <div className="inline__chips">
+            <VisChip
+              value={vis}
+              allowed={allowedVis(hub, list)}
+              open={visOpen}
+              onToggle={() => setVisOpen(!visOpen)}
+              onChange={(nv) => {
+                if (nv === 'private' && vis !== 'private' && partner) toast(`Hidden from ${partner.name}`);
+                setItemVis(hub, id, nv);
+              }}
+            />
+          </div>
         </div>
       ) : null}
 

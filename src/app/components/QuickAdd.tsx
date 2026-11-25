@@ -8,7 +8,8 @@ import { dayFirst, setPrefs, use24h, usePrefs, weekStart, workdays } from '../pr
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { ColorCard, ListBullet } from '../ui/primitives';
-import { useSummary, visLabel, VIS_ICON, type VisChoice } from './editors';
+import { allowedVis, itemVisChoice, visFields, visLabel, VIS_ICON, type VisChoice } from '../privacy';
+import { useSummary } from './editors';
 import { notifyAbout } from '../notify';
 import { ListPickerSheet } from './pickers';
 
@@ -27,8 +28,6 @@ export function useParseContext(list: List | undefined): ParseContext {
     repeatFrom: list?.kind === 'chores' ? 'done' : 'schedule',
   };
 }
-
-
 
 export function QuickAdd({
   listId,
@@ -64,24 +63,8 @@ export function QuickAdd({
   const hintText = placeholder ?? (parent ? 'Add a step' : `Add to ${list?.name ?? 'list'}`);
 
   const partner = hub.partner();
-  const allowed: VisChoice[] =
-    list?.visibility === 'private'
-      ? ['private']
-      : list?.visibility === 'visible'
-        ? list.owner && list.owner !== hub.meId
-          ? ['theirs', 'ours', 'mine']
-          : partner
-            ? ['mine', 'ours', 'theirs', 'private']
-            : ['mine', 'ours', 'private']
-        : partner
-          ? ['ours', 'mine', 'theirs', 'private']
-          : ['ours', 'mine', 'private'];
-  const parentVis = parent ? hub.visibilityOf(parent) : null;
-  const inherited: VisChoice = parent
-    ? parentVis === 'mine' && hub.ownerOf(parent) && hub.ownerOf(parent) !== hub.meId
-      ? 'theirs'
-      : parentVis!
-    : allowed[0];
+  const allowed = allowedVis(hub, list, parent);
+  const inherited: VisChoice = parent ? itemVisChoice(hub, parent) : allowed[0];
   const [vis, setVis] = useState<VisChoice | null>(null);
   const [needsOk, setNeedsOk] = useState(false);
   const visibility = vis && allowed.includes(vis) ? vis : allowed.includes(inherited) ? inherited : allowed[0];
@@ -103,8 +86,7 @@ export function QuickAdd({
       assignee: p.assignee ?? null,
       urgent: p.urgent ?? false,
       qty: p.qty ?? null,
-      visibility: visibility === 'theirs' ? 'mine' : visibility,
-      owner: visibility === 'theirs' ? partner?.id : visibility === 'mine' ? hub.meId : undefined,
+      ...visFields(hub, visibility),
       needsOk: needsOk && hub.isRequest(p.assignee),
     });
     const made = hub.item(id);

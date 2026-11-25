@@ -8,7 +8,9 @@ import { use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Check, Diamond, ListBullet, PersonBullet, StepRing } from '../ui/primitives';
+import { doerOf, requestState, visTagFor } from '../privacy';
+import { Avatar, Check, ListBullet, StepRing } from '../ui/primitives';
+import { ReqTag, UrgentTag, VisTag } from '../ui/tags';
 import { useSettleHold } from '../ui/useSettle';
 import { stepProgress, todayRef } from '../views';
 
@@ -21,14 +23,9 @@ export function dueLabel(item: Item, ref: string, h24: boolean): { text: string;
   return { text: time ? `${d} · ${time}` : d, soft: false };
 }
 
-/** Who carries this item: the owner of a "Mine" item, or the assignee of an "Ours" one. */
-export function useCarrier(item: Item) {
-  const hub = useHub();
-  const owner = hub.ownerOf(item);
-  if (owner) return hub.member(owner);
-  if (item.assignee === 'turns') return hub.member(item.turn);
-  if (item.assignee && item.assignee !== 'both') return hub.member(item.assignee);
-  return undefined;
+/** Who does it, for a row's avatar (see doerOf): never the owner, never someone asked. */
+export function useDoer(item: Item) {
+  return doerOf(useHub(), item);
 }
 
 export const ItemRow = memo(function ItemRow({
@@ -36,6 +33,7 @@ export const ItemRow = memo(function ItemRow({
   showList,
   dateMode = 'full',
   trailing,
+  below,
   fresh,
   settling,
   liRef,
@@ -47,6 +45,8 @@ export const ItemRow = memo(function ItemRow({
   showList?: boolean;
   dateMode?: 'full' | 'none';
   trailing?: ReactNode;
+  /** Under the text, e.g. OK / Not yet (RequestActions className="row__acts"). */
+  below?: ReactNode;
   fresh?: boolean;
   /** Just ticked: drawn checked while it strikes through and folds away (useSettle). */
   settling?: boolean;
@@ -62,21 +62,15 @@ export const ItemRow = memo(function ItemRow({
   const ref = todayRef();
   const canTick = hub.canTick(item);
   const steps = stepProgress(hub, item.id);
-  const carrier = useCarrier(item);
-  const vis = hub.visibilityOf(item);
+  const doer = useDoer(item);
+  const req = requestState(hub, item);
+  const vis = visTagFor(hub, item);
   const due = dateMode === 'full' ? dueLabel(item, ref, use24h(prefs)) : null;
   const readonly = !hub.canEdit(item);
   const rt = useRt();
   const hold = useSettleHold();
-  const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
-  const request =
-    item.submittedAt && !item.done
-      ? item.requestedBy === hub.meId
-        ? `${hub.member(item.submittedBy)?.name ?? 'They'} did it · OK?`
-        : `Waiting for ${asker?.name ?? 'their'} OK`
-      : asker && item.requestedBy !== hub.meId && !item.done
-        ? `${asker.name} asked`
-        : null;
+  // The owner never shows as an avatar (the privacy tag says whose); my own avatar only where it tells something.
+  const avatar = !trailing && doer && (list?.visibility === 'shared' || doer.id !== list?.owner) ? doer : undefined;
 
   const onToggle = () => {
     if (!canTick) {
@@ -126,7 +120,7 @@ export const ItemRow = memo(function ItemRow({
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
         </span>
-        {(showList && list) || due || request || item.repeat || steps.total || (vis === 'private' && list?.visibility !== 'private') ? (
+        {(showList && list) || req || vis || due || item.repeat || steps.total ? (
           <span className="row__meta">
             {showList && list ? (
               <button
@@ -141,8 +135,9 @@ export const ItemRow = memo(function ItemRow({
                 <span dir="auto">{list.name}</span>
               </button>
             ) : null}
+            {req ? <ReqTag state={req} /> : null}
+            {vis ? <VisTag item={item} /> : null}
             {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
-            {request ? <span className="meta meta--req">{request}</span> : null}
             {item.repeat ? (
               <span className="meta" title={describeRule(item.repeat, (n) => weekdayName(n))}>
                 <Icon name="repeat" />
@@ -154,19 +149,15 @@ export const ItemRow = memo(function ItemRow({
                 {steps.done}/{steps.total}
               </span>
             ) : null}
-            {vis === 'private' && list?.visibility !== 'private' ? (
-              <span className="meta" title="Only me">
-                <Icon name="lock" />
-              </span>
-            ) : null}
           </span>
         ) : null}
+        {below}
       </div>
-      {trailing || item.urgent || (carrier && (list?.visibility === 'shared' || carrier.id !== list?.owner)) ? (
+      {trailing || item.urgent || avatar ? (
         <span className="row__trail">
           {trailing}
-          {item.urgent ? <Diamond /> : null}
-          {!trailing && carrier && (list?.visibility === 'shared' || carrier.id !== list?.owner) ? <PersonBullet member={carrier} size="xs" /> : null}
+          {item.urgent ? <UrgentTag /> : null}
+          {avatar ? <Avatar member={avatar} size="xs" /> : null}
         </span>
       ) : null}
     </li>

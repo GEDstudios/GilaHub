@@ -227,6 +227,9 @@ export class SyncClient {
   private async saveCursor(c: number): Promise<void> {
     if (c > this.cursor) {
       this.cursor = c;
+      // The ops this cursor covers must reach the disk first. Saved ahead of them, a cursor
+      // skips them for good if the app closes in between (a partner's request never shows up).
+      await this.store.settled();
       await this.persistence.commit({ meta: { cursor: c } });
     }
   }

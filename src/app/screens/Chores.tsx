@@ -7,7 +7,9 @@ import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
+import { doerOf, requestState } from '../privacy';
 import { Avatar, Band, Check, IconButton, lineVars, Section } from '../ui/primitives';
+import { ReqTag, VisTag } from '../ui/tags';
 import { useSettle } from '../ui/useSettle';
 import { choresView, type ChoreRow } from '../views';
 import { ProjectHero, ProjectMenuButton } from './ListScreen';
@@ -18,7 +20,8 @@ function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean
   const { toast } = useOverlays();
   const { item, list } = row;
   const ref = todayStr();
-  const who = item.assignee === 'turns' ? hub.member(item.turn) : item.assignee && item.assignee !== 'both' ? hub.member(item.assignee) : undefined;
+  const who = doerOf(hub, item);
+  const req = requestState(hub, item);
   const meta = [
     item.repeat ? ruleShort(item.repeat) : 'Once',
     item.assignee === 'turns' && who ? (who.id === hub.meId ? 'your turn' : `${who.name}’s turn`) : null,
@@ -51,6 +54,8 @@ function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean
           {item.title}
         </span>
         <span className="row__meta">
+          {req ? <ReqTag state={req} /> : null}
+          <VisTag item={item} />
           <span className="meta">{meta.join(' · ')}</span>
         </span>
       </div>

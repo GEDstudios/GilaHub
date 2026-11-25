@@ -18,6 +18,66 @@
   letter-spacing: -0.01em;
 }
 
+/* Waiting on you: a quiet one-line follow-up under a tile ("You asked Hila for 2 things") */
+.quietline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 8px 12px 8px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-align: start;
+  transition: background 140ms var(--ease);
+}
+
+@media (hover: hover) {
+  .quietline:hover {
+    background: var(--tile);
+  }
+}
+
+.quietline:active {
+  background: var(--tile);
+}
+
+.rows + .quietline {
+  margin-top: 4px;
+}
+
+.quietline__end {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  color: var(--text-3);
+}
+
+.quietline__end .icon {
+  --s: 17;
+  transition: transform 220ms var(--ease);
+}
+
+.quietline[aria-expanded='true'] .quietline__end .icon {
+  transform: rotate(180deg);
+}
+
+.quietline__rows {
+  margin-top: 6px;
+}
+
+.asks-quiet {
+  margin-top: 16px;
+}
+
+.asks-quiet:empty {
+  display: none;
+}
+
 .notice {
   display: flex;
   align-items: center;

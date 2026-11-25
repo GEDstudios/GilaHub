@@ -2,17 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, useSummary, type Draft, type VisChoice } from '../components/editors';
+import { InlineEditor, useSummary, type Draft } from '../components/editors';
 import { afterTick, notifyAbout } from '../notify';
 import { ListPickerSheet, OptRow } from '../components/pickers';
 import { QuickAdd } from '../components/QuickAdd';
 import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, useRt } from '../context';
 import { back, navigate } from '../router';
+import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { enablePush } from '../runtime';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Empty, IconButton, lineVars, Section } from '../ui/primitives';
+import { RequestActions } from '../ui/tags';
 
 function AutoTitle({ value, onSave, readOnly }: { value: string; onSave: (v: string) => void; readOnly: boolean }) {
   const [v, setV] = useState(value);
@@ -199,17 +201,8 @@ export function ItemScreen({ id }: { id: string }) {
   const partnerName = partner?.name ?? 'your partner';
   const ref = todayStr();
   const logs = hub.logsFor(id).filter((l) => l.kind === 'done').slice(0, 5);
-  const parentVis = ancestors.length ? hub.visibilityOf(ancestors[ancestors.length - 1]) : null;
-  const theirsList = list?.visibility === 'visible' && !!list.owner && list.owner !== hub.meId;
-  const allowed: VisChoice[] =
-    list?.visibility === 'private' || parentVis === 'private'
-      ? ['private']
-      : theirsList
-        ? ['theirs', 'ours', 'mine']
-        : partner
-          ? ['ours', 'mine', 'theirs', 'private']
-          : ['ours', 'mine', 'private'];
-  const visChoice: VisChoice = vis === 'mine' && hub.ownerOf(item) && hub.ownerOf(item) !== hub.meId ? 'theirs' : vis;
+  const allowed = allowedVis(hub, list, ancestors.at(-1));
+  const visChoice = itemVisChoice(hub, item);
   const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
   const iAsked = item.requestedBy === hub.meId;
   const upTo = ancestors.length ? { name: 'item' as const, id: ancestors[ancestors.length - 1].id } : list ? { name: 'list' as const, id: list.id } : { name: 'today' as const };
@@ -241,8 +234,7 @@ export function ItemScreen({ id }: { id: string }) {
   const change = (p: Partial<Draft>) => {
     if ('visibility' in p && p.visibility && p.visibility !== visChoice) {
       if (p.visibility === 'private' && partner) toast(`This will disappear for ${partnerName}`);
-      if (p.visibility === 'theirs') hub.setItemVisibility(id, 'mine', partner?.id);
-      else hub.setItemVisibility(id, p.visibility, p.visibility === 'mine' ? hub.meId : undefined);
+      setItemVis(hub, id, p.visibility);
       return;
     }
     if ('assignee' in p) {
@@ -314,30 +306,7 @@ export function ItemScreen({ id }: { id: string }) {
       </Band>
 
       <div className="column">
-        {item.submittedAt && !item.done && iAsked ? (
-          <div className="tokens okbar">
-            <button
-              type="button"
-              className="token token--ink"
-              onClick={() => {
-                const undo = hub.confirm(id);
-                toast('Confirmed. Thanks!', { action: { label: 'Undo', run: undo } });
-              }}
-            >
-              <Icon name="check" /> Confirm
-            </button>
-            <button
-              type="button"
-              className="token"
-              onClick={() => {
-                const undo = hub.sendBack(id);
-                toast(`Sent back to ${hub.member(item.submittedBy)?.name ?? 'them'}`, { action: { label: 'Undo', run: undo } });
-              }}
-            >
-              Not yet
-            </button>
-          </div>
-        ) : null}
+        {item.submittedAt && !item.done && iAsked ? <RequestActions item={item} className="reqacts--page" /> : null}
 
         {editable ? (
           <InlineEditor
@@ -348,6 +317,8 @@ export function ItemScreen({ id }: { id: string }) {
               (f) => (f !== 'vis' || hub.canSetPrivacy(item)) && (f !== 'who' || vis !== 'private'),
             )}
             allowedVis={allowed}
+            turn={item.turn}
+            prompt="Want to modify something?"
             repeatFrom={list?.kind === 'chores' ? 'done' : 'schedule'}
           />
         ) : null}

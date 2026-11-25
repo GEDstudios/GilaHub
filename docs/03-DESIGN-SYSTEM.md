@@ -32,8 +32,9 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 | **Color card** | Radius 24–30, the project color, serif title top-left, a sentence bottom-left, an optional black badge top-right. |
 | **Rows** | One gray tile (radius 20) per group, rows 58 px with hairline dividers. A thin 24 px check ring; done fills with the project color. Done rows are struck through in gray. |
 | **Add row** | At the end of each list: a dashed plus and an input. It lifts into a white card while you type, and shows what it understood as chips. |
-| **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open (its icon lit in my color). Urgent is lemon, with a lightning icon. |
-| **Panel** | Opens under a chip: white, radius 22, soft shadow, with 36 px option pills (the chosen one is black). |
+| **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open (its icon lit in my color). Urgent is lemon, with a lightning icon. A dashed ghost chip is an invitation, not a setting ("Ask your person" while on your own). |
+| **Panel** | Opens under the whole chip row, full width: white, radius 22, soft shadow, with 36 px option pills (the chosen one is black) and at most one quiet line of explanation. |
+| **Row tags** | 22 px word pills in a row's meta (`ui/tags.tsx`): lemon **Urgent** with its lightning (in the trail); **whose** only when it differs from the project: an ink "Only me" with a lock, "Mine" in my soft color, "Hila's" in hers, "Ours" in gray inside a Mine project; **who asked whom** in the other person's soft color with Tasky's cursor ("Hila asked", "Asked Hila", "Hila did it · OK?"). The row's avatar is the doer, never the owner. |
 | **Strips** | Overlapping bands (−16 px) with a big serif number and a small label. |
 | **Tab bar** | A floating white bar, 4 tabs, no central button. On desktop, a light sidebar with a black "New" pill. |
 | **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", project settings and pickers. |

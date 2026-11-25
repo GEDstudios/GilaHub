@@ -12,14 +12,25 @@ import { Band, IconButton, lineVars } from '../ui/primitives';
 import { SyncBadge } from './Today';
 import { Glyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
+import { LIST_VIS, listVisLabel, visHint, visLabel, VIS_ICON } from '../privacy';
 import { openCount } from '../views';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
 
-export function visLabel(hub: ReturnType<typeof useHub>, l: Pick<List, 'visibility' | 'owner'>): string {
-  if (l.visibility === 'shared') return 'Ours';
-  if (l.visibility === 'private') return 'Only me';
-  return !l.owner || l.owner === hub.meId ? 'Mine' : `${hub.member(l.owner)?.name ?? 'Their'}’s`;
+/** Who sees a project: Ours, Mine or Only me, with one line on what that means. */
+export function ListVisOptions({ value, onPick }: { value: Visibility; onPick: (v: Visibility) => void }) {
+  const hub = useHub();
+  const partner = hub.partner();
+  return (
+    <>
+      <Options
+        value={value}
+        onPick={onPick}
+        options={(['shared', 'visible', 'private'] as const).map((v) => ({ value: v, label: visLabel(LIST_VIS[v]), icon: VIS_ICON[LIST_VIS[v]] }))}
+      />
+      <p className="panel__hint">{visHint(LIST_VIS[value], partner?.name ?? null)}</p>
+    </>
+  );
 }
 
 export function NewProjectSheet({ onClose, initial }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }> }) {
@@ -51,7 +62,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
         <div className="ccard ccard--lg ccard--edit" style={lineVars(color)}>
           <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
           <span className="ccard__sub">
-            {KIND[kind]} · {visibility === 'shared' ? 'Ours' : visibility === 'visible' ? 'Mine' : 'Only me'}
+            {KIND[kind]} · {visLabel(LIST_VIS[visibility])}
           </span>
         </div>
 
@@ -105,15 +116,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
         ) : null}
         <div className="choose">
           <span className="choose__label">Who sees it</span>
-          <Options
-            value={visibility}
-            onPick={(v) => setVisibility(v as Visibility)}
-            options={[
-              { value: 'shared', label: 'Ours', icon: 'ours' },
-              { value: 'visible', label: 'Mine', icon: 'mine' },
-              { value: 'private', label: 'Only me', icon: 'lock' },
-            ]}
-          />
+          <ListVisOptions value={visibility} onPick={setVisibility} />
         </div>
         <div className="choose">
           <span className="choose__label">Color</span>
@@ -167,7 +170,7 @@ function ProjectCard({ list }: { list: List }) {
       <span className="ccard__sub">
         {list.visibility === 'private' ? <Icon name="lock" className="ccard__lock" /> : null}
         {n ? `${n} open` : 'All clear'}
-        {list.visibility !== 'shared' ? ` · ${visLabel(hub, list)}` : ''}
+        {list.visibility !== 'shared' ? ` · ${listVisLabel(hub, list)}` : ''}
       </span>
     </button>
   );

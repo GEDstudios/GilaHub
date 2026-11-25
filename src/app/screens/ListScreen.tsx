@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import type { List, Visibility } from '../../core/model';
+import type { List } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { Children } from '../components/Children';
-import { Options } from '../components/editors';
 import { IconPicker } from '../components/IconPicker';
 import { Glyph } from '../ui/ProjectMark';
 import { OptRow, Swatches } from '../components/pickers';
@@ -12,9 +11,10 @@ import { back, navigate } from '../router';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Empty, IconButton, lineVars, Switch } from '../ui/primitives';
 import { MAX_PINS, pinsOf, togglePin } from '../tabs';
+import { listVisLabel } from '../privacy';
 import { openCount } from '../views';
 import { Chores } from './Chores';
-import { visLabel } from './Lists';
+import { ListVisOptions } from './Lists';
 import { Shopping } from './Shopping';
 
 export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
@@ -36,7 +36,7 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
           <input className="ccard__input" dir="auto" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} aria-label="Name" />
           {list.icon ? <Glyph icon={list.icon} className="ccard__glyph" /> : null}
         </span>
-        <span className="ccard__sub">{visLabel(hub, list)}</span>
+        <span className="ccard__sub">{listVisLabel(hub, list)}</span>
       </div>
       <div className="choose">
         <span className="choose__label">Color</span>
@@ -49,17 +49,12 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
       {mineToChange ? (
         <div className="choose">
           <span className="choose__label">Who sees it</span>
-          <Options
+          <ListVisOptions
             value={list.visibility}
             onPick={(vis) => {
               if (vis === 'private' && list.visibility !== 'private' && hub.partner()) toast(`Hidden from ${partner}`);
-              hub.setListVisibility(listId, vis as Visibility);
+              hub.setListVisibility(listId, vis);
             }}
-            options={[
-              { value: 'shared', label: 'Ours', icon: 'ours' },
-              { value: 'visible', label: 'Mine', icon: 'mine' },
-              { value: 'private', label: 'Only me', icon: 'lock' },
-            ]}
           />
         </div>
       ) : null}
@@ -174,7 +169,7 @@ function TaskProject({ id }: { id: string }) {
           sub={
             <>
               {n ? `${n} open` : all.length ? 'All done' : 'Empty'}
-              {` · ${visLabel(hub, list)}`}
+              {` · ${listVisLabel(hub, list)}`}
             </>
           }
         />

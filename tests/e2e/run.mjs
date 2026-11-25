@@ -210,13 +210,43 @@ try {
   });
 
   // ---------- Requests
-  await check('Requests: Guy asks Hila, she does it, Guy OKs it', async () => {
+  await check('Requests: Hila asks Guy with no date; it waits on Guy’s Today, tagged "Hila asked"', async () => {
+    await hila.goto(`${url}/lists`);
+    await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    const add = hila.getByLabel('Add to To do');
+    await add.fill('Fix the kettle @guy');
+    await add.press('Enter');
+    await hila.locator('li.row', { hasText: 'Fix the kettle' }).getByText('Asked Guy').waitFor({ timeout: 5000 });
+    await guy.goto(`${url}/`);
+    const row = guy.locator('#home-asks li.row', { hasText: 'Fix the kettle' });
+    try {
+      await row.waitFor({ timeout: 10000 });
+    } catch {
+      log('ask NOT live on guy; reloading');
+      await guy.reload();
+      await row.waitFor({ timeout: 10000 });
+    }
+    await guy.locator('#home-asks').getByRole('heading', { name: /Waiting on you/ }).waitFor({ timeout: 5000 });
+    await row.getByText('Hila asked').waitFor({ timeout: 5000 });
+    await shot(guy, '09a-waiting-on-you');
+  });
+
+  await check('Requests: Guy asks Hila; it shows under "You asked Hila…" on his Today', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
     const add = guy.getByLabel('Add to To do');
     await add.fill('Water the balcony plants @hila today');
     await guy.getByRole('button', { name: /needs my ok/i }).click();
     await add.press('Enter');
+    await guy.goto(`${url}/`);
+    const line = guy.locator('.quietline', { hasText: 'You asked Hila for 1 thing' });
+    await line.waitFor({ timeout: 5000 });
+    await line.click();
+    await guy.locator('li.row', { hasText: 'Water the balcony plants' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
+    await shot(guy, '09a2-you-asked');
+  });
+
+  await check('Requests: Hila does it, Guy OKs it', async () => {
     await hila.goto(`${url}/`);
     const row = hila.locator('li.row', { hasText: 'Water the balcony plants' });
     try {
@@ -229,11 +259,12 @@ try {
       log('request row appeared after reload');
     }
     await row.getByText('Guy asked').waitFor({ timeout: 5000 });
+    await shot(hila, '09a3-today-hila');
     await row.getByRole('checkbox').click();
     await hila.getByText(/Sent to Guy for an OK/).waitFor({ timeout: 5000 });
     await guy.goto(`${url}/`);
-    const waiting = guy.locator('li.row', { hasText: 'Water the balcony plants' });
-    await guy.getByText('Waiting for your OK').waitFor({ timeout: 15000 });
+    const waiting = guy.locator('#home-asks li.row', { hasText: 'Water the balcony plants' });
+    await waiting.getByText('Hila did it · OK?').waitFor({ timeout: 15000 });
     await shot(guy, '09b-waiting-ok');
     await waiting.getByRole('button', { name: 'OK', exact: true }).click();
     await hila.goto(`${url}/lists`);

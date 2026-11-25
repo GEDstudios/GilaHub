@@ -31,24 +31,9 @@ export function Avatar({ member, size = 'sm', name, color }: { member?: Member; 
   );
 }
 
-/** Back-compat name used across screens. */
-export function PersonBullet({ member, size = 'sm' }: { member: Member | undefined; size?: Size }) {
-  if (!member) return null;
-  return <Avatar member={member} size={size} />;
-}
-
 /** A project: a small soft square of its color. */
 export function ListBullet({ list, size = 'sm' }: { list: Pick<List, 'name' | 'color' | 'icon'> | undefined; size?: Size }) {
   return <span className={`dot dot--${size}`} style={lineVars(list?.color)} title={list?.name} aria-hidden="true" />;
-}
-
-export function Diamond({ title = 'Urgent' }: { title?: string }) {
-  return (
-    <span className="urgent" title={title} aria-label={title} role="img">
-      <Icon name="urgent" className="icon--xs on-color" />
-      Urgent
-    </span>
-  );
 }
 
 export function Check({

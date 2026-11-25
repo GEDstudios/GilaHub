@@ -87,8 +87,8 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** **Together card**: *"This week together: 23 things done."* One shared number. It never compares you.
 - **●** **♡ Thanks** on anything your partner finished.
 - **●** **"I'll take it"** on any unowned shared task.
-- **●** **Requests**: assign something to your partner (or type `@hila`) and it's a request: "Guy asked". Turn on **Needs my OK** and their tick waits for you under **Waiting for your OK** on Today (OK / Not yet); confirming credits them. Each step can notify the other phone.
-- **●** **Make it theirs**: any item can be Ours, Mine, *Hila's* or Only me. Theirs lands on their Today.
+- **●** **Requests**: set Who to your partner (or type `@hila`) and it's a request, tagged "Guy asked" on their rows. It lands under **Waiting on you** on their Today, dated or not (a dated one sits in Today itself). Turn on **Needs my OK when done** and their tick waits for you in Waiting on you (OK / Not yet); confirming credits them. What you asked shows as a quiet line, "You asked Hila for 2 things". Each step can notify the other phone. On your own, Who is a dashed "Ask your person" chip that leads to pairing.
+- **●** **Make it theirs**: any item can be Ours, Mine, *Hila's* or Only me, and rows say so with a small tag whenever it differs from the project (an ink "Only me", "Mine" in your color, "Hila's" in hers). Theirs lands on their Today, under Waiting on you when it has no date. The rules live in `src/app/privacy.ts`.
 - **●** **Project icons**: 26 line icons or any emoji, shown on the project's tile in the bottom bar and on its folder.
 - **●** Works fully offline, with honest sync status. When a new version is published, a small "A new version is ready · Refresh" note appears.
 - **●** One-tap **export** (JSON) and import. Your data is yours.

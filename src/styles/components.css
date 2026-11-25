@@ -519,22 +519,64 @@
   }
 }
 
-.urgent {
+/* Row tags (ui/tags.tsx): Urgent, whose it is, who asked whom. One shape, one size. */
+.urgent,
+.vtag,
+.rtag {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   height: 22px;
-  padding: 0 9px 0 6px;
+  padding: 0 8px;
   border-radius: 999px;
-  background: var(--lemon);
   color: var(--ink);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.urgent {
+  gap: 3px;
+  padding-left: 6px;
+  background: var(--lemon);
 }
 
 .urgent .icon {
   --s: 14;
+}
+
+.vtag .icon {
+  --s: 12;
+}
+
+.vtag--private {
+  padding-left: 7px;
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* style = lineVars(owner.color) */
+.vtag--person {
+  background: var(--c-soft);
+}
+
+.vtag--ours {
+  padding-left: 7px;
+  background: var(--tile-2);
+}
+
+/* style = lineVars(other.color); Tasky's cursor, pointing the other way from a name tag */
+.rtag {
+  padding-left: 7px;
+  background: var(--c-soft);
+}
+
+.rtag svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  transform: scaleX(-1);
 }
 
 .tag {
@@ -1537,6 +1579,24 @@ html.is-dragging * {
   color: var(--ink);
 }
 
+/* An invitation, not a setting: e.g. "Ask your person" while on my own */
+.echip--ghost {
+  background: transparent;
+  border: 1.5px dashed var(--tile-2);
+  color: var(--text-2);
+}
+
+.echip--ghost.is-open {
+  border-color: transparent;
+}
+
+/* A chip's panel opens below the whole chip row, full width */
+.inline__chips > .panel {
+  order: 1;
+  flex: 1 0 100%;
+  margin-top: 2px;
+}
+
 .panel {
   margin-top: 10px;
   padding: 14px;
@@ -1572,6 +1632,30 @@ html.is-dragging * {
   font-size: 13px;
   line-height: 1.45;
   color: var(--text-3);
+}
+
+.panel__hint--first {
+  margin-top: 0;
+}
+
+.panel__cta {
+  margin-top: 14px;
+}
+
+.panel__invite {
+  margin-top: 8px;
+}
+
+/* A switch row inside a panel ("Needs my OK when done") */
+.optrow.optrow--panel {
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 4px 2px;
+}
+
+.optrow.optrow--panel .optrow__text {
+  font-size: 14.5px;
+  font-weight: 500;
 }
 
 .panel__clear {
@@ -2566,11 +2650,6 @@ html.is-dragging * {
   box-shadow: none;
 }
 
-.meta--req {
-  color: var(--text-2);
-  font-weight: 500;
-}
-
 /* Done, waiting for the asker's OK: a half-filled check */
 .row.is-pending .check::before {
   border-style: dashed;
@@ -2589,6 +2668,35 @@ html.is-dragging * {
   color: var(--text-2);
 }
 
-.okbar {
+/* OK / Not yet (RequestActions): under a row's text, or under the item's hero */
+.reqacts {
+  display: flex;
+  gap: 8px;
+}
+
+.reqacts .mini {
+  position: relative;
+}
+
+/* 44px to tap, 30px to see */
+.reqacts .mini::after {
+  content: '';
+  position: absolute;
+  inset: -7px -4px;
+}
+
+.row__acts {
+  margin-top: 8px;
+}
+
+.reqacts--page {
   margin-top: 18px;
+}
+
+.row:has(.row__acts) {
+  align-items: flex-start;
+}
+
+.row:has(.row__acts) .check {
+  margin-top: 0;
 }

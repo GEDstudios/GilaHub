@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { addDays, fromDateStr, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
 import { useAddAction } from '../addAction';
+import { AsksWidget } from '../components/Asks';
 import { ItemRow } from '../components/ItemRow';
 import { PairSheet } from '../components/PairSheet';
 import { QuickAdd } from '../components/QuickAdd';
@@ -57,7 +58,7 @@ function Strip({ color, num, label, onClick }: { color: LineColor; num: number; 
 
 export function Today() {
   const hub = useHub();
-  const { openSheet, toast } = useOverlays();
+  const { openSheet } = useOverlays();
   const ref = todayStr();
   const v = todayView(hub, ref);
   const chores = choresView(hub, ref);
@@ -65,7 +66,8 @@ export function Today() {
   const partner = hub.partner();
   const shopping = usePartnerShopping();
   const [earlierOpen, setEarlierOpen] = useState(false);
-  const due = v.today.length + v.earlier.length;
+  // Asks waiting on me count too, so the summary never says "nothing" above them.
+  const due = v.today.length + v.earlier.length + v.awaitingOk.length + v.asked.length;
   const dueProjects = [...new Set([...v.today, ...v.earlier].map((i) => i.listId))].map((id) => hub.list(id)!).filter(Boolean).slice(0, 3);
   const taskLists = hub.lists().filter((l) => l.kind !== 'shopping');
   const last = getPrefs().lastList;
@@ -73,7 +75,6 @@ export function Today() {
   const shopper = shopping ? hub.member(shopping.member) : undefined;
   // Ticked rows stay a moment (check, strike, fold) before they leave their group.
   const settle = useSettle(idOf);
-  const awaitingRows = settle.view('ok', v.awaitingOk);
   const todayRows = settle.view('today', v.today);
   const earlierRows = settle.view('earlier', v.earlier);
   // A day that just lost its last row stays until that row has settled.
@@ -143,45 +144,7 @@ export function Today() {
           </button>
         ) : null}
 
-        {awaitingRows.length ? (
-          <Section title="Waiting for your OK" count={v.awaitingOk.length}>
-            <ul className="rows">
-              {awaitingRows.map(({ row: i, settling }) => (
-                <ItemRow
-                  key={i.id}
-                  item={i}
-                  settling={settling}
-                  showList
-                  dateMode="none"
-                  trailing={
-                    <span className="catchup" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="mini mini--ink"
-                        onClick={() => {
-                          const undo = hub.confirm(i.id);
-                          toast('Confirmed. Thanks!', { action: { label: 'Undo', run: undo } });
-                        }}
-                      >
-                        OK
-                      </button>
-                      <button
-                        type="button"
-                        className="mini"
-                        onClick={() => {
-                          const undo = hub.sendBack(i.id);
-                          toast(`Sent back to ${hub.member(i.submittedBy)?.name ?? 'them'}`, { action: { label: 'Undo', run: undo } });
-                        }}
-                      >
-                        Not yet
-                      </button>
-                    </span>
-                  }
-                />
-              ))}
-            </ul>
-          </Section>
-        ) : null}
+        <AsksWidget v={v} settle={settle} />
 
         <Section title="Today" id="today">
           {todayRows.length ? (

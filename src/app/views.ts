@@ -1,5 +1,5 @@
 import type { Hub } from '../core/actions';
-import { addDays, diffDays, today as todayStr } from '../core/dates';
+import { addDays, diffDays, fromDateStr, today as todayStr } from '../core/dates';
 import type { Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
 import { categoryMeta, categoryOrder, type Flavor } from '../smart/categorize';
@@ -27,8 +27,9 @@ function memo<A extends unknown[], R>(fn: (hub: Hub, ...args: A) => R): (hub: Hu
 const byUrgentThenTime = (a: Item, b: Item) =>
   Number(!!b.urgent) - Number(!!a.urgent) || (a.dueTime ?? '99').localeCompare(b.dueTime ?? '99') || byOrder(a, b);
 
-/** Is this mine to do (or ours)? Partner's own things stay out of my Today. */
+/** Is this mine to do (or ours)? Partner's own things stay out of my Today, unless they asked me. */
 export function isForMe(hub: Hub, item: Item): boolean {
+  if (item.assignee === hub.meId) return true;
   const owner = hub.ownerOf(item);
   if (owner && owner !== hub.meId) return false;
   if (item.assignee === 'turns') return !item.turn || item.turn === hub.meId;
@@ -48,7 +49,17 @@ export interface TodayView {
   dueCount: number;
   /** My requests my partner says are done — waiting for my OK. */
   awaitingOk: Item[];
+  /** My partner's asks for me that aren't already in today/earlier: undated or later. */
+  asked: Item[];
+  /** What I asked my partner to do, still open. */
+  outgoing: Item[];
+  /** I did my partner's ask; waiting for their OK. */
+  waitingTheirOk: Item[];
+  /** My completions today (ticked things and repeating ones). */
+  doneToday: number;
 }
+
+const byDueThenTime = (a: Item, b: Item) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || byUrgentThenTime(a, b);
 
 export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const lists = new Map(hub.lists().map((l) => [l.id, l]));
@@ -61,9 +72,39 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const mine = open.filter((i) => isForMe(hub, i));
   const today = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
   const earlier = mine.filter((i) => i.due! < ref).sort((a, b) => a.due!.localeCompare(b.due!) || byUrgentThenTime(a, b));
+  // Requests between us: one-off things in task projects (not chores, not shopping).
+  const partnerId = hub.partner()?.id;
+  const items = hub.store.all('item');
+  const live = (i: Item) => {
+    const l = lists.get(i.listId);
+    return !!l && !i.done && !i.archived && !i.repeat && l.kind !== 'shopping' && l.kind !== 'chores';
+  };
+  const asked = partnerId
+    ? items
+        .filter(
+          (i) =>
+            live(i) &&
+            !i.submittedAt &&
+            isForMe(hub, i) &&
+            (i.requestedBy === partnerId || (i.owner === hub.meId && i.createdBy === partnerId && !i.requestedBy)) &&
+            !(i.due && i.due <= ref),
+        )
+        .sort(byDueThenTime)
+    : [];
+  const askedIds = new Set(asked.map((i) => i.id));
+  const outgoing = partnerId
+    ? items.filter((i) => live(i) && !i.submittedAt && i.requestedBy === hub.meId && i.assignee === partnerId).sort(byDueThenTime)
+    : [];
+  const waitingTheirOk = partnerId
+    ? items
+        .filter((i) => !i.done && !i.archived && lists.has(i.listId) && i.submittedAt && i.submittedBy === hub.meId && i.requestedBy === partnerId)
+        .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0))
+    : [];
+
   const end = addDays(ref, 7);
   const upcomingMap = new Map<string, Item[]>();
   for (const i of mine) {
+    if (lists.get(i.listId)?.kind === 'chores' || askedIds.has(i.id)) continue;
     if (i.due! > ref && i.due! <= end) {
       const arr = upcomingMap.get(i.due!) ?? [];
       arr.push(i);
@@ -110,12 +151,28 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     together,
     recent: recent.slice(0, 3),
     dueCount: today.length + earlier.length,
-    awaitingOk: hub.store
-      .all('item')
+    awaitingOk: items
       .filter((i) => i.submittedAt && !i.done && !i.archived && i.requestedBy === hub.meId && lists.has(i.listId))
       .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0)),
+    asked,
+    outgoing,
+    waitingTheirOk,
+    doneToday: doneOn(hub, ref),
   };
 });
+
+/** How many things I finished on `day`: ticked tasks plus repeating ones (their 'done' logs). */
+function doneOn(hub: Hub, day: string): number {
+  const from = fromDateStr(day).getTime();
+  const to = fromDateStr(addDays(day, 1)).getTime();
+  const within = (t: number | null | undefined) => !!t && t >= from && t < to;
+  let n = 0;
+  for (const i of hub.store.all('item')) {
+    if (i.done && i.doneBy === hub.meId && within(i.doneAt) && hub.list(i.listId)?.kind !== 'shopping') n++;
+  }
+  for (const l of hub.store.all('log')) if (l.kind === 'done' && l.by === hub.meId && within(l.at)) n++;
+  return n;
+}
 
 // ---------------------------------------------------------------- Shopping
 

@@ -52,9 +52,13 @@ export function PairSheet({ kind, onClose }: { kind: 'partner' | 'device'; onClo
   if (!rt.relay) {
     return (
       <Sheet onClose={onClose} title={title}>
-        <p className="sheet__lede">Pairing needs your Gila Hub relay, a free Cloudflare Worker you own. Until then, everything stays safely on this device.</p>
+        <p className="sheet__lede">
+          {kind === 'partner'
+            ? 'This copy of Gila Hub runs on this device only, so there’s no way to invite anyone yet.'
+            : 'This copy of Gila Hub runs on this device only, so there’s no way to add another device yet.'}
+        </p>
         <p className="hint">
-          Set it up once with <code>npm run deploy</code> (see the README). Then open the app from your hub’s address.
+          Pairing turns on once your Gila Hub relay is deployed (<code>npm run deploy</code>, see the README).
         </p>
         <button type="button" className="btn btn--quiet btn--block" style={{ marginTop: 20 }} onClick={onClose}>
           Got it

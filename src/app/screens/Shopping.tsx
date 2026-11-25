@@ -12,7 +12,9 @@ import { notifyMembers } from '../runtime';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { Avatar, Band, Check, Diamond, Empty, ListBullet, Section, Seg } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, ListBullet, Section, Seg } from '../ui/primitives';
+import { UrgentTag, VisTag } from '../ui/tags';
+import { visTagFor } from '../privacy';
 import { back } from '../router';
 import { useAddAction } from '../addAction';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
@@ -463,7 +465,7 @@ function ShopList({
                 <span className="num">{g.items.length}</span>
               </>
             ) : (
-              <Diamond />
+              <UrgentTag />
             )}
           </h2>
           <Sortable
@@ -524,9 +526,8 @@ function ShopRow({
 }) {
   const hub = useHub();
   const list = hub.list(item.listId);
-  const owner = hub.member(hub.ownerOf(item));
-  const vis = hub.visibilityOf(item);
-  const meta = [owner && vis === 'mine' ? `for ${owner.id === hub.meId ? 'me' : owner.name}` : null, vis === 'private' ? 'only me' : null, item.notes?.slice(0, 60) || null].filter(Boolean);
+  const vis = visTagFor(hub, item);
+  const note = item.notes?.slice(0, 60);
   return (
     <li
       ref={liRef}
@@ -541,18 +542,20 @@ function ShopRow({
           {item.title}
           {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
-        {meta.length ? (
+        {vis || note ? (
           <span className="row__meta">
-            {vis === 'private' ? <Icon name="lock" /> : null}
-            <span className="meta" dir="auto">
-              {meta.join(' · ')}
-            </span>
+            {vis ? <VisTag item={item} /> : null}
+            {note ? (
+              <span className="meta" dir="auto">
+                {note}
+              </span>
+            ) : null}
           </span>
         ) : null}
       </div>
       {showList || (item.urgent && !inUrgent) ? (
         <span className="row__trail">
-          {item.urgent && !inUrgent ? <Diamond /> : null}
+          {item.urgent && !inUrgent ? <UrgentTag /> : null}
           {showList ? <ListBullet list={list} size="xs" /> : null}
         </span>
       ) : null}

@@ -1,13 +1,15 @@
 import { useState, type ReactNode } from 'react';
-import type { ItemVisibility } from '../../core/actions';
 import { addDays, fromDateStr, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
 import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
 import { useHub } from '../context';
 import { use24h, usePrefs, weekStart } from '../prefs';
+import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { REMIND_OPTIONS } from '../reminders';
 import { Icon, type IconName } from '../ui/Icon';
-import { Avatar, Chip } from '../ui/primitives';
+import { useOverlays } from '../ui/overlays';
+import { Avatar, Chip, Switch } from '../ui/primitives';
+import { PairSheet } from './PairSheet';
 
 /** Everything the inline editor can change about an item. */
 export interface Draft {
@@ -22,14 +24,7 @@ export interface Draft {
   needsOk?: boolean;
 }
 
-/** "theirs" = Mine, but my partner's. */
-export type VisChoice = ItemVisibility | 'theirs';
-
 export type Field = 'when' | 'repeat' | 'remind' | 'who' | 'vis' | 'urgent';
-
-export const visLabel = (v: VisChoice, partner: string | undefined): string =>
-  v === 'ours' ? 'Ours' : v === 'mine' ? 'Mine' : v === 'private' ? 'Only me' : `${partner ?? 'Their'}’s`;
-export const VIS_ICON: Record<VisChoice, IconName> = { ours: 'ours', mine: 'mine', theirs: 'theirs', private: 'lock' };
 
 export const ruleShort = (r: RepeatRule) => describeRule(r, (n) => weekdayName(n)).replace(" after it's done", '');
 
@@ -70,6 +65,171 @@ export function useSummary() {
   };
 }
 
+/** One soft chip of the inline editor. `ghost` = a dashed invitation (e.g. while on my own). */
+export function EChip({
+  label,
+  icon,
+  set,
+  open,
+  onToggle,
+  disabled,
+  ghost,
+}: {
+  label: ReactNode;
+  icon: IconName;
+  set: boolean;
+  open: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+  ghost?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''}`}
+      onClick={onToggle}
+      aria-expanded={open}
+      disabled={disabled}
+    >
+      <Icon name={icon} className="icon--sm" />
+      <span dir="auto">{label}</span>
+    </button>
+  );
+}
+
+/**
+ * Who sees it: Ours, Mine, {P}'s or Only me, with one line on what that means.
+ * Renders its chip and, when open, its panel (panels sort after the chip row; see .inline__chips).
+ */
+export function VisChip({
+  value,
+  allowed,
+  onChange,
+  open,
+  onToggle,
+  disabled,
+}: {
+  value: VisChoice;
+  allowed: VisChoice[];
+  onChange: (v: VisChoice) => void;
+  open: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+}) {
+  const hub = useHub();
+  const { openSheet } = useOverlays();
+  const partner = hub.partner();
+  if (allowed.length < 2) return null;
+  const hint = visHint(value, partner?.name ?? null);
+  return (
+    <>
+      <EChip label={visLabel(value, partner?.name)} icon={VIS_ICON[value]} set={value !== allowed[0]} open={open} onToggle={onToggle} disabled={disabled} />
+      {open ? (
+        <Panel>
+          <Options value={value} options={allowed.map((v) => ({ value: v, label: visLabel(v, partner?.name), icon: VIS_ICON[v] }))} onPick={onChange} />
+          {hint ? <p className="panel__hint">{hint}</p> : null}
+          {!partner ? (
+            <button type="button" className="textbtn panel__invite" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
+              Invite your person
+            </button>
+          ) : null}
+        </Panel>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * Who does it. Paired: Either of us / Me / Ask {P} / Together (/ Take turns), and after
+ * asking, "Needs my OK when done". On my own: a ghost "Ask your person" that leads to pairing.
+ */
+export function WhoChip({
+  value,
+  turn,
+  needsOk,
+  repeating,
+  mode,
+  onChange,
+  open,
+  onToggle,
+  disabled,
+}: {
+  value: Assignee;
+  turn?: string | null;
+  needsOk: boolean;
+  repeating: boolean;
+  /** 'item': it already exists ("Asked Hila"); 'compose': it's being written ("Ask Hila"). */
+  mode: 'item' | 'compose';
+  onChange: (patch: { assignee?: Assignee; needsOk?: boolean }) => void;
+  open: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+}) {
+  const hub = useHub();
+  const { openSheet } = useOverlays();
+  const me = hub.me();
+  const partner = hub.partner();
+
+  if (!partner) {
+    return (
+      <>
+        <EChip label="Ask your person" icon="user" set={false} open={open} onToggle={onToggle} disabled={disabled} ghost />
+        {open ? (
+          <Panel>
+            <p className="panel__hint panel__hint--first">Hand things to your person, and ask for an OK when they’re done.</p>
+            <button type="button" className="btn btn--sm panel__cta" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
+              Bring them in
+            </button>
+          </Panel>
+        ) : null}
+      </>
+    );
+  }
+
+  const asking = value === partner.id;
+  const ask = repeating ? partner.name : mode === 'item' ? `Asked ${partner.name}` : `Ask ${partner.name}`;
+  const label = !value
+    ? 'Who'
+    : asking
+      ? `${ask}${needsOk && !repeating ? ' · needs OK' : ''}`
+      : value === 'turns'
+        ? `Turns · ${!turn || turn === hub.meId ? 'you' : partner.name} next`
+        : whoText(hub, value);
+  return (
+    <>
+      <EChip label={label} icon="user" set={!!value} open={open} onToggle={onToggle} disabled={disabled} />
+      {open ? (
+        <Panel>
+          <Options
+            value={value ?? 'either'}
+            onPick={(k) => {
+              const a = k === 'either' ? null : (k as Assignee);
+              onChange({ assignee: a });
+              if (a !== partner.id || repeating) onToggle();
+            }}
+            options={[
+              { value: 'either', label: 'Either of us' },
+              ...(me ? [{ value: me.id, label: <><Avatar member={me} size="xs" /> Me</> }] : []),
+              { value: partner.id, label: <><Avatar member={partner} size="xs" /> {repeating ? partner.name : `Ask ${partner.name}`}</> },
+              { value: 'both', label: 'Together' },
+              ...(repeating ? [{ value: 'turns', label: 'Take turns' }] : []),
+            ]}
+          />
+          {asking && !repeating ? (
+            <>
+              <div className="optrow optrow--panel">
+                <span className="optrow__text">Needs my OK when done</span>
+                <Switch on={needsOk} label="Needs my OK when done" onChange={(v) => onChange({ needsOk: v })} />
+              </div>
+              <p className="panel__hint">{partner.name} gets a notification.</p>
+            </>
+          ) : null}
+        </Panel>
+      ) : null}
+    </>
+  );
+}
+
 /**
  * Inline controls: a row of soft chips; tapping one opens its options right
  * below, in place. No forms, no stacked sheets.
@@ -82,6 +242,7 @@ export function InlineEditor({
   repeatFrom = 'schedule',
   readOnly,
   prompt = null,
+  turn,
   extras = [],
 }: {
   value: Draft;
@@ -91,39 +252,86 @@ export function InlineEditor({
   repeatFrom?: 'done' | 'schedule';
   readOnly?: boolean;
   prompt?: string | null;
+  /** For "turns": whose turn it is. */
+  turn?: string | null;
   /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores). */
   extras?: Array<{ key: string; label: ReactNode; icon: IconName; panel: (close: () => void) => ReactNode }>;
 }) {
-  const hub = useHub();
   const prefs = usePrefs();
   const h24 = use24h(prefs);
   const [open, setOpen] = useState<string | null>(null);
   const ref = todayStr();
   const toggle = (f: string) => setOpen(open === f ? null : f);
-  const partner = hub.partner();
-
   const chip = (f: string, label: ReactNode, icon: IconName, set: boolean) => (
-    <button
-      key={f}
-      type="button"
-      className={`echip ${set ? 'is-set' : ''} ${open === f ? 'is-open' : ''}`}
-      onClick={() => toggle(f)}
-      aria-expanded={open === f}
-      disabled={readOnly}
-    >
-      <Icon name={icon} className="icon--sm" />
-      <span>{label}</span>
-    </button>
+    <EChip key={f} label={label} icon={icon} set={set} open={open === f} onToggle={() => toggle(f)} disabled={readOnly} />
   );
 
-  const chips: ReactNode[] = extras.map((x) => chip(x.key, x.label, x.icon, true));
+  const chips: ReactNode[] = [];
+  for (const x of extras) {
+    chips.push(chip(x.key, x.label, x.icon, true));
+    if (open === x.key) chips.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
+  }
   for (const f of fields) {
-    if (f === 'when') chips.push(chip('when', value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date', 'calendar', !!value.due));
-    if (f === 'repeat') chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
-    if (f === 'remind') chips.push(chip('remind', remindText(value.remind) ?? 'Remind me', 'bell', value.remind !== null));
-    if (f === 'who' && partner)
-      chips.push(chip('who', `${whoText(hub, value.assignee)}${value.needsOk && value.assignee === partner.id ? ' · needs OK' : ''}`, 'user', !!value.assignee));
-    if (f === 'vis' && allowedVis.length > 1) chips.push(chip('vis', visLabel(value.visibility, partner?.name), VIS_ICON[value.visibility], value.visibility !== allowedVis[0]));
+    if (f === 'when') {
+      chips.push(chip('when', value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date', 'calendar', !!value.due));
+      if (open === 'when') chips.push(<WhenPanel key="when:panel" due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime })} />);
+    }
+    if (f === 'repeat') {
+      chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
+      if (open === 'repeat')
+        chips.push(
+          <RepeatPanel
+            key="repeat:panel"
+            rule={value.repeat}
+            defaultFrom={repeatFrom}
+            // Calendar repeats (set days, days of the month) decide the date; "every N" keeps yours.
+            onChange={(repeat) => onChange({ repeat, due: repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due })}
+          />,
+        );
+    }
+    if (f === 'remind') {
+      chips.push(chip('remind', remindText(value.remind) ?? 'Remind me', 'bell', value.remind !== null));
+      if (open === 'remind')
+        chips.push(
+          <Panel key="remind:panel">
+            <Options
+              value={value.remind === null ? 'none' : String(value.remind)}
+              options={[{ value: 'none', label: 'No reminder' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
+              onPick={(v) => {
+                onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due });
+                setOpen(null);
+              }}
+            />
+          </Panel>,
+        );
+    }
+    if (f === 'who')
+      chips.push(
+        <WhoChip
+          key="who"
+          value={value.assignee}
+          turn={turn}
+          needsOk={!!value.needsOk}
+          repeating={!!value.repeat}
+          mode="item"
+          onChange={onChange}
+          open={open === 'who'}
+          onToggle={() => toggle('who')}
+          disabled={readOnly}
+        />,
+      );
+    if (f === 'vis')
+      chips.push(
+        <VisChip
+          key="vis"
+          value={value.visibility}
+          allowed={allowedVis}
+          onChange={(visibility) => onChange({ visibility })}
+          open={open === 'vis'}
+          onToggle={() => toggle('vis')}
+          disabled={readOnly}
+        />,
+      );
     if (f === 'urgent')
       chips.push(
         <button
@@ -144,68 +352,9 @@ export function InlineEditor({
     <div className="inline">
       {prompt ? <p className="inline__prompt">{prompt}</p> : null}
       <div className="inline__chips">{chips}</div>
-      {extras.map((x) => (open === x.key ? <Panel key={x.key}>{x.panel(() => setOpen(null))}</Panel> : null))}
-      {open === 'when' ? <WhenPanel due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime })} /> : null}
-      {open === 'repeat' ? (
-        <RepeatPanel
-          rule={value.repeat}
-          defaultFrom={repeatFrom}
-          // Calendar repeats (set days, days of the month) decide the date; "every N" keeps yours.
-          onChange={(repeat) => onChange({ repeat, due: repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due })}
-        />
-      ) : null}
-      {open === 'remind' ? (
-        <Panel>
-          <Options
-            value={value.remind === null ? 'none' : String(value.remind)}
-            options={[{ value: 'none', label: 'No reminder' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
-            onPick={(v) => {
-              onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due });
-              setOpen(null);
-            }}
-          />
-        </Panel>
-      ) : null}
-      {open === 'who' ? (
-        <Panel>
-          <WhoOptions
-            value={value.assignee}
-            repeating={!!value.repeat}
-            onPick={(a) => {
-              onChange({ assignee: a });
-              if (a !== partner?.id) setOpen(null);
-            }}
-          />
-          {partner && value.assignee === partner.id && !value.repeat ? (
-            <label className="panel__toggle">
-              <input type="checkbox" checked={!!value.needsOk} onChange={(e) => onChange({ needsOk: e.target.checked })} />
-              <span>Needs my OK when done</span>
-            </label>
-          ) : null}
-        </Panel>
-      ) : null}
-      {open === 'vis' ? (
-        <Panel>
-          <Options
-            value={value.visibility}
-            options={allowedVis.map((v) => ({ value: v, label: visLabel(v, partner?.name), icon: VIS_ICON[v] }))}
-            onPick={(v) => onChange({ visibility: v as VisChoice })}
-          />
-          {visHint(value.visibility, partner?.name ?? 'your partner') ? <p className="panel__hint">{visHint(value.visibility, partner?.name ?? 'your partner')}</p> : null}
-        </Panel>
-      ) : null}
     </div>
   );
 }
-
-export const visHint = (v: VisChoice, partner: string): string | null =>
-  v === 'mine'
-    ? `Yours. ${partner} can see it and help.`
-    : v === 'theirs'
-      ? `${partner}’s. You can both see it.`
-      : v === 'private'
-        ? `Hidden from ${partner}. Encrypted.`
-        : null;
 
 export function Panel({ children }: { children: ReactNode }) {
   return <div className="panel">{children}</div>;
@@ -229,26 +378,6 @@ export function Options<T extends string>({
         </button>
       ))}
     </div>
-  );
-}
-
-function WhoOptions({ value, onPick, repeating }: { value: Assignee; onPick: (a: Assignee) => void; repeating: boolean }) {
-  const hub = useHub();
-  const me = hub.me();
-  const partner = hub.partner();
-  const key = value ?? 'either';
-  return (
-    <Options
-      value={key}
-      onPick={(k) => onPick(k === 'either' ? null : (k as Assignee))}
-      options={[
-        { value: 'either', label: 'Either of us' },
-        ...(me ? [{ value: me.id, label: <><Avatar member={me} size="xs" /> Me</> }] : []),
-        ...(partner ? [{ value: partner.id, label: <><Avatar member={partner} size="xs" /> {partner.name}</> }] : []),
-        { value: 'both', label: 'Together' },
-        ...(repeating && partner ? [{ value: 'turns', label: 'Take turns' }] : []),
-      ]}
-    />
   );
 }
 
