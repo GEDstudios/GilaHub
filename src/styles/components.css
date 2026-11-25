@@ -6,7 +6,7 @@
 
 .main {
   min-height: 100dvh;
-  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 120px + var(--float-h, 0px) + var(--tag-h, 0px));
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 120px + var(--float-h, 0px));
 }
 
 .column {
@@ -1057,8 +1057,9 @@ button.ccard:active {
 }
 
 /* A grip lifts at once, so the page must not scroll from it */
+/* A flick from a grip still scrolls the page; a short press lifts the row (Sortable.tsx). */
 [data-grip] {
-  touch-action: none;
+  touch-action: pan-y;
   cursor: grab;
 }
 
@@ -2491,8 +2492,9 @@ html.is-dragging * {
  *   snug   6–7: icons only; the active tab rises and shows its label
  *   dock   8 or more: Today and Projects stay put around a scrolling middle with edge fades
  * A soft pill marks the active tab (the sidebar's .navitem.is-on tile). Hold and slide to
- * scrub (TabBar.tsx): .is-scrubbing on the bar, .is-scrub on the tab under the finger, and
- * --d, each tab's distance from the finger in slots, swells the marks nearby.
+ * scrub (TabBar.tsx): .is-held on the bar for the whole gesture, .is-scrubbing while a tab is
+ * picked, .is-scrub on the tab under the finger, and --d, each tab's distance from the finger
+ * in slots, swells the marks nearby.
  */
 .tabbar {
   position: fixed;
@@ -2635,7 +2637,8 @@ html.is-dragging * {
   position: absolute;
   left: 50%;
   bottom: 6px;
-  max-width: calc(100% + 14px);
+  /* Only the active label shows, so it may spread over its quiet neighbours ("Home shopping"). */
+  max-width: calc(100% + 30px);
   padding: 0;
   font-size: 10.5px;
   opacity: 0;
@@ -2709,7 +2712,7 @@ html.is-dragging * {
   scroll-snap-align: center;
 }
 
-.tabbar.is-scrubbing .tabbar__scroll {
+.tabbar.is-held .tabbar__scroll {
   scroll-snap-type: none;
 }
 
@@ -2803,7 +2806,7 @@ html.is-dragging * {
     translate 200ms var(--spring);
 }
 
-:root:has(.tabbar.is-scrubbing:not(.tabbar--preview)) :is(.shopbar, .toasts, .ideatag) {
+:root:has(.tabbar.is-held:not(.tabbar--preview)) :is(.shopbar, .toasts) {
   opacity: 0;
   translate: 0 8px;
   pointer-events: none;
@@ -2813,8 +2816,8 @@ html.is-dragging * {
 .tabbar__hint {
   position: absolute;
   left: 50%;
-  /* Above whatever floats on the bar (the shopbar, the Ideas tag) */
-  bottom: calc(100% + 12px + var(--float-h, 0px) + var(--tag-h, 0px));
+  /* Above whatever floats on the bar (the shopbar) */
+  bottom: calc(100% + 12px + var(--float-h, 0px));
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -3069,13 +3072,13 @@ html.is-dragging * {
 
 /* ============================================================ Toast */
 
-/* Above the tab bar and whatever floats on it (the shopbar sets --float-h; the Ideas tag, --tag-h). */
+/* Above the tab bar and whatever floats on it (the shopbar sets --float-h). */
 .toasts {
   position: fixed;
   z-index: 80;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px + var(--float-h, 0px) + var(--tag-h, 0px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px + var(--float-h, 0px));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3452,29 +3455,23 @@ html.is-dragging * {
 }
 
 /* ============================================================ Ideas (components/Ideas.tsx)
- * The tag: a small paper label tucked behind the bar's top edge on the right, a punched
+ * The tag: a small paper label in the header, just right of the avatar (or Back), a punched
  * hole at its pointed end, a bulb and the open count. It leans -4deg and straightens with a
- * spring under the finger. It is not part of the bar (no scrub), sits under it (the bar's
- * frosted edge and the scrub bubble cover it), and steps aside for sheets and the keyboard.
- * While it shows, the shopbar, toasts and the hint rise by --tag-h.
+ * spring under the finger. Up there it covers no rows and needs no room from the bar, the
+ * shopbar or the toasts; it stays put over the compact header too, and steps aside for
+ * sheets and the keyboard. Its button is a full 44px square around the paper.
  */
 
-.has-ideatag {
-  --tag-h: 24px;
-}
-
 .ideatag {
-  /* How much of the paper hides behind the bar */
-  --tuck: 6px;
   position: fixed;
-  z-index: 39;
-  right: calc(max(12px, (100% - 460px) / 2) + 16px);
-  bottom: calc(var(--safe-bottom) + 10px + var(--tabbar-h));
+  /* Over the compact header (.miniband) */
+  z-index: 31;
+  top: calc(var(--safe-top) + 12px);
+  left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) + 50px);
   min-width: 44px;
-  /* Only the paper that shows takes taps (and 2px for its lean): never the rows scrolling just above it. */
-  height: 25px;
+  height: 44px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -3483,24 +3480,13 @@ html.is-dragging * {
     visibility 0s;
 }
 
-/*
- * No bar here (Settings): the tag moves to the empty top-right of the header, whole. Down at
- * the bottom right it would sit on the page's column of switches and grips.
- */
-.no-tabbar .ideatag {
-  --tuck: 0px;
-  z-index: 31;
-  top: calc(var(--safe-top) + 12px);
-  bottom: auto;
-}
-
-.no-tabbar.has-ideatag {
-  --tag-h: 0px;
+/* The compact header's title keeps clear of it. */
+html:has(.ideatag) .miniband {
+  padding-inline: 112px;
 }
 
 .ideatag__body {
   position: relative;
-  margin-bottom: calc(var(--tuck) * -1);
   transform: rotate(-4deg);
   transform-origin: 30% 100%;
   filter: drop-shadow(0 0 0.6px rgb(10 10 4 / 0.4)) drop-shadow(0 3px 6px rgb(10 10 4 / 0.12));
@@ -3516,8 +3502,8 @@ html.is-dragging * {
   display: flex;
   align-items: center;
   gap: 3px;
-  height: calc(23px + var(--tuck));
-  padding: 0 9px var(--tuck) 18px;
+  height: 23px;
+  padding: 0 9px 0 18px;
   background: var(--card);
   color: var(--text);
   font-size: 13px;
@@ -3578,13 +3564,11 @@ html:has(.sheet) .ideatag {
   }
 }
 
-/* Desktop: no bar; the tag hangs in the corner, whole */
+/* Desktop: the tag hangs in the corner */
 @media (min-width: 960px) {
-  .has-ideatag {
-    --tag-h: 0px;
-  }
   .ideatag {
-    --tuck: 0px;
+    top: auto;
+    left: auto;
     right: 28px;
     bottom: 22px;
   }

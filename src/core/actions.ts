@@ -116,7 +116,7 @@ export class Hub {
         kind: input.kind,
         flavor: input.kind === 'shopping' ? (input.flavor ?? 'grocery') : undefined,
         color: input.color ?? this.freshColor(),
-        icon: input.icon ?? suggestIcon(input.name, input.kind, input.flavor, last?.icon),
+        icon: input.icon ?? suggestIcon(input.name, input.kind, input.flavor, last?.icon, this.iconsInUse()),
         owner,
         visibility,
         order: keyBetween(last?.order ?? null, null),
@@ -142,12 +142,26 @@ export class Hub {
     );
   }
 
-  /** Projects started from a template before they came with icons get the template's icon (once per device). */
-  fillTemplateIcons(): void {
+  /** The icons projects have, for a new one to differ from. */
+  iconsInUse(): Set<string> {
+    return new Set(this.lists().flatMap((l) => (l.icon ? [l.icon] : [])));
+  }
+
+  /**
+   * Projects from before they came with icons get one (once per device): a template's, else
+   * one from the name. Every phone works it out the same way, over the projects both of us
+   * see, so both write the same icon.
+   */
+  fillIcons(): void {
     this.store.batch(() => {
+      const taken = new Set<string>();
       for (const l of this.lists()) {
-        const t = !l.icon && PROJECT_TEMPLATES.find((x) => x.name === l.name && x.kind === l.kind);
-        if (t && t.icon) this.store.mutate('list', l.id, { icon: t.icon });
+        let icon = l.icon;
+        if (!icon) {
+          icon = PROJECT_TEMPLATES.find((x) => x.name === l.name && x.kind === l.kind)?.icon ?? suggestIcon(l.name, l.kind, l.flavor, undefined, taken);
+          this.store.mutate('list', l.id, { icon });
+        }
+        if (l.visibility !== 'private') taken.add(icon);
       }
     });
   }
@@ -816,7 +830,7 @@ export class Hub {
   }
 
   reopenIdea(id: string): void {
-    if (this.idea(id)) this.store.mutate('idea', id, { resolvedAt: null, resolvedBy: null });
+    if (this.idea(id)) this.store.mutate('idea', id, { resolvedAt: null, resolvedBy: null, reopenedAt: Date.now(), reopenedBy: this.meId });
   }
 
   deleteIdea(id: string): Undo {
@@ -984,7 +998,8 @@ export interface ProjectTemplate {
 export const PROJECT_TEMPLATES: ProjectTemplate[] = [
   { key: 'groceries', name: 'Groceries', icon: 'i:cart', kind: 'shopping', flavor: 'grocery', blurb: 'Sorted by aisle, for both of you' },
   { key: 'home', name: 'Home shopping', icon: 'i:bag', kind: 'shopping', flavor: 'home', blurb: 'Bulbs, towels, a new pan' },
-  { key: 'chores', name: 'Chores', icon: 'i:broom', kind: 'chores', blurb: 'Things that repeat, shared fairly' },
+  // Not "Chores": that's the tab that gathers every chores project.
+  { key: 'chores', name: 'Housework', icon: 'i:broom', kind: 'chores', blurb: 'Things that repeat, shared fairly' },
   { key: 'todo', name: 'To do', icon: 'i:lines', kind: 'tasks', blurb: 'Everything else, with dates and steps' },
   { key: 'trip', name: 'Next trip', icon: 'i:suitcase', kind: 'tasks', blurb: 'Plans and packing' },
   { key: 'gifts', name: 'Gift ideas', icon: 'i:gift', kind: 'tasks', visibility: 'private', blurb: 'Only you can see it' },

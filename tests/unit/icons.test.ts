@@ -32,9 +32,9 @@ describe('Gila Duo glyphs', () => {
 });
 
 describe('project icons', () => {
-  it('offers 32 distinct icons that all exist', () => {
-    expect(PROJECT_ICONS).toHaveLength(32);
-    expect(new Set(PROJECT_ICONS).size).toBe(32);
+  it('offers 33 distinct icons that all exist (the last, the folder, is "No icon")', () => {
+    expect(PROJECT_ICONS).toHaveLength(33);
+    expect(new Set(PROJECT_ICONS).size).toBe(33);
     for (const n of PROJECT_ICONS) expect(GLYPHS[n], n).toBeDefined();
   });
 
@@ -69,8 +69,10 @@ describe('new project icons', () => {
     expect(suggestIcon('Apartment', 'tasks')).toBe('i:home');
     expect(suggestIcon('Stuff', 'shopping', 'home')).toBe('i:bag');
     expect(suggestIcon('Stuff', 'chores')).toBe('i:broom');
-    // Nothing to go on: the folder.
-    expect(suggestIcon('Misc', 'tasks')).toBe('');
+    // Nothing to go on: a plain mark, the same every time, and one nobody else has.
+    expect(parseGlyph(suggestIcon('Misc', 'tasks'))?.kind).toBe('icon');
+    expect(suggestIcon('Misc', 'tasks')).toBe(suggestIcon('misc', 'tasks'));
+    expect(suggestIcon('Misc', 'tasks', undefined, undefined, new Set([suggestIcon('Misc', 'tasks')]))).not.toBe(suggestIcon('Misc', 'tasks'));
     const all = ['Groceries', 'Home shopping', 'Chores', 'To do', 'Next trip', 'Gift ideas', 'Garden', 'Wedding', 'Car', 'Books', 'Recipes', 'Gym', 'Movies', 'Work', 'Budget', 'Baby', 'Dog', 'Party', 'Course', 'Doctor', 'Fix it', 'Coffee', 'Music'];
     for (const n of all) {
       const g = parseGlyph(suggestIcon(n, 'tasks'));
@@ -90,12 +92,22 @@ describe('new project icons', () => {
     }
   });
 
-  it('projects from a template before icons came get the template icon', async () => {
-    const hub = new Hub(await Store.load(new MemoryPersistence(), 'dev', ['h', 'p:guy']), 'guy');
-    const a = hub.createList({ name: 'Groceries', kind: 'shopping', icon: '' });
-    const b = hub.createList({ name: 'Groceries', kind: 'tasks', icon: '' });
-    hub.fillTemplateIcons();
-    expect(hub.list(a)?.icon).toBe('i:cart');
-    expect(hub.list(b)?.icon).toBe('');
+  it('projects from before icons came get one, the same on both phones; a picked one stays', async () => {
+    const make = async () => {
+      const hub = new Hub(await Store.load(new MemoryPersistence(), 'dev', ['h', 'p:guy']), 'guy');
+      const ids = ['Groceries', 'Errands', 'Weekend', 'Admin', 'Dana', 'Misc', 'Summer'].map((name, i) => hub.createList({ name, kind: i ? 'tasks' : 'shopping', icon: '', id: `l${i}` }));
+      hub.createList({ name: 'Plain', kind: 'tasks', icon: 'i:folder', id: 'lp' });
+      hub.fillIcons();
+      return { hub, ids };
+    };
+    const a = await make();
+    const b = await make();
+    const icons = a.ids.map((id) => a.hub.list(id)?.icon);
+    expect(icons[0]).toBe('i:cart');
+    expect(icons).toEqual(b.ids.map((id) => b.hub.list(id)?.icon));
+    // Six names that say nothing: six different marks, no folders.
+    expect(new Set(icons.slice(1)).size).toBe(6);
+    for (const i of icons) expect(parseGlyph(i)?.kind).toBe('icon');
+    expect(a.hub.list('lp')?.icon).toBe('i:folder');
   });
 });

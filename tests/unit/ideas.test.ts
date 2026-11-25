@@ -146,16 +146,38 @@ describe('Ideas: unseen and copy', () => {
     const { guy, hila } = await couple();
     const mine = guy.addIdea('Mine')!;
     const seen = Date.now();
-    expect(ideasUnseen(guy, 0)).toBe(false);
+    expect(ideasUnseen(guy, 0)).toBeNull();
     hila.addIdea('Hers');
     sync(guy, hila);
-    expect(ideasUnseen(guy, seen)).toBe(true);
+    expect(ideasUnseen(guy, seen)).toBe('new');
     const later = Date.now();
-    expect(ideasUnseen(guy, later)).toBe(false);
+    expect(ideasUnseen(guy, later)).toBeNull();
     hila.editIdea(mine, 'Mine, better');
     sync(guy, hila);
-    expect(ideasUnseen(guy, later)).toBe(true);
-    expect(ideasUnseen(hila, later)).toBe(false);
+    expect(ideasUnseen(guy, later)).toBe('new');
+    expect(ideasUnseen(hila, later)).toBeNull();
+  });
+
+  it('tells me when my partner resolves or reopens one of mine, not one of theirs', async () => {
+    const { guy, hila } = await couple();
+    const mine = guy.addIdea('Mine')!;
+    const hers = hila.addIdea('Hers')!;
+    sync(guy, hila);
+    const seen = Date.now() + 1;
+    await new Promise((r) => setTimeout(r, 5));
+    hila.resolveIdea(hers);
+    sync(guy, hila);
+    expect(ideasUnseen(guy, seen)).toBeNull();
+    hila.resolveIdea(mine);
+    sync(guy, hila);
+    expect(ideasUnseen(guy, seen)).toBe('resolved');
+    const later = Date.now() + 1;
+    await new Promise((r) => setTimeout(r, 5));
+    hila.reopenIdea(mine);
+    sync(guy, hila);
+    expect(ideasUnseen(guy, later)).toBe('reopened');
+    expect(guy.idea(mine)?.reopenedBy).toBe('hila');
+    expect(ideasUnseen(hila, later)).toBeNull();
   });
 
   it('copies the open ideas as a Markdown list with who wrote each', async () => {

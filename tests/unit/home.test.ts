@@ -15,6 +15,7 @@ import {
   MAX_HOME_PROJECTS,
   pinnedProjects,
   reorderHome,
+  resetHome,
   setHome,
   showHome,
   slotTitle,
@@ -67,8 +68,8 @@ describe('home layout', () => {
     expect(homeOf(hub)).toEqual(DEFAULT_HOME);
     expect(isDefaultHome(hub)).toBe(true);
     expect(keys(visibleHome(hub))).toEqual(['today', 'week', 'upcoming']);
-    // The tray offers only what could show: To buy and Chores ready, never asks or partner.
-    expect(hiddenWidgets(hub)).toEqual(['shop', 'chores']);
+    // The tray offers only what could show: To buy, never asks, partner or their chores.
+    expect(hiddenWidgets(hub)).toEqual(['shop']);
   });
 
   it('shows the whole default page once paired', async () => {
@@ -129,6 +130,33 @@ describe('home layout', () => {
     hub.deleteList(c.id);
     hideHome(hub, 'partner');
     expect((hub.me()?.home ?? []).some((s) => s.key === `l:${c.id}`)).toBe(false);
+  });
+
+  it('a project pinned into an archived one’s slot keeps it when that one comes back', async () => {
+    const hub = await solo();
+    const home = hub.createList({ name: 'Home shopping', kind: 'shopping', flavor: 'home' });
+    const [a, b, c] = hub.lists();
+    for (const l of [a, b, c]) showHome(hub, `l:${l.id}`);
+    hub.updateList(c.id, { archived: true });
+    expect(showHome(hub, `l:${home}`)).toBe(true);
+    hub.updateList(c.id, { archived: false });
+    expect(pinnedProjects(hub)).toEqual([a.id, b.id, home]);
+  });
+
+  it('"Back to the default" lets archived pins go too; Undo brings back what was stored', async () => {
+    const hub = await solo();
+    const [a] = hub.lists();
+    showHome(hub, `l:${a.id}`);
+    hideHome(hub, 'week');
+    hub.updateList(a.id, { archived: true });
+    const undo = resetHome(hub);
+    hub.updateList(a.id, { archived: false });
+    expect(isDefaultHome(hub)).toBe(true);
+    expect(pinnedProjects(hub)).toEqual([]);
+    hub.updateList(a.id, { archived: true });
+    undo();
+    hub.updateList(a.id, { archived: false });
+    expect(pinnedProjects(hub)).toEqual([a.id]);
   });
 
   it("merges a widget I've never seen in after its predecessor, at its default", async () => {
@@ -255,7 +283,7 @@ describe('home blocks', () => {
 
   it('the chores strip never repeats chores Today already lists, and the Chores widget changes nothing then', async () => {
     const hub = await solo();
-    const chores = listNamed(hub, 'Chores').id;
+    const chores = listNamed(hub, 'Housework').id;
     const start = addDays(today(), -3);
     for (const title of ['Dishes', 'Water plants']) hub.addItem(chores, { title, repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' }, due: start });
     const v = todayView(hub, today());
@@ -264,6 +292,20 @@ describe('home blocks', () => {
     expect(weekBands(hub, v, c).map((b) => b.key)).not.toContain('chores');
     showHome(hub, 'chores');
     expect(weekBands(hub, todayView(hub, today()), c).map((b) => b.key)).not.toContain('chores');
+  });
+
+  it('paired, the chores block holds my partner’s ready chores and says whose', async () => {
+    const { guy } = await couple();
+    const chores = listNamed(guy, 'Housework').id;
+    guy.addItem(chores, { title: 'Bins', assignee: 'hila', repeat: { type: 'interval', every: 1, unit: 'week', from: 'done' }, due: today() });
+    guy.addItem(chores, { title: 'Dishes', repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' }, due: today() });
+    const v = todayView(guy, today());
+    const c = choresView(guy, today());
+    expect(v.today.map((i) => i.title)).toEqual(['Dishes']);
+    expect(hiddenWidgets(guy)).toContain('chores');
+    expect(slotTitle(guy, 'chores')).toBe('Hila’s chores');
+    expect(weekBands(guy, v, c).find((b) => b.key === 'chores')?.label).toBe('chore ready for Hila');
+    expect(homePreview('chores', guy, v, c).text).toBe('1 ready for Hila');
   });
 
   it('coming up flattens the week ahead, and previews say what each block holds', async () => {

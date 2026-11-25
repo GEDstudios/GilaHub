@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { today as todayStr } from '../../core/dates';
 import { useHub } from '../context';
 import {
-  DEFAULT_HOME,
   hiddenWidgets,
   hideHome,
-  homeOf,
   homePreview,
   isDefaultHome,
   isWidget,
@@ -14,7 +12,7 @@ import {
   pinnedProjects,
   projectKey,
   reorderHome,
-  setHome,
+  resetHome,
   showHome,
   slotTitle,
   summaryOf,
@@ -77,10 +75,9 @@ export function HomeEditor() {
   }
 
   const reset = () => {
-    const before = homeOf(hub);
-    setHome(hub, DEFAULT_HOME);
+    const undo = resetHome(hub);
     setPanel(false);
-    toast('Today is back to the default', { action: { label: 'Undo', run: () => setHome(hub, before) } });
+    toast('Today is back to the default', { action: { label: 'Undo', run: undo } });
   };
 
   return (

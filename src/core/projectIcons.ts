@@ -34,18 +34,32 @@ const BY_WORD: Array<[RegExp, string[]]> = [
   [/fix|repair|diy|tool|תיקונ/, ['wrench']],
 ];
 
-/** By kind, when the name says nothing; plain task projects keep the folder. */
+/** By kind, when the name says nothing. */
 const BY_KIND: Partial<Record<ListKind | 'home', string[]>> = {
   shopping: ['cart', 'basket'],
   home: ['bag', 'basket'],
   chores: ['broom', 'sparkle'],
 };
 
-/** "i:<name>" for a new project called `name`, or '' (the folder). Avoids the icon its neighbour has. */
-export function suggestIcon(name: string, kind: ListKind, flavor?: ShoppingFlavor, neighbour?: string): string {
+/** Neither says anything: plain marks, so a bar of such projects isn't a row of folders. */
+const PLAIN = ['star', 'leaf', 'bell', 'music', 'book', 'coffee', 'heart', 'calendar', 'plant', 'film'];
+
+const hash = (s: string): number => {
+  let h = 0;
+  for (const c of s) h = (h * 31 + c.codePointAt(0)!) >>> 0;
+  return h;
+};
+
+/**
+ * "i:<name>" for a project called `name`: from its words, else its kind, else a plain mark
+ * that no project in `taken` has, starting from one picked by the name (so every phone picks
+ * the same one). Avoids the icon its neighbour has.
+ */
+export function suggestIcon(name: string, kind: ListKind, flavor?: ShoppingFlavor, neighbour?: string, taken: ReadonlySet<string> = new Set()): string {
   const n = fold(name);
   const ideas = BY_WORD.find(([re]) => re.test(n))?.[1] ?? BY_KIND[kind === 'shopping' && flavor === 'home' ? 'home' : kind];
-  if (!ideas) return '';
-  const pick = ideas.find((i) => `i:${i}` !== neighbour) ?? ideas[0];
-  return `i:${pick}`;
+  if (ideas) return `i:${ideas.find((i) => `i:${i}` !== neighbour) ?? ideas[0]}`;
+  const start = hash(n);
+  const free = PLAIN.map((_, k) => `i:${PLAIN[(start + k) % PLAIN.length]}`).find((i) => i !== neighbour && !taken.has(i));
+  return free ?? `i:${PLAIN[start % PLAIN.length]}`;
 }

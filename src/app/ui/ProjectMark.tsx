@@ -37,7 +37,14 @@ export const PROJECT_ICONS: IconName[] = [
   'star',
   'wrench',
   'bell',
+  'folder',
 ];
+
+/** "No icon", picked: the plain folder. (An empty icon is one not picked yet: Hub.fillIcons.) */
+export const PLAIN_FOLDER = 'i:folder';
+
+/** Does a folder card show this glyph? Not the plain folder: the card already is one. */
+export const showsGlyph = (icon: string | undefined | null): boolean => !!parseGlyph(icon) && icon !== PLAIN_FOLDER;
 
 export type Glyph = { kind: 'icon'; name: IconName } | { kind: 'emoji'; text: string } | null;
 

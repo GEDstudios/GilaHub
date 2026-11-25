@@ -30,7 +30,10 @@
  *   <button data-grip ref={s.gripRef} {...s.gripProps} aria-label="Reorder Milk">.
  *
  * Starting a drag
- *   - a grip ([data-grip]): pointer, after 3px, no delay (the grip is touch-action:none)
+ *   - a grip ([data-grip]), mouse or pen: after 3px, no delay
+ *   - a grip, touch: a 120ms press within 6px. A flick that starts on a grip scrolls the page
+ *     (the grip is touch-action:pan-y), since Settings' grips run down the right edge, where a
+ *     right thumb scrolls; once it lifts, the drag stops the page from panning.
  *   - touch on the row body: a 320ms long-press within 6px; moving first scrolls the page
  *     (shorter would catch an unhurried tap, ~250ms, and lift the row instead of opening it)
  *   - mouse on the row body: after 4px
@@ -131,13 +134,13 @@ function bodyPress(target: EventTarget | null, item: EventTarget | null): boolea
   return !hit || hit === item || hit.hasAttribute('data-drag') || !(item instanceof Element && item.contains(hit));
 }
 
-/** A grip: pointer down inside [data-grip], starts after 3px. */
+/** A grip, with a mouse or pen: pointer down inside [data-grip], starts after 3px. (Touch: RowTouchSensor.) */
 class GripSensor extends PointerSensor {
   static activators = [
     {
       eventName: 'onPointerDown' as const,
       handler: ({ nativeEvent: e }: ReactPointerEvent, { onActivation }: PointerSensorOptions) => {
-        if (!e.isPrimary || e.button !== 0 || !inGrip(e.target)) return false;
+        if (!e.isPrimary || e.button !== 0 || e.pointerType === 'touch' || !inGrip(e.target)) return false;
         onActivation?.({ event: e });
         return true;
       },
@@ -145,14 +148,24 @@ class GripSensor extends PointerSensor {
   ];
 }
 
-/** A long-press on the row body (touch). */
+/** On a grip, a touch lifts after this short press; moving sooner is a scroll. */
+const GRIP_TOUCH = { delay: 120, tolerance: 6 };
+
+/**
+ * Touch: a long-press on the row body, or a short press on its grip. One sensor for both, since
+ * an item takes one touchstart listener.
+ */
 class RowTouchSensor extends TouchSensor {
+  constructor(props: ConstructorParameters<typeof TouchSensor>[0]) {
+    super(inGrip(props.event.target) ? { ...props, options: { ...props.options, activationConstraint: GRIP_TOUCH } } : props);
+  }
+
   static activators = [
     {
       eventName: 'onTouchStart' as const,
       handler: (ev: ReactTouchEvent, { onActivation }: TouchSensorOptions) => {
         const e = ev.nativeEvent;
-        if (e.touches.length > 1 || !bodyPress(e.target, ev.currentTarget)) return false;
+        if (e.touches.length > 1 || !(inGrip(e.target) || bodyPress(e.target, ev.currentTarget))) return false;
         onActivation?.({ event: e });
         return true;
       },

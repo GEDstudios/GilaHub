@@ -49,7 +49,7 @@ export function useBarScrub({
   onPick: (t: TabDef) => void;
   /** Any finger on the bar (the one-time hint leaves). */
   onTouch?: () => void;
-}): { scrubKey: string | null; navProps: HTMLAttributes<HTMLElement>; bubble: ReactNode } {
+}): { scrubKey: string | null; held: boolean; navProps: HTMLAttributes<HTMLElement>; bubble: ReactNode } {
   const [scrub, setScrub] = useState<{ key: string | null } | null>(null);
   const bubbleRef = useRef<HTMLSpanElement>(null);
   const g = useRef<Gesture | null>(null);
@@ -220,6 +220,8 @@ export function useBarScrub({
 
   return {
     scrubKey: scrub?.key ?? null,
+    // Held for the whole gesture, the "Let go to cancel" part too (scrubKey is null there).
+    held: scrub !== null,
     navProps: {
       onPointerDown,
       onPointerMove,
@@ -262,7 +264,7 @@ export function TabBar() {
 
   const navRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { scrubKey, navProps, bubble } = useBarScrub({
+  const { scrubKey, held, navProps, bubble } = useBarScrub({
     tabs,
     navRef,
     scrollRef,
@@ -318,6 +320,7 @@ export function TabBar() {
       tabs={tabs}
       activeKey={on}
       scrubKey={scrubKey}
+      held={held}
       live={shopping ? new Set(['shop']) : undefined}
       navRef={navRef}
       scrollRef={scrollRef}

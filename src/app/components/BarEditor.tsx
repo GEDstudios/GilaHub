@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { today as todayStr } from '../../core/dates';
 import { useHub } from '../context';
-import { barDensity, COMFY_TABS, DEFAULT_PINS, isDefaultPins, pinOptions, pinsOf, setPins, type TabDef } from '../tabs';
+import { barDensity, COMFY_TABS, coveredByTab, isDefaultPins, pinOptions, pinsOf, resetPins, setPins, type TabDef } from '../tabs';
 import { useFlip, replay } from '../ui/flip';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { choresView, openCount, todayView } from '../views';
+import { choresView, projectCount, todayView } from '../views';
 import { Arranger, type ArrangerRow, type ArrangerToken } from './Arranger';
 import { useBarScrub } from './TabBar';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
@@ -81,10 +81,8 @@ export function BarEditor() {
   const subOf = (k: string): string | undefined => {
     if (k === 'shop') return toBuy ? `${toBuy} to buy` : 'Nothing to buy';
     if (k === 'chores') return hub.isAway() ? 'Paused while you’re away' : ready ? `${ready} ready` : 'All fresh';
-    if (k.startsWith('l:')) {
-      const n = openCount(hub, k.slice(2));
-      return n ? `${n} open` : 'Nothing open';
-    }
+    const list = k.startsWith('l:') ? hub.list(k.slice(2)) : undefined;
+    if (list) return projectCount(hub, list).text;
     return undefined;
   };
 
@@ -96,7 +94,7 @@ export function BarEditor() {
     });
 
   const tokens: ArrangerToken[] = opts
-    .filter((o) => !pins.includes(o.key))
+    .filter((o) => !pins.includes(o.key) && !(o.key.startsWith('l:') && coveredByTab(hub, o.key.slice(2), pins)))
     .map((o) => ({ key: o.key, label: o.label, mark: <TabMark t={o} />, onClick: () => save([...pins, o.key]) }));
 
   /** Tap a slot in the preview, or pick it by holding and sliding: its row comes into view and flashes. */
@@ -165,7 +163,7 @@ export function BarEditor() {
             ? undefined
             : {
                 label: 'Back to the default',
-                run: () => save([...DEFAULT_PINS], 'The bar is back to the default'),
+                run: () => toast('The bar is back to the default', { action: { label: 'Undo', run: resetPins(hub) } }),
               }
         }
       />

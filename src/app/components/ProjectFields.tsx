@@ -3,7 +3,7 @@ import type { LineColor, ListKind, ShoppingFlavor, Visibility } from '../../core
 import { useHub } from '../context';
 import { LIST_VIS, visHint, visLabel, VIS_ICON } from '../privacy';
 import { Icon, type IconName } from '../ui/Icon';
-import { parseGlyph } from '../ui/ProjectMark';
+import { parseGlyph, showsGlyph } from '../ui/ProjectMark';
 import { lineVars } from '../ui/primitives';
 import { EChip, Options, Panel } from './editors';
 import { IconPicker } from './IconPicker';
@@ -38,7 +38,7 @@ export interface ProjectLook {
 const KIND: Record<ListKind, { label: string; icon: IconName }> = {
   tasks: { label: 'Tasks', icon: 'lines' },
   shopping: { label: 'Shopping', icon: 'basket' },
-  chores: { label: 'Chores', icon: 'sparkle' },
+  chores: { label: 'Chores', icon: 'broom' },
 };
 
 type Field = 'kind' | 'color' | 'icon' | 'vis';
@@ -105,7 +105,7 @@ export function ProjectFields({
           label="Icon"
           icon={glyph?.kind === 'icon' ? glyph.name : 'folder'}
           lead={glyph?.kind === 'emoji' ? <span aria-hidden="true">{glyph.text}</span> : undefined}
-          set={!!glyph}
+          set={showsGlyph(value.icon)}
           open={open === 'icon'}
           onToggle={() => toggle('icon')}
         />

@@ -1,4 +1,5 @@
 import type { Hub } from '../core/actions';
+import { fold } from '../smart/normalize';
 import type { LineColor } from '../core/model';
 import type { Route } from './router';
 import type { IconName } from './ui/Icon';
@@ -37,12 +38,25 @@ export function barDensity(n: number): BarDensity {
 }
 
 export function pinOptions(hub: Hub): TabDef[] {
+  const lists = hub.lists();
+  // A project called "Chores" next to the Chores tab: the tab says it gathers them all.
+  const label = (name: string) => (lists.some((l) => fold(l.name) === fold(name)) ? `All ${name.toLowerCase()}` : name);
   return [
-    { key: 'shop', label: 'Shopping', path: '/shop', icon: 'basket' },
-    { key: 'chores', label: 'Chores', path: '/chores', icon: 'sparkle' },
+    { key: 'shop', label: label('Shopping'), path: '/shop', icon: 'basket' },
+    { key: 'chores', label: label('Chores'), path: '/chores', icon: 'broom' },
     { key: 'search', label: 'Search', path: '/search', icon: 'search' },
-    ...hub.lists().map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
+    ...lists.map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
+}
+
+/**
+ * A project the Shopping or Chores tab already shows: the only one of its kind, with that tab
+ * in the bar. The bar's tray and the sidebar don't offer it a second time (it stays a project).
+ */
+export function coveredByTab(hub: Hub, listId: string, pins: readonly string[] = pinsOf(hub)): boolean {
+  const kind = hub.list(listId)?.kind;
+  const tab = kind === 'shopping' ? 'shop' : kind === 'chores' ? 'chores' : null;
+  return !!tab && pins.includes(tab) && hub.lists().filter((l) => l.kind === kind).length === 1;
 }
 
 /** Known keys only, each once, in order, at most MAX_PINS (pure, for tests). */
@@ -95,6 +109,13 @@ const dormantKey = (hub: Hub) => (k: string) => k.startsWith('l:') && hub.listDo
 export function setPins(hub: Hub, pins: string[]): void {
   const raw = (hub.me()?.tabs ?? []).filter((k): k is string => typeof k === 'string');
   hub.upsertMember(hub.meId, { tabs: keepDormant(raw, cleanPins(pins, validKeys(hub)), (k) => k, dormantKey(hub)) });
+}
+
+/** "Back to the default": really the default, archived pins and all. Undo puts back what was stored. */
+export function resetPins(hub: Hub): () => void {
+  const raw = hub.me()?.tabs;
+  hub.upsertMember(hub.meId, { tabs: [...DEFAULT_PINS] });
+  return () => hub.upsertMember(hub.meId, { tabs: raw });
 }
 
 /** Pin or unpin; returns whether it is pinned now. New pins go last, just before Projects. */

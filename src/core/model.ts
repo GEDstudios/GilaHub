@@ -217,6 +217,9 @@ export interface Idea {
   editedAt?: number | null;
   resolvedAt?: number | null;
   resolvedBy?: string | null;
+  /** Set when someone brought a resolved one back (its author hears about it). */
+  reopenedAt?: number | null;
+  reopenedBy?: string | null;
   deleted?: boolean;
 }
 

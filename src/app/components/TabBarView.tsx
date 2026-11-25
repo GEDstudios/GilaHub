@@ -26,6 +26,7 @@ export function TabBarView({
   tabs,
   activeKey,
   scrubKey = null,
+  held = false,
   preview = false,
   liftedKey = null,
   slotClass,
@@ -40,6 +41,8 @@ export function TabBarView({
   activeKey: string | null;
   /** The tab under the finger while the bar is held (lit instead of the active one). */
   scrubKey?: string | null;
+  /** The bar is held (a tab picked, or "Let go to cancel"): what floats over it steps aside. */
+  held?: boolean;
   /** Settings' preview: static, and the slots are not links. */
   preview?: boolean;
   /** A slot whose row is being dragged in Settings. */
@@ -58,7 +61,7 @@ export function TabBarView({
 }) {
   const density = barDensity(tabs.length);
   const pill = tabs.findIndex((t) => t.key === (scrubKey ?? activeKey));
-  const cls = ['tabbar', `tabbar--${density}`, preview ? 'tabbar--preview' : '', scrubKey ? 'is-scrubbing' : ''].filter(Boolean).join(' ');
+  const cls = ['tabbar', `tabbar--${density}`, preview ? 'tabbar--preview' : '', held ? 'is-held' : '', scrubKey ? 'is-scrubbing' : ''].filter(Boolean).join(' ');
 
   const tab = (t: TabDef) => {
     const on = t.key === activeKey;

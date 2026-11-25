@@ -38,8 +38,9 @@ export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   week: { title: () => 'This week', icon: 'stack' },
   upcoming: { title: () => 'Coming up', icon: 'calendar' },
   partner: { title: (hub) => `${hub.partner()?.name ?? 'Your person'} did`, icon: 'heart', needsPartner: true },
-  shop: { title: () => 'To buy', icon: 'cart' },
-  chores: { title: () => 'Chores ready', icon: 'sparkle' },
+  shop: { title: () => 'To buy', icon: 'basket' },
+  // Mine are in Today ("Today wins"), so this one holds my partner's: never anything while solo.
+  chores: { title: (hub) => `${hub.partner()?.name ?? 'Your person'}’s chores`, icon: 'broom', needsPartner: true },
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);
@@ -104,14 +105,28 @@ export function pinnedProjects(hub: Hub): string[] {
     .filter((id): id is string => !!id);
 }
 
-/** Write my Today page. Pins to projects that are only out of sight for now (archived) stay stored. */
+/**
+ * Write my Today page. Pins to projects that are only out of sight for now (archived) stay
+ * stored, while there's room for them: a project pinned into a freed slot takes it for good,
+ * so a restore never pushes a newer pin off.
+ */
 export function setHome(hub: Hub, slots: readonly HomeSlot[]): void {
   const raw = (hub.me()?.home ?? []).filter((s): s is HomeSlot => !!s && typeof s.key === 'string');
-  const next = keepDormant(raw, slots, (s) => s.key, (s) => {
+  const kept = keepDormant(raw, slots, (s) => s.key, (s) => {
     const id = listIdOf(s.key);
     return !!id && hub.listDormant(id);
   });
+  const chosen = new Set(slots.map((s) => s.key));
+  let over = kept.filter((s) => listIdOf(s.key)).length - MAX_HOME_PROJECTS;
+  const next = kept.filter((s) => chosen.has(s.key) || !listIdOf(s.key) || over-- <= 0);
   hub.upsertMember(hub.meId, { home: next.map((s) => ({ key: s.key, on: s.on !== false })) });
+}
+
+/** "Back to the default": really the default, archived pins and all. Undo puts back what was stored. */
+export function resetHome(hub: Hub): () => void {
+  const raw = hub.me()?.home;
+  hub.upsertMember(hub.meId, { home: DEFAULT_HOME.map((s) => ({ ...s })) });
+  return () => hub.upsertMember(hub.meId, { home: raw });
 }
 
 export function isDefaultHome(hub: Hub): boolean {
@@ -185,7 +200,7 @@ export interface WeekBand {
   label: string;
 }
 
-/** Chores ready now, minus what Today already shows. Nothing while we're away. */
+/** Chores ready now, minus what Today already shows (so: my partner's). Nothing while we're away. */
 export function choresReady(hub: Hub, v: TodayView, chores: ChoresView): ChoreRow[] {
   if (hub.isAway()) return [];
   const onToday = new Set([...v.today, ...v.earlier].map((i) => i.id));
@@ -201,7 +216,7 @@ export function weekBands(hub: Hub, v: TodayView, chores: ChoresView, shown: Rea
   if (v.shopping.count && !shown.has('shop')) out.push({ key: 'shop', color: 'lemon', num: v.shopping.count, label: 'to buy' });
   // The same "ready" the Chores widget shows: not what Today already lists.
   const ready = choresReady(hub, v, chores).length;
-  if (ready && !shown.has('chores')) out.push({ key: 'chores', color: 'pink', num: ready, label: ready === 1 ? 'chore ready' : 'chores ready' });
+  if (ready && !shown.has('chores')) out.push({ key: 'chores', color: 'pink', num: ready, label: `${ready === 1 ? 'chore' : 'chores'} ready for ${hub.partner()?.name ?? 'them'}` });
   if (v.together) out.push({ key: 'done', color: 'lilac', num: v.together, label: hub.partner() ? 'done together this week' : 'done this week' });
   return out;
 }
@@ -254,7 +269,7 @@ export function homePreview(key: string, hub: Hub, v: TodayView, chores: ChoresV
     case 'chores': {
       if (hub.isAway()) return { text: 'Paused while you’re away', empty: true };
       const n = choresReady(hub, v, chores).length;
-      return join([n > 0 && `${n} ready`], chores.now.length ? 'The ready ones are in Today' : 'All fresh');
+      return join([n > 0 && `${n} ready for ${p}`], `${p}’s ready chores show up here`);
     }
     default:
       return { text: '', empty: true };

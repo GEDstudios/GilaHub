@@ -74,30 +74,23 @@ export function useOpenIdeas(): () => void {
 // ---------------------------------------------------------------- the tag
 
 /**
- * The tag: a paper label tucked behind the bar's top edge on the right, with a punched hole,
- * a light bulb and the open count. A dot in my partner's color says they added or changed
- * something since I last looked. It steps aside for sheets and the keyboard (CSS).
+ * The tag: a paper label in the header, by the avatar, with a punched hole, a light bulb and
+ * the open count. A dot in my partner's color says they added or changed something since I
+ * last looked. It steps aside for sheets and the keyboard (CSS).
  */
 export function IdeaTag() {
   const hub = useHub();
   const prefs = usePrefs();
   const seen = useSeenAt();
   const open = useOpenIdeas();
-  const shown = prefs.ideasTag;
 
-  // Toasts, the shopbar and the page's end make room for it.
-  useEffect(() => {
-    if (!shown) return;
-    const root = document.documentElement.classList;
-    root.add('has-ideatag');
-    return () => root.remove('has-ideatag');
-  }, [shown]);
-
-  if (!shown) return null;
+  if (!prefs.ideasTag) return null;
   const n = ideasView(hub).open.length;
   const partner = hub.partner();
-  const fresh = !!partner && ideasUnseen(hub, seen);
-  const label = ['Ideas for Gila Hub', n ? `${n} open` : '', fresh ? `new from ${partner.name}` : ''].filter(Boolean).join(', ');
+  const news = partner ? ideasUnseen(hub, seen) : null;
+  const fresh = !!partner && !!news;
+  const said = !partner || !news ? '' : news === 'new' ? `new from ${partner.name}` : `${partner.name} ${news} your idea`;
+  const label = ['Ideas for Gila Hub', n ? `${n} open` : '', said].filter(Boolean).join(', ');
 
   return (
     <button

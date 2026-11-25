@@ -26,8 +26,8 @@ import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
 import { lightVar, Logo } from './ui/primitives';
 import { ProjectMark } from './ui/ProjectMark';
-import { activeTabKey, tabsOf } from './tabs';
-import { openCount, todayRef, todayView } from './views';
+import { activeTabKey, coveredByTab, tabsOf } from './tabs';
+import { projectCount, todayRef, todayView } from './views';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
 
@@ -48,7 +48,9 @@ function Sidebar() {
   const counts: Record<string, number> = { today: v.dueCount, shop: v.shopping.count };
   // The bar's order first (as on the phone), then the projects not pinned there, each once.
   const pinned = new Set(tabs.map((t) => t.key));
-  const more = hub.lists().filter((l) => !pinned.has(`l:${l.id}`));
+  const more = hub.lists().filter((l) => !pinned.has(`l:${l.id}`) && !coveredByTab(hub, l.id));
+  // One row lit per screen: an unpinned project's own row, not Projects as well.
+  const moreOn = route.name === 'list' && on === 'projects' && more.some((l) => l.id === route.id) ? route.id : null;
   return (
     <aside className="sidebar" aria-label="Navigation">
       <div className="sidebar__brand">
@@ -61,7 +63,7 @@ function Sidebar() {
       <div className="sidebar__scroll">
         <nav className="sidebar__nav">
           {tabs.map((t) => (
-            <button key={t.key} type="button" className={`navitem ${on === t.key ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
+            <button key={t.key} type="button" className={`navitem ${on === t.key && !moreOn ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
               {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
               <span className="navitem__label" dir="auto">
                 {t.label}
@@ -85,7 +87,7 @@ function Sidebar() {
                 <button
                   key={l.id}
                   type="button"
-                  className={`navitem ${route.name === 'list' && route.id === l.id ? 'is-on' : ''}`}
+                  className={`navitem ${moreOn === l.id ? 'is-on' : ''}`}
                   onClick={() => navigate({ name: 'list', id: l.id })}
                 >
                   <ProjectMark color={l.color} icon={l.icon} size="sm" />
@@ -93,7 +95,7 @@ function Sidebar() {
                     {l.name}
                   </span>
                   {l.visibility === 'private' ? <Icon name="lock" className="icon--sm" /> : null}
-                  <span className="navitem__count">{openCount(hub, l.id) || ''}</span>
+                  <span className="navitem__count">{projectCount(hub, l).n || ''}</span>
                 </button>
               ))}
             </nav>
@@ -174,9 +176,9 @@ function Duties() {
     const offRelay = rt.onRelay(run);
     hub.autoArchive();
     try {
-      if (!localStorage.getItem('gila-hub:template-icons')) {
-        hub.fillTemplateIcons();
-        localStorage.setItem('gila-hub:template-icons', '1');
+      if (!localStorage.getItem('gila-hub:project-icons')) {
+        hub.fillIcons();
+        localStorage.setItem('gila-hub:project-icons', '1');
       }
     } catch {
       /* storage blocked: next time */

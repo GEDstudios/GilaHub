@@ -10,11 +10,11 @@ import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Disclosure, lineVars, ListBullet, NewButton } from '../ui/primitives';
 import { SyncBadge } from '../components/SyncBadge';
-import { Glyph } from '../ui/ProjectMark';
+import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { LIST_VIS, listVisLabel, visLabel } from '../privacy';
 import { togglePin } from '../tabs';
-import { openCount } from '../views';
+import { projectCount } from '../views';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
 
@@ -32,7 +32,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
     pinned: false,
   }));
   const kind = look.kind ?? 'tasks';
-  const icon = look.icon ?? suggestIcon(name, kind, look.flavor, hub.lists().at(-1)?.icon);
+  const icon = look.icon ?? suggestIcon(name, kind, look.flavor, hub.lists().at(-1)?.icon, hub.iconsInUse());
   const taken = new Set(hub.lists().map((l) => l.name.toLowerCase()));
   const starts = PROJECT_TEMPLATES.filter((t) => !taken.has(t.name.toLowerCase())).slice(0, 4);
 
@@ -55,7 +55,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
         <div className="ccard ccard--lg ccard--edit" style={lineVars(look.color)}>
           <span className="ccard__top">
             <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
-            {icon ? <Glyph icon={icon} className="ccard__glyph" /> : null}
+            {showsGlyph(icon) ? <Glyph icon={icon} className="ccard__glyph" /> : null}
           </span>
           <span className="ccard__sub">
             {KIND[kind]} · {visLabel(LIST_VIS[look.visibility])}
@@ -113,7 +113,7 @@ const folderLean = (id: string) => ({ rest: tilt(id) + 3, land: tilt(id) });
 
 function ProjectCard({ list }: { list: List }) {
   const hub = useHub();
-  const n = openCount(hub, list.id);
+  const count = projectCount(hub, list);
   return (
     <button
       type="button"
@@ -122,16 +122,19 @@ function ProjectCard({ list }: { list: List }) {
       onClick={() => navigate({ name: 'list', id: list.id })}
       data-drag
     >
+      {/* The name gets the card's whole width; the glyph sits low, by the count. */}
       <span className="ccard__top">
         <span className="ccard__title projcard__name" dir="auto">
           {list.name}
         </span>
-        {list.icon ? <Glyph icon={list.icon} className="ccard__glyph" /> : null}
       </span>
-      <span className="ccard__sub">
-        {list.visibility === 'private' ? <Icon name="lock" className="ccard__lock" /> : null}
-        {n ? `${n} open` : 'All clear'}
-        {list.visibility !== 'shared' ? ` · ${listVisLabel(hub, list)}` : ''}
+      <span className="ccard__sub projcard__foot">
+        <span>
+          {list.visibility === 'private' ? <Icon name="lock" className="ccard__lock" /> : null}
+          {count.text}
+          {list.visibility !== 'shared' ? ` · ${listVisLabel(hub, list)}` : ''}
+        </span>
+        {showsGlyph(list.icon) ? <Glyph icon={list.icon} className="ccard__glyph" /> : null}
       </span>
     </button>
   );

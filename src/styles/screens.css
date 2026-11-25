@@ -435,9 +435,10 @@
 
 /* ============================================================ Projects */
 
+/* Equal columns whatever the names: a long one wraps in its card, it never widens a column. */
 .projgrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 26px 14px;
   padding-top: 12px;
 }
@@ -488,9 +489,16 @@ button.projcard:active {
   z-index: 1;
 }
 
+.projcard__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 @media (min-width: 600px) {
   .projgrid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -767,7 +775,7 @@ button.projcard:active {
   z-index: 35;
   left: 0;
   right: 0;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px + var(--tag-h, 0px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px);
   display: flex;
   justify-content: center;
   padding: 0 var(--gutter);

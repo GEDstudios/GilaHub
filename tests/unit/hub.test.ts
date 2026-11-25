@@ -44,7 +44,7 @@ const listNamed = (hub: Hub, name: string) => hub.lists().find((l) => l.name ===
 describe('Hub: household & privacy', () => {
   it('creates only the picked projects, plus each person’s private ones', async () => {
     const { guy, hila } = await couple();
-    expect(hila.lists().map((l) => l.name)).toEqual(expect.arrayContaining(['To do', 'Groceries', 'Home shopping', 'Chores', "Guy's things", 'Notes to self']));
+    expect(hila.lists().map((l) => l.name)).toEqual(expect.arrayContaining(['To do', 'Groceries', 'Home shopping', 'Housework', "Guy's things", 'Notes to self']));
     expect(hila.lists().filter((l) => l.kind === 'shopping')).toHaveLength(2);
     // Each sees exactly one "Notes to self": their own.
     expect(guy.lists().filter((l) => l.name === 'Notes to self')).toHaveLength(1);
@@ -149,7 +149,7 @@ describe('Hub: shopping', () => {
 describe('Hub: chores', () => {
   it('take turns passes the turn to the other person, whoever did it', async () => {
     const { guy, hila } = await couple();
-    const chores = listNamed(guy, 'Chores');
+    const chores = listNamed(guy, 'Housework');
     const id = guy.addItem(chores.id, { title: 'Bins', repeat: { type: 'interval', every: 3, unit: 'day', from: 'done' }, assignee: 'turns' });
     sync(guy, hila);
     hila.completeRepeating(id);
@@ -161,7 +161,7 @@ describe('Hub: chores', () => {
 
   it('a new chore starts fresh: due one period from now, not today', async () => {
     const { guy } = await couple();
-    const chores = listNamed(guy, 'Chores');
+    const chores = listNamed(guy, 'Housework');
     const weekly = guy.addItem(chores.id, { title: 'Laundry', repeat: { type: 'interval', every: 1, unit: 'week', from: 'done' } });
     const daily = guy.addItem(chores.id, { title: 'Dishes', repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' } });
     expect(guy.item(weekly)?.due).toBe(addDays(today(), 7));
@@ -172,7 +172,7 @@ describe('Hub: chores', () => {
 
   it('done yesterday counts from yesterday', async () => {
     const { guy } = await couple();
-    const chores = listNamed(guy, 'Chores');
+    const chores = listNamed(guy, 'Housework');
     const id = guy.addItem(chores.id, { title: 'Vacuum', repeat: { type: 'interval', every: 7, unit: 'day', from: 'done' } });
     guy.completeRepeating(id, addDays(today(), -1));
     expect(guy.item(id)?.due).toBe(addDays(today(), 6));
@@ -180,7 +180,7 @@ describe('Hub: chores', () => {
 
   it('thanks travel to the partner', async () => {
     const { guy, hila } = await couple();
-    const chores = listNamed(guy, 'Chores');
+    const chores = listNamed(guy, 'Housework');
     const id = guy.addItem(chores.id, { title: 'Dishes', repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' } });
     guy.completeRepeating(id);
     sync(guy, hila);

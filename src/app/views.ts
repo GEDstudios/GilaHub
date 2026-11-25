@@ -308,9 +308,18 @@ export const ideasView = memo((hub: Hub): { open: Idea[]; resolved: Idea[] } => 
   };
 });
 
-/** Did my partner add or edit an idea after `seenAt` (when I last opened the sheet on this device)? */
-export function ideasUnseen(hub: Hub, seenAt: number): boolean {
-  return hub.store.all('idea').some((i) => (i.by !== hub.meId && i.createdAt > seenAt) || (!!i.editedBy && i.editedBy !== hub.meId && (i.editedAt ?? 0) > seenAt));
+/**
+ * What my partner did since `seenAt` (when I last opened the sheet on this device): added or
+ * edited an idea ('new'), or resolved or reopened one of mine; null when nothing.
+ */
+export function ideasUnseen(hub: Hub, seenAt: number): 'new' | 'resolved' | 'reopened' | null {
+  const all = hub.store.all('idea');
+  const theirs = (by: string | null | undefined, at: number | null | undefined) => !!by && by !== hub.meId && (at ?? 0) > seenAt;
+  if (all.some((i) => theirs(i.by, i.createdAt) || theirs(i.editedBy, i.editedAt))) return 'new';
+  const mine = all.filter((i) => i.by === hub.meId);
+  if (mine.some((i) => !!i.resolvedAt && theirs(i.resolvedBy, i.resolvedAt))) return 'resolved';
+  if (mine.some((i) => !i.resolvedAt && theirs(i.reopenedBy, i.reopenedAt))) return 'reopened';
+  return null;
 }
 
 /** The open ideas as a plain Markdown list, "- text (Hila)", to paste somewhere else. */
@@ -329,6 +338,19 @@ export function openCount(hub: Hub, listId: string): number {
   let n = 0;
   for (const i of hub.store.all('item')) if (i.listId === listId && !i.done && !i.archived && !i.parentId) n++;
   return n;
+}
+
+/**
+ * A project's count and its words, the way its own tab counts: a chores project says how many
+ * are ready ("2 ready", "All fresh"), anything else what's open ("4 open").
+ */
+export function projectCount(hub: Hub, list: List): { n: number; text: string } {
+  if (list.kind === 'chores') {
+    const n = choresView(hub, todayStr()).now.filter((r) => r.list.id === list.id).length;
+    return { n, text: n ? `${n} ready` : 'All fresh' };
+  }
+  const n = openCount(hub, list.id);
+  return { n, text: n ? `${n} open` : 'All clear' };
 }
 
 export function stepProgress(hub: Hub, id: string): { done: number; total: number } {

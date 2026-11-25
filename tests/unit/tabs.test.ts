@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Hub, seedHousehold } from '../../src/core/actions';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
-import { activeTabKey, barDensity, cleanPins, DEFAULT_PINS, keepDormant, MAX_PINS, pinOptions, pinsOf, setPins, tabsOf, togglePin } from '../../src/app/tabs';
+import { activeTabKey, barDensity, cleanPins, coveredByTab, DEFAULT_PINS, keepDormant, MAX_PINS, pinOptions, pinsOf, setPins, tabsOf, togglePin } from '../../src/app/tabs';
 import { CANCEL_LIFT, centerScroll, clampBubble, EDGE_DWELL, EDGE_ZONE, edgeDir, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../../src/app/ui/scrub';
 
 async function guy() {
@@ -79,6 +79,29 @@ describe('bottom bar pins', () => {
     expect(pinsOf(hub).at(-1)).toBe(last);
     expect(togglePin(hub, last)).toBe(false);
     expect(pinsOf(hub)).not.toContain(last);
+  });
+
+  it('never names two tabs the same: a project called Chores makes the tab "All chores"', async () => {
+    const hub = await guy();
+    const labels = () => pinOptions(hub).map((o) => o.label);
+    expect(new Set(labels()).size).toBe(labels().length);
+    const named = hub.createList({ name: 'chores', kind: 'chores' });
+    setPins(hub, [...pinsOf(hub), `l:${named}`]);
+    expect(tabsOf(hub).map((t) => t.label)).toEqual(['Today', 'Shopping', 'All chores', 'chores', 'Projects']);
+  });
+
+  it('does not offer a project the Shopping or Chores tab already shows', async () => {
+    const hub = await guy();
+    const id = (name: string) => hub.lists().find((l) => l.name === name)!.id;
+    // The one chores project, with Chores in the bar; two shopping lists are each their own.
+    expect(coveredByTab(hub, id('Housework'))).toBe(true);
+    expect(coveredByTab(hub, id('Groceries'))).toBe(false);
+    expect(coveredByTab(hub, id('To do'))).toBe(false);
+    setPins(hub, ['shop']);
+    expect(coveredByTab(hub, id('Housework'))).toBe(false);
+    setPins(hub, ['shop', 'chores']);
+    hub.createList({ name: 'Garden', kind: 'chores' });
+    expect(coveredByTab(hub, id('Housework'))).toBe(false);
   });
 
   it('keeps a sanity cap', () => {
