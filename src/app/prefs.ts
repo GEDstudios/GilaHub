@@ -90,14 +90,9 @@ const inIsrael = () => {
   }
 };
 
+/** 24-hour clock unless this device chose 12 in Settings. */
 export function use24h(p: Prefs = current): boolean {
-  if (p.h24 !== null) return p.h24;
-  try {
-    const parts = new Intl.DateTimeFormat(locale(), { hour: 'numeric' }).formatToParts(new Date(2020, 0, 1, 15));
-    return !parts.some((x) => x.type === 'dayPeriod');
-  } catch {
-    return true;
-  }
+  return p.h24 ?? true;
 }
 
 export function weekStart(p: Prefs = current): 0 | 1 {
