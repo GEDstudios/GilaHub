@@ -432,6 +432,197 @@
   }
 }
 
+/* ============================================================ Edit Today (components/TodayArrange.tsx)
+ * On Today itself: each block becomes a white card you can pick up, showing a short, still
+ * peek of what it holds, with × to hide it and a grip. Hidden ones wait as hatched cards.
+ */
+
+.homecards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.homecard {
+  position: relative;
+  padding: 10px 8px 14px 16px;
+  border-radius: var(--r-l);
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.homecard.is-ghost {
+  background: transparent;
+  box-shadow: none;
+}
+
+.homecard.is-ghost > * {
+  visibility: hidden;
+}
+
+.homecard.is-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px dashed rgb(10 10 4 / 0.16);
+  background: rgb(10 10 4 / 0.03);
+}
+
+.homecard__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.homecard__mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+}
+
+.homecard__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+}
+
+.homecard__x,
+.homecard__grip {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.homecard__x {
+  background: var(--tile);
+  color: var(--text-2);
+  width: 34px;
+  height: 34px;
+}
+
+.homecard__grip {
+  cursor: grab;
+  touch-action: none;
+}
+
+/* The block itself, small and still: no head (the card has one), clipped, faded at the foot */
+.homecard__peek {
+  position: relative;
+  max-height: 132px;
+  overflow: hidden;
+  margin-right: 8px;
+  pointer-events: none;
+  user-select: none;
+  -webkit-mask: linear-gradient(#000 70%, transparent);
+  mask: linear-gradient(#000 70%, transparent);
+}
+
+.homecard__peek .section {
+  margin-top: 0;
+}
+
+.homecard__peek .section__head,
+.homecard__peek .homeedit {
+  display: none;
+}
+
+.homecard__peek > :not(.homecard__sub) {
+  transform: scale(0.94);
+  transform-origin: top left;
+}
+
+.homecard__sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+/* A peek with content says it in the block; the line is for blocks with nothing now */
+.homecard__peek > :not(.homecard__sub) ~ .homecard__sub {
+  display: none;
+}
+
+.homeghost {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 16px;
+  border-radius: var(--r-l);
+  text-align: start;
+}
+
+.homeghost--pick {
+  display: block;
+  padding: 0;
+}
+
+.homeghost__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 16px;
+  text-align: start;
+  color: inherit;
+}
+
+.homeghost__add {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--lift-1);
+}
+
+.homeghost__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.homeghost__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.homeghost__sub {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.homeghost__tokens {
+  margin: 0;
+  padding: 0 16px 14px;
+}
+
+.homereset {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* In edit mode the summary steps back */
+.home--editing > .summary {
+  opacity: 0.55;
+}
+
 /* ============================================================ Projects */
 
 /* Equal columns whatever the names: a long one wraps in its card, it never widens a column. */

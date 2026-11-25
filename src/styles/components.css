@@ -1291,9 +1291,8 @@ html.is-dragging * {
   }
 }
 
-/* ============================================================ Arranger (components/Arranger.tsx)
- * Edit Today (and the bar editor): locked anchors, then slots you drag by the grip (or hold
- * on touch), × to hide, a tray of + tokens to bring things back.
+/* ============================================================ Slots and trays
+ * Grip and × buttons in sortable rows (Ideas), and the bar editor's tray of + tokens.
  */
 
 .slots {
@@ -1543,12 +1542,6 @@ html.is-dragging * {
 
 .panel--inline .tokens {
   margin-top: 0;
-}
-
-.arranger__reset {
-  display: flex;
-  justify-content: center;
-  margin-top: 32px;
 }
 
 @media (prefers-reduced-motion: reduce) {

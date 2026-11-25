@@ -5,7 +5,6 @@ import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { AsksWidget } from '../components/Asks';
-import { HomeEditor } from '../components/HomeEditor';
 import {
   ChoresWidget,
   ComingUp,
@@ -20,8 +19,10 @@ import {
 } from '../components/HomeWidgets';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
+import { TodayArrange } from '../components/TodayArrange';
 import { useHub } from '../context';
 import { aheadOf, choresReady, listIdOf, visibleHome, weekBands } from '../home';
+import { navigate } from '../router';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -69,6 +70,13 @@ function swap(fn: () => void) {
 /** Widgets fade up the first time Today draws in a session. */
 let greeted = false;
 
+/** Settings' "Edit Today" lands here in edit mode. */
+let editOnArrive = false;
+export function openTodayEditor(): void {
+  editOnArrive = true;
+  navigate({ name: 'today' });
+}
+
 export function Today() {
   const hub = useHub();
   const { openSheet } = useOverlays();
@@ -78,7 +86,11 @@ export function Today() {
   const me = hub.me();
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(() => {
+    const on = editOnArrive;
+    editOnArrive = false;
+    return on;
+  });
   const [entering, setEntering] = useState(() => !greeted);
 
   useEffect(() => {
@@ -111,27 +123,6 @@ export function Today() {
 
   const date = fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  if (editing) {
-    return (
-      <>
-        <Band
-          top={<SyncBadge />}
-          actions={
-            <button type="button" className="btn btn--sm" onClick={() => edit(false)}>
-              Done
-            </button>
-          }
-          title="Edit Today"
-          sub="Drag to arrange. Tap × to hide."
-          mini="Edit Today"
-        />
-        <div className="column">
-          <HomeEditor />
-        </div>
-      </>
-    );
-  }
-
   const slots = visibleHome(hub);
   const shown = new Set(slots.map((s) => s.key));
   const first = slots.find((s) => hasContent(s.key, hub, v, chores, shown))?.key;
@@ -158,6 +149,27 @@ export function Today() {
         return null;
     }
   };
+
+  if (editing) {
+    return (
+      <>
+        <Band
+          top={<SyncBadge />}
+          actions={
+            <button type="button" className="btn btn--sm" onClick={() => edit(false)}>
+              Done
+            </button>
+          }
+          title="Edit Today"
+          mini="Edit Today"
+        />
+        <div className="column home home--editing">
+          <SummaryCard v={v} day={ref} asksShown={false} />
+          <TodayArrange peek={block} />
+        </div>
+      </>
+    );
+  }
 
   return (
     <SettleContext.Provider value={settle}>

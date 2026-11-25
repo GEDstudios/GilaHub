@@ -335,12 +335,12 @@ try {
     await guy.getByRole('heading', { name: 'Edit Today', level: 1 }).waitFor();
     await guy.waitForTimeout(500);
     await shot(guy, '15-edit-today');
-    const rows = () => guy.locator('.slots:not(.slots--fixed) .slot__title').allInnerTexts();
+    const rows = () => guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
     const before = await rows();
     if (before.join() !== 'Waiting on you,Today,This week,Coming up,Hila did') throw new Error(`unexpected slots: ${before.join(', ')}`);
     await guy.getByRole('button', { name: 'Hide Coming up' }).click();
     await waitFor(async () => !(await rows()).includes('Coming up'), 3000, 'Coming up hidden');
-    await guy.locator('.tray .token', { hasText: 'Coming up' }).waitFor({ timeout: 3000 });
+    await guy.locator('.homeghost', { hasText: 'Coming up' }).waitFor({ timeout: 3000 });
     // Keyboard reorder from the grip: pick up, up twice, drop.
     await guy.getByRole('button', { name: 'Move This week' }).focus();
     for (const key of ['Space', 'ArrowUp', 'ArrowUp', 'Space']) {
@@ -383,7 +383,7 @@ try {
     await guy.getByRole('button', { name: 'Edit Today' }).click();
     await guy.getByRole('button', { name: 'Back to the default' }).click();
     await guy.getByText('Today is back to the default').waitFor({ timeout: 3000 });
-    const slots = await guy.locator('.slots:not(.slots--fixed) .slot__title').allInnerTexts();
+    const slots = await guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
     if (slots.join() !== 'Waiting on you,Today,This week,Coming up,Hila did') throw new Error(`after reset: ${slots.join(', ')}`);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
   });

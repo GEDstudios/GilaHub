@@ -1,7 +1,8 @@
+import { slotTitle, visibleHome } from '../home';
+import { openTodayEditor } from './Today';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
 import { BarEditor } from '../components/BarEditor';
-import { HomeEditor } from '../components/HomeEditor';
 import { useOpenIdeas } from '../components/Ideas';
 import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
@@ -731,6 +732,10 @@ export function Settings() {
   const me = hub.me();
   const partner = hub.partner();
   if (!me) return null;
+  // The order on Today, on one line.
+  const todayOrder = visibleHome(hub)
+    .map((x) => slotTitle(hub, x.key))
+    .join(' · ');
 
   return (
     <>
@@ -743,7 +748,9 @@ export function Settings() {
         </Section>
 
         <Section title="Today page">
-          <HomeEditor />
+          <div className="group">
+            <OptRow icon="sun" title="Edit Today" sub={todayOrder} chev onClick={openTodayEditor} />
+          </div>
         </Section>
 
         <Notifications me={me} partner={partner} />

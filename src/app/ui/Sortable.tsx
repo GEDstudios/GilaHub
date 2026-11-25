@@ -1,6 +1,6 @@
 /**
  * Sortable: the one drag-to-reorder in Gila Hub. Task rows and steps (Children), a shopping
- * aisle (Shopping), project folders (Lists), and the Settings arrangers (BarEditor, HomeEditor)
+ * aisle (Shopping), project folders (Lists), and the bottom bar's editors (BarEditor, BarEdit) and Edit Today (TodayArrange)
  * all use it, so they feel the same.
  *
  * API
@@ -34,7 +34,7 @@
  *
  *   const s = useSortableItem(id, { disabled });
  *   <li ref={s.ref} style={s.style} className={s.className} {...s.props}>…</li>
- *   With a grip (HomeEditor): s.props still go on the row (a long-press on the body lifts it on
+ *   With a grip (TodayArrange): s.props still go on the row (a long-press on the body lifts it on
  *   touch), and the handle is
  *   <button data-grip ref={s.gripRef} {...s.gripProps} aria-label="Reorder Milk">.
  *   A whole-object grip (a bar tab): [data-grip] on the object itself, with s.props, and the
