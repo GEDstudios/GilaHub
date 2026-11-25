@@ -68,8 +68,8 @@ export function QuickAdd({
       ? ['private']
       : list?.visibility === 'visible'
         ? list.owner && list.owner !== hub.meId
-          ? ['mine']
-          : ['mine', 'private']
+          ? ['mine', 'ours']
+          : ['mine', 'ours', 'private']
         : ['ours', 'mine', 'private'];
   const inherited: ItemVisibility = parent ? hub.visibilityOf(parent) : allowed[0];
   const [vis, setVis] = useState<ItemVisibility | null>(null);

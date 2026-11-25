@@ -214,6 +214,25 @@ describe('Hub: backup import', () => {
     expect(fresh.lists().some((l) => l.name === 'To do')).toBe(true);
   });
 
+  it('a "Mine" project can hold things for both of us, steps included', async () => {
+    const { guy, hila } = await couple();
+    const list = listNamed(guy, "Guy's things");
+    const task = guy.addItem(list.id, { title: 'Plan the weekend' });
+    expect(guy.visibilityOf(guy.item(task)!)).toBe('mine');
+    const step = guy.addItem(list.id, { title: 'Pick a hike', parentId: task, visibility: 'ours' });
+    const secret = guy.addItem(list.id, { title: 'Book the surprise', parentId: task, visibility: 'private' });
+    guy.setItemVisibility(task, 'ours');
+    sync(guy, hila);
+    expect(hila.visibilityOf(hila.item(task)!)).toBe('ours');
+    expect(hila.visibilityOf(hila.item(step)!)).toBe('ours');
+    expect(hila.ownerOf(hila.item(step)!)).toBeNull();
+    expect(hila.item(secret)).toBeUndefined();
+    // Back to Mine: it belongs to the project's owner, whoever sets it.
+    hila.setItemVisibility(task, 'mine');
+    sync(guy, hila);
+    expect(guy.ownerOf(guy.item(task)!)).toBe('guy');
+  });
+
   it('new projects get a random palette color, avoiding ones in use, and can be recolored', async () => {
     const guy = await person('guy');
     const ids = LINE_COLORS.map((_, i) => guy.createList({ name: `P${i}`, kind: 'tasks' }));

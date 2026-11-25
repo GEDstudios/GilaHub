@@ -21,7 +21,8 @@ import { Shopping } from './screens/Shopping';
 import { SyncDot, Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
-import { lineVars, ListBullet, Logo } from './ui/primitives';
+import { Logo } from './ui/primitives';
+import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, tabsOf, type TabDef } from './tabs';
 import { openCount, todayRef, todayView } from './views';
 
@@ -33,7 +34,7 @@ function useAdd() {
 }
 
 function TabIcon({ t }: { t: TabDef }) {
-  return t.icon ? <Icon name={t.icon} /> : <span className="tab__swatch" style={lineVars(t.color)} />;
+  return t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} />;
 }
 
 function TabBar() {
@@ -86,7 +87,7 @@ function Sidebar() {
       <nav className="sidebar__nav">
         {tabs.map((t) => (
           <button key={t.key} type="button" className={`navitem ${on === t.key ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
-            {t.icon ? <Icon name={t.icon} /> : <ListBullet list={{ name: t.label, color: t.color! }} size="md" />}
+            {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
             <span className="navitem__label" dir="auto">
               {t.label}
             </span>
@@ -108,7 +109,7 @@ function Sidebar() {
             className={`navitem ${route.name === 'list' && route.id === l.id ? 'is-on' : ''}`}
             onClick={() => navigate({ name: 'list', id: l.id })}
           >
-            <ListBullet list={l} size="md" />
+            <ProjectMark color={l.color} icon={l.icon} size="sm" />
             <span className="navitem__label" dir="auto">
               {l.name}
             </span>

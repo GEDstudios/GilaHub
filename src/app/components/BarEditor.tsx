@@ -1,7 +1,7 @@
 import { useHub } from '../context';
 import { MAX_PINS, pinOptions, pinsOf, setPins } from '../tabs';
 import { Icon } from '../ui/Icon';
-import { lineVars } from '../ui/primitives';
+import { ProjectMark } from '../ui/ProjectMark';
 
 /** Choose what sits in the bottom bar between Today and Projects. */
 export function BarEditor() {
@@ -28,7 +28,7 @@ export function BarEditor() {
           const o = byKey.get(k)!;
           return (
             <div key={k} className="optrow">
-              <span className="bar__mark">{o.icon ? <Icon name={o.icon} className="optrow__icon" /> : <span className="dot dot--lg" style={lineVars(o.color)} />}</span>
+              <span className="bar__mark">{o.icon ? <Icon name={o.icon} className="optrow__icon" /> : <ProjectMark color={o.color} icon={o.glyph} size="sm" />}</span>
               <span className="optrow__text" dir="auto">
                 {o.label}
               </span>

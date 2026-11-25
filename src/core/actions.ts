@@ -196,15 +196,17 @@ export class Hub {
     const list = this.list(item.listId);
     if (list?.visibility === 'private') return 'private';
     if (item.private || this.ancestors(item).some((a) => a.private)) return 'private';
-    if (item.owner || list?.visibility === 'visible') return 'mine';
-    return 'ours';
+    // In someone's "Mine" project, a thing can still be for both of us: no owner.
+    if (list?.visibility === 'visible') return item.owner === null ? 'ours' : 'mine';
+    return item.owner ? 'mine' : 'ours';
   }
 
   /** Whose is it? (for "Mine" items and private ones) */
   ownerOf(item: Item): string | null {
     const list = this.list(item.listId);
     if (item.owner) return item.owner;
-    if (list && list.visibility !== 'shared') return list.owner;
+    if (list?.visibility === 'private') return list.owner;
+    if (list?.visibility === 'visible') return item.owner === null ? null : list.owner;
     return null;
   }
 
@@ -313,7 +315,12 @@ export class Hub {
     this.store.batch(() => {
       this.store.mutate('item', id, {
         private: vis === 'private',
-        owner: vis === 'ours' ? null : (this.ownerOf(item) ?? this.meId),
+        owner:
+          vis === 'ours'
+            ? null
+            : vis === 'mine' && this.list(item.listId)?.visibility === 'visible'
+              ? (this.list(item.listId)?.owner ?? this.meId)
+              : (this.ownerOf(item) ?? this.meId),
       });
       this.rescope(id);
     });

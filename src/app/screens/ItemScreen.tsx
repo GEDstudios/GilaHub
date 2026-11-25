@@ -202,9 +202,7 @@ export function ItemScreen({ id }: { id: string }) {
   const allowed =
     list?.visibility === 'private' || parentVis === 'private'
       ? (['private'] as const)
-      : list?.visibility === 'visible'
-        ? (['mine', 'private'] as const)
-        : (['ours', 'mine', 'private'] as const);
+      : (['ours', 'mine', 'private'] as const);
   const upTo = ancestors.length ? { name: 'item' as const, id: ancestors[ancestors.length - 1].id } : list ? { name: 'list' as const, id: list.id } : { name: 'today' as const };
   const steps = hub.childrenOf(id);
 

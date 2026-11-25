@@ -3,6 +3,8 @@ import type { List, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { Children } from '../components/Children';
 import { Options } from '../components/editors';
+import { IconPicker } from '../components/IconPicker';
+import { Glyph } from '../ui/ProjectMark';
 import { OptRow, Swatches } from '../components/pickers';
 import { QuickAdd } from '../components/QuickAdd';
 import { useHub } from '../context';
@@ -30,12 +32,19 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   return (
     <Sheet onClose={() => (save(), onClose())} title="Project">
       <div className="ccard ccard--md ccard--edit" style={lineVars(list.color)}>
-        <input className="ccard__input" dir="auto" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} aria-label="Name" />
+        <span className="ccard__top">
+          <input className="ccard__input" dir="auto" value={name} onChange={(e) => setName(e.target.value)} onBlur={save} aria-label="Name" />
+          {list.icon ? <Glyph icon={list.icon} className="ccard__glyph" /> : null}
+        </span>
         <span className="ccard__sub">{visLabel(hub, list)}</span>
       </div>
       <div className="choose">
         <span className="choose__label">Color</span>
         <Swatches value={list.color} onChange={(c) => hub.updateList(listId, { color: c })} />
+      </div>
+      <div className="choose">
+        <span className="choose__label">Icon</span>
+        <IconPicker value={list.icon} color={list.color} onChange={(icon) => hub.updateList(listId, { icon })} />
       </div>
       {mineToChange ? (
         <div className="choose">

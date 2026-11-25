@@ -14,6 +14,7 @@ import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, IconButton, lineVars } from '../ui/primitives';
 import { SyncBadge } from './Today';
+import { Glyph } from '../ui/ProjectMark';
 import { openCount } from '../views';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
@@ -168,13 +169,10 @@ function ProjectCard({ list }: { list: List }) {
         <span className="ccard__title projcard__name" dir="auto">
           {list.name}
         </span>
-        {list.visibility === 'private' ? (
-          <span className="ccard__badge">
-            <Icon name="lock" className="icon--sm" />
-          </span>
-        ) : null}
+        {list.icon ? <Glyph icon={list.icon} className="ccard__glyph" /> : null}
       </span>
       <span className="ccard__sub">
+        {list.visibility === 'private' ? <Icon name="lock" className="ccard__lock" /> : null}
         {n ? `${n} open` : 'All clear'}
         {list.visibility !== 'shared' ? ` · ${visLabel(hub, list)}` : ''}
       </span>

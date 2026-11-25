@@ -13,13 +13,15 @@ export interface TabDef {
   path: string;
   icon?: IconName;
   color?: LineColor;
+  /** A project's own icon ("i:<name>" or an emoji). */
+  glyph?: string;
 }
 
 export function pinOptions(hub: Hub): TabDef[] {
   return [
     { key: 'shop', label: 'Shopping', path: '/shop', icon: 'bag' },
     { key: 'chores', label: 'Chores', path: '/chores', icon: 'sparkle' },
-    ...hub.lists().map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color })),
+    ...hub.lists().map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
 }
 
