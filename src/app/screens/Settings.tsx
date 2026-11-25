@@ -404,12 +404,24 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
             />
           </>
         ) : null}
-        {'setAppBadge' in navigator ? (
+        {/* Android launchers don't show a web app's count (it shows a dot for notifications
+            instead), so the option only appears where it works: iPhone and computers. */}
+        {'setAppBadge' in navigator && !/Android/i.test(navigator.userAgent) ? (
           <OptRow
             icon="badge"
             title="Count on the app icon"
             sub="How many things are due today"
-            trail={<Switch on={prefs.badge} onChange={(on) => setPrefs({ badge: on })} label="Count on the app icon" />}
+            trail={
+              <Switch
+                on={prefs.badge}
+                onChange={async (on) => {
+                  // iPhone shows the count only once notifications are allowed.
+                  if (on && 'Notification' in window && Notification.permission === 'default') setPush(await enablePush(rt));
+                  setPrefs({ badge: on });
+                }}
+                label="Count on the app icon"
+              />
+            }
           />
         ) : null}
       </div>
