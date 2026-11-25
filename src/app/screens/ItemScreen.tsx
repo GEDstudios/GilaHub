@@ -238,7 +238,7 @@ export function ItemScreen({ id }: { id: string }) {
                 ? `Done${item.doneAt ? ` ${relativeAgo(item.doneAt)}` : ''}${item.doneBy && item.doneBy !== hub.meId ? ` by ${hub.member(item.doneBy)?.name ?? ''}` : ''}.`
                 : item.paused
                   ? 'Paused.'
-                  : `${summarize(draft)}${asker && !iAsked ? ` ${asker.name} asked.` : ''}`}
+                  : `${summarize(draft)}${asker && !iAsked ? (item.sentBackAt ? ` ${asker.name} said not yet.` : ` ${asker.name} asked.`) : ''}`}
             {item.repeat && item.lastDoneAt && !item.done
               ? ` Last done ${relativeAgo(item.lastDoneAt)}${item.lastDoneBy && item.lastDoneBy !== hub.meId ? ` by ${hub.member(item.lastDoneBy)?.name ?? ''}` : ''}.`
               : ''}

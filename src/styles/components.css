@@ -3585,9 +3585,9 @@ html:has(.sheet) .ideatag {
 }
 
 /* The sheet: a composer, the open ideas (grip to reorder), Resolved folded, Copy */
+/* Flush with the list under it: the focused card lines up with the rows' edges. */
 .ideas__compose {
   align-items: flex-start;
-  margin: 0 -8px 0 -4px;
   padding-left: 12px;
 }
 

@@ -883,24 +883,44 @@ export class Hub {
   // ---------- backup import ----------
 
   /**
+   * Whose backup is this, for one that doesn't say (`me` came with newer backups)? Nobody's to
+   * map when it has me in it already. Otherwise: whoever its private things belong to (only
+   * their phone could read those), else its one person this household doesn't know.
+   * Null when it can't tell (backupStrangers then says whom to ask about).
+   */
+  backupOwner(data: BackupData): string | null {
+    const members = data.member ?? [];
+    if (members.some((m) => m.id === this.meId)) return null;
+    const owners = new Set<string>();
+    for (const l of data.list ?? []) if (l.visibility === 'private' && typeof l.owner === 'string') owners.add(l.owner);
+    for (const i of data.item ?? []) if (i.private) owners.add(String(i.owner ?? i.createdBy));
+    for (const m of data.memory ?? []) if (m.id.startsWith('p:')) owners.add(m.id.split(':')[1]);
+    if (owners.size === 1) return [...owners][0];
+    const strangers = this.backupStrangers(data);
+    return strangers.length === 1 ? strangers[0].id : null;
+  }
+
+  /** The backup's people this household doesn't know (one of them may be me, on a new phone). */
+  backupStrangers(data: BackupData): Array<{ id: string; name: string }> {
+    const known = new Set(this.members().map((m) => m.id));
+    return (data.member ?? []).filter((m) => !known.has(m.id)).map((m) => ({ id: m.id, name: String(m.name ?? '') }));
+  }
+
+  /**
    * Import a JSON backup without overwriting anything, sealing every entity in the
    * scope its privacy implies (an "Only me" item must never be re-shared by an import).
    *
-   * A restore never adds people: pairing does. The backup's own person (`me`, recorded by
-   * newer backups; for older ones, its only member when this household is just me) becomes me
-   * in every person field, so my private things land under my key. Other people the household
-   * doesn't know are left out. A project this household already has (same kind and name)
-   * takes the backup's items instead of coming in a second time.
+   * A restore never adds people: pairing does. The backup's own person (`opts.me`, or
+   * backupOwner) becomes me in every person field, so my private things land under my key.
+   * Other people the household doesn't know are left out. A project this household already
+   * has (same kind and name) takes the backup's items instead of coming in a second time.
+   * Things an earlier restore sealed under that old person's key (unreadable here) are
+   * sealed again under mine, so restoring again repairs them.
    */
-  importBackup(data: Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>, opts: { me?: string } = {}): number {
+  importBackup(data: BackupData, opts: { me?: string } = {}): number {
     let n = 0;
     const members = data.member ?? [];
-    const known = new Set(this.members().map((m) => m.id));
-    let from = opts.me;
-    if (!from && !members.some((m) => m.id === this.meId)) {
-      const strangers = members.filter((m) => !known.has(m.id));
-      if (strangers.length === 1 && [...known].every((id) => id === this.meId)) from = strangers[0].id;
-    }
+    const from = opts.me ?? this.backupOwner(data) ?? undefined;
     const who = (v: unknown) => (from && v === from ? this.meId : v);
     const lists = new Map<string, string>();
     for (const l of data.list ?? []) {
@@ -917,7 +937,9 @@ export class Hub {
       return out;
     };
     const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member' | 'idea', row: { id: string } & Record<string, unknown>, scope: Scope) => {
-      if (!row?.id || this.store.record(t, row.id)) return;
+      if (!row?.id) return;
+      const stranded = !!from && from !== this.meId && this.store.scopeOf(t, row.id) === `p:${from}`;
+      if (this.store.record(t, row.id) && !stranded) return;
       const { id, ...fields } = row;
       this.store.init(t, id, scope);
       this.store.mutate(t, id, fields as never);
@@ -976,6 +998,9 @@ export class Hub {
     return hits.slice(0, limit).map((h) => h.it);
   }
 }
+
+/** A backup's tables, as JSON rows. */
+export type BackupData = Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>;
 
 /** Fields that name a person (a member id), across every table a backup holds. */
 const PERSON_FIELDS = [

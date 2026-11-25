@@ -59,9 +59,11 @@ function useSeenAt(): number {
 export function useOpenIdeas(): () => void {
   const { openSheet } = useOverlays();
   return useCallback(() => {
+    const since = seenAt;
     markSeen();
     openSheet((close) => (
       <IdeasSheet
+        since={since}
         onClose={() => {
           markSeen();
           close();
@@ -169,13 +171,25 @@ function Composer() {
   );
 }
 
-/** The text, edited in place: blur or Enter saves, Esc puts it back. */
+/**
+ * The text, edited in place: blur or Enter saves, Esc puts it back. Only a change is saved: a
+ * tap in and out never writes (it would undo my partner's newer wording and credit me), and
+ * while I haven't typed, their edit shows up in the field.
+ */
 function IdeaText({ idea }: { idea: Idea }) {
   const hub = useHub();
   const [draft, setDraft] = useState<string | null>(null);
+  const base = useRef('');
   const field = useRef<HTMLTextAreaElement>(null);
   const cancelled = useRef(false);
   useAutosize(field, draft ?? '');
+  useEffect(() => {
+    if (draft === null || draft !== base.current) return;
+    base.current = idea.text;
+    setDraft(idea.text);
+    // Only when the text arrives from my partner; my own typing is `draft`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idea.text]);
   useEffect(() => {
     const el = field.current;
     if (draft === null || !el || document.activeElement === el) return;
@@ -185,7 +199,15 @@ function IdeaText({ idea }: { idea: Idea }) {
 
   if (draft === null)
     return (
-      <button type="button" className="idea__text" dir="auto" onClick={() => setDraft(idea.text)}>
+      <button
+        type="button"
+        className="idea__text"
+        dir="auto"
+        onClick={() => {
+          base.current = idea.text;
+          setDraft(idea.text);
+        }}
+      >
         <span className="row__title">{idea.text}</span>
       </button>
     );
@@ -211,7 +233,7 @@ function IdeaText({ idea }: { idea: Idea }) {
         }
       }}
       onBlur={() => {
-        if (!cancelled.current) hub.editIdea(idea.id, draft);
+        if (!cancelled.current && draft.trim() !== base.current.trim()) hub.editIdea(idea.id, draft);
         cancelled.current = false;
         setDraft(null);
       }}
@@ -318,10 +340,13 @@ function ResolvedRow({ idea }: { idea: Idea }) {
 
 const ideaId = (i: Idea) => i.id;
 
-export function IdeasSheet({ onClose }: { onClose: () => void }) {
+/** `since`: when this device last looked, so news about my ideas opens Resolved. */
+export function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const { open, resolved } = ideasView(hub);
+  // Kept here, not in the fold: deleting its last row unmounts it, and Undo must find it open.
+  const [resolvedOpen, setResolvedOpen] = useState(() => ideasUnseen(hub, since) === 'resolved');
   const settle = useSettle(ideaId);
   const rows = settle.view('open', open);
 
@@ -364,7 +389,7 @@ export function IdeasSheet({ onClose }: { onClose: () => void }) {
         </Sortable>
       ) : null}
       {resolved.length ? (
-        <Disclosure title="Resolved" count={resolved.length}>
+        <Disclosure title="Resolved" count={resolved.length} open={resolvedOpen} onToggle={setResolvedOpen}>
           <ul className="rows ideas">
             {resolved.map((i) => (
               <ResolvedRow key={i.id} idea={i} />

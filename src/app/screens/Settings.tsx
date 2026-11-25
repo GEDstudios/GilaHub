@@ -575,9 +575,35 @@ function YourData() {
   const restore = async (f: File) => {
     try {
       const json = JSON.parse(await f.text()) as { app?: string; me?: string; data?: Record<string, Array<{ id: string } & Record<string, unknown>>> };
-      if (json.app !== 'gila-hub' || !json.data) throw new Error('not a backup');
-      const n = hub.importBackup(json.data, { me: typeof json.me === 'string' ? json.me : undefined });
-      toast(n ? `Restored ${n} things` : 'Nothing new in that backup');
+      const data = json.data;
+      if (json.app !== 'gila-hub' || !data) throw new Error('not a backup');
+      const run = (me?: string) => {
+        const n = hub.importBackup(data, { me });
+        toast(n ? `Restored ${n} things` : 'Nothing new in that backup');
+      };
+      if (typeof json.me === 'string') return run(json.me);
+      // An older backup from the two of us, and nothing in it says which one made it: ask.
+      const people = hub.backupOwner(data) ? [] : hub.backupStrangers(data);
+      if (people.length < 2) return run();
+      openSheet((close) => (
+        <Sheet onClose={close} title="Which one is you?">
+          <div className="tokens">
+            {people.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className="token"
+                onClick={() => {
+                  close();
+                  run(m.id);
+                }}
+              >
+                {m.name || 'Someone'}
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      ));
     } catch {
       toast('That file isn’t a Gila Hub backup.');
     }

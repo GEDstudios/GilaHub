@@ -248,8 +248,9 @@ export function homePreview(key: string, hub: Hub, v: TodayView, chores: ChoresV
   switch (key) {
     case 'asks': {
       const mine = v.awaitingOk.length + v.asked.length;
-      const theirs = v.outgoing.length + v.waitingTheirOk.length;
-      return join([mine > 0 && `${mine} for you`, theirs > 0 && `${theirs} you asked ${p}`], `${p}’s asks and OKs show up here`);
+      const asked = v.outgoing.length;
+      const did = v.waitingTheirOk.length;
+      return join([mine > 0 && `${mine} for you`, asked > 0 && `${asked} you asked ${p}`, did > 0 && `${did} waiting for ${p}’s OK`], `${p}’s asks and OKs show up here`);
     }
     case 'today':
       return join([v.today.length > 0 && `${v.today.length} today`, v.earlier.length > 0 && `${v.earlier.length} from earlier`], 'Nothing due today');

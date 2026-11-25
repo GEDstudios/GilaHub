@@ -251,6 +251,57 @@ describe('Hub: backup import', () => {
     }
   });
 
+  it('an older paired backup (no `me`) restores my Only-me things as mine and keeps asks pointing the right way', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do').id;
+    const secret = guy.addItem(todo, { title: 'Secret surprise', visibility: 'private' });
+    const ask = guy.addItem(todo, { title: 'Renew passports', assignee: 'hila' });
+    sync(guy, hila);
+    const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea'] as const;
+    const data = JSON.parse(JSON.stringify(Object.fromEntries(tables.map((t) => [t, guy.store.all(t)]))));
+    expect(data.member).toHaveLength(2);
+
+    // A new phone, alone; and a new phone already paired again with Hila.
+    const solo = await person('new');
+    solo.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
+    const paired = await person('new2');
+    paired.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    paired.upsertMember('new2', { name: 'Guy', color: 'lemon', createdAt: 5 });
+    for (const phone of [solo, paired]) {
+      expect(phone.backupOwner(data)).toBe('guy');
+      phone.importBackup(data);
+      expect(phone.item(secret)?.title).toBe('Secret surprise');
+      expect(phone.store.scopeOf('item', secret)).toBe(`p:${phone.meId}`);
+      expect(phone.item(ask)?.requestedBy).toBe(phone.meId);
+      expect(phone.item(ask)?.assignee).toBe('hila');
+    }
+  });
+
+  it('a restore that sealed things under an old me can be run again to repair them', async () => {
+    const old = await person('old');
+    old.upsertMember('old', { name: 'Guy', color: 'sky', createdAt: 1 });
+    seedHousehold(old, ['todo']);
+    const secret = old.addItem(listNamed(old, 'To do').id, { title: 'Ring', visibility: 'private' });
+    const data = JSON.parse(JSON.stringify(Object.fromEntries((['member', 'list', 'item'] as const).map((t) => [t, old.store.all(t)]))));
+    const phone = await person('new');
+    phone.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
+    // What an older build did: nobody mapped, so the ring sits under p:old, unreadable here.
+    phone.importBackup(data, { me: 'new' });
+    expect(phone.item(secret)).toBeUndefined();
+    phone.importBackup(data);
+    expect(phone.item(secret)?.title).toBe('Ring');
+    expect(phone.store.scopeOf('item', secret)).toBe('p:new');
+  });
+
+  it('asks whose an older backup is when nothing in it tells', async () => {
+    const { guy } = await couple();
+    const data = JSON.parse(JSON.stringify(Object.fromEntries((['member', 'list', 'item'] as const).map((t) => [t, guy.store.all(t).filter((r) => !('visibility' in r) || r.visibility !== 'private')]))));
+    const phone = await person('new');
+    phone.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
+    expect(phone.backupOwner(data)).toBeNull();
+    expect(phone.backupStrangers(data).map((m) => m.name)).toEqual(['Guy', 'Hila']);
+  });
+
   it('a restore never adds the partner on a device that isn’t paired', async () => {
     const { guy } = await couple();
     const data = JSON.parse(JSON.stringify(Object.fromEntries((['member', 'list', 'item'] as const).map((t) => [t, guy.store.all(t)]))));

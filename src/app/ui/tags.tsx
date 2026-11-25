@@ -89,8 +89,11 @@ export function RequestActions({ item, className }: { item: Item; className?: st
         onClick={() => {
           const to = item.submittedBy;
           const undo = hub.sendBack(item.id);
-          notifyAbout(rt, hub, item, to, `${hub.me()?.name ?? 'Your partner'} said not yet`, `“${item.title}” needs another go`);
-          toast(`Sent back to ${doer}`, { action: { label: 'Undo', run: undo } });
+          // Their phone hears it once Undo is no longer on offer.
+          toast(`Sent back to ${doer}`, {
+            action: { label: 'Undo', run: undo },
+            onExpire: () => notifyAbout(rt, hub, item, to, `${hub.me()?.name ?? 'Your partner'} said not yet`, `“${item.title}” needs another go`),
+          });
         }}
       >
         Not yet

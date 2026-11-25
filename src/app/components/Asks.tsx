@@ -57,7 +57,10 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
   );
 }
 
-/** "You asked Hila for 2 things · 1 waiting for Hila’s OK", which opens to those rows. */
+/**
+ * What I asked Hila for, and what I did of hers that waits for her OK, saying who did what:
+ * "You asked Hila for 2 things · you did 1 for Hila to OK". It opens to those rows.
+ */
 function AskedLine({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
   const hub = useHub();
   const partner = hub.partner();
@@ -66,8 +69,9 @@ function AskedLine({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
   const m = v.waitingTheirOk.length;
   const rows = [...settle.view('outgoing', v.outgoing), ...settle.view('theirok', v.waitingTheirOk)];
   if (!partner || !rows.length) return null;
-  const waiting = m ? `${m} waiting for ${partner.name}’s OK` : '';
-  const text = n ? `You asked ${partner.name} for ${n} ${n === 1 ? 'thing' : 'things'}${waiting ? ` · ${waiting}` : ''}` : waiting;
+  const P = partner.name;
+  const things = (k: number) => `${k} ${k === 1 ? 'thing' : 'things'}`;
+  const text = !m ? `You asked ${P} for ${things(n)}` : !n ? `You did ${things(m)} for ${P} · waiting for ${P}’s OK` : `You asked ${P} for ${things(n)} · you did ${m} for ${P} to OK`;
   return (
     <>
       <button type="button" className="quietline" aria-expanded={open} onClick={() => setOpen(!open)}>
