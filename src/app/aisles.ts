@@ -1,8 +1,8 @@
 import type { Flavor } from '../smart/categorize';
 import type { IconName } from './ui/Icon';
 
-/** Grocery aisles drawn as icons (aisle card headers, the item sheet's Aisle chip). */
-const AISLE_ICON: Partial<Record<string, IconName>> = {
+/** Aisles and departments drawn as icons (aisle card headers, the item sheet's Aisle chip). */
+const GROCERY: Partial<Record<string, IconName>> = {
   produce: 'carrot',
   bakery: 'bread',
   dairy: 'cheese',
@@ -19,5 +19,19 @@ const AISLE_ICON: Partial<Record<string, IconName>> = {
   other: 'cart',
 };
 
-/** An aisle's glyph; home departments (and aisles without one) keep their emoji. */
-export const aisleIcon = (flavor: Flavor, category: string): IconName | undefined => (flavor === 'grocery' ? AISLE_ICON[category] : undefined);
+/** Home shopping's departments; none reuses a grocery aisle's glyph, so "Both" never shows one twice. */
+const HOME: Partial<Record<string, IconName>> = {
+  kitchen: 'cooking-pot',
+  bath: 'bath',
+  bedroom: 'bed',
+  furniture: 'armchair',
+  cleaning: 'broom',
+  tools: 'wrench',
+  electrical: 'lightbulb',
+  garden: 'plant',
+  office: 'briefcase',
+  other: 'package',
+};
+
+/** An aisle's glyph; only learned or custom categories (no glyph) keep their emoji. */
+export const aisleIcon = (flavor: Flavor, category: string): IconName | undefined => (flavor === 'grocery' ? GROCERY : HOME)[category];

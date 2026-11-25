@@ -219,7 +219,12 @@ export const shoppingView = memo((hub: Hub, filter: string, dismissed: Record<st
   }
   const rank = (g: AisleGroup) => (g.flavor === 'grocery' ? 0 : 100) + categoryOrder(g.flavor).indexOf(g.category);
   const sorted = [...groups.values()].sort((a, b) => rank(a) - rank(b));
-  for (const g of sorted) g.items.sort(byOrder);
+  // Where each item sits on the walk through the store: its aisle, then its place in it.
+  const walk = new Map<string, number>();
+  sorted.forEach((g, at) => {
+    g.items.sort(byOrder);
+    g.items.forEach((i, n) => walk.set(i.id, at * 10_000 + n));
+  });
   const inCart = items
     .filter((i) => i.done && !i.archived)
     .sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0))
@@ -232,7 +237,11 @@ export const shoppingView = memo((hub: Hub, filter: string, dismissed: Record<st
 
   return {
     lists,
-    urgent: open.filter((i) => i.urgent).sort(byOrder).map(withEmoji),
+    // The Urgent card reads in walking order; it has no order of its own (arrange in the aisles).
+    urgent: open
+      .filter((i) => i.urgent)
+      .sort((a, b) => (walk.get(a.id) ?? 0) - (walk.get(b.id) ?? 0))
+      .map(withEmoji),
     groups: sorted,
     inCart,
     openCount: open.length,

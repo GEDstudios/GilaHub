@@ -8,6 +8,7 @@ import { ListBullet } from '../ui/primitives';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { EChip, Options, Panel, VisChip } from './editors';
 import { OptRow } from './pickers';
+import { usePingUrgent } from './shopAdd';
 
 type Open = 'aisle' | 'list' | 'vis' | null;
 
@@ -18,6 +19,7 @@ type Open = 'aisle' | 'list' | 'vis' | null;
 export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
+  const pingUrgent = usePingUrgent();
   const item = hub.item(id);
   const [title, setTitle] = useState(item?.title ?? '');
   const [notes, setNotes] = useState(item?.notes ?? '');
@@ -95,7 +97,10 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
         <button
           type="button"
           className={`echip ${item.urgent ? 'is-urgent' : ''}`}
-          onClick={() => hub.updateItem(id, { urgent: !item.urgent })}
+          onClick={() => {
+            hub.updateItem(id, { urgent: !item.urgent });
+            if (!item.urgent) pingUrgent(item, false);
+          }}
           aria-pressed={!!item.urgent}
           disabled={!editable}
         >

@@ -31,7 +31,6 @@ import { aisleIcon } from '../aisles';
 
 type Row = Item & { emoji: string };
 
-const cartMany = (n: number) => `${n} in the cart`;
 const itemId = (i: Item) => i.id;
 
 /** While the shopbar floats over the page, the page and the toasts make room for it. */
@@ -51,7 +50,7 @@ function useFloatHeight(ref: RefObject<HTMLDivElement | null>, on: boolean) {
   }, [ref, on]);
 }
 
-/** In the store the shopbar says what just went in the cart, with Undo, instead of a toast. */
+/** The shopbar says what just went in the cart, with Undo, instead of a toast. */
 interface CartNote {
   text: string;
   n: number;
@@ -106,7 +105,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const partner = hub.partner();
   const addRef = useRef<AddRowHandle>(null);
   const shopAdd = useShopAdd();
-  const seen = useRef<Set<string> | null>(null);
+  const seen = useRef<{ open: Set<string>; urgent: Set<string> } | null>(null);
 
   useWakeLock(mode);
   // In the store the cart starts open; outside it, folded.
@@ -146,20 +145,28 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     return () => rt.sync?.setPresence(null);
   }, [mode, rt, partner, hub]);
 
-  // Live: highlight what the partner adds while we look at the list.
-  const openIds = useMemo(() => new Set([...v.urgent, ...v.groups.flatMap((g) => g.items)].map((i) => i.id)), [v]);
+  // Live: highlight what the partner adds, or marks urgent, while we look at the list.
+  const ids = useMemo(
+    () => ({ open: new Set(v.groups.flatMap((g) => g.items).map((i) => i.id)), urgent: new Set(v.urgent.map((i) => i.id)) }),
+    [v],
+  );
   useEffect(() => {
     const prev = seen.current;
-    seen.current = openIds;
+    seen.current = ids;
     if (!prev) return;
-    const fresh = [...openIds].filter((id) => !prev.has(id) && hub.item(id)?.createdBy !== hub.meId);
-    if (!fresh.length) return;
-    setFlash(new Set(fresh));
-    const who = hub.member(hub.item(fresh[0])?.createdBy);
-    if (who && mode) toast(`${who.name} added ${hub.item(fresh[0])?.title}${fresh.length > 1 ? ` +${fresh.length - 1}` : ''}`);
+    const fresh = [...ids.open].filter((id) => !prev.open.has(id) && hub.item(id)?.createdBy !== hub.meId);
+    const urged = [...ids.urgent].filter((id) => !prev.urgent.has(id) && prev.open.has(id) && hub.item(id)?.urgentBy !== hub.meId);
+    if (!fresh.length && !urged.length) return;
+    setFlash(new Set([...fresh, ...urged]));
+    if (mode) {
+      const [first, rest, verb] = fresh.length ? [fresh[0], fresh.length - 1, 'added'] : [urged[0], urged.length - 1, 'marked'];
+      const item = hub.item(first);
+      const who = hub.member(fresh.length ? item?.createdBy : item?.urgentBy) ?? hub.partner();
+      if (who && item) toast(`${who.name} ${verb} ${item.title}${fresh.length ? '' : ' urgent'}${rest > 0 ? ` +${rest}` : ''}`);
+    }
     const t = setTimeout(() => setFlash(new Set()), 2200);
     return () => clearTimeout(t);
-  }, [openIds, hub, mode, toast]);
+  }, [ids, hub, mode, toast]);
 
   const destFor = (name: string, listId?: string): List | undefined => {
     if (listId) return hub.list(listId);
@@ -189,22 +196,19 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     if (!i.done) settle.hold(i.id);
     const undo = hub.toggle(i.id);
     if (i.done) return;
-    if (mode) {
-      setNote((prev) =>
-        prev
-          ? {
-              text: `${prev.n + 1} in the cart`,
-              n: prev.n + 1,
-              undo: () => {
-                undo();
-                prev.undo();
-              },
-            }
-          : { text: `${i.title} is in the cart`, n: 1, undo },
-      );
-      return;
-    }
-    toast(`${i.title} is in the cart`, { action: { label: 'Undo', run: undo }, ms: 2600, group: 'cart', many: cartMany });
+    // The shopbar says it (with Undo) instead of a toast: one floating thing above the bar.
+    setNote((prev) =>
+      prev
+        ? {
+            text: `${prev.n + 1} in the cart`,
+            n: prev.n + 1,
+            undo: () => {
+              undo();
+              prev.undo();
+            },
+          }
+        : { text: `${i.title} is in the cart`, n: 1, undo },
+    );
   };
 
   const openItem = (i: Item) => openSheet((close) => <ShopItemSheet id={i.id} onClose={close} />);
@@ -236,7 +240,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const many = filter === 'all' && lists.length > 1;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
   const shopper = partnerShopping ? hub.member(partnerShopping.member) : undefined;
-  const floating = !searching && (v.openCount > 0 || mode);
+  const floating = !searching && (v.openCount > 0 || mode || !!note);
   // Just ticked: it joins the cart once it has settled in its aisle.
   const cart = settle.view('cart', v.inCart);
   useFloatHeight(bar, floating);
@@ -427,6 +431,22 @@ export function Shopping({ listId }: { listId?: string } = {}) {
                 Finish
               </button>
             </div>
+          ) : note ? (
+            <div className="shopbar__inner shopbar__inner--note">
+              <span className="shopbar__text is-note" key={note.n} dir="auto" aria-live="polite">
+                {note.text}
+              </span>
+              <button
+                type="button"
+                className="shopbar__undo"
+                onClick={() => {
+                  note.undo();
+                  setNote(null);
+                }}
+              >
+                Undo
+              </button>
+            </div>
           ) : (
             <button type="button" className="btn shopbar__start" onClick={() => setMode(true)}>
               <Icon name="cart" className="icon--sm" /> Start shopping
@@ -479,12 +499,14 @@ function ShopList({
     if (!groups.some((x) => x.key === g.key) && g.items.some((i) => settle.held.has(i.id))) groups.splice(Math.min(at, groups.length), 0, { ...g, items: [] });
   });
   last.current = live;
-  /** Order within one aisle; an item only moves among rows of its own list. */
+  /**
+   * Order within one aisle. Order keys compare across lists, and an aisle is sorted by them, so
+   * the visible neighbours place the row exactly where it was dropped, even when the aisle mixes
+   * two lists. The Urgent card isn't arranged: it reads in walking order (views.ts).
+   */
   const onMove = (next: string[], id: string) => {
     const at = next.indexOf(id);
-    const listId = hub.item(id)?.listId;
-    const same = (x: string | undefined) => (x && hub.item(x)?.listId === listId ? x : null);
-    hub.reorder(id, same(next[at - 1]), same(next[at + 1]));
+    hub.reorder(id, next[at - 1] ?? null, next[at + 1] ?? null);
   };
   return (
     <>
@@ -509,8 +531,7 @@ function ShopList({
               ids={g.items.map((i) => i.id)}
               onMove={onMove}
               bounds="refuse"
-              disabled={!draggable}
-              liftClass={g.label ? undefined : 'lift--urgent'}
+              disabled={!draggable || !g.label}
               label={(id) => hub.item(id)?.title ?? ''}
               renderOverlay={(id) => {
                 const item = g.items.find((i) => i.id === id);
@@ -532,7 +553,7 @@ function ShopList({
               {shown.map(({ row: i, settling }) =>
                 settling ? (
                   <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={showList} inUrgent={!g.label} settling />
-                ) : draggable ? (
+                ) : draggable && g.label ? (
                   <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
                 ) : (
                   <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />

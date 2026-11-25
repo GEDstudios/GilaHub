@@ -88,7 +88,7 @@ function Composer({ listId, defaultDue, route, onDone }: { listId: string; defau
   if (mode === 'shopping') {
     const aisle = title && dest ? categoryMeta(hub.flavorOf(dest), hub.categoryFor({ title, listId: dest.id } as Item).category) : null;
     const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
-    sub = aisle ? [`${aisle.e} ${aisle.en}`, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
+    sub = aisle ? [aisle.en, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
   } else {
     sub = summarize(draft, { listName: dest?.name });
   }

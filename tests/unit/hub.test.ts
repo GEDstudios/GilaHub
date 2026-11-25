@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hub, pickColor, pickColors, seedHousehold } from '../../src/core/actions';
-import { isForMe, todayView } from '../../src/app/views';
+import { isForMe, shoppingView, todayView } from '../../src/app/views';
 import { LINE_COLORS } from '../../src/core/model';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
@@ -310,5 +310,39 @@ describe('Hub: backup import', () => {
     guy.assign(id, 'both');
     expect(guy.item(id)?.requestedBy).toBeNull();
     expect(guy.item(id)?.needsOk).toBe(false);
+  });
+});
+
+describe('Shopping: urgent', () => {
+  it('the Urgent card reads in walking order, and arranging an aisle is what moves it', async () => {
+    const guy = await person('guy');
+    seedHousehold(guy, ['groceries', 'home']);
+    const g = listNamed(guy, 'Groceries').id;
+    const h = listNamed(guy, 'Home shopping').id;
+    const batteries = guy.addShopping(h, 'batteries', { urgent: true }).id;
+    const shampoo = guy.addShopping(g, 'shampoo', { urgent: true }).id;
+    const milk = guy.addShopping(g, 'milk', { urgent: true }).id;
+    const cream = guy.addShopping(g, 'sour cream', { urgent: true }).id;
+    const apples = guy.addShopping(g, 'apples', { urgent: true }).id;
+    const urgent = () => shoppingView(guy, 'all', {}).urgent.map((i) => i.id);
+    // Fruit & Veg, Dairy, Personal care, then the home departments.
+    expect(urgent()).toEqual([apples, milk, cream, shampoo, batteries]);
+    // Arranging Dairy is the one way to change where sour cream sits in the walk.
+    guy.reorder(cream, null, milk);
+    const dairy = shoppingView(guy, 'all', {}).groups.find((x) => x.category === 'dairy')!.items.map((i) => i.id);
+    expect(dairy).toEqual([cream, milk]);
+    expect(urgent()).toEqual([apples, cream, milk, shampoo, batteries]);
+  });
+
+  it('remembers who turned urgent on', async () => {
+    const { guy, hila } = await couple();
+    const g = listNamed(guy, 'Groceries').id;
+    const milk = guy.addShopping(g, 'milk').id;
+    expect(guy.item(milk)?.urgentBy).toBeNull();
+    sync(guy, hila);
+    hila.updateItem(milk, { urgent: true });
+    sync(guy, hila);
+    expect(guy.item(milk)?.urgentBy).toBe('hila');
+    expect(guy.item(guy.addShopping(g, 'bread', { urgent: true }).id)?.urgentBy).toBe('guy');
   });
 });

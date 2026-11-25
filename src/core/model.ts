@@ -124,6 +124,8 @@ export interface Item {
   private?: boolean;
   /** Urgent / important flag. */
   urgent?: boolean;
+  /** Who last turned urgent on (the other one's Shopping flashes it). */
+  urgentBy?: string | null;
   /** Shopping: quantity text like "2", "500g", "1 ק"ג". */
   qty?: string | null;
   /** Shopping: aisle category id (overrides automatic). */

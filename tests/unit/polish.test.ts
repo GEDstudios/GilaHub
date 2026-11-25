@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastLike } from '../../src/app/ui/motion';
 import { AWAY_ON, syncTitle, welcomeBack } from '../../src/app/settingsCopy';
 import { aisleIcon } from '../../src/app/aisles';
+import { GROCERY_ORDER, HOME_ORDER } from '../../src/smart/categorize';
 
 describe('sheet pull', () => {
   it('follows the finger down and only gives a little upward', () => {
@@ -96,9 +97,14 @@ describe('words', () => {
     expect(welcomeBack('2026-11-20', '2026-11-25')).toBe('Welcome back. Chores moved by 5 days.');
   });
 
-  it('draw grocery aisles as icons and leave home departments to their emoji', () => {
+  it('draw every aisle and department as an icon, none shared between the two, and leave custom ones to their emoji', () => {
     expect(aisleIcon('grocery', 'dairy')).toBe('cheese');
     expect(aisleIcon('grocery', 'nope')).toBeUndefined();
     expect(aisleIcon('home', 'dairy')).toBeUndefined();
+    const home = HOME_ORDER.map((c) => aisleIcon('home', c));
+    expect(home.every(Boolean)).toBe(true);
+    expect(new Set(home).size).toBe(home.length);
+    const grocery = new Set(GROCERY_ORDER.map((c) => aisleIcon('grocery', c)));
+    expect(home.filter((i) => grocery.has(i))).toEqual([]);
   });
 });

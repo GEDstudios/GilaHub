@@ -719,9 +719,10 @@ button.projcard:active {
   color: var(--text-2);
 }
 
+/* The add row's icon is gray like the rest: the add row's arrow is the one black add control. */
 .suggest__item--add .suggest__icon {
-  background: var(--cta);
-  color: var(--cta-text);
+  background: var(--tile-2);
+  color: var(--ink);
 }
 
 .suggest__text {
@@ -791,6 +792,13 @@ button.projcard:active {
   background: var(--cta);
   color: var(--cta-text);
   box-shadow: var(--lift-2);
+}
+
+/* Outside the store a tick swaps Start shopping for this note, the same size, for a moment */
+.shopbar__inner--note {
+  height: 50px;
+  padding-right: 22px;
+  gap: 20px;
 }
 
 /* Light on ink: the Urgent card stays the screen's one lemon moment */
@@ -1319,11 +1327,6 @@ button.projcard:active {
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.1;
-}
-
-.lift--urgent {
-  --land-bg: var(--lemon);
-  background: var(--lemon);
 }
 
 /* ============================================================ Settings (SETTINGS, DECISIONS #9)

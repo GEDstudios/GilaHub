@@ -333,6 +333,7 @@ export class Hub {
       assignee: input.assignee ?? null,
       turn: input.assignee === 'turns' ? this.meId : null,
       urgent: input.urgent ?? false,
+      urgentBy: input.urgent ? this.meId : null,
       qty: input.qty ?? null,
       // Added to someone's "Mine" project: it's still theirs — unless I say whose it is.
       owner:
@@ -360,6 +361,7 @@ export class Hub {
 
   updateItem(id: string, fields: Partial<Item>): Undo {
     const before = this.item(id);
+    if (fields.urgent && !before?.urgent) fields = { ...fields, urgentBy: this.meId };
     const prev: Record<string, unknown> = {};
     if (before) for (const k of Object.keys(fields)) prev[k] = (before as unknown as Record<string, unknown>)[k] ?? null;
     this.store.mutate('item', id, fields);
@@ -618,6 +620,7 @@ export class Hub {
         logId: null,
         qty: qty ?? null,
         urgent: extra.urgent ?? false,
+        urgentBy: extra.urgent ? this.meId : null,
         order: keyBetween(this.children(listId, null).at(-1)?.order ?? null, null),
       });
       return { kind: 'revived', id: existing.id, listId };

@@ -1,4 +1,5 @@
 import type { ItemVisibility, ShoppingAddResult } from '../../core/actions';
+import type { Item } from '../../core/model';
 import { useHub, usePartnerShopping, useRt } from '../context';
 import { visFields, type VisChoice } from '../privacy';
 import { notifyMembers } from '../runtime';
@@ -14,15 +15,35 @@ export interface ShopAdd {
 }
 
 /**
+ * Tell a partner who is in the store right now that something is urgent: "Guy added milk" for a
+ * new item, "Guy marked milk urgent" for one already on the list. Used by the add row, New and
+ * the item sheet's Urgent chip.
+ */
+export function usePingUrgent() {
+  const hub = useHub();
+  const rt = useRt();
+  const partnerShopping = usePartnerShopping();
+  return (item: Item, added: boolean) => {
+    if (!partnerShopping) return;
+    const me = hub.me()?.name ?? 'Your partner';
+    void notifyMembers(rt, [partnerShopping.member], {
+      title: added ? `${me} added ${item.title}` : `${me} marked ${item.title} urgent`,
+      body: 'Urgent, while you’re there 🙏',
+      url: '/shop',
+      tag: 'urgent',
+    });
+  };
+}
+
+/**
  * Put something on a shopping list the one way: no duplicates (already there → "+1",
  * crossed off → brought back), the new row glows, and an urgent add pings a partner
  * who is in the store right now. Used by the Shopping add row and by New.
  */
 export function useShopAdd() {
   const hub = useHub();
-  const rt = useRt();
   const { toast } = useOverlays();
-  const partnerShopping = usePartnerShopping();
+  const pingUrgent = usePingUrgent();
 
   return (listId: string, add: ShopAdd, opts: { quiet?: boolean; announce?: boolean } = {}): ShoppingAddResult | undefined => {
     const title = add.title.trim();
@@ -36,14 +57,7 @@ export function useShopAdd() {
       else if (res.kind === 'revived') toast(`Brought back ${item?.title}`);
       else if (opts.announce) toast(`Added to ${hub.list(listId)?.name ?? 'the list'}`, { ms: 1800 });
     }
-    if (add.urgent && partnerShopping && item) {
-      void notifyMembers(rt, [partnerShopping.member], {
-        title: `${hub.me()?.name ?? 'Your partner'} added ${item.title}`,
-        body: 'Marked urgent, while you’re there 🙏',
-        url: '/shop',
-        tag: 'urgent',
-      });
-    }
+    if (add.urgent && item) pingUrgent(item, res.kind !== 'exists');
     return res;
   };
 }
