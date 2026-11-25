@@ -292,8 +292,8 @@ export function InlineEditor({
   const [open, setOpen] = useState<string | null>(null);
   const ref = todayStr();
   const toggle = (f: string) => setOpen(open === f ? null : f);
-  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode) => (
-    <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={() => toggle(f)} disabled={readOnly} compact={compact} />
+  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f)) => (
+    <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} disabled={readOnly} compact={compact} />
   );
 
   const chips: ReactNode[] = [];
@@ -320,12 +320,18 @@ export function InlineEditor({
         );
     }
     if (f === 'remind') {
-      chips.push(chip('remind', value.remind == null ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, 'bell', value.remind !== null));
+      const off = value.remind == null;
+      // Tapping the chip while it's off turns it on ("When due", today if undated) and shows the options.
+      const turnOn = () => {
+        onChange({ remind: 0, due: value.due ?? ref });
+        setOpen('remind');
+      };
+      chips.push(chip('remind', off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, 'bell', !off, undefined, off ? turnOn : undefined));
       if (open === 'remind')
         chips.push(
           <Panel key="remind:panel">
             <Options
-              value={value.remind === null ? 'none' : String(value.remind)}
+              value={value.remind == null ? 'none' : String(value.remind)}
               options={[{ value: 'none', label: 'No notification' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
               onPick={(v) => {
                 onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due });
