@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { createHash } from 'node:crypto';
+import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 
@@ -26,8 +27,24 @@ function serviceWorker(): Plugin {
   };
 }
 
+/** Which build is this? Shown in Settings so you can tell an update arrived. */
+function buildId(): string {
+  let sha = process.env.GITHUB_SHA?.slice(0, 7) ?? '';
+  if (!sha) {
+    try {
+      sha = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    } catch {
+      sha = 'dev';
+    }
+  }
+  const d = new Date();
+  const stamp = `${d.getUTCDate()} ${d.toLocaleString('en', { month: 'short', timeZone: 'UTC' })} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
+  return `${sha} · ${stamp}`;
+}
+
 export default defineConfig({
   plugins: [react(), serviceWorker()],
+  define: { __BUILD__: JSON.stringify(buildId()) },
   build: {
     target: 'es2022',
     sourcemap: false,

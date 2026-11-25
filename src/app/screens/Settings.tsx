@@ -199,6 +199,25 @@ export function Settings() {
         <div className="about">
           <Logo size={34} />
           <p>Life together, sorted.</p>
+          <p className="about__build">
+            Version {__BUILD__}
+            <button
+              type="button"
+              className="textbtn"
+              onClick={async () => {
+                toast('Checking for updates…', { ms: 4000 });
+                try {
+                  const reg = await navigator.serviceWorker?.getRegistration();
+                  await reg?.update();
+                } catch {
+                  /* offline — reload anyway */
+                }
+                setTimeout(() => location.reload(), 1200);
+              }}
+            >
+              Check for updates
+            </button>
+          </p>
         </div>
       </div>
     </>
