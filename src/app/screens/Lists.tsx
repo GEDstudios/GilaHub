@@ -9,7 +9,7 @@ import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, lineVars, NewButton } from '../ui/primitives';
-import { SyncBadge } from './Today';
+import { SyncBadge } from '../components/SyncBadge';
 import { Glyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { LIST_VIS, listVisLabel, visHint, visLabel, VIS_ICON } from '../privacy';

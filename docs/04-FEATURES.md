@@ -8,7 +8,8 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** A new item is a circle and a title. Details stay out of sight until the item is opened.
 - **●** A bottom bar you arrange: **Today**, then as many as you like (Shopping, Chores, Search or any project), then **Projects**. Change it in Settings, or with "Show in bottom bar" on any project. When it gets crowded it goes icons-only, then scrolls; hold it and slide to pick a tab. It follows you across your own devices.
 - **●** Two ways to add, the same on every screen: the add row in each list, and **New** (the black "+" at the top right, or `N` on desktop), which opens a sheet pointed at where you are.
-- **●** Today links straight to what's due: tap a project tag or a project name to open it.
+- **●** Today links straight to what's due: tap a project tag or a project name to open it. The summary counts everything waiting on you today (asks included), and a tag in your partner's color jumps to what they asked.
+- **●** **Today is yours to arrange.** Below the fixed summary come blocks in your order: Waiting on you, Today (with "n from earlier" folded under it), This week, Coming up (tiles for the next 7 days, ending in a hatched "+" to plan something), {Partner} did, and, if you add them, To buy, Chores ready and up to 3 projects. A block with nothing to show disappears; nothing shows twice. **Edit Today** at the bottom (or Settings → Today page) lets you drag to arrange, tap × to hide, and tap + to bring things back; every change saves at once and follows you to your other devices. "Back to the default" undoes it all.
 - **●** Quick add shows what it understood as chips. Tap a chip to undo it. **New** shows a live color card that says, in one sentence, what you're adding.
 - **●** Inline controls: under every item, *Date · Repeat · Remind me · Who · Ours · Urgent* chips open their options in place. No forms.
 - **●** No red, no badge spam, no streaks. Late items say "since Tue".
@@ -47,7 +48,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 4 · Reminders & dates
 
-- **●** One soft date (plus optional time) per item. It carries over quietly into **From earlier**, with one-tap *Today / Tomorrow / Someday / Let go*.
+- **●** One soft date (plus optional time) per item. It carries over quietly into **n from earlier** under Today, with one-tap *Today / Tomorrow / Skip*.
 - **●** Reminders at the time, or 15 min / 1 h / 1 day before. Notification permission is asked only when you set your first reminder.
 - **●** Repeating tasks ("Pay rent every month on the 1st") use the same two repeat types as chores.
 - **●** Push notifications through your own relay. They're end-to-end encrypted, so the relay can't read them. Without a relay, reminders still fire while the app is open.
@@ -87,7 +88,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** **Together card**: *"This week together: 23 things done."* One shared number. It never compares you.
 - **●** **♡ Thanks** on anything your partner finished.
 - **●** **"I'll take it"** on any unowned shared task.
-- **●** **Requests**: set Who to your partner (or type `@hila`) and it's a request, tagged "Guy asked" on their rows. It lands under **Waiting on you** on their Today, dated or not (a dated one sits in Today itself). Turn on **Needs my OK when done** and their tick waits for you in Waiting on you (OK / Not yet); confirming credits them. What you asked shows as a quiet line, "You asked Hila for 2 things". Each step can notify the other phone. On your own, Who is a dashed "Ask your person" chip that leads to pairing.
+- **●** **Requests**: set Who to your partner (or type `@hila`) and it's a request, tagged "Guy asked" on their rows. It lands on their Today, dated or not: under **Waiting on you** when it has no date or a later one, in Today itself when it's due. Turn on **Needs my OK when done** and their tick waits for you in Waiting on you (OK / Not yet); confirming credits them. What you asked shows as a quiet line, "You asked Hila for 2 things". Each step can notify the other phone. On your own, Who is a dashed "Ask your person" chip that leads to pairing.
 - **●** **Make it theirs**: any item can be Ours, Mine, *Hila's* or Only me, and rows say so with a small tag whenever it differs from the project (an ink "Only me", "Mine" in your color, "Hila's" in hers). Theirs lands on their Today, under Waiting on you when it has no date. The rules live in `src/app/privacy.ts`.
 - **●** **Project icons**: 26 line icons or any emoji, shown on the project's tile in the bottom bar and on its folder.
 - **●** Works fully offline, with honest sync status. When a new version is published, a small "A new version is ready · Refresh" note appears.

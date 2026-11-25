@@ -309,6 +309,67 @@ try {
     await guy.locator('li.row', { hasText: 'Return the library books' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
   });
 
+  // ---------- Today, arranged
+  await check('Today: Guy hides "Coming up" and moves "This week" up; it sticks after a reload', async () => {
+    await guy.goto(`${url}/`);
+    await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
+    await guy.waitForTimeout(1000);
+    await shot(guy, '14-today-paired');
+    await guy.screenshot({ path: resolve(shots, '14b-today-paired-full.png'), fullPage: true });
+    await guy.getByRole('button', { name: 'Edit Today' }).click();
+    await guy.getByRole('heading', { name: 'Edit Today', level: 1 }).waitFor();
+    await guy.waitForTimeout(500);
+    await shot(guy, '15-edit-today');
+    const rows = () => guy.locator('.slots:not(.slots--fixed) .slot__title').allInnerTexts();
+    const before = await rows();
+    if (before.join() !== 'Waiting on you,Today,This week,Coming up,Hila did') throw new Error(`unexpected slots: ${before.join(', ')}`);
+    await guy.getByRole('button', { name: 'Hide Coming up' }).click();
+    await waitFor(async () => !(await rows()).includes('Coming up'), 3000, 'Coming up hidden');
+    await guy.locator('.tray .token', { hasText: 'Coming up' }).waitFor({ timeout: 3000 });
+    // Keyboard reorder from the grip: pick up, up twice, drop.
+    await guy.getByRole('button', { name: 'Move This week' }).focus();
+    for (const key of ['Space', 'ArrowUp', 'ArrowUp', 'Space']) {
+      await guy.keyboard.press(key);
+      await guy.waitForTimeout(250);
+    }
+    await waitFor(async () => (await rows()).join() === 'This week,Waiting on you,Today,Hila did', 3000, 'This week moved up');
+    await shot(guy, '15b-edit-today-after');
+    await guy.getByRole('button', { name: 'Done', exact: true }).click();
+    await guy.reload();
+    await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
+    await guy.waitForTimeout(1000);
+    const titles = await guy.locator('.home h2.section__title').allInnerTexts();
+    if (titles.some((t) => t.startsWith('Coming up'))) throw new Error('Coming up is back after a reload');
+    const week = titles.findIndex((t) => t.startsWith('This week'));
+    const asks = titles.findIndex((t) => t.startsWith('Waiting on you'));
+    if (week < 0 || asks < 0 || week > asks) throw new Error(`order after reload: ${titles.join(' | ')}`);
+    await shot(guy, '16-today-arranged');
+  });
+
+  await check('Today: the "Hila" tag finds her asks, on the page or in a sheet; "Back to the default" restores it', async () => {
+    await guy.locator('.tag--person').click();
+    await waitFor(async () => {
+      const top = await guy.locator('#home-asks').evaluate((el) => el.getBoundingClientRect().top);
+      return top >= 0 && top < 200;
+    }, 3000, 'scrolled to Waiting on you');
+    await guy.evaluate(() => scrollTo(0, document.body.scrollHeight));
+    await guy.getByRole('button', { name: 'Edit Today' }).click();
+    await guy.getByRole('button', { name: 'Hide Waiting on you' }).click();
+    await guy.waitForTimeout(400);
+    await guy.getByRole('button', { name: 'Done', exact: true }).click();
+    await guy.locator('.tag--person').click();
+    await guy.locator('.sheet', { hasText: 'Fix the kettle' }).waitFor({ timeout: 3000 });
+    await shot(guy, '17-asks-sheet');
+    await guy.keyboard.press('Escape');
+    await guy.waitForTimeout(400);
+    await guy.getByRole('button', { name: 'Edit Today' }).click();
+    await guy.getByRole('button', { name: 'Back to the default' }).click();
+    await guy.getByText('Today is back to the default').waitFor({ timeout: 3000 });
+    const slots = await guy.locator('.slots:not(.slots--fixed) .slot__title').allInnerTexts();
+    if (slots.join() !== 'Waiting on you,Today,This week,Coming up,Hila did') throw new Error(`after reset: ${slots.join(', ')}`);
+    await guy.getByRole('button', { name: 'Done', exact: true }).click();
+  });
+
   // ---------- Desktop
   const desk = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const deskPage = await desk.newPage();

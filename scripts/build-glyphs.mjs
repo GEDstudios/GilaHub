@@ -37,7 +37,7 @@ const MAP = {
   snooze: ['bell-z', 'duo'], skip: ['skip-forward', 'duo'], pause: ['pause', 'duo'], tag: ['tag', 'duo'],
   cart: ['shopping-cart-simple', 'duo'], link: ['link', 'duo'], eye: ['eye', 'duo'], 'eye-off': ['eye-slash', 'duo'],
   moon: ['moon', 'duo'], hand: ['hand', 'duo'], pin: ['push-pin', 'duo'], urgent: ['lightning', 'duo'],
-  layout: ['layout', 'duo'], sliders: ['sliders-horizontal', 'duo'], inbox: ['tray', 'duo'],
+  layout: ['layout', 'duo'], sliders: ['sliders-horizontal', 'duo'], inbox: ['tray', 'duo'], stack: ['rows', 'duo'],
   request: ['hand-waving', 'duo'], 'user-plus': ['user-plus', 'duo'],
   // projects
   home: ['house', 'duo'], gift: ['gift', 'duo'], book: ['book-open', 'duo'], car: ['car', 'duo'],

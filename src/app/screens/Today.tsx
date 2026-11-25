@@ -1,20 +1,33 @@
-import { useRef, useState } from 'react';
-import { addDays, fromDateStr, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
-import type { Item, LineColor } from '../../core/model';
+import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
+import type { Hub } from '../../core/actions';
+import { fromDateStr, today as todayStr } from '../../core/dates';
+import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { AsksWidget } from '../components/Asks';
-import { ItemRow } from '../components/ItemRow';
-import { PairSheet } from '../components/PairSheet';
-import { AddRow } from '../components/QuickAdd';
+import { HomeEditor } from '../components/HomeEditor';
+import {
+  ChoresWidget,
+  ComingUp,
+  HomeNotices,
+  InviteCard,
+  PartnerDid,
+  ProjectWidget,
+  SummaryCard,
+  ToBuyWidget,
+  TodayWidget,
+  WeekStrips,
+} from '../components/HomeWidgets';
 import { QuickAddSheet } from '../components/QuickAddSheet';
-import { useHub, usePartnerShopping, useSync } from '../context';
-import { getPrefs } from '../prefs';
+import { SyncBadge } from '../components/SyncBadge';
+import { useHub } from '../context';
+import { aheadOf, choresReady, listIdOf, visibleHome, weekBands } from '../home';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Avatar, Band, IconButton, lineVars, NewButton, Section } from '../ui/primitives';
+import { Band, IconButton, NewButton } from '../ui/primitives';
 import { SettleContext, useSettle } from '../ui/useSettle';
-import { choresView, todayView } from '../views';
+import { choresView, todayView, type ChoresView, type TodayView } from '../views';
 
 const idOf = (i: Item) => i.id;
 
@@ -26,35 +39,35 @@ function greeting(): string {
   return 'Evening';
 }
 
-/** My avatar with a quiet sync dot; opens Settings. */
-export function SyncBadge() {
-  const hub = useHub();
-  const { status } = useSync();
-  const me = hub.me();
-  const label =
-    status === 'synced' ? 'Synced' : status === 'local' ? 'On this device only' : status === 'offline' ? 'Offline · saved on this device' : 'Syncing';
-  return (
-    <button type="button" className="me" onClick={() => navigate({ name: 'settings' })} aria-label={`Settings · ${label}`} title={label}>
-      <Avatar member={me} size="md" />
-      <span className={`syncdot syncdot--${status}`} />
-    </button>
-  );
+/** Does this block draw anything right now? (Today always does: its add row.) */
+function hasContent(key: string, hub: Hub, v: TodayView, chores: ChoresView, shown: ReadonlySet<string>): boolean {
+  switch (key) {
+    case 'asks':
+      return !!hub.partner() && v.awaitingOk.length + v.asked.length + v.outgoing.length + v.waitingTheirOk.length > 0;
+    case 'week':
+      return weekBands(hub, v, chores, shown).length > 0;
+    case 'upcoming':
+      return aheadOf(v).length > 0;
+    case 'partner':
+      return !!hub.partner() && v.recent.length > 0;
+    case 'shop':
+      return v.shopping.count > 0;
+    case 'chores':
+      return choresReady(hub, v, chores).length > 0;
+    default:
+      return true;
+  }
 }
 
-/** Just the dot, for places that are already a button. */
-export function SyncDot() {
-  const { status } = useSync();
-  return <span className={`syncdot syncdot--${status}`} style={{ marginLeft: 'auto' }} title={status} />;
+/** Cross-fade between the page and its editor, where the browser can. */
+function swap(fn: () => void) {
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+  if (!doc.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return fn();
+  doc.startViewTransition(() => flushSync(fn));
 }
 
-function Strip({ color, num, label, onClick }: { color: LineColor; num: number; label: string; onClick?: () => void }) {
-  return (
-    <button type="button" className="strip" style={lineVars(color)} onClick={onClick} aria-label={`${num} ${label}`} disabled={!onClick}>
-      <span className="strip__num num">{num}</span>
-      <span className="strip__label">{label}</span>
-    </button>
-  );
-}
+/** Widgets fade up the first time Today draws in a session. */
+let greeted = false;
 
 export function Today() {
   const hub = useHub();
@@ -63,50 +76,88 @@ export function Today() {
   const v = todayView(hub, ref);
   const chores = choresView(hub, ref);
   const me = hub.me();
-  const partner = hub.partner();
-  const shopping = usePartnerShopping();
-  const [earlierOpen, setEarlierOpen] = useState(false);
-  // Asks waiting on me count too, so the summary never says "nothing" above them.
-  const due = v.today.length + v.earlier.length + v.awaitingOk.length + v.asked.length;
-  const dueProjects = [...new Set([...v.today, ...v.earlier].map((i) => i.listId))].map((id) => hub.list(id)!).filter(Boolean).slice(0, 3);
-  // Today's add row puts things in the last task project used (To do, at first).
-  const taskLists = hub.lists().filter((l) => l.kind === 'tasks');
-  const last = getPrefs().lastList;
-  const addTo = (last && taskLists.find((l) => l.id === last)) || taskLists.find((l) => l.name === 'To do') || taskLists[0];
-  const shopper = shopping ? hub.member(shopping.member) : undefined;
-  // Ticked rows stay a moment (check, strike, fold) before they leave their group.
+  // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
-  const todayRows = settle.view('today', v.today);
-  const earlierRows = settle.view('earlier', v.earlier);
-  // A day that just lost its last row stays until that row has settled.
-  const days = useRef<string[]>([]);
-  const upcoming = [...new Set([...days.current, ...v.upcoming.map((g) => g.date)])]
-    .sort()
-    .map((date) => ({ date, rows: settle.view(`up:${date}`, v.upcoming.find((g) => g.date === date)?.items ?? []) }))
-    .filter((g) => g.rows.length);
-  days.current = upcoming.map((g) => g.date);
+  const [editing, setEditing] = useState(false);
+  const [entering, setEntering] = useState(() => !greeted);
+
+  useEffect(() => {
+    greeted = true;
+    if (!entering) return;
+    const t = setTimeout(() => setEntering(false), 900);
+    return () => clearTimeout(t);
+  }, [entering]);
 
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={ref} />);
   useAddAction(openNew);
 
-  // The row moves into the Today section once Today has rows: keep typing there.
-  const [refocus, setRefocus] = useState(false);
-  const addRow = addTo ? (
-    <AddRow
-      listId={addTo.id}
-      defaultDue={ref}
-      placeholder="Add something for today"
-      allowListChange
-      autoFocus={refocus}
-      onAdded={(id) => setRefocus(!todayRows.length && hub.item(id)?.due === ref)}
-    />
-  ) : null;
+  const edit = (on: boolean) =>
+    swap(() => {
+      setEditing(on);
+      window.scrollTo({ top: 0 });
+    });
 
-  const strips = [
-    v.shopping.count ? { color: 'lemon' as const, num: v.shopping.count, label: 'to buy', go: () => navigate({ name: 'shop' }) } : null,
-    chores.now.length ? { color: 'pink' as const, num: chores.now.length, label: chores.now.length === 1 ? 'chore ready' : 'chores ready', go: () => navigate({ name: 'chores' }) } : null,
-    v.together ? { color: 'lilac' as const, num: v.together, label: 'done together this week' } : null,
-  ].filter(Boolean) as Array<{ color: LineColor; num: number; label: string; go?: () => void }>;
+  // Esc leaves Edit Today (not while a row is being dragged: there Esc cancels the drag).
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || document.documentElement.classList.contains('is-dragging')) return;
+      if (document.querySelector('.sheet')) return;
+      edit(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  const date = fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  if (editing) {
+    return (
+      <>
+        <Band
+          top={<SyncBadge />}
+          actions={
+            <button type="button" className="btn btn--sm" onClick={() => edit(false)}>
+              Done
+            </button>
+          }
+          title="Edit Today"
+          sub="Drag to arrange. Tap × to hide."
+          mini="Edit Today"
+        />
+        <div className="column">
+          <HomeEditor />
+        </div>
+      </>
+    );
+  }
+
+  const slots = visibleHome(hub);
+  const shown = new Set(slots.map((s) => s.key));
+  const first = slots.find((s) => hasContent(s.key, hub, v, chores, shown))?.key;
+
+  const block = (key: string) => {
+    const listId = listIdOf(key);
+    if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} />;
+    switch (key) {
+      case 'asks':
+        return <AsksWidget key={key} v={v} settle={settle} />;
+      case 'today':
+        return <TodayWidget key={key} v={v} day={ref} settle={settle} bare={first === 'today'} />;
+      case 'week':
+        return <WeekStrips key={key} v={v} chores={chores} shown={shown} />;
+      case 'upcoming':
+        return <ComingUp key={key} v={v} day={ref} />;
+      case 'partner':
+        return <PartnerDid key={key} v={v} />;
+      case 'shop':
+        return <ToBuyWidget key={key} v={v} settle={settle} />;
+      case 'chores':
+        return <ChoresWidget key={key} v={v} chores={chores} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <SettleContext.Provider value={settle}>
@@ -119,170 +170,21 @@ export function Today() {
           </>
         }
         title={`${greeting()}, ${me?.name ?? 'you'}!`}
-        mini={fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+        sub={date}
+        mini={date}
       />
-      <div className="column">
-        <div className="summary">
-          <p className="summary__text">
-            {due ? (
-              <>
-                You have {due} {due === 1 ? 'thing' : 'things'}
-                <br />
-                to tackle today
-              </>
-            ) : (
-              <>
-                Nothing due today.
-                <br />
-                Enjoy it.
-              </>
-            )}
-          </p>
-          {dueProjects.length ? (
-            <span className="tags">
-              {dueProjects.map((l) => (
-                <button key={l.id} type="button" className="tag tag--link" style={lineVars(l.color)} onClick={() => navigate({ name: 'list', id: l.id })}>
-                  <span dir="auto">{l.name}</span>
-                </button>
-              ))}
-            </span>
-          ) : null}
+      <div className={`column home ${entering ? 'is-entering' : ''}`}>
+        <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+        <HomeNotices />
+        {slots.map((s) => block(s.key))}
+        <InviteCard />
+        {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
+        <div className="homeedit">
+          <button type="button" className="textbtn" onClick={() => edit(true)}>
+            <Icon name="edit" />
+            Edit Today
+          </button>
         </div>
-
-        {todayRows.length ? null : addRow}
-
-        {shopper ? (
-          <button type="button" className="notice" onClick={() => navigate({ name: 'shop' })}>
-            <Avatar member={shopper} size="sm" />
-            <span className="notice__text">
-              <strong>{shopper.name} is shopping now.</strong> Need anything?
-            </span>
-            <Icon name="chevron-right" />
-          </button>
-        ) : null}
-
-        <AsksWidget v={v} settle={settle} />
-
-        {todayRows.length ? (
-          <Section title="Today" id="today">
-            <ul className="rows">
-              {todayRows.map(({ row: i, settling }) => (
-                <ItemRow key={i.id} item={i} showList settling={settling} />
-              ))}
-            </ul>
-            {addRow}
-          </Section>
-        ) : null}
-
-        {earlierRows.length ? (
-          <Section
-            title="From earlier"
-            count={v.earlier.length}
-            action={
-              <button type="button" className="textbtn" onClick={() => setEarlierOpen(!earlierOpen)} aria-expanded={earlierOpen}>
-                {earlierOpen ? 'Hide' : 'Show'}
-              </button>
-            }
-          >
-            {earlierOpen ? (
-              <ul className="rows">
-                {earlierRows.map(({ row: i, settling }) => (
-                  <ItemRow
-                    key={i.id}
-                    item={i}
-                    showList
-                    settling={settling}
-                    trailing={
-                      hub.canEdit(i) ? (
-                        <span className="catchup" onClick={(e) => e.stopPropagation()}>
-                          <button type="button" className="mini" onClick={() => (i.repeat ? hub.skip(i.id) : hub.snooze(i.id, ref))}>
-                            {i.repeat ? 'Skip' : 'Today'}
-                          </button>
-                          {!i.repeat ? (
-                            <button type="button" className="mini" onClick={() => hub.snooze(i.id, addDays(ref, 1))}>
-                              Tomorrow
-                            </button>
-                          ) : null}
-                        </span>
-                      ) : null
-                    }
-                  />
-                ))}
-              </ul>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {strips.length ? (
-          <Section title="This week">
-            <div className="stack">
-              {strips.map((s) => (
-                <Strip key={s.label} color={s.color} num={s.num} label={s.label} onClick={s.go} />
-              ))}
-            </div>
-          </Section>
-        ) : null}
-
-        {upcoming.length ? (
-          <Section title="Coming up" id="upcoming">
-            {upcoming.map((g) => (
-              <div key={g.date} className="day">
-                <div className="day__head">{humanDate(g.date, ref)}</div>
-                <ul className="rows">
-                  {g.rows.map(({ row: i, settling }) => (
-                    <ItemRow key={i.id} item={i} showList dateMode="none" settling={settling} />
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </Section>
-        ) : null}
-
-        {v.recent.length && partner ? (
-          <Section title={`${partner.name} did`}>
-            <ul className="rows">
-              {v.recent.map((r) => (
-                <li key={r.log?.id ?? r.item.id} className="row">
-                  <Avatar member={partner} size="sm" />
-                  <div className="row__body">
-                    <span className="row__title" dir="auto">
-                      {r.item.title}
-                    </span>
-                    <span className="row__meta">
-                      <span className="meta">{relativeAgo(r.at)}</span>
-                    </span>
-                  </div>
-                  {r.log ? (
-                    <button
-                      type="button"
-                      className={`heart ${r.log.thankedBy ? 'is-on' : ''}`}
-                      onClick={() => hub.thank(r.log!.id)}
-                      aria-label={`Thank ${partner.name}`}
-                      aria-pressed={!!r.log.thankedBy}
-                    >
-                      <Icon name={r.log.thankedBy ? 'heart-fill' : 'heart'} />
-                    </button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        ) : null}
-
-        {!partner ? (
-          <button type="button" className="invite" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
-            <span className="invite__people" aria-hidden="true">
-              <Avatar member={me} size="md" />
-              <span className="invite__empty">
-                <Icon name="plus" className="icon--sm" />
-              </span>
-            </span>
-            <span className="invite__text">
-              <strong>Bring your person in</strong>
-            </span>
-            <Icon name="chevron-right" />
-          </button>
-        ) : null}
       </div>
     </SettleContext.Provider>
   );

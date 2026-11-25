@@ -24,7 +24,7 @@ import { useAddAction } from '../addAction';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
 import { ProjectHero, ProjectMenuButton } from './ListScreen';
 import { NewProjectSheet } from './Lists';
-import { SyncBadge } from './Today';
+import { SyncBadge } from '../components/SyncBadge';
 import { shoppingView } from '../views';
 
 type Row = Item & { emoji: string };
@@ -470,25 +470,29 @@ function ShopList({
   );
 }
 
-function ShopRow({
+/** One thing to buy. Also on Today (To buy). */
+export function ShopRow({
   item,
   onTick,
   onOpen,
   flash,
   showList,
   inUrgent,
+  settling,
   liRef,
   liStyle,
   liClass,
   dragProps,
 }: {
-  item: Row;
+  item: Item;
   onTick: (i: Item) => void;
   onOpen: (i: Item) => void;
   flash?: boolean;
   showList?: boolean;
   /** Rendered inside the Urgent card (so no extra tag needed). */
   inUrgent?: boolean;
+  /** Just ticked: drawn checked while it strikes through and folds away (useSettle). */
+  settling?: boolean;
   liRef?: Ref<HTMLLIElement>;
   liStyle?: CSSProperties;
   liClass?: string;
@@ -505,10 +509,11 @@ function ShopRow({
       style={liStyle}
       {...dragProps}
       data-id={item.id}
-      className={`row row--tap ${item.done ? 'is-done' : ''} ${mine ? 'row--fresh row--flash' : flash ? 'row--flash' : ''} ${liClass ?? ''}`}
+      data-settle={item.id}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${mine ? 'row--fresh row--flash' : flash ? 'row--flash' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
       onClick={() => onOpen(item)}
     >
-      <Check on={item.done} color={list?.color} onToggle={() => onTick(item)} label={item.title} />
+      <Check on={item.done || !!settling} color={list?.color} onToggle={() => onTick(item)} label={item.title} />
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title}
@@ -578,7 +583,7 @@ function SearchResults({
           <h2 className="aisle__head">On the list</h2>
           <ul className="rows">
             {onList.slice(0, 8).map((i) => (
-              <ShopRow key={i.id} item={{ ...i, emoji: hub.categoryFor(i).emoji }} onTick={onTick} onOpen={onOpen} showList={filter === 'all'} />
+              <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={filter === 'all'} />
             ))}
           </ul>
         </>

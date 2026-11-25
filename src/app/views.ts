@@ -43,7 +43,8 @@ export interface TodayView {
   today: Item[];
   earlier: Item[];
   upcoming: Array<{ date: string; items: Item[] }>;
-  shopping: { count: number; urgent: number; names: string[]; lists: List[] };
+  /** What's on the shopping lists: `preview` is the first 4, urgent first, then newest. */
+  shopping: { count: number; urgent: number; lists: List[]; preview: Item[] };
   together: number;
   recent: Array<{ log?: LogEntry; item: Item; by: string; at: number }>;
   dueCount: number;
@@ -145,7 +146,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     shopping: {
       count: shopOpen.length,
       urgent: shopOpen.filter((i) => i.urgent).length,
-      names: shopOpen.slice(0, 4).map((i) => i.title),
+      preview: shopOpen.slice(0, 4),
       lists: shopLists.filter((l) => shopOpen.some((i) => i.listId === l.id)),
     },
     together,

@@ -25,6 +25,17 @@ export interface Member {
   shopAlerts?: boolean;
   /** My bottom bar, between Today and Projects, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
   tabs?: string[];
+  /** My Today page, in order (undefined = the defaults). Synced to my devices; see app/home.ts. */
+  home?: HomeSlot[];
+}
+
+/**
+ * One block on my Today page. Widgets: 'asks' | 'today' | 'week' | 'upcoming' | 'partner' |
+ * 'shop' | 'chores' (kept with on:false when hidden); pinned projects: 'l:<listId>' (removed when unpinned).
+ */
+export interface HomeSlot {
+  key: string;
+  on: boolean;
 }
 
 export type ListKind = 'tasks' | 'shopping' | 'chores';

@@ -17,9 +17,10 @@ import { useSettle } from '../ui/useSettle';
 import { choresView, type ChoreRow } from '../views';
 import { ProjectActions, ProjectHero } from './ListScreen';
 import { NewProjectSheet } from './Lists';
-import { SyncBadge } from './Today';
+import { SyncBadge } from '../components/SyncBadge';
 
-function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
+/** One chore row; ticking it gives the "Fresh again. Next: …" toast. Also on Today (Chores ready). */
+export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const { item, list } = row;

@@ -548,6 +548,12 @@
   --s: 14;
 }
 
+.urgent--short {
+  width: 22px;
+  padding: 0;
+  justify-content: center;
+}
+
 .vtag .icon {
   --s: 12;
 }
@@ -1120,6 +1126,229 @@ html.is-dragging * {
 @media (prefers-reduced-motion: reduce) {
   .lift {
     transform: rotate(var(--land));
+    animation: none;
+  }
+}
+
+/* ============================================================ Arranger (components/Arranger.tsx)
+ * Edit Today (and the bar editor): locked anchors, then slots you drag by the grip (or hold
+ * on touch), × to hide, a tray of + tokens to bring things back.
+ */
+
+.slots {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.slots + .slots,
+.slots--fixed + .slots,
+.slots + .slots--fixed {
+  margin-top: 8px;
+}
+
+.slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 66px;
+  padding: 9px 4px 9px 16px;
+  border-radius: 20px;
+  background: var(--tile);
+  animation: slot-in 220ms var(--ease) backwards;
+  animation-delay: calc(min(var(--i, 0), 10) * 25ms);
+}
+
+.slot__mark {
+  width: 24px;
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+}
+
+.slot__mark > .icon {
+  --s: 20;
+}
+
+.slot__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.slot__title {
+  font-size: 15.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot__sub {
+  font-size: 13px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot__btn {
+  width: 40px;
+  height: 44px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--text-3);
+  transition: transform 140ms var(--ease);
+}
+
+.slot__btn .icon {
+  --s: 18;
+}
+
+.slot__btn:active {
+  transform: scale(0.9);
+}
+
+.slot__grip {
+  color: var(--text-4);
+}
+
+/* Locked: an outline, no buttons */
+.slot--fixed {
+  padding-right: 16px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--tile);
+}
+
+/* Where a lifted slot came from */
+.slot.is-ghost {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px transparent;
+  outline: 1.5px dashed var(--tile-2);
+  outline-offset: -1.5px;
+}
+
+.slot.is-ghost > * {
+  visibility: hidden;
+}
+
+/* The lifted copy (in the drag overlay): white, the grip in ink */
+.lift--slot {
+  --land-bg: var(--tile);
+  border-radius: 20px;
+}
+
+.lift--slot .slot {
+  background: none;
+  animation: none;
+}
+
+.lift--slot .slot__grip {
+  color: var(--text);
+}
+
+/* Hidden with ×: it folds away */
+.slot.is-leaving {
+  pointer-events: none;
+  overflow: hidden;
+  animation: slot-out 200ms var(--ease) forwards;
+}
+
+/* Brought back: a lemon flash */
+.slot.is-fresh {
+  animation: slot-fresh 1.4s var(--ease);
+}
+
+@keyframes slot-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes slot-out {
+  from {
+    height: var(--h, 66px);
+  }
+  to {
+    height: 0;
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -8px;
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes slot-fresh {
+  0%,
+  30% {
+    background: var(--lemon-soft);
+  }
+}
+
+/* The tray: + tokens to bring things back; one can open a panel of choices under it */
+.tray {
+  margin-top: 30px;
+}
+
+.tray .section__head {
+  margin-bottom: 4px;
+}
+
+.token.is-open {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.token.is-open .icon {
+  color: inherit;
+}
+
+.token.is-new {
+  animation: pop 220ms var(--spring) both;
+}
+
+.token.is-going {
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.panel--inline {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.03);
+  animation: panel-in 200ms var(--ease) both;
+}
+
+.panel--inline .tokens {
+  margin-top: 0;
+}
+
+.arranger__reset {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot,
+  .slot.is-fresh,
+  .token.is-new {
     animation: none;
   }
 }

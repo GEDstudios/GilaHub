@@ -12,21 +12,22 @@ import { ItemRow } from './ItemRow';
 const CAP = 6;
 
 /**
- * "Waiting on you": what my partner says is done (OK / Not yet under the text), then what
- * they asked me for. Under it, a quiet line for what I asked them. Nothing while I'm on my own.
- * Rows settle through the screen's `settle` (ticked rows strike and fold before they leave).
+ * "Waiting on you" (the `asks` block on Today): what my partner says is done (OK / Not yet
+ * under the text), then what they asked me for. Under it, a quiet line for what I asked them.
+ * Nothing while I'm on my own. Rows settle through the screen's `settle` (ticked rows strike
+ * and fold before they leave).
  */
-export function AsksWidget({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
+export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<Item>; bare?: boolean }) {
   const hub = useHub();
   const partner = hub.partner();
-  const [more, setMore] = useState(false);
+  const [more, setMore] = useState(!!bare);
   if (!partner) return null;
   const rows = [...settle.view('ok', v.awaitingOk), ...settle.view('asked', v.asked)];
   const shown = more ? rows : rows.slice(0, CAP);
   const line = <AskedLine v={v} settle={settle} />;
   if (!rows.length) return <div className="asks-quiet">{line}</div>;
-  return (
-    <Section title="Waiting on you" count={v.awaitingOk.length + v.asked.length} id="home-asks">
+  const body = (
+    <>
       <ul className="rows">
         {shown.map(({ row: i, settling }) =>
           i.submittedAt && i.requestedBy === hub.meId ? (
@@ -45,6 +46,13 @@ export function AsksWidget({ v, settle }: { v: TodayView; settle: Settle<Item> }
         </button>
       ) : null}
       {line}
+    </>
+  );
+  // In a sheet (the summary's person tag, when this block is off), the sheet's title says it.
+  if (bare) return body;
+  return (
+    <Section title="Waiting on you" count={v.awaitingOk.length + v.asked.length} id="home-asks">
+      {body}
     </Section>
   );
 }

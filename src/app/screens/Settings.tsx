@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { relativeAgo } from '../../core/dates';
 import { BarEditor } from '../components/BarEditor';
+import { HomeEditor } from '../components/HomeEditor';
 import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
 import { useHub, useRt, useSync } from '../context';
@@ -151,6 +152,10 @@ export function Settings() {
 
         <Section title="Bottom bar">
           <BarEditor />
+        </Section>
+
+        <Section title="Today page">
+          <HomeEditor />
         </Section>
 
         <Section title="Notifications">

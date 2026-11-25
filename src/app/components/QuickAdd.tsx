@@ -195,6 +195,7 @@ export function AddRow({
   onSubmit,
   handle,
   autoFocus,
+  route,
 }: {
   listId: string;
   parentId?: string | null;
@@ -210,12 +211,14 @@ export function AddRow({
   onSubmit?: (parsed: ParseResult, chips: Draft, opts: { quiet?: boolean }) => void;
   handle?: Ref<AddRowHandle>;
   autoFocus?: boolean;
+  /** Shopping across lists: each item goes to the list it belongs on ("bulbs" → Home). */
+  route?: boolean;
 }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const [own, setOwn] = useState('');
   const text = textProp ?? own;
-  const c = useCompose({ listId, parentId, defaultDue, text });
+  const c = useCompose({ listId, parentId, defaultDue, text, route });
   const input = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
   // The chips fold a moment after focus leaves, so a tap elsewhere lands before the page shifts.

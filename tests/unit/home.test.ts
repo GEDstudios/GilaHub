@@ -1,0 +1,248 @@
+import { describe, expect, it } from 'vitest';
+import { Hub, seedHousehold } from '../../src/core/actions';
+import { addDays, today } from '../../src/core/dates';
+import { MemoryPersistence } from '../../src/core/db';
+import { Store } from '../../src/core/store';
+import {
+  aheadDay,
+  aheadOf,
+  DEFAULT_HOME,
+  hiddenWidgets,
+  hideHome,
+  homeOf,
+  homePreview,
+  isDefaultHome,
+  MAX_HOME_PROJECTS,
+  pinnedProjects,
+  reorderHome,
+  setHome,
+  showHome,
+  slotTitle,
+  summaryOf,
+  visibleHome,
+  weekBands,
+} from '../../src/app/home';
+import { choresView, todayView } from '../../src/app/views';
+
+async function person(member: string) {
+  const store = await Store.load(new MemoryPersistence(), `dev-${member}`, ['h', `p:${member}`]);
+  return new Hub(store, member);
+}
+
+function sync(...hubs: Hub[]) {
+  for (let round = 0; round < 3; round++) {
+    for (const from of hubs) {
+      const entries = from.store.pendingOutbox();
+      for (const to of hubs) {
+        if (to === from) continue;
+        to.store.applyRemoteBatch(entries.filter((e) => to.store.canRead(e.s)).map((e) => e.op));
+      }
+      from.store.ack(entries.map((e) => e.cid));
+    }
+  }
+}
+
+async function solo() {
+  const guy = await person('guy');
+  guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+  seedHousehold(guy, ['groceries', 'home', 'chores', 'todo']);
+  return guy;
+}
+
+async function couple() {
+  const guy = await solo();
+  const hila = await person('hila');
+  sync(guy, hila);
+  hila.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+  sync(guy, hila);
+  return { guy, hila };
+}
+
+const keys = (slots: Array<{ key: string }>) => slots.map((s) => s.key);
+const listNamed = (hub: Hub, name: string) => hub.lists().find((l) => l.name === name)!;
+
+describe('home layout', () => {
+  it('starts from the defaults, and hides what needs a partner while solo', async () => {
+    const hub = await solo();
+    expect(homeOf(hub)).toEqual(DEFAULT_HOME);
+    expect(isDefaultHome(hub)).toBe(true);
+    expect(keys(visibleHome(hub))).toEqual(['today', 'week', 'upcoming']);
+    // The tray offers only what could show: To buy and Chores ready, never asks or partner.
+    expect(hiddenWidgets(hub)).toEqual(['shop', 'chores']);
+  });
+
+  it('shows the whole default page once paired', async () => {
+    const { guy } = await couple();
+    expect(keys(visibleHome(guy))).toEqual(['asks', 'today', 'week', 'upcoming', 'partner']);
+    expect(slotTitle(guy, 'partner')).toBe('Hila did');
+  });
+
+  it('drops unknown and duplicate keys', async () => {
+    const hub = await solo();
+    hub.upsertMember('guy', {
+      home: [
+        { key: 'week', on: true },
+        { key: 'mystery', on: true },
+        { key: 'today', on: true },
+        { key: 'week', on: false },
+        null as never,
+        { key: 42 as never, on: true },
+      ],
+    });
+    const out = keys(homeOf(hub));
+    expect(out).not.toContain('mystery');
+    expect(out.filter((k) => k === 'week')).toHaveLength(1);
+    expect(homeOf(hub).find((s) => s.key === 'week')!.on).toBe(true);
+    // My order (week, then today) stands; the defaults I never stored go in after their predecessor.
+    expect(out).toEqual(['asks', 'week', 'upcoming', 'partner', 'shop', 'chores', 'today']);
+  });
+
+  it('drops a deleted or archived project, and keeps at most 3', async () => {
+    const hub = await solo();
+    const [a, b, c, d] = hub.lists();
+    hub.upsertMember('guy', {
+      home: [...DEFAULT_HOME, ...[a, b, c, d].map((l) => ({ key: `l:${l.id}`, on: true }))],
+    });
+    expect(pinnedProjects(hub)).toEqual([a.id, b.id, c.id]);
+    expect(pinnedProjects(hub)).toHaveLength(MAX_HOME_PROJECTS);
+    hub.deleteList(a.id);
+    hub.updateList(b.id, { archived: true });
+    expect(pinnedProjects(hub)).toEqual([c.id, d.id]);
+  });
+
+  it("merges a widget I've never seen in after its predecessor, at its default", async () => {
+    const hub = await solo();
+    // An older build knew only these, in a custom order.
+    hub.upsertMember('guy', {
+      home: [
+        { key: 'upcoming', on: true },
+        { key: 'today', on: true },
+        { key: 'asks', on: true },
+      ],
+    });
+    // week follows today; partner follows its nearest known predecessor (upcoming), then shop and chores.
+    expect(keys(homeOf(hub))).toEqual(['upcoming', 'partner', 'shop', 'chores', 'today', 'week', 'asks']);
+    expect(homeOf(hub).find((s) => s.key === 'shop')!.on).toBe(false);
+  });
+
+  it('keeps a hidden widget hidden', async () => {
+    const hub = await solo();
+    hideHome(hub, 'upcoming');
+    expect(keys(visibleHome(hub))).toEqual(['today', 'week']);
+    expect(homeOf(hub).find((s) => s.key === 'upcoming')).toEqual({ key: 'upcoming', on: false });
+    expect(hiddenWidgets(hub)).toContain('upcoming');
+    expect(isDefaultHome(hub)).toBe(false);
+  });
+
+  it('reorders what shows and keeps hidden and unavailable entries in place', async () => {
+    const hub = await solo();
+    hideHome(hub, 'week');
+    // Visible: today, upcoming. Stored: asks, today, week(off), upcoming, partner, shop(off), chores(off).
+    reorderHome(hub, ['upcoming', 'today']);
+    expect(keys(homeOf(hub))).toEqual(['asks', 'upcoming', 'week', 'today', 'partner', 'shop', 'chores']);
+    expect(homeOf(hub).find((s) => s.key === 'week')!.on).toBe(false);
+    expect(keys(visibleHome(hub))).toEqual(['upcoming', 'today']);
+    // Not a permutation of what shows: ignored.
+    reorderHome(hub, ['today']);
+    expect(keys(visibleHome(hub))).toEqual(['upcoming', 'today']);
+  });
+
+  it('brings things back right after the last visible block', async () => {
+    const { guy } = await couple();
+    hideHome(guy, 'week');
+    expect(showHome(guy, 'shop')).toBe(true);
+    expect(keys(visibleHome(guy))).toEqual(['asks', 'today', 'upcoming', 'partner', 'shop']);
+    expect(showHome(guy, 'week')).toBe(true);
+    expect(keys(visibleHome(guy)).at(-1)).toBe('week');
+    expect(showHome(guy, 'nope')).toBe(false);
+  });
+
+  it('pins up to 3 projects, unpinning removes them, and old data still loads', async () => {
+    const hub = await solo();
+    const lists = hub.lists();
+    for (const l of lists.slice(0, 3)) expect(showHome(hub, `l:${l.id}`)).toBe(true);
+    expect(showHome(hub, `l:${lists[3].id}`)).toBe(false);
+    expect(pinnedProjects(hub)).toHaveLength(3);
+    hideHome(hub, `l:${lists[0].id}`);
+    expect(homeOf(hub).some((s) => s.key === `l:${lists[0].id}`)).toBe(false);
+    expect(slotTitle(hub, `l:${lists[1].id}`)).toBe(lists[1].name);
+    // A member saved by an older build (no `home`) gets the defaults.
+    hub.upsertMember('guy', { home: undefined });
+    expect(homeOf(hub)).toEqual(DEFAULT_HOME);
+    setHome(hub, DEFAULT_HOME);
+    expect(isDefaultHome(hub)).toBe(true);
+  });
+
+  it('follows me to my other device', async () => {
+    const { guy } = await couple();
+    const phone = new Hub(guy.store, 'guy');
+    hideHome(guy, 'upcoming');
+    reorderHome(guy, ['today', 'asks', 'week', 'partner']);
+    expect(keys(visibleHome(phone))).toEqual(['today', 'asks', 'week', 'partner']);
+  });
+});
+
+describe('home blocks', () => {
+  it('the summary counts asks too, and names the busiest projects and the person', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do').id;
+    guy.addItem(todo, { title: 'Pay the bill', due: today() });
+    guy.addItem(todo, { title: 'Call mum', due: today() });
+    hila.addItem(listNamed(hila, 'To do').id, { title: 'Fix the kettle', assignee: 'guy' });
+    sync(guy, hila);
+    const s = summaryOf(guy, todayView(guy, today()));
+    expect(s.n).toBe(3);
+    expect(s.mood).toBe('busy');
+    expect(s.person).toBe(true);
+    expect(s.lists.map((l) => l.name)).toEqual(['To do']);
+  });
+
+  it('the summary says all done once I have finished things today', async () => {
+    const hub = await solo();
+    const id = hub.addItem(listNamed(hub, 'To do').id, { title: 'Pay the bill', due: today() });
+    expect(summaryOf(hub, todayView(hub, today())).mood).toBe('busy');
+    hub.toggle(id);
+    const s = summaryOf(hub, todayView(hub, today()));
+    expect(s.n).toBe(0);
+    expect(s.mood).toBe('done');
+    expect(s.person).toBe(false);
+  });
+
+  it('week strips never repeat a widget, and say "done this week" when solo', async () => {
+    const hub = await solo();
+    hub.addShopping(listNamed(hub, 'Groceries').id, 'milk');
+    const done = hub.addItem(listNamed(hub, 'To do').id, { title: 'Sweep' });
+    hub.toggle(done);
+    const v = todayView(hub, today());
+    const c = choresView(hub, today());
+    expect(weekBands(hub, v, c).map((b) => b.label)).toEqual(['to buy', 'done this week']);
+    showHome(hub, 'shop');
+    expect(weekBands(hub, todayView(hub, today()), c).map((b) => b.key)).toEqual(['done']);
+  });
+
+  it('coming up flattens the week ahead, and previews say what each block holds', async () => {
+    const hub = await solo();
+    const todo = listNamed(hub, 'To do').id;
+    hub.addItem(todo, { title: 'Plumber', due: addDays(today(), 1) });
+    hub.addItem(todo, { title: 'Car service', due: addDays(today(), 3), urgent: true });
+    hub.addShopping(listNamed(hub, 'Groceries').id, 'milk', { urgent: true });
+    hub.addShopping(listNamed(hub, 'Groceries').id, 'bread');
+    const v = todayView(hub, today());
+    const c = choresView(hub, today());
+    expect(aheadOf(v).map((i) => i.title)).toEqual(['Plumber', 'Car service']);
+    expect(v.shopping.preview.map((i) => i.title)).toEqual(['milk', 'bread']);
+    expect(homePreview('upcoming', hub, v, c)).toEqual({ text: '2 in the next 7 days', empty: false });
+    expect(homePreview('shop', hub, v, c).text).toBe('2 to buy · 1 urgent');
+    expect(homePreview('today', hub, v, c)).toEqual({ text: 'Nothing due today', empty: true });
+    expect(homePreview(`l:${todo}`, hub, v, c).text).toBe('2 open');
+    expect(homePreview('asks', hub, v, c).empty).toBe(true);
+  });
+
+  it('tile days are short enough to share a line with a time', () => {
+    const wed = '2026-11-25';
+    expect(aheadDay('2026-11-26', wed)).toBe('Tomorrow');
+    expect(aheadDay('2026-11-27', wed)).toBe('Fri');
+    expect(aheadDay('2026-12-01', wed)).toBe('Tue');
+    expect(aheadDay('2026-12-02', wed)).toBe('Wed 2 Dec');
+  });
+});

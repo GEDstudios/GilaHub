@@ -15,6 +15,10 @@ export interface Prefs {
   showDone: Record<string, boolean>;
   /** Vibrate on ticks, drags and picks (this device only). */
   haptics: boolean;
+  /** Today: "n from earlier" is open. */
+  earlierOpen: boolean;
+  /** Today: the invite card stays away until then (ms; 0 = shown). */
+  inviteHiddenUntil: number;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -28,6 +32,8 @@ const DEFAULTS: Prefs = {
   dismissed: {},
   showDone: {},
   haptics: true,
+  earlierOpen: false,
+  inviteHiddenUntil: 0,
 };
 
 function read(): Prefs {

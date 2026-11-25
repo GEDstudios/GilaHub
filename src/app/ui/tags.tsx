@@ -7,12 +7,12 @@ import { useOverlays } from './overlays';
 import { lineVars } from './primitives';
 import { useSettleHold } from './useSettle';
 
-/** The lemon "Urgent" word pill: the same in every card and row. */
-export function UrgentTag({ title = 'Urgent' }: { title?: string }) {
+/** The lemon "Urgent" word pill: the same in every card and row. `short`: just the lightning, for narrow tiles. */
+export function UrgentTag({ title = 'Urgent', short }: { title?: string; short?: boolean }) {
   return (
-    <span className="urgent" title={title} aria-label={title} role="img">
+    <span className={`urgent ${short ? 'urgent--short' : ''}`} title={title} aria-label={title} role="img">
       <Icon name="urgent" className="icon--xs on-color" />
-      Urgent
+      {short ? null : 'Urgent'}
     </span>
   );
 }

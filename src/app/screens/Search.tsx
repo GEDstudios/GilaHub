@@ -5,7 +5,7 @@ import { back, navigate } from '../router';
 import { pinsOf } from '../tabs';
 import { Icon } from '../ui/Icon';
 import { Band, Empty, ListBullet } from '../ui/primitives';
-import { SyncBadge } from './Today';
+import { SyncBadge } from '../components/SyncBadge';
 import { fold } from '../../smart/normalize';
 
 export function Search() {
