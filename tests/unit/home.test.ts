@@ -283,7 +283,7 @@ describe('home blocks', () => {
 
   it('the chores strip never repeats chores Today already lists, and the Chores widget changes nothing then', async () => {
     const hub = await solo();
-    const chores = listNamed(hub, 'Housework').id;
+    const chores = listNamed(hub, 'Chores').id;
     const start = addDays(today(), -3);
     for (const title of ['Dishes', 'Water plants']) hub.addItem(chores, { title, repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' }, due: start });
     const v = todayView(hub, today());
@@ -296,7 +296,7 @@ describe('home blocks', () => {
 
   it('paired, the chores block holds my partner’s ready chores and says whose', async () => {
     const { guy } = await couple();
-    const chores = listNamed(guy, 'Housework').id;
+    const chores = listNamed(guy, 'Chores').id;
     guy.addItem(chores, { title: 'Bins', assignee: 'hila', repeat: { type: 'interval', every: 1, unit: 'week', from: 'done' }, due: today() });
     guy.addItem(chores, { title: 'Dishes', repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' }, due: today() });
     const v = todayView(guy, today());

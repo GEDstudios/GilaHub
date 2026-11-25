@@ -94,14 +94,14 @@ describe('bottom bar pins', () => {
     const hub = await guy();
     const id = (name: string) => hub.lists().find((l) => l.name === name)!.id;
     // The one chores project, with Chores in the bar; two shopping lists are each their own.
-    expect(coveredByTab(hub, id('Housework'))).toBe(true);
+    expect(coveredByTab(hub, id('Chores'))).toBe(true);
     expect(coveredByTab(hub, id('Groceries'))).toBe(false);
     expect(coveredByTab(hub, id('To do'))).toBe(false);
     setPins(hub, ['shop']);
-    expect(coveredByTab(hub, id('Housework'))).toBe(false);
+    expect(coveredByTab(hub, id('Chores'))).toBe(false);
     setPins(hub, ['shop', 'chores']);
     hub.createList({ name: 'Garden', kind: 'chores' });
-    expect(coveredByTab(hub, id('Housework'))).toBe(false);
+    expect(coveredByTab(hub, id('Chores'))).toBe(false);
   });
 
   it('keeps a sanity cap', () => {

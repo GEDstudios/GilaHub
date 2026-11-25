@@ -31,6 +31,7 @@ export async function openPersistence(): Promise<Persistence> {
 export async function startRuntime(persistence: Persistence, session: Session): Promise<Runtime> {
   const store = await Store.load(persistence, session.deviceId, readableScopes(session));
   const hub = new Hub(store, session.memberId);
+  hub.renameOldDefaults();
   const relayListeners = new Set<() => void>();
 
   const rt: Runtime = {
@@ -64,6 +65,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
       });
       rt.sync = sync;
       await sync.start();
+      hub.renameOldDefaults();
       for (const fn of relayListeners) fn();
       void registerPush(rt);
     },

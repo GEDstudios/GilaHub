@@ -3826,15 +3826,15 @@ html.is-dragging * {
 /* ============================================================ Ideas (components/Ideas.tsx)
  * The tag: a small paper label in the header, just right of the avatar (or Back), a punched
  * hole at its pointed end, a bulb and the open count. It leans -4deg and straightens with a
- * spring under the finger. Up there it covers no rows and needs no room from the bar, the
- * shopbar or the toasts; it stays put over the compact header too, and steps aside for
- * sheets and the keyboard. Its button is a full 44px square around the paper.
+ * spring under the finger. It belongs to the page's header, so it scrolls away with it
+ * (never floats), and steps aside for sheets and the keyboard. Its button is a full 44px
+ * square around the paper.
  */
 
 .ideatag {
-  position: fixed;
-  /* Over the compact header (.miniband) */
-  z-index: 31;
+  /* Placed against the page, not the screen: it leaves with the header when you scroll. */
+  position: absolute;
+  z-index: 19;
   top: calc(var(--safe-top) + 12px);
   left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) + 50px);
   min-width: 44px;
@@ -3847,11 +3847,6 @@ html.is-dragging * {
     opacity 180ms var(--ease),
     transform 320ms var(--spring),
     visibility 0s;
-}
-
-/* The compact header's title keeps clear of it. */
-html:has(.ideatag) .miniband {
-  padding-inline: 112px;
 }
 
 .ideatag__body {
@@ -3933,13 +3928,12 @@ html:has(.sheet) .ideatag {
   }
 }
 
-/* Desktop: the tag hangs in the corner */
+/* Desktop: the top-right corner of the page, scrolling with it */
 @media (min-width: 960px) {
   .ideatag {
-    top: auto;
     left: auto;
     right: 28px;
-    bottom: 22px;
+    top: 18px;
   }
 }
 

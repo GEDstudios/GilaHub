@@ -90,7 +90,7 @@ describe('Today: requests between us', () => {
   it('repeating asks and chores are not asks', async () => {
     const { guy, hila } = await couple();
     const rep = hila.addItem(listNamed(hila, 'To do').id, { title: 'Water plants', assignee: 'guy', repeat: { type: 'interval', every: 1, unit: 'week', from: 'schedule' } });
-    const chore = hila.addItem(listNamed(hila, 'Housework').id, { title: 'Bins', assignee: 'guy' });
+    const chore = hila.addItem(listNamed(hila, 'Chores').id, { title: 'Bins', assignee: 'guy' });
     sync(guy, hila);
     const v = todayView(guy, today());
     expect(ids(v.asked)).not.toContain(rep);
@@ -185,7 +185,7 @@ describe('Today: requests between us', () => {
 
   it('upcoming skips chores', async () => {
     const guy = await solo();
-    const chore = guy.addItem(listNamed(guy, 'Housework').id, { title: 'Bins', due: addDays(today(), 1) });
+    const chore = guy.addItem(listNamed(guy, 'Chores').id, { title: 'Bins', due: addDays(today(), 1) });
     const task = guy.addItem(listNamed(guy, 'To do').id, { title: 'Dentist', due: addDays(today(), 1) });
     const up = todayView(guy, today()).upcoming.flatMap((g) => ids(g.items));
     expect(up).toContain(task);

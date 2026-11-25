@@ -137,7 +137,7 @@ try {
 
   await check('Hila receives the shared projects', async () => {
     await hila.goto(`${url}/lists`);
-    for (const name of ['Groceries', 'Home shopping', 'Housework', 'To do']) {
+    for (const name of ['Groceries', 'Home shopping', 'Chores', 'To do']) {
       await waitFor(async () => (await hila.locator('.projcard__name', { hasText: name }).count()) > 0, 20000, `${name} on hila`);
     }
     await shot(hila, '05-lists-hila');

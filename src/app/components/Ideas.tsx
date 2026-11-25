@@ -13,8 +13,8 @@ import { Sortable, useSortableItem } from '../ui/Sortable';
 import { useSettle } from '../ui/useSettle';
 
 /**
- * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag hangs on the bottom
- * bar on every screen (IdeaTag, drawn once by the App shell); it opens the Ideas sheet, where
+ * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag sits in the page
+ * header on every screen (IdeaTag, drawn once by the App shell; it scrolls with the page); it opens the Ideas sheet, where
  * either of us writes, edits, reorders and resolves. Settings has a switch for the tag and a
  * row that opens the same sheet.
  */
