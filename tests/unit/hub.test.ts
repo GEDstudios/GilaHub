@@ -158,6 +158,17 @@ describe('Hub: chores', () => {
     expect(guy.logsFor(id)[0]?.by).toBe('hila');
   });
 
+  it('a new chore starts fresh: due one period from now, not today', async () => {
+    const { guy } = await couple();
+    const chores = listNamed(guy, 'Chores');
+    const weekly = guy.addItem(chores.id, { title: 'Laundry', repeat: { type: 'interval', every: 1, unit: 'week', from: 'done' } });
+    const daily = guy.addItem(chores.id, { title: 'Dishes', repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' } });
+    expect(guy.item(weekly)?.due).toBe(addDays(today(), 7));
+    expect(guy.item(daily)?.due).toBe(addDays(today(), 1));
+    const dated = guy.addItem(chores.id, { title: 'Bins', due: today(), repeat: { type: 'interval', every: 1, unit: 'week', from: 'done' } });
+    expect(guy.item(dated)?.due).toBe(today());
+  });
+
   it('done yesterday counts from yesterday', async () => {
     const { guy } = await couple();
     const chores = listNamed(guy, 'Chores');

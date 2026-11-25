@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import type { ItemVisibility } from '../../core/actions';
 import { addDays, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
-import { describeRule } from '../../smart/recurrence';
+import { describeRule, firstDue } from '../../smart/recurrence';
 import { useHub } from '../context';
 import { use24h, usePrefs, weekStart } from '../prefs';
 import { REMIND_OPTIONS } from '../reminders';
@@ -79,6 +79,7 @@ export function InlineEditor({
   repeatFrom = 'schedule',
   readOnly,
   prompt = null,
+  extras = [],
 }: {
   value: Draft;
   onChange: (patch: Partial<Draft>) => void;
@@ -87,16 +88,18 @@ export function InlineEditor({
   repeatFrom?: 'done' | 'schedule';
   readOnly?: boolean;
   prompt?: string | null;
+  /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores). */
+  extras?: Array<{ key: string; label: ReactNode; icon: IconName; panel: (close: () => void) => ReactNode }>;
 }) {
   const hub = useHub();
   const prefs = usePrefs();
   const h24 = use24h(prefs);
-  const [open, setOpen] = useState<Field | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const ref = todayStr();
-  const toggle = (f: Field) => setOpen(open === f ? null : f);
+  const toggle = (f: string) => setOpen(open === f ? null : f);
   const partner = hub.partner();
 
-  const chip = (f: Field, label: ReactNode, icon: IconName, set: boolean) => (
+  const chip = (f: string, label: ReactNode, icon: IconName, set: boolean) => (
     <button
       key={f}
       type="button"
@@ -110,7 +113,7 @@ export function InlineEditor({
     </button>
   );
 
-  const chips: ReactNode[] = [];
+  const chips: ReactNode[] = extras.map((x) => chip(x.key, x.label, x.icon, true));
   for (const f of fields) {
     if (f === 'when') chips.push(chip('when', value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date', 'calendar', !!value.due));
     if (f === 'repeat') chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
@@ -137,12 +140,13 @@ export function InlineEditor({
     <div className="inline">
       {prompt ? <p className="inline__prompt">{prompt}</p> : null}
       <div className="inline__chips">{chips}</div>
+      {extras.map((x) => (open === x.key ? <Panel key={x.key}>{x.panel(() => setOpen(null))}</Panel> : null))}
       {open === 'when' ? <WhenPanel due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime })} /> : null}
       {open === 'repeat' ? (
         <RepeatPanel
           rule={value.repeat}
           defaultFrom={repeatFrom}
-          onChange={(repeat) => onChange({ repeat, due: repeat && !value.due ? ref : value.due })}
+          onChange={(repeat) => onChange({ repeat, due: repeat && !value.due ? firstDue(repeat, ref) : value.due })}
         />
       ) : null}
       {open === 'remind' ? (

@@ -1,3 +1,7 @@
+import { closestCenter, DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { haptic } from '../ui/haptics';
 import { useState } from 'react';
 import { pickColor, PROJECT_TEMPLATES } from '../../core/actions';
 import type { LineColor, List, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
@@ -132,6 +136,24 @@ export function tilt(id: string): number {
   return [-2.2, -1.4, -0.6, 0.8, 1.5, 2.3][Math.abs(h) % 6];
 }
 
+/** Drag a folder to reorder projects (a long press on phones). */
+function SortableProject({ list }: { list: List }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: list.id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`projslot ${isDragging ? 'is-dragging' : ''}`}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+      role={undefined}
+      tabIndex={undefined}
+    >
+      <ProjectCard list={list} />
+    </div>
+  );
+}
+
 function ProjectCard({ list }: { list: List }) {
   const hub = useHub();
   const n = openCount(hub, list.id);
@@ -169,22 +191,38 @@ export function Lists() {
   useAddAction(newProject);
 
   const archived = hub.store.all('list').filter((l) => l.archived);
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const ids = lists.map((l) => l.id);
+    const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
+    hub.moveList(String(active.id), next[next.indexOf(String(active.id)) + 1] ?? null);
+  };
 
   return (
     <>
       <Band top={<SyncBadge />} actions={<IconButton icon="plus" label="New project" onClick={newProject} />} title="Projects" />
       <div className="column">
-        <div className="projgrid">
-          {lists.map((l) => (
-            <ProjectCard key={l.id} list={l} />
-          ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => haptic()} onDragEnd={onDragEnd}>
+          <SortableContext items={lists.map((l) => l.id)} strategy={rectSortingStrategy}>
+            <div className="projgrid">
+              {lists.map((l) => (
+                <SortableProject key={l.id} list={l} />
+              ))}
           <button type="button" className="projcard projcard--new" onClick={newProject}>
             <span className="projcard__plus">
               <Icon name="plus" />
             </span>
             <span>New project</span>
           </button>
-        </div>
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {archived.length ? (
           <div className="archived">

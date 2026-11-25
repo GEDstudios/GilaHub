@@ -32,49 +32,41 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
 
   return (
     <Sheet onClose={() => (commitTitle(), onClose())} label={item.title}>
-      <div className="ccard ccard--md ccard--edit" style={lineVars(list?.color)}>
-        <input className="ccard__input" value={title} dir="auto" onChange={(e) => setTitle(e.target.value)} onBlur={commitTitle} readOnly={!editable} aria-label="Name" />
-        <span className="ccard__sub">
-          {list?.name} · {meta.en}
-        </span>
-      </div>
+      <input
+        className="sheet__titleinput"
+        value={title}
+        dir="auto"
+        onChange={(e) => setTitle(e.target.value)}
+        onBlur={commitTitle}
+        readOnly={!editable}
+        aria-label="Name"
+      />
+      <p className="sheet__meta">
+        <span className="dot dot--sm" style={lineVars(list?.color)} />
+        {list?.name} · {meta.en}
+      </p>
 
-      <div className="choose">
-        <span className="choose__label">How many</span>
-        <div className="options">
-          <span className="stepper">
-            <button type="button" aria-label="Less" disabled={!editable || !qtyNum || qtyNum <= 1} onClick={() => hub.updateItem(id, { qty: qtyNum && qtyNum > 2 ? String(qtyNum - 1) : null })}>
-              −
-            </button>
-            <input
-              className="num"
-              value={item.qty ?? ''}
-              placeholder="1"
-              readOnly={!editable}
-              onChange={(e) => hub.updateItem(id, { qty: e.target.value || null })}
-              aria-label="Quantity"
-            />
-            <button type="button" aria-label="More" disabled={!editable} onClick={() => hub.bump(id)}>
-              +
-            </button>
-          </span>
-          <button
-            type="button"
-            className={`option ${item.urgent ? 'is-urgent' : ''}`}
-            onClick={() => editable && hub.updateItem(id, { urgent: !item.urgent })}
-            aria-pressed={!!item.urgent}
-          >
-            <span className="echip__diamond" aria-hidden="true" /> Urgent
+      <div className="options sheet__chips">
+        <span className="stepper">
+          <button type="button" aria-label="Less" disabled={!editable || !qtyNum || qtyNum <= 1} onClick={() => hub.updateItem(id, { qty: qtyNum && qtyNum > 2 ? String(qtyNum - 1) : null })}>
+            −
           </button>
-          <button
-            type="button"
-            className="option"
-            disabled={!editable}
-            onClick={() => openSheet((close) => <AisleSheet onClose={close} flavor={flavor} value={category} onPick={(c) => hub.setCategory(id, c)} />)}
-          >
-            {meta.en} <Icon name="chevron-down" className="icon--sm" />
+          <input className="num" value={item.qty ?? ''} placeholder="1" readOnly={!editable} onChange={(e) => hub.updateItem(id, { qty: e.target.value || null })} aria-label="Quantity" />
+          <button type="button" aria-label="More" disabled={!editable} onClick={() => hub.bump(id)}>
+            +
           </button>
-        </div>
+        </span>
+        <button type="button" className={`option ${item.urgent ? 'is-urgent' : ''}`} onClick={() => editable && hub.updateItem(id, { urgent: !item.urgent })} aria-pressed={!!item.urgent}>
+          <span className="echip__diamond" aria-hidden="true" /> Urgent
+        </button>
+        <button
+          type="button"
+          className="option"
+          disabled={!editable}
+          onClick={() => openSheet((close) => <AisleSheet onClose={close} flavor={flavor} value={category} onPick={(c) => hub.setCategory(id, c)} />)}
+        >
+          {meta.en} <Icon name="chevron-down" className="icon--sm" />
+        </button>
       </div>
 
       {lists.length > 1 && editable ? (
@@ -86,7 +78,7 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
 
       {editable && hub.canSetPrivacy(item) ? (
         <div className="choose">
-          <span className="choose__label">Who it’s for</span>
+          <span className="choose__label">Who sees it</span>
           <Options
             value={vis}
             onPick={(nv) => {
@@ -95,7 +87,7 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
             }}
             options={(list?.visibility === 'private' ? (['private'] as const) : (['ours', 'mine', 'private'] as const)).map((v) => ({
               value: v,
-              label: v === 'ours' ? 'Both of us' : v === 'mine' ? 'Me' : 'Only me',
+              label: v === 'ours' ? 'Ours' : v === 'mine' ? 'Mine' : 'Only me',
               icon: v === 'ours' ? ('ours' as const) : v === 'mine' ? ('mine' as const) : ('lock' as const),
             }))}
           />

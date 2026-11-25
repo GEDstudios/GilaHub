@@ -100,6 +100,69 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
   );
 }
 
+/** More ways to finish a repeating thing: earlier, skip it, or pause it. */
+function DonePanel({ id, close }: { id: string; close: () => void }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const item = hub.item(id);
+  const ref = todayStr();
+  if (!item?.repeat) return null;
+  const done = (day: string, label: string) => {
+    const undo = hub.completeRepeating(id, day);
+    toast(label, { action: { label: 'Undo', run: undo } });
+    close();
+  };
+  return (
+    <div className="options">
+      <button type="button" className="option" onClick={() => done(ref, 'Done. Fresh again.')}>
+        Today
+      </button>
+      <button type="button" className="option" onClick={() => done(addDays(ref, -1), 'Counted for yesterday')}>
+        Yesterday
+      </button>
+      <label className="option option--input">
+        <Icon name="calendar" className="icon--sm" />
+        <input type="date" max={ref} aria-label="Done on a day" onChange={(e) => e.target.value && done(e.target.value, `Counted for ${humanDate(e.target.value, ref)}`)} />
+      </label>
+      {isFlexible(item.repeat) ? (
+        <button
+          type="button"
+          className="option"
+          onClick={() => {
+            const undo = hub.snooze(id, addDays(ref, 1));
+            toast('Tomorrow, then', { action: { label: 'Undo', run: undo } });
+            close();
+          }}
+        >
+          Not today
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="option"
+          onClick={() => {
+            const undo = hub.skip(id);
+            toast(`Skipped. Next: ${humanDate(hub.item(id)!.due!, ref)}`, { action: { label: 'Undo', run: undo } });
+            close();
+          }}
+        >
+          Skip this one
+        </button>
+      )}
+      <button
+        type="button"
+        className="option"
+        onClick={() => {
+          hub.setPaused(id, !item.paused);
+          close();
+        }}
+      >
+        {item.paused ? 'Resume' : 'Pause'}
+      </button>
+    </div>
+  );
+}
+
 export function ItemScreen({ id }: { id: string }) {
   const hub = useHub();
   const rt = useRt();
@@ -212,66 +275,19 @@ export function ItemScreen({ id }: { id: string }) {
             <AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} />
             <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />
           </div>
-          <p className="hero__sub">{item.done ? `Done${item.doneAt ? ` ${relativeAgo(item.doneAt)}` : ''}.` : summarize(draft)}</p>
+          <p className="hero__sub">
+            {item.done ? `Done${item.doneAt ? ` ${relativeAgo(item.doneAt)}` : ''}.` : item.paused ? 'Paused.' : summarize(draft)}
+            {item.repeat && item.lastDoneAt && !item.done
+              ? ` Last done ${relativeAgo(item.lastDoneAt)}${item.lastDoneBy && item.lastDoneBy !== hub.meId ? ` by ${hub.member(item.lastDoneBy)?.name ?? ''}` : ''}.`
+              : ''}
+          </p>
         </div>
       </Band>
 
       <div className="column">
-        {item.repeat && editable ? (
-          <div className="doneas">
-            {item.paused || item.lastDoneAt ? (
-              <p className="inline__prompt">
-                {item.paused
-                  ? 'Paused'
-                  : `Last done ${relativeAgo(item.lastDoneAt!)} by ${item.lastDoneBy === hub.meId ? 'you' : (hub.member(item.lastDoneBy)?.name ?? 'someone')}`}
-              </p>
-            ) : null}
-            <div className="tokens">
-              <button type="button" className="token token--ink" onClick={onToggle}>
-                <Icon name="check" /> Done today
-              </button>
-              <button
-                type="button"
-                className="token"
-                onClick={() => {
-                  const undo = hub.completeRepeating(id, addDays(ref, -1));
-                  toast('Counted for yesterday', { action: { label: 'Undo', run: undo } });
-                }}
-              >
-                Yesterday
-              </button>
-              {isFlexible(item.repeat) ? (
-                <button
-                  type="button"
-                  className="token"
-                  onClick={() => {
-                    const undo = hub.snooze(id, addDays(ref, 1));
-                    toast('Tomorrow, then', { action: { label: 'Undo', run: undo } });
-                  }}
-                >
-                  Not today
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="token"
-                  onClick={() => {
-                    const undo = hub.skip(id);
-                    toast(`Skipped. Next: ${humanDate(hub.item(id)!.due!, ref)}`, { action: { label: 'Undo', run: undo } });
-                  }}
-                >
-                  Skip this one
-                </button>
-              )}
-              <button type="button" className="token" onClick={() => hub.setPaused(id, !item.paused)}>
-                {item.paused ? 'Resume' : 'Pause'}
-              </button>
-            </div>
-          </div>
-        ) : null}
-
         {editable ? (
           <InlineEditor
+            extras={item.repeat ? [{ key: 'done', label: 'Done…', icon: 'check', panel: (close) => <DonePanel id={id} close={close} /> }] : []}
             value={draft}
             onChange={change}
             fields={hub.canSetPrivacy(item) ? ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'] : ['when', 'repeat', 'remind', 'who', 'urgent']}

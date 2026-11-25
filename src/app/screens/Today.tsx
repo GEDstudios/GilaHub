@@ -5,6 +5,7 @@ import { useAddAction } from '../addAction';
 import { ItemRow } from '../components/ItemRow';
 import { PairSheet } from '../components/PairSheet';
 import { QuickAdd } from '../components/QuickAdd';
+import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub, usePartnerShopping, useSync } from '../context';
 import { getPrefs } from '../prefs';
 import { navigate } from '../router';
@@ -80,7 +81,12 @@ export function Today() {
     <>
       <Band
         top={<SyncBadge />}
-        actions={<IconButton icon="search" label="Search" onClick={() => navigate({ name: 'search' })} />}
+        actions={
+          <>
+            <IconButton icon="search" label="Search" onClick={() => navigate({ name: 'search' })} />
+            <IconButton solid icon="plus" label="New" onClick={() => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={ref} />)} />
+          </>
+        }
         title={`${greeting()}, ${me?.name ?? 'you'}!`}
         mini={fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
       />

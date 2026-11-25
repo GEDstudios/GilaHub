@@ -30,13 +30,13 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 2 · Shared house shopping list
 
-- **●** A separate **Home stuff** list with its own departments (Kitchen, Bath, Tools, Electrical…).
+- **●** A separate **Home shopping** list with its own departments (Kitchen, Bath, Tools, Electrical…).
 - **●** The Shopping tab shows **Both** combined, or **Groceries** or **Home** alone. In Both, each item carries its list's bullet.
 - **●** Adding from **Both** routes smartly: "light bulbs" goes to Home and "milk" goes to Groceries. A chip shows the destination, and you can tap it to switch.
 
 ## 3 · House chores
 
-- **●** Two repeat types in plain words: **"Every N days after it's done"** and **"On set days"**.
+- **●** Two repeat types in plain words: **"Every N days after it's done"** and **"On set days"**. A new chore starts fresh: it first comes due one period from now, not today.
 - **●** **Done** is always available, not only when a chore is due. Pick *Today*, *Yesterday*, or a date. An early tick on a set-days chore "counts for Thursday", and a late one collapses every missed occurrence into one, so chores never pile up.
 - **●** **Not now**: Snooze (flexible chores), Skip this one (set days), or Pause (seasonal).
 - **●** **Away mode** freezes every chore clock while you travel.
@@ -58,7 +58,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** Items nest without limit. Opening an item drills into its own screen with a breadcrumb, so you never wade through deep indentation.
 - **●** Progress like "3/5" on parents. Completing a parent asks whether to complete its steps too.
 - **●** Unlimited projects, each with one of six colors (a new project gets one nobody's using) and a type (Tasks · Shopping · Chores). They sit like folders, each with a slight tilt.
-- **●** Drag to reorder items and lists. Move items between lists. Duplicate, archive, delete — all with undo.
+- **●** Drag to reorder items, shopping items within an aisle, and project folders (long-press on phones). Move items between lists. Duplicate, archive, delete — all with undo.
 - **●** **Uncheck all** for reusable checklists (packing, trips).
 - **●** New project: a live color card you name in place, plus a few starters (Groceries, Home shopping, Chores, To do, Next trip, Gift ideas).
 - **●** Global search across every list you can see.
@@ -86,7 +86,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** **Together card**: *"This week together: 23 things done."* One shared number. It never compares you.
 - **●** **♡ Thanks** on anything your partner finished.
 - **●** **"I'll take it"** on any unowned shared task.
-- **●** Works fully offline, with honest sync status ("Saved on this phone · syncs when online").
+- **●** Works fully offline, with honest sync status. When a new version is published, a small "A new version is ready · Refresh" note appears.
 - **●** One-tap **export** (JSON) and import. Your data is yours.
 - **●** App badge for today's items (opt-in), haptics, and desktop keyboard shortcuts. Light only, on purpose.
 - **◐** Share-sheet import (Android), Hebrew interface, month calendar, small item photos, import from Microsoft To Do (it retires June 2027), Todoist and Reminders.

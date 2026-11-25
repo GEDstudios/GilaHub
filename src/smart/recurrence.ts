@@ -50,9 +50,14 @@ function nextWeekday(from: DateStr, days: number[], inclusive: boolean): DateStr
 }
 
 /** The first due date for a newly created repeating item. */
+/**
+ * When a new repeating thing first comes due, if you didn't give a date:
+ * set days → the next of those days (today counts); "every N" → one period from now.
+ * A brand-new chore starts fresh instead of landing on today.
+ */
 export function firstDue(rule: RepeatRule, start: DateStr = today()): DateStr {
   if (rule.type === 'weekdays') return nextWeekday(start, rule.days, true);
-  return start;
+  return step(start, rule);
 }
 
 /**

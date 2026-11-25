@@ -33,8 +33,11 @@
   --tile-2: #e7e7e3;
   --card: #ffffff;
   --text: #0a0a04;
-  --text-2: #64645d;
-  --text-3: #a1a199;
+  /* Every text gray passes WCAG AA (4.5:1) on the canvas and on tiles. */
+  --text-2: #4e4e48;
+  --text-3: #6e6e66;
+  /* Placeholders and decoration only — never for text you need to read. */
+  --text-4: #a1a199;
   --line: #e6e6e1;
   --cta: #0a0a04;
   --cta-text: #fafaf8;

@@ -44,4 +44,4 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 
 ## Accessibility
 
-Ink on every palette color passes WCAG AA. Visible focus rings, 44 px minimum touch targets on checks, and desktop shortcuts (`N`, `/`, `1–4`).
+Ink on every palette color passes WCAG AA, and so does every text gray (4.5:1 or more on the canvas and on tiles). The lightest gray is kept for placeholders and decoration. Color dots carry a darker rim of their own hue so lemon still shows on gray. Visible focus rings, 44 px minimum touch targets on checks, and desktop shortcuts (`N`, `/`, `1–4`).

@@ -610,11 +610,6 @@ button.projcard:active {
   border-bottom-color: var(--text);
 }
 
-.you .swatch {
-  width: 28px;
-  height: 28px;
-}
-
 .you .swatches {
   gap: 10px;
 }
@@ -1021,4 +1016,76 @@ button.projcard:active {
 .projcard--new::before,
 .projcard--new::after {
   display: none;
+}
+
+/* One continuous shopping list: aisles are slim labels inside it. */
+.rows--shop {
+  margin-top: 20px;
+}
+
+.aisle-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 18px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-3);
+  list-style: none;
+}
+
+.aisle-row:first-child {
+  padding-top: 14px;
+}
+
+.aisle-row .num {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.row + .aisle-row {
+  margin-top: 6px;
+}
+
+.row + .aisle-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgb(10 10 4 / 0.08);
+}
+
+.aisle-row + .row::before {
+  display: none;
+}
+
+.aisle-row--urgent {
+  padding-bottom: 6px;
+}
+
+.rows--shop .row {
+  min-height: 54px;
+}
+
+.projslot {
+  position: relative;
+  display: flex;
+  touch-action: manipulation;
+}
+
+.projslot > .projcard {
+  flex: 1;
+}
+
+.projslot.is-dragging {
+  z-index: 10;
+}
+
+.projslot.is-dragging .projcard {
+  transform: rotate(0deg) scale(1.04);
+  box-shadow: var(--lift-2);
 }

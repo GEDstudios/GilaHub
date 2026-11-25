@@ -218,6 +218,12 @@ function Duties() {
   }, [rt]);
 
   useEffect(() => {
+    const onUpdate = () => toast('A new version is ready', { action: { label: 'Refresh', run: () => location.reload() }, ms: 120_000 });
+    window.addEventListener('gila:update', onUpdate);
+    return () => window.removeEventListener('gila:update', onUpdate);
+  }, [toast]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return;

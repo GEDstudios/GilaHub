@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { humanDate, relativeAgo, sinceDate, today as todayStr } from '../../core/dates';
 import type { Assignee, RepeatRule } from '../../core/model';
-import { freshness } from '../../smart/recurrence';
 import { useAddAction } from '../addAction';
 import { Options, ruleShort } from '../components/editors';
 import { useHub } from '../context';
@@ -13,14 +12,11 @@ import { choresView, type ChoreRow } from '../views';
 import { ProjectHero, ProjectMenuButton } from './ListScreen';
 import { SyncBadge } from './Today';
 
-const WORD = { fresh: 'Fresh', soon: 'Soon', today: 'Today', whenever: 'When you can' } as const;
-
 function ChoreItem({ row }: { row: ChoreRow }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const { item, list } = row;
   const ref = todayStr();
-  const fresh = freshness(item.due, ref);
   const who = item.assignee === 'turns' ? hub.member(item.turn) : item.assignee && item.assignee !== 'both' ? hub.member(item.assignee) : undefined;
   const meta = [
     item.repeat ? ruleShort(item.repeat) : 'Once',
@@ -52,7 +48,7 @@ function ChoreItem({ row }: { row: ChoreRow }) {
         </span>
       </div>
       <span className="row__trail">
-        <span className={`word ${fresh === 'today' || fresh === 'whenever' ? 'word--now' : ''}`}>{item.paused ? 'Paused' : WORD[fresh]}</span>
+        {item.due && item.due > ref && !item.paused ? <span className="word">{humanDate(item.due, ref)}</span> : null}
         {who && item.assignee !== 'turns' ? <Avatar member={who} size="xs" /> : null}
       </span>
     </li>

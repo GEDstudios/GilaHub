@@ -334,7 +334,8 @@
   display: inline-block;
   border-radius: calc(var(--size) * 0.34);
   background: var(--c);
-  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.1);
+  /* A darker rim in the same hue, so lemon still shows on gray. */
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 50%, var(--ink));
 }
 
 .dot--xs {
@@ -1043,7 +1044,7 @@ button.ccard:active {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  border: 1.5px dashed var(--text-3);
+  border: 1.5px dashed var(--text-4);
   color: var(--text-3);
 }
 
@@ -1470,8 +1471,8 @@ button.ccard:active {
 }
 
 .swatch {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--c);
   transition:
@@ -1573,6 +1574,13 @@ button.ccard:active {
   border-radius: 999px;
   background: var(--tile-2);
   transition: background 200ms var(--ease);
+}
+
+/* A 44px touch area around the 30px track */
+.switch::before {
+  content: '';
+  position: absolute;
+  inset: -7px -4px;
 }
 
 .switch::after {
@@ -2129,4 +2137,33 @@ button.ccard:active {
 .option--input input:focus-visible,
 .stepper input:focus-visible {
   outline: none;
+}
+
+.sheet__titleinput {
+  width: calc(100% - 52px);
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.sheet__titleinput:focus-visible {
+  outline: none;
+}
+
+.sheet__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-3);
+}
+
+.sheet__chips {
+  margin-top: 20px;
 }

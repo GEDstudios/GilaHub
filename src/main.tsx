@@ -21,8 +21,21 @@ createRoot(document.getElementById('root')!).render(
 
 if (import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    swContainer()
-      ?.register('/sw.js')
+    const sw = swContainer();
+    if (!sw) return;
+    // A new deploy installs a new worker, which takes over right away.
+    // If an older one was in charge, tell the app a fresh version is ready.
+    const hadController = !!sw.controller;
+    sw.addEventListener('controllerchange', () => {
+      if (hadController) window.dispatchEvent(new Event('gila:update'));
+    });
+    sw.register('/sw.js')
+      .then((reg) => {
+        // Installed apps stay open for days: look for updates whenever they come back.
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') void reg.update().catch(() => {});
+        });
+      })
       .catch((err) => console.warn('[gila] service worker', err));
   });
 }

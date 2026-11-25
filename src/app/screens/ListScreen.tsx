@@ -72,7 +72,6 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
           <OptRow
             icon="refresh"
             title="Uncheck all"
-            sub="Reuse it for packing, trips, routines"
             onClick={() => {
               const undo = hub.uncheckAll(listId);
               onClose();

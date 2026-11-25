@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { closestCenter, DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from 'react';
 import type { Item, List } from '../../core/model';
 import { suggestFromCatalog } from '../../smart/categorize';
 import { fold, itemKey, parseQuantity, splitPasted } from '../../smart/normalize';
@@ -9,6 +12,7 @@ import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, usePartnerShopping, useRt } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
 import { notifyMembers } from '../runtime';
+import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Diamond, Empty, ListBullet, Section, Seg } from '../ui/primitives';
@@ -321,32 +325,19 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               <Empty title="All bought" />
             ) : null}
 
-            {v.urgent.length ? (
-              <section className="aisle" aria-label="Urgent">
-                <h2 className="aisle__head">
-                  <Diamond />
-                </h2>
-                <ul className="rows">
-                  {v.urgent.map((i) => (
-                    <ShopRow key={i.id} item={i} onTick={tick} onOpen={openItem} flash={flash.has(i.id)} showList={many} />
-                  ))}
-                </ul>
-              </section>
+            {v.urgent.length || v.groups.length ? (
+              <ShopList
+                groups={[
+                  ...(v.urgent.length ? [{ key: 'urgent', label: null, items: v.urgent }] : []),
+                  ...v.groups.map((g) => ({ key: g.key, label: g.label, items: g.items })),
+                ]}
+                onTick={tick}
+                onOpen={openItem}
+                flash={flash}
+                showList={many}
+                draggable={!mode}
+              />
             ) : null}
-
-            {v.groups.map((g) => (
-              <section key={g.key} className="aisle" aria-label={g.label}>
-                <h2 className="aisle__head">
-                  {g.label}
-                  <span className="num">{g.items.length}</span>
-                </h2>
-                <ul className="rows">
-                  {g.items.map((i) => (
-                    <ShopRow key={i.id} item={i} onTick={tick} onOpen={openItem} flash={flash.has(i.id)} showList={many} />
-                  ))}
-                </ul>
-              </section>
-            ))}
 
             {v.inCart.length ? (
               <Section
@@ -400,18 +391,108 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   );
 }
 
+interface ShopGroup {
+  key: string;
+  /** null = the Urgent group */
+  label: string | null;
+  items: Row[];
+}
+
+function SortableShopRow(props: Parameters<typeof ShopRow>[0]) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id });
+  return (
+    <ShopRow
+      {...props}
+      liRef={setNodeRef}
+      liStyle={{ transform: CSS.Translate.toString(transform), transition }}
+      liClass={isDragging ? 'dragging' : ''}
+      dragProps={{ ...attributes, ...listeners, role: undefined, tabIndex: undefined }}
+    />
+  );
+}
+
+/** One continuous list; aisles are slim labels inside it. Drag to reorder within an aisle. */
+function ShopList({
+  groups,
+  onTick,
+  onOpen,
+  flash,
+  showList,
+  draggable,
+}: {
+  groups: ShopGroup[];
+  onTick: (i: Item) => void;
+  onOpen: (i: Item) => void;
+  flash: Set<string>;
+  showList: boolean;
+  draggable: boolean;
+}) {
+  const hub = useHub();
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const g = groups.find((x) => x.items.some((i) => i.id === active.id));
+    if (!g || !g.items.some((i) => i.id === over.id)) return;
+    const ids = g.items.map((i) => i.id);
+    const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
+    const at = next.indexOf(String(active.id));
+    const listId = hub.item(String(active.id))?.listId;
+    const same = (id: string | undefined) => (id && hub.item(id)?.listId === listId ? id : null);
+    hub.reorder(String(active.id), same(next[at - 1]), same(next[at + 1]));
+  };
+  const rows = groups.map((g) => (
+    <SortableContext key={g.key} items={g.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+      <li className={`aisle-row ${g.label ? '' : 'aisle-row--urgent'}`} aria-hidden="true">
+        {g.label ? (
+          <>
+            <span>{g.label}</span>
+            <span className="num">{g.items.length}</span>
+          </>
+        ) : (
+          <Diamond />
+        )}
+      </li>
+      {g.items.map((i) =>
+        draggable ? (
+          <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} />
+        ) : (
+          <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} />
+        ),
+      )}
+    </SortableContext>
+  ));
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => haptic()} onDragEnd={onDragEnd}>
+      <ul className="rows rows--shop">{rows}</ul>
+    </DndContext>
+  );
+}
+
 function ShopRow({
   item,
   onTick,
   onOpen,
   flash,
   showList,
+  liRef,
+  liStyle,
+  liClass,
+  dragProps,
 }: {
   item: Row;
   onTick: (i: Item) => void;
   onOpen: (i: Item) => void;
   flash?: boolean;
   showList?: boolean;
+  liRef?: Ref<HTMLLIElement>;
+  liStyle?: CSSProperties;
+  liClass?: string;
+  dragProps?: Record<string, unknown>;
 }) {
   const hub = useHub();
   const list = hub.list(item.listId);
@@ -419,7 +500,13 @@ function ShopRow({
   const vis = hub.visibilityOf(item);
   const meta = [owner && vis === 'mine' ? `for ${owner.id === hub.meId ? 'me' : owner.name}` : null, vis === 'private' ? 'only me' : null, item.notes?.slice(0, 60) || null].filter(Boolean);
   return (
-    <li className={`row row--tap ${item.done ? 'is-done' : ''} ${flash ? 'row--flash' : ''}`} onClick={() => onOpen(item)}>
+    <li
+      ref={liRef}
+      style={liStyle}
+      {...dragProps}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${flash ? 'row--flash' : ''} ${liClass ?? ''}`}
+      onClick={() => onOpen(item)}
+    >
       <Check on={item.done} color={list?.color} onToggle={() => onTick(item)} label={item.title} />
       <div className="row__body">
         <span className="row__title" dir="auto">

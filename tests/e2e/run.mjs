@@ -146,7 +146,7 @@ try {
     await shot(guy, '06-shop-guy');
   });
 
-  await check('Smart routing: light bulbs go to Home stuff', async () => {
+  await check('Smart routing: light bulbs go to Home shopping', async () => {
     await hila.getByRole('radio', { name: /home shopping/i }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'light bulbs' }).count()) > 0, 10000, 'bulbs in home');
     await hila.getByRole('radio', { name: /both/i }).click();
