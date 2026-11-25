@@ -48,7 +48,11 @@ function LeaveSheet({ onClose }: { onClose: () => void }) {
           rt.sync?.stop();
           await disablePush(rt).catch(() => {});
           await rt.persistence.wipe();
-          localStorage.clear();
+          try {
+            localStorage.clear();
+          } catch {
+            /* storage blocked */
+          }
           location.href = '/';
         }}
       >

@@ -14,7 +14,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 1 · Smart shared grocery list
 
-- **●** One bar for adding *and* searching. As you type it filters what's on the list, then your history, then a built-in catalog of ~650 items in English and Hebrew.
+- **●** One bar for adding *and* searching. As you type it filters what's on the list, then your history, then a built-in catalog of ~550 items in English and Hebrew.
 - **●** No duplicates. An item already on the list is highlighted with **+1**. One you crossed off comes back with **Bring back**.
 - **●** Quantities are optional and parsed in English and Hebrew: `2 milk`, `milk x2`, `500g cheese`, `1 ק"ג עגבניות`, `חצי קילו גבינה`.
 - **●** Auto-aisles, ordered the way an Israeli supermarket is walked. Correct an item once and both phones remember it.

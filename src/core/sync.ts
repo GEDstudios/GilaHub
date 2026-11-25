@@ -59,6 +59,8 @@ export class SyncClient {
   private listeners = new Set<() => void>();
   private unsubOutbox: (() => void) | null = null;
   private sealing = false;
+  /** Messages are handled strictly in arrival order (decryption is async). */
+  private inbox: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly store: Store,
@@ -143,7 +145,7 @@ export class SyncClient {
       } catch {
         return;
       }
-      void this.handle(msg);
+      this.inbox = this.inbox.then(() => this.handle(msg)).catch((err) => console.warn('[gila] sync message', err));
     };
     ws.onclose = () => {
       if (this.ws === ws) this.ws = null;

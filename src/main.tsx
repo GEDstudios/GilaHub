@@ -8,6 +8,7 @@ import './styles/screens.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { swContainer } from './app/runtime';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,8 +16,10 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 );
 
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if (import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => console.warn('[gila] service worker', err));
+    swContainer()
+      ?.register('/sw.js')
+      .catch((err) => console.warn('[gila] service worker', err));
   });
 }

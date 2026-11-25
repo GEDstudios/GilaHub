@@ -15,7 +15,7 @@ Gila Hub's whole strategy follows from that:
 | Chore apps become "nagging someone else or parenting your partner" (MIT Technology Review) | No points, streaks or leaderboards. Credit goes to whoever did it. One-tap ♡ thanks. |
 | Sharing is the #1 paywall (Sweepy, Tody, Todoist, Cozi, Splitwise) | Everything free, forever: you host it yourselves on a free tier. |
 | Silent sync failure is the worst failure (Apple Reminders, Paired, To Do) | Local-first: works offline, merges field by field, always shows sync status. |
-| Hebrew is unsupported by mainstream auto-sorting (Apple Reminders has no Hebrew) | Built-in bilingual catalog of ~650 items; Hebrew spelling variants match. |
+| Hebrew is unsupported by mainstream auto-sorting (Apple Reminders has no Hebrew) | Built-in bilingual catalog of ~550 items; Hebrew spelling variants match. |
 | Onboarding asks for six things before your first task (Todoist) | One question: your name. The tutorial *is* a list you tick off. |
 | No app offers per-item privacy inside a shared list | Three levels on every list and item: **Ours · Mine · Only me** (real encryption). |
 

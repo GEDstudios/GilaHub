@@ -162,9 +162,13 @@ try {
 
   await check('Hila ticks milk; Guy sees it in the cart', async () => {
     await hila.locator('li.row', { hasText: 'milk' }).getByRole('checkbox').click();
-    await guy.goto(`${url}/shop`);
-    await waitFor(async () => (await guy.getByText(/in the cart/i).count()) > 0, 15000, 'cart on guy');
     await shot(hila, '07-shop-hila');
+    await guy.goto(`${url}/shop`);
+    try {
+      await waitFor(async () => (await guy.getByText(/in the cart/i).count()) > 0, 15000, 'cart on guy');
+    } finally {
+      await shot(guy, '07b-shop-guy');
+    }
   });
 
   // ---------- Privacy

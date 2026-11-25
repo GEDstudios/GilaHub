@@ -1,7 +1,7 @@
 import { GROCERY_CATALOG, GROCERY_CATEGORIES } from './dictionary/grocery';
 import { HOME_CATALOG, HOME_CATEGORIES } from './dictionary/home';
 import type { CatalogEntry, CategoryMeta, GroceryCategory, HomeCategory } from './dictionary/types';
-import { fold, hasHebrew, itemKey, stripArticle } from './normalize';
+import { fold, hasHebrew, itemKey, stem, stripArticle } from './normalize';
 
 export type Flavor = 'grocery' | 'home';
 
@@ -56,16 +56,25 @@ interface Suggestion {
   hit: IndexHit;
 }
 
-const index = new Map<string, IndexHit>();
+/** Exact spelling (folded) → entries, and stemmed key → entries. Exact wins; stems catch plurals. */
+const exact = new Map<string, IndexHit[]>();
+const index = new Map<string, IndexHit[]>();
 const suggestions: Suggestion[] = [];
+
+function push(map: Map<string, IndexHit[]>, k: string, hit: IndexHit) {
+  if (!k) return;
+  const arr = map.get(k);
+  if (!arr) map.set(k, [hit]);
+  else if (!arr.includes(hit)) arr.push(hit);
+}
 
 function build(flavor: Flavor, catalog: Record<string, CatalogEntry[]>) {
   for (const [category, entries] of Object.entries(catalog)) {
     for (const entry of entries) {
       const hit: IndexHit = { flavor, category, entry };
       for (const term of [entry.en, ...entry.he, ...(entry.alt ?? [])]) {
-        const k = itemKey(term);
-        if (k && !index.has(k)) index.set(k, hit);
+        push(exact, fold(term), hit);
+        push(index, itemKey(term), hit);
       }
       suggestions.push({ label: entry.en, folded: fold(entry.en), he: false, hit });
       for (const he of entry.he) suggestions.push({ label: he, folded: fold(he), he: true, hit });
@@ -76,34 +85,27 @@ function build(flavor: Flavor, catalog: Record<string, CatalogEntry[]>) {
 build('grocery', GROCERY_CATALOG as Record<string, CatalogEntry[]>);
 build('home', HOME_CATALOG as Record<string, CatalogEntry[]>);
 
-function lookupKey(words: string[]): IndexHit | undefined {
-  const k = words.join(' ');
-  return index.get(k);
-}
-
 /**
  * Find the catalog entry for a free-form item name ("2 ליטר חלב 3%", "Organic baby spinach").
- * Longest phrase wins; for single words English prefers the last word (head noun),
- * Hebrew the first ("חלב שקדים" → חלב…).
+ * Exact spelling beats stemmed forms; the longest phrase wins; for single words English
+ * prefers the last word (head noun), Hebrew the first ("חלב שקדים" → חלב…).
+ * With `prefer`, an entry from that catalog wins over the other (כריות: cereal vs pillows).
  */
 export function lookup(name: string, prefer?: Flavor): IndexHit | undefined {
-  const words = itemKey(name).split(' ').filter(Boolean);
+  const words = fold(name).split(' ').filter(Boolean);
   if (!words.length) return undefined;
-  const whole = lookupKey(words);
-  if (whole) return whole;
-  const variants = [words, words.map((w) => stripArticle(w) ?? w)];
   const he = hasHebrew(name);
+  const variants = [words, words.map((w) => stripArticle(w) ?? w)];
+  const hitsFor = (ws: string[]) => [...(exact.get(ws.join(' ')) ?? []), ...(index.get(ws.map(stem).join(' ')) ?? [])];
+  const pick = (hits: IndexHit[]) => (prefer && hits.find((h) => h.flavor === prefer)) || hits[0];
   for (let n = Math.min(4, words.length); n >= 1; n--) {
     const found: IndexHit[] = [];
     for (const ws of variants) {
       const starts = [...Array(ws.length - n + 1).keys()];
       if (!he) starts.reverse();
-      for (const s of starts) {
-        const hit = lookupKey(ws.slice(s, s + n));
-        if (hit) found.push(hit);
-      }
+      for (const st of starts) found.push(...hitsFor(ws.slice(st, st + n)));
     }
-    if (found.length) return (prefer && found.find((h) => h.flavor === prefer)) || found[0];
+    if (found.length) return pick(found);
   }
   return undefined;
 }

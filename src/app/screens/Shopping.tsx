@@ -67,9 +67,18 @@ export function Shopping() {
   useEffect(() => {
     if (!mode) return;
     rt.sync?.setPresence('shopping');
-    const last = Number(localStorage.getItem('gila-hub:shopNotified') ?? 0);
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem('gila-hub:shopNotified') ?? 0);
+    } catch {
+      /* storage blocked */
+    }
     if (partner && partner.shopAlerts !== false && Date.now() - last > 30 * 60_000) {
-      localStorage.setItem('gila-hub:shopNotified', String(Date.now()));
+      try {
+        localStorage.setItem('gila-hub:shopNotified', String(Date.now()));
+      } catch {
+        /* storage blocked */
+      }
       void notifyMembers(rt, [partner.id], {
         title: `${hub.me()?.name ?? 'Your partner'} is shopping`,
         body: 'Need anything? Add it now and it lands on their list.',

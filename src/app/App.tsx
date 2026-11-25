@@ -8,7 +8,7 @@ import { RuntimeProvider, useHub, usePartnerShopping, useRt } from './context';
 import { applyTheme, getPrefs, usePrefs } from './prefs';
 import { LocalReminders, ReminderSync } from './reminders';
 import { navigate, useRoute, type Route } from './router';
-import { openPersistence, startRuntime, updateBadge, type Runtime } from './runtime';
+import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime } from './runtime';
 import { Chores } from './screens/Chores';
 import { ItemScreen } from './screens/ItemScreen';
 import { ListScreen } from './screens/ListScreen';
@@ -173,7 +173,7 @@ function Duties() {
       toast(`⏰ ${r.note.title}`);
       // With a relay, push already delivers the system notification.
       if (!rt.relay && 'Notification' in window && Notification.permission === 'granted') {
-        void navigator.serviceWorker?.getRegistration().then((reg) => reg?.showNotification(r.note.title, { body: r.note.body, tag: r.note.tag, data: { url: r.note.url } }));
+        void swContainer()?.getRegistration().then((reg) => reg?.showNotification(r.note.title, { body: r.note.body, tag: r.note.tag, data: { url: r.note.url } }));
       }
     });
     const run = () => {
@@ -206,12 +206,13 @@ function Duties() {
     const onSwMessage = (e: MessageEvent) => {
       if (e.data?.type === 'navigate' && typeof e.data.url === 'string') navigate(e.data.url);
     };
-    navigator.serviceWorker?.addEventListener('message', onSwMessage);
+    const sw = swContainer();
+    sw?.addEventListener('message', onSwMessage);
     return () => {
       window.removeEventListener('online', wake);
       document.removeEventListener('visibilitychange', wake);
       clearInterval(relayRetry);
-      navigator.serviceWorker?.removeEventListener('message', onSwMessage);
+      sw?.removeEventListener('message', onSwMessage);
     };
   }, [rt]);
 
@@ -271,7 +272,7 @@ function boot(): Promise<Phase> {
       const session = await loadSession(persistence);
       if (!session) return { name: 'onboard', persistence };
       const rt = await startRuntime(persistence, session);
-      void navigator.storage?.persist?.();
+      void navigator.storage?.persist?.().catch(() => {});
       return { name: 'ready', rt };
     } catch (e) {
       console.error(e);
@@ -313,8 +314,12 @@ export function App() {
         <Onboarding
           onDone={async (r) => {
             const rt = await completeOnboarding(phase.persistence, r);
-            history.replaceState(null, '', '/');
-            void navigator.storage?.persist?.();
+            try {
+              history.replaceState(null, '', '/');
+            } catch {
+              /* sandboxed frame */
+            }
+            void navigator.storage?.persist?.().catch(() => {});
             setPhase({ name: 'ready', rt });
           }}
         />

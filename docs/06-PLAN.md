@@ -6,7 +6,7 @@
 |---|---|---|---|
 | M0 | **Research & plan** | [Research](01-RESEARCH.md) · [Brand](02-BRAND.md) · [Design system](03-DESIGN-SYSTEM.md) · [Features](04-FEATURES.md) · [Architecture](05-ARCHITECTURE.md) | Every requirement maps to a feature; design reference chosen and adapted. |
 | M1 | **Core engine** | Replicated store (HLC + per-field LWW), IndexedDB persistence, fractional ordering, scoped E2E crypto, invite derivation | Two simulated replicas converge under reordering, duplication and privacy changes. |
-| M2 | **Smart layer** | Quick-add parser (EN + HE basics), quantity parser, ~650-item bilingual catalog + learning categorizer, recurrence engine (two repeat types, early/late/collapse), buy-again | Unit tests for each rule from the research. |
+| M2 | **Smart layer** | Quick-add parser (EN + HE basics), quantity parser, ~550-item bilingual catalog + learning categorizer, recurrence engine (two repeat types, early/late/collapse), buy-again | Unit tests for each rule from the research. |
 | M3 | **The app** | Onboarding, Today, Shopping (+ shopping mode), Chores, Lists + infinite drill-down, item detail, quick add, search, settings, dark mode, desktop layout | Every v1 feature in [Features](04-FEATURES.md) works offline on one device. |
 | M4 | **Relay & pairing** | Worker + Durable Objects, WebSocket sync, invites, presence, Web Push with encrypted payloads, deploy script + GitHub Action | Two browsers pair and sync live; "Only me" never reaches the partner; push encryption matches RFC 8291. |
 | M5 | **Polish & verify** | Visual review at phone/desktop, light/dark; accessibility pass; README | Screenshots reviewed; all tests green. |

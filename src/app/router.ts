@@ -52,21 +52,48 @@ if (typeof window !== 'undefined') {
   });
 }
 
+/**
+ * Sandboxed frames (previews, embeds) may refuse pushState. Then we keep a small
+ * in-memory history instead, so the app still navigates normally.
+ */
+let memory: string[] | null = null;
+
+function currentPath(): string {
+  return memory ? memory[memory.length - 1] : location.pathname;
+}
+
 export function navigate(to: Route | string, opts: { replace?: boolean } = {}): void {
   const url = typeof to === 'string' ? to : href(to);
-  if (url === location.pathname + location.search) return;
-  if (opts.replace) history.replaceState(null, '', url);
-  else {
-    history.pushState(null, '', url);
-    depth++;
+  if (url === currentPath() + (memory ? '' : location.search)) return;
+  if (!memory) {
+    try {
+      if (opts.replace) history.replaceState(null, '', url);
+      else history.pushState(null, '', url);
+    } catch {
+      memory = ['/'];
+    }
   }
-  window.scrollTo({ top: 0 });
+  if (memory) {
+    const path = url.split('?')[0];
+    if (opts.replace) memory[memory.length - 1] = path;
+    else memory.push(path);
+  }
+  if (!opts.replace) depth++;
+  try {
+    window.scrollTo({ top: 0 });
+  } catch {
+    /* ignore */
+  }
   emit();
 }
 
 /** Go back within the app, or to a sensible parent when opened directly. */
 export function back(fallback: Route): void {
-  if (depth > 0) history.back();
+  if (memory && memory.length > 1) {
+    memory.pop();
+    depth = Math.max(0, depth - 1);
+    emit();
+  } else if (!memory && depth > 0) history.back();
   else navigate(fallback, { replace: true });
 }
 
@@ -76,7 +103,7 @@ export function useRoute(): Route {
       listeners.add(fn);
       return () => listeners.delete(fn);
     },
-    () => location.pathname,
+    currentPath,
   );
   return parseRoute(path);
 }

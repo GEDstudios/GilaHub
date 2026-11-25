@@ -74,6 +74,15 @@ export async function startRuntime(persistence: Persistence, session: Session): 
 
 // ---------------------------------------------------------------- push
 
+/** Service worker container, or null where unavailable (sandboxed frames throw on access). */
+export function swContainer(): ServiceWorkerContainer | null {
+  try {
+    return 'serviceWorker' in navigator ? navigator.serviceWorker : null;
+  } catch {
+    return null;
+  }
+}
+
 export type PushState = 'on' | 'off' | 'denied' | 'unsupported' | 'install' | 'no-relay';
 
 export function isStandalone(): boolean {
@@ -89,11 +98,12 @@ export function isIOS(): boolean {
 }
 
 export async function pushState(rt: Runtime): Promise<PushState> {
-  if (!('serviceWorker' in navigator) || !('Notification' in window)) return isIOS() && !isStandalone() ? 'install' : 'unsupported';
+  const sw = swContainer();
+  if (!sw || !('Notification' in window)) return isIOS() && !isStandalone() ? 'install' : 'unsupported';
   if (!('PushManager' in window)) return isIOS() && !isStandalone() ? 'install' : 'unsupported';
   if (!rt.relay) return 'no-relay';
   if (Notification.permission === 'denied') return 'denied';
-  const reg = await navigator.serviceWorker.getRegistration();
+  const reg = await sw.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   return sub && Notification.permission === 'granted' ? 'on' : 'off';
 }
@@ -112,7 +122,7 @@ export async function enablePush(rt: Runtime): Promise<PushState> {
   if (state === 'on' || state === 'unsupported' || state === 'install' || state === 'no-relay' || state === 'denied') return state;
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') return perm === 'denied' ? 'denied' : 'off';
-  const reg = await navigator.serviceWorker.ready;
+  const reg = await swContainer()!.ready;
   const { publicKey } = await api<{ publicKey: string }>(rt.session, 'vapid');
   let sub = await reg.pushManager.getSubscription();
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(publicKey) });
@@ -124,7 +134,7 @@ export async function enablePush(rt: Runtime): Promise<PushState> {
 }
 
 export async function disablePush(rt: Runtime): Promise<void> {
-  const reg = await navigator.serviceWorker.getRegistration();
+  const reg = await swContainer()?.getRegistration();
   const sub = await reg?.pushManager.getSubscription();
   await sub?.unsubscribe();
   if (rt.relay) await api(rt.session, 'unsubscribe', { method: 'POST', body: JSON.stringify({ dev: rt.session.deviceId }) }).catch(() => {});
