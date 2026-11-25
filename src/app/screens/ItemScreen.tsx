@@ -1,3 +1,4 @@
+import { tourOpened } from '../tour';
 import { useEffect, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
@@ -141,6 +142,14 @@ export function ItemScreen({ id }: { id: string }) {
   // The + adds a step of this item (a chip in the sheet makes it its own task instead).
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={item?.listId} parentId={item?.id} />);
   useAddAction(openNew, 'Add a step');
+  // Start here: "Tap me to open me" is done by opening it (ticked as you leave, after reading).
+  useEffect(
+    () => () => {
+      const it = hub.item(id);
+      if (it) tourOpened(hub, it);
+    },
+    [hub, id],
+  );
 
   useEffect(() => {
     // Shopping items edit in their own sheet.

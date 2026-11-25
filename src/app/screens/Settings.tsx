@@ -1,3 +1,4 @@
+import { startTour } from '../tour';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
 import { useOpenIdeas } from '../components/Ideas';
@@ -5,7 +6,6 @@ import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
 import { useHub, useRt, useSync } from '../context';
 import { setPrefs, use24h, usePrefs, weekStart } from '../prefs';
-import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { ideasView } from '../views';
 import { back, navigate } from '../router';
 import { disablePush, enablePush, isIOS, isStandalone, pushState, swContainer, testPush, type PushState, type Runtime } from '../runtime';
@@ -432,48 +432,9 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
 
 // ---------------------------------------------------------------- Together
 
-const SHARING: VisChoice[] = ['ours', 'mine', 'private'];
-
-/** Ours, Mine and Only me, and asking, in a few plain lines. */
-function SharingSheet({ partner, onClose }: { partner: Member | undefined; onClose: () => void }) {
-  const { openSheet } = useOverlays();
-  const p = partner?.name ?? null;
-  return (
-    <Sheet onClose={onClose} title="Sharing, simply">
-      <div className="group">
-        {SHARING.map((v) => (
-          <OptRow key={v} icon={VIS_ICON[v]} title={visLabel(v, p)} sub={visHint(v, p)} />
-        ))}
-        <OptRow
-          icon="hand"
-          title="Asking"
-          sub={p ? `Who → Ask ${p} sends it ${p}’s way. “Needs my OK when done” lets you check it before it counts.` : 'Once your person joins, Who → Ask sends a thing their way.'}
-        />
-      </div>
-      {partner ? (
-        <button type="button" className="btn btn--quiet btn--block" style={{ marginTop: 20 }} onClick={onClose}>
-          Got it
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="btn btn--block"
-          style={{ marginTop: 20 }}
-          onClick={() => {
-            onClose();
-            openSheet((close) => <PairSheet kind="partner" onClose={close} />);
-          }}
-        >
-          Bring your person in
-        </button>
-      )}
-    </Sheet>
-  );
-}
-
 function Together({ partner }: { partner: Member | undefined }) {
   const hub = useHub();
-  const { openSheet, toast } = useOverlays();
+  const { toast } = useOverlays();
   const s = hub.settings();
   const away = hub.isAway() && s?.awaySince ? { since: s.awaySince, by: s.awayBy ?? null } : null;
   return (
@@ -499,13 +460,6 @@ function Together({ partner }: { partner: Member | undefined }) {
               }}
             />
           }
-        />
-        <OptRow
-          icon="ours"
-          title="Ours, Mine and Only me"
-          sub="How sharing and asking work"
-          chev
-          onClick={() => openSheet((close) => <SharingSheet partner={partner} onClose={close} />)}
         />
       </div>
     </Section>
@@ -713,13 +667,10 @@ function About({ me, partner }: { me: Member; partner: Member | undefined }) {
           <OptRow icon="lightbulb" title="Ideas" value={n ? `${n} open` : undefined} chev onClick={openIdeas} />
           <OptRow
             icon="sparkle"
-            title="Getting started"
-            sub="Five first things, on Today"
+            title="Show me around"
+            sub="Start here: a few things to try, in a project of your own"
             chev
-            onClick={() => {
-              setPrefs({ startedHidden: false });
-              navigate({ name: 'today' });
-            }}
+            onClick={() => navigate({ name: 'list', id: startTour(hub) })}
           />
         </div>
       </Section>

@@ -1,3 +1,4 @@
+import { startTour, tourDone, tourList, tourWatch } from './tour';
 import { updateReady } from './update';
 import { useEffect, useState } from 'react';
 import { seedHousehold } from '../core/actions';
@@ -144,6 +145,20 @@ function Duties() {
   const add = useAdd();
   const me = hub.me();
 
+  // Start here: tick off what the data shows was done; when it's all done, bow out.
+  useEffect(() => {
+    if (!tourWatch(hub)) return;
+    const list = tourList(hub);
+    if (!list) return;
+    hub.updateList(list.id, { archived: true });
+    toast('You know your way around', { action: { label: 'Keep it', run: () => hub.updateList(list.id, { archived: false }) } });
+  });
+  useEffect(() => {
+    const onScrub = () => tourDone(hub, 'bar');
+    window.addEventListener('gila:scrubbed', onScrub);
+    return () => window.removeEventListener('gila:scrubbed', onScrub);
+  }, [hub]);
+
   const partnerColor = hub.partner()?.color;
   useEffect(() => {
     if (!me) return;
@@ -278,6 +293,8 @@ async function completeOnboarding(persistence: Persistence, r: OnboardResult): P
       rt.hub.upsertMember(session.memberId, { name: r.name!, color: r.color as LineColor, createdAt: Date.now(), shopAlerts: true });
       if (r.kind === 'new') seedHousehold(rt.hub, r.projects ?? [], r.colors);
     });
+    // The way in: a small Start here project of your own whose things say what to do.
+    startTour(rt.hub);
   }
   return rt;
 }

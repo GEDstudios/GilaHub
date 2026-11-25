@@ -285,7 +285,10 @@ export function TabBar() {
     tabs: all,
     navRef,
     scrollRef,
-    onPick: (t) => navigate(t.path),
+    onPick: (t) => {
+      window.dispatchEvent(new Event('gila:scrubbed'));
+      navigate(t.path);
+    },
     onTouch: hint ? hinted : undefined,
   });
 

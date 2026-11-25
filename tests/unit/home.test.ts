@@ -335,22 +335,33 @@ describe('home blocks', () => {
   });
 });
 
-describe('Getting started', () => {
-  it('ticks each step off only when it really happened', async () => {
-    const { startedSteps } = await import('../../src/app/started');
-    const { setPins } = await import('../../src/app/tabs');
-    const store = await Store.load(new MemoryPersistence(), 'dev-g', ['h', 'p:guy']);
+
+describe('Start here', () => {
+  it('teaches by doing: steps tick themselves off, then it bows out', async () => {
+    const { startTour, tourList, tourItem, tourDone, tourOpened, tourWatch } = await import('../../src/app/tour');
+    const store = await Store.load(new MemoryPersistence(), 'dev-t', ['h', 'p:guy']);
     const hub = new Hub(store, 'guy');
     hub.upsertMember('guy', { name: 'Guy', color: 'lemon' });
-    const list = hub.createList({ name: 'To do', kind: 'tasks' });
-    const done = () => startedSteps(hub, false).filter((s) => s.done).map((s) => s.key);
-    expect(done()).toEqual([]);
-    const id = hub.addItem(list, { title: 'Call mom' });
-    expect(done()).toEqual(['add']);
-    hub.toggle(id);
-    expect(done()).toEqual(['add', 'tick']);
-    setPins(hub, ['chores', 'shop']);
-    expect(done()).toEqual(['add', 'tick', 'bar']);
-    expect(startedSteps(hub, true).find((s) => s.key === 'notify')?.done).toBe(true);
+    const todo = hub.createList({ name: 'To do', kind: 'tasks' });
+    const id = startTour(hub);
+    const list = tourList(hub)!;
+    expect(list.id).toBe(id);
+    expect(list.visibility).toBe('private');
+    expect(startTour(hub)).toBe(id);
+    const open = tourItem(hub, 'open')!;
+    expect(hub.childrenOf(open.id).length).toBe(2);
+    expect(tourWatch(hub)).toBe(false);
+    tourOpened(hub, open);
+    expect(hub.item(open.id)!.done).toBe(true);
+    hub.addItem(todo, { title: 'Call mom' });
+    tourWatch(hub);
+    expect(tourItem(hub, 'add')!.done).toBe(true);
+    const drag = tourItem(hub, 'drag')!;
+    const first = hub.children(id, null)[0];
+    hub.reorder(drag.id, null, first.id);
+    tourWatch(hub);
+    expect(tourItem(hub, 'drag')!.done).toBe(true);
+    for (const k of ['tick', 'share', 'bar', 'person'] as const) tourDone(hub, k);
+    expect(tourWatch(hub)).toBe(true);
   });
 });
