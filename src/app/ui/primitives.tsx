@@ -107,11 +107,20 @@ export function IconButton({ icon, label, onClick }: { icon: IconName; label: st
  * New: the one black "+" in the app, always the rightmost thing in a screen's header.
  * It opens a sheet already pointed at where you are (see addAction.ts).
  */
-export function NewButton({ onClick, label = 'New' }: { onClick: () => void; label?: string }) {
+/**
+ * New lives in one place now: the big round + over the bottom bar (Fab, in the App shell), which
+ * runs what the screen registered with useAddAction. Headers no longer carry their own.
+ */
+export function NewButton(_props: { onClick: () => void; label?: string }) {
+  return null;
+}
+
+/** The one +: big, round, bottom right, where the thumb is. */
+export function Fab({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       type="button"
-      className="iconbtn iconbtn--solid"
+      className="fab"
       onClick={() => {
         primeKeyboard();
         onClick();

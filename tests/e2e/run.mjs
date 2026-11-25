@@ -80,7 +80,7 @@ const shot = (p, name) => p.screenshot({ path: resolve(shots, `${name}.png`) });
 async function addVia(p, lines, { shopping = false } = {}) {
   for (let i = 0; i < lines.length; i++) {
     if (!shopping || i === 0) {
-      await p.locator('.band .iconbtn--solid').first().click();
+      await p.locator('.fab').first().click();
       await p.locator('.composer__input').waitFor({ timeout: 5000 });
     }
     await p.locator('.composer__input').fill(lines[i]);
@@ -175,7 +175,7 @@ try {
   });
 
   await check('No duplicates: adding milk again says it exists', async () => {
-    await hila.locator('.band .iconbtn--solid').first().click();
+    await hila.locator('.fab').first().click();
     await hila.locator('.composer__input').fill('Milk');
     await hila.locator('.composer__input').press('Enter');
     await hila.getByText(/already on the list/).waitFor({ timeout: 5000 });
@@ -249,7 +249,7 @@ try {
   await check('Requests: Guy asks Hila; it shows under "You asked Hila…" on his Today', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    await guy.locator('.band .iconbtn--solid').first().click();
+    await guy.locator('.fab').first().click();
     await guy.locator('.composer__input').fill('Water the balcony plants @hila today');
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();

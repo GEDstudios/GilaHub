@@ -288,7 +288,8 @@ export function parseQuickAdd(input: string, ctx: ParseContext = {}): ParseResul
     out.urgent = true;
     return 'Urgent';
   }) ||
-    scan('urgent', rx(String.raw`urgent|asap|דחוף`), () => {
+    // Said in words too: urgent(ly), asap, דחוף (however many ף), דחופה, בדחיפות, מהר.
+    scan('urgent', rx(String.raw`urgent(?:ly)?|asap|דחו+ף+|דחופה|בדחיפות|מהר`), () => {
       out.urgent = true;
       return 'Urgent';
     });

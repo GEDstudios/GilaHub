@@ -27,7 +27,7 @@ import { SyncDot } from './components/SyncBadge';
 import { Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
-import { lightVar, Logo } from './ui/primitives';
+import { Fab, lightVar, Logo } from './ui/primitives';
 import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, coveredByTab, tabsOf } from './tabs';
 import { projectCount, todayRef, todayView } from './views';
@@ -263,6 +263,9 @@ function Duties() {
 }
 
 function Shell() {
+  const route = useRoute();
+  const add = useAdd();
+  const addLabel = useAddLabel();
   // An old /search link (or bookmark): Today, with search open over it.
   useEffect(() => {
     if (currentPath() === '/search') {
@@ -277,6 +280,7 @@ function Shell() {
         <Screen />
       </main>
       <TabBar />
+      {route.name === 'settings' ? null : <Fab label={addLabel} onClick={add} />}
       <IdeaTag />
       <SearchLayer />
       <Duties />

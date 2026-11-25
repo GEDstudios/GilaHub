@@ -69,6 +69,17 @@ describe('quick add parser', () => {
     expect(parseQuickAdd('לשלם חשבון חשמל דחוף', ctx)).toMatchObject({ title: 'לשלם חשבון חשמל', urgent: true });
   });
 
+  it('hears urgency in words', () => {
+    for (const s of ['Call the plumber urgent', 'Call the plumber urgently', 'URGENT Call the plumber', 'Call the plumber asap']) {
+      expect(parseQuickAdd(s, ctx)).toMatchObject({ title: 'Call the plumber', urgent: true });
+    }
+    for (const s of ['להזמין אינסטלטור דחוף', 'להזמין אינסטלטור דחוףףףף', 'להזמין אינסטלטור בדחיפות', 'להזמין אינסטלטור מהר', 'דחוףף להזמין אינסטלטור']) {
+      expect(parseQuickAdd(s, ctx)).toMatchObject({ title: 'להזמין אינסטלטור', urgent: true });
+    }
+    expect(parseQuickAdd('Read about urgency', ctx).urgent).toBeUndefined();
+    expect(parseQuickAdd('לקנות מהרהר', ctx).urgent).toBeUndefined();
+  });
+
   it('stays conservative with ambiguous words', () => {
     expect(parseQuickAdd('Morning run', ctx)).toMatchObject({ title: 'Morning run', tokens: [] });
     expect(parseQuickAdd('Buy 1.5 liters of paint', ctx).due).toBeUndefined();

@@ -4092,3 +4092,51 @@ html:has(.sheet) .ideatag {
 .place__open.is-open {
   transform: rotate(180deg);
 }
+
+/* ============================================================ The + (Fab)
+ * One big round +, bottom right over the bar, on every screen: it adds what fits the screen.
+ */
+.fab {
+  position: fixed;
+  z-index: 36;
+  right: max(20px, calc((100% - var(--column)) / 2 - var(--gutter) + 20px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px);
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cta);
+  color: var(--cta-text);
+  box-shadow:
+    0 10px 24px -8px rgb(10 10 4 / 0.45),
+    0 2px 6px rgb(10 10 4 / 0.18);
+  transition: transform 180ms var(--spring), opacity 160ms var(--ease);
+}
+
+.fab .icon {
+  --s: 26;
+}
+
+.fab:active {
+  transform: scale(0.92);
+}
+
+/* Out of the way while something else has the stage */
+html:has(.sheet) .fab,
+html.is-searching .fab,
+html.is-editing .fab,
+html:has(.home--editing) .fab,
+html:has(.aislearr) .fab,
+html:has(.shopmode) .fab {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+}
+
+/* A computer has New in the sidebar */
+@media (min-width: 960px) {
+  .fab {
+    display: none;
+  }
+}
