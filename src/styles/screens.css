@@ -1100,3 +1100,9 @@ button.projcard:active {
   color: var(--text-3) !important;
   font-variant-numeric: tabular-nums;
 }
+
+/* The Urgent card: a soft lemon wash; the same items also sit in their aisle with an Urgent tag. */
+.rows--urgent,
+.rows--urgent .row {
+  background: var(--lemon-soft);
+}

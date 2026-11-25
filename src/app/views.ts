@@ -147,7 +147,6 @@ export const shoppingView = memo((hub: Hub, filter: string, dismissed: Record<st
   const open = items.filter((i) => !i.done && !i.archived);
   const groups = new Map<string, AisleGroup>();
   for (const i of open) {
-    if (i.urgent) continue;
     const list = hub.list(i.listId);
     const flavor = hub.flavorOf(list);
     const { category, emoji } = hub.categoryFor(i);

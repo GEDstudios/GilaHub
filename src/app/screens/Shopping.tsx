@@ -398,8 +398,12 @@ interface ShopGroup {
   items: Row[];
 }
 
-function SortableShopRow(props: Parameters<typeof ShopRow>[0]) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id });
+/** Sortable ids are scoped to their group: an urgent item appears twice (Urgent + its aisle). */
+const sid = (group: string, id: string) => `${group}|${id}`;
+const unsid = (s: string | number) => String(s).split('|')[1];
+
+function SortableShopRow(props: Parameters<typeof ShopRow>[0] & { group: string }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sid(props.group, props.item.id) });
   return (
     <ShopRow
       {...props}
@@ -436,39 +440,46 @@ function ShopList({
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const g = groups.find((x) => x.items.some((i) => i.id === active.id));
-    if (!g || !g.items.some((i) => i.id === over.id)) return;
+    const [ga] = String(active.id).split('|');
+    const [go] = String(over.id).split('|');
+    if (ga !== go) return; // reorder only within one card
+    const g = groups.find((x) => x.key === ga);
+    if (!g) return;
     const ids = g.items.map((i) => i.id);
-    const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
-    const at = next.indexOf(String(active.id));
-    const listId = hub.item(String(active.id))?.listId;
-    const same = (id: string | undefined) => (id && hub.item(id)?.listId === listId ? id : null);
-    hub.reorder(String(active.id), same(next[at - 1]), same(next[at + 1]));
+    const id = unsid(active.id);
+    const next = arrayMove(ids, ids.indexOf(id), ids.indexOf(unsid(over.id)));
+    const at = next.indexOf(id);
+    const listId = hub.item(id)?.listId;
+    const same = (x: string | undefined) => (x && hub.item(x)?.listId === listId ? x : null);
+    hub.reorder(id, same(next[at - 1]), same(next[at + 1]));
   };
-  const rows = groups.map((g) => (
-    <SortableContext key={g.key} items={g.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-      <li className={`aisle-row ${g.label ? '' : 'aisle-row--urgent'}`} aria-hidden="true">
-        {g.label ? (
-          <>
-            <span>{g.label}</span>
-            <span className="num">{g.items.length}</span>
-          </>
-        ) : (
-          <Diamond />
-        )}
-      </li>
-      {g.items.map((i) =>
-        draggable ? (
-          <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} />
-        ) : (
-          <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} />
-        ),
-      )}
-    </SortableContext>
-  ));
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => haptic()} onDragEnd={onDragEnd}>
-      <ul className="rows rows--shop">{rows}</ul>
+      {groups.map((g) => (
+        <section key={g.key} className="aisle" aria-label={g.label ?? 'Urgent'}>
+          <h2 className="aisle__head">
+            {g.label ? (
+              <>
+                {g.label}
+                <span className="num">{g.items.length}</span>
+              </>
+            ) : (
+              <Diamond />
+            )}
+          </h2>
+          <SortableContext items={g.items.map((i) => sid(g.key, i.id))} strategy={verticalListSortingStrategy}>
+            <ul className={`rows ${g.label ? '' : 'rows--urgent'}`}>
+              {g.items.map((i) =>
+                draggable ? (
+                  <SortableShopRow key={i.id} group={g.key} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
+                ) : (
+                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
+                ),
+              )}
+            </ul>
+          </SortableContext>
+        </section>
+      ))}
     </DndContext>
   );
 }
@@ -479,6 +490,7 @@ function ShopRow({
   onOpen,
   flash,
   showList,
+  inUrgent,
   liRef,
   liStyle,
   liClass,
@@ -489,6 +501,8 @@ function ShopRow({
   onOpen: (i: Item) => void;
   flash?: boolean;
   showList?: boolean;
+  /** Rendered inside the Urgent card (so no extra tag needed). */
+  inUrgent?: boolean;
   liRef?: Ref<HTMLLIElement>;
   liStyle?: CSSProperties;
   liClass?: string;
@@ -522,9 +536,10 @@ function ShopRow({
           </span>
         ) : null}
       </div>
-      {showList ? (
+      {showList || (item.urgent && !inUrgent) ? (
         <span className="row__trail">
-          <ListBullet list={list} size="xs" />
+          {item.urgent && !inUrgent ? <Diamond /> : null}
+          {showList ? <ListBullet list={list} size="xs" /> : null}
         </span>
       ) : null}
     </li>
