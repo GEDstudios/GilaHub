@@ -507,9 +507,15 @@ describe('one thing, two places', () => {
     expect(guy.item(sub)!.done).toBe(true);
     guy.toggle(sub);
     expect(guy.item(shop)!.done).toBe(false);
-    guy.unlink(sub);
-    guy.toggle(sub);
-    expect(guy.item(shop)!.done).toBe(false);
+    // Taking it off the shopping list leaves no copy behind.
+    const undo = guy.removeTwin(sub);
+    expect(guy.item(shop)).toBeUndefined();
+    expect(guy.linked(guy.item(sub))).toBeUndefined();
+    undo();
+    expect(guy.linked(guy.item(sub))!.id).toBe(shop);
+    // Deleting it takes it from both places.
+    guy.delete(sub);
+    expect(guy.item(shop)).toBeUndefined();
   });
 });
 

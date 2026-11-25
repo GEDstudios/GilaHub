@@ -690,16 +690,32 @@ export class Hub {
 
   delete(id: string): Undo {
     const ids = [id, ...this.descendants(id).map((d) => d.id)];
-    // Their twins elsewhere stay, on their own.
+    // It's one thing in two places: deleting it takes it from both (Undo brings both back).
     const twins = ids.map((i) => this.linked(this.item(i))).filter((t): t is Item => !!t);
+    const all = [...ids, ...twins.flatMap((t) => [t.id, ...this.descendants(t.id).map((d) => d.id)])];
     this.store.batch(() => {
-      for (const i of ids) this.store.mutate('item', i, { deleted: true });
-      for (const t of twins) this.store.mutate('item', t.id, { linkId: null });
+      for (const i of all) this.store.mutate('item', i, { deleted: true });
     });
     return () =>
       this.store.batch(() => {
-        for (const i of ids) this.store.mutate('item', i, { deleted: false });
-        for (const t of twins) this.store.mutate('item', t.id, { linkId: this.store.all('item').find((x) => x.linkId === t.id)?.id ?? null });
+        for (const i of all) this.store.mutate('item', i, { deleted: false });
+      });
+  }
+
+  /** Take it out of the other place only (that copy goes; this one stays, on its own). */
+  removeTwin(id: string): Undo {
+    const item = this.item(id);
+    const twin = this.linked(item);
+    if (!item || !twin) return () => {};
+    const gone = [twin.id, ...this.descendants(twin.id).map((d) => d.id)];
+    this.store.batch(() => {
+      for (const g of gone) this.store.mutate('item', g, { deleted: true });
+      this.store.mutate('item', id, { linkId: null });
+    });
+    return () =>
+      this.store.batch(() => {
+        for (const g of gone) this.store.mutate('item', g, { deleted: false });
+        this.store.mutate('item', id, { linkId: twin.id });
       });
   }
 

@@ -233,12 +233,14 @@ export function ItemScreen({ id }: { id: string }) {
             type="button"
             className="token"
             onClick={() => {
-              hub.unlink(id);
+              const where = (twin.parentId && hub.item(twin.parentId)?.title) || twinList.name;
+              const undo = hub.removeTwin(id);
               close();
+              toast(`Taken out of ${where}`, { action: { label: 'Undo', run: undo } });
             }}
           >
             <Icon name="x" className="token__x" />
-            <span>Not linked anymore</span>
+            <span dir="auto">Remove from {(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}</span>
           </button>
         </div>
       ) : (

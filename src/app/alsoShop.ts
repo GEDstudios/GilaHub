@@ -13,8 +13,7 @@ export function useAlsoShop() {
       action: {
         label: 'Undo',
         run: () => {
-          hub.unlink(id);
-          hub.delete(it.id);
+          hub.removeTwin(id);
         },
       },
     });
