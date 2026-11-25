@@ -5,6 +5,7 @@ import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
 import { useHub } from '../context';
 import { use24h, usePrefs, weekStart } from '../prefs';
 import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
+import { withNotification } from '../compose';
 import { REMIND_OPTIONS } from '../reminders';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -304,7 +305,7 @@ export function InlineEditor({
   for (const f of fields) {
     if (f === 'when') {
       chips.push(chip('when', value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date', 'calendar', !!value.due));
-      if (open === 'when') chips.push(<WhenPanel key="when:panel" due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime })} />);
+      if (open === 'when') chips.push(<WhenPanel key="when:panel" due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime, ...withNotification(value, due) })} />);
     }
     if (f === 'repeat') {
       chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
@@ -315,7 +316,10 @@ export function InlineEditor({
             rule={value.repeat}
             defaultFrom={repeatFrom}
             // Calendar repeats (set days, days of the month) decide the date; "every N" keeps yours.
-            onChange={(repeat) => onChange({ repeat, due: repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due })}
+            onChange={(repeat) => {
+              const due = repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due;
+              onChange({ repeat, due, ...(due !== value.due ? withNotification(value, due) : {}) });
+            }}
           />,
         );
     }

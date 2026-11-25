@@ -118,6 +118,8 @@ export function useCompose({
       ...visFields(hub, d.visibility),
       needsOk: !!d.needsOk && asking && !d.repeat,
     });
+    // A dated task notifies by default: ask for permission the first time (in this tap).
+    if (d.remind != null && typeof Notification !== 'undefined' && Notification.permission === 'default') setUpReminders(rt, toast);
     const made = hub.item(id);
     if (made && asking && made.requestedBy === hub.meId) {
       notifyAbout(rt, hub, made, d.assignee as string, `${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
