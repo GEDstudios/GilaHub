@@ -10,7 +10,7 @@ import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Empty, IconButton, lineVars, NewButton } from '../ui/primitives';
-import { pinsOf, setPins, togglePin } from '../tabs';
+import { coveredByTab, pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { openCount } from '../views';
 import { Chores } from './Chores';
@@ -97,7 +97,10 @@ export const heroVis = (hub: ReturnType<typeof useHub>, list: List): string => (
 export function ProjectChips({ list }: { list: List }) {
   const hub = useHub();
   const { toast } = useOverlays();
-  const pinned = pinsOf(hub).includes(`l:${list.id}`);
+  // The one Chores (or Shopping) project is its tab: in the bar when that tab is.
+  const tab = list.kind === 'shopping' ? 'shop' : list.kind === 'chores' ? 'chores' : null;
+  const covered = !!tab && coveredByTab(hub, list.id, pinsOf(hub));
+  const pinned = covered || pinsOf(hub).includes(`l:${list.id}`);
   const partner = hub.partner();
   const onChange = (p: Partial<ProjectLook>) => {
     if (p.color) hub.updateList(list.id, { color: p.color });
@@ -108,7 +111,7 @@ export function ProjectChips({ list }: { list: List }) {
     }
     if (p.pinned !== undefined) {
       const before = pinsOf(hub);
-      const now = togglePin(hub, `l:${list.id}`);
+      const now = togglePin(hub, covered && tab ? tab : `l:${list.id}`);
       toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
     }
   };

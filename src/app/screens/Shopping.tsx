@@ -77,7 +77,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
   const allLists = hub.shoppingLists();
-  const scoped = listId ? hub.list(listId) : undefined;
+  // With one shopping list, the Shopping tab is that project, and looks like it.
+  const scoped = listId ? hub.list(listId) : allLists.length === 1 ? allLists[0] : undefined;
   const lists = scoped ? [scoped] : allLists;
   const filter = scoped ? scoped.id : allLists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
   const v = shoppingView(hub, filter, prefs.dismissed);
@@ -232,7 +233,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     <div className={mode ? 'shopmode' : undefined}>
       {scoped ? (
         <Band
-          onBack={() => back({ name: 'lists' })}
+          onBack={listId ? () => back({ name: 'lists' }) : undefined}
+          top={listId ? undefined : <SyncBadge />}
           actions={
             <>
               {mode ? pause : <ProjectMenuButton listId={scoped.id} />}

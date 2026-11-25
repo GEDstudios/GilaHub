@@ -272,6 +272,10 @@ export function Lists() {
     const place = (key: string, at: number | null, full: boolean) => {
       if (full) return toast('The bar is full');
       const before = pinsOf(hub);
+      // The one Chores (or Shopping) project is already there as its tab: move that instead.
+      const id = key.startsWith('l:') ? key.slice(2) : null;
+      const list = id ? hub.list(id) : undefined;
+      if (list && coveredByTab(hub, list.id, before)) key = list.kind === 'shopping' ? 'shop' : 'chores';
       const was = before.includes(key);
       pinAt(hub, key, at ?? before.length);
       const name = tabOf(hub, key)?.label;
@@ -281,7 +285,14 @@ export function Lists() {
     return { folders: barTarget({ ...common, keyOf: (id) => `l:${id}` }), tokens: barTarget(common) };
   }, [hub, toast]);
 
-  const missing = arranging ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key)) : [];
+  // Never twice: a tab whose one project is already in the bar isn't offered again.
+  const onlyOf = (kind: List['kind']) => {
+    const of = hub.lists().filter((l) => l.kind === kind);
+    return of.length === 1 && pins.includes(`l:${of[0].id}`);
+  };
+  const missing = arranging
+    ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key) && !(o.key === 'chores' && onlyOf('chores')) && !(o.key === 'shop' && onlyOf('shopping')))
+    : [];
 
   return (
     <>

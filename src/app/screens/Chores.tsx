@@ -80,7 +80,8 @@ export function Chores({ listId }: { listId?: string } = {}) {
   const { openSheet, toast } = useOverlays();
   const ref = todayStr();
   const all = choresView(hub, ref);
-  const scoped = listId ? hub.list(listId) : undefined;
+  // With one chores project, the Chores tab is that project, and looks like it.
+  const scoped = listId ? hub.list(listId) : all.lists.length === 1 ? all.lists[0] : undefined;
   const only = (rows: ChoreRow[]) => (scoped ? rows.filter((r) => r.list.id === scoped.id) : rows);
   const v = {
     ...all,
@@ -135,7 +136,8 @@ export function Chores({ listId }: { listId?: string } = {}) {
     <>
       {scoped ? (
         <Band
-          onBack={() => back({ name: 'lists' })}
+          onBack={listId ? () => back({ name: 'lists' }) : undefined}
+          top={listId ? undefined : <SyncBadge />}
           mini={scoped.name}
           actions={<ProjectActions listId={scoped.id} label="New chore" onNew={() => openNew()} />}
         >
