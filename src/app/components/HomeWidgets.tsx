@@ -3,9 +3,10 @@ import { addDays, humanTime, relativeAgo } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
 import { byOrder } from '../../core/order';
 import { useHub, usePartnerShopping } from '../context';
-import { AHEAD_MAX, aheadDay, aheadOf, choresReady, summaryOf, things, weekBands } from '../home';
+import { AHEAD_MAX, aheadDay, aheadOf, choresReady, summaryOf, things, weekBands, WIDGETS } from '../home';
 import { getPrefs, setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
+import { useLater } from '../tick';
 import { ChoreItem } from '../screens/Chores';
 import { ShopRow } from '../screens/Shopping';
 import { useFresh } from '../ui/fresh';
@@ -144,6 +145,7 @@ export function HomeNotices() {
 export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: string; settle: Settle<Item>; bare: boolean }) {
   const hub = useHub();
   const prefs = usePrefs();
+  const later = useLater();
   const rows = settle.view('today', v.today);
   const earlier = settle.view('earlier', v.earlier);
   // Today's add row puts things in the last task project used (To do, at first).
@@ -191,14 +193,15 @@ export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: strin
                   below={
                     hub.canEdit(i) ? (
                       <span className="catchup row__acts" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className="mini" onClick={() => (i.repeat ? hub.skip(i.id) : hub.snooze(i.id, day))}>
-                          {i.repeat ? 'Skip' : 'Today'}
-                        </button>
+                        {/* Today needs no word: the row moves up into Today. */}
                         {!i.repeat ? (
-                          <button type="button" className="mini" onClick={() => hub.snooze(i.id, addDays(day, 1))}>
-                            Tomorrow
+                          <button type="button" className="mini" onClick={() => hub.snooze(i.id, day)}>
+                            Today
                           </button>
                         ) : null}
+                        <button type="button" className="mini" onClick={() => later.run(i)}>
+                          {later.label(i)}
+                        </button>
                       </span>
                     ) : null
                   }
@@ -223,7 +226,7 @@ function Strip({ color, num, label, onClick }: { color: LineColor; num: number; 
   );
 }
 
-/** The one colour moment: to buy, chores ready, done this week — each only when it isn't its own block. */
+/** The one colour moment: to buy, my partner's chores ready, done this week — each only when it isn't its own block. */
 export function WeekStrips({ v, chores, shown }: { v: TodayView; chores: ChoresView; shown: ReadonlySet<string> }) {
   const hub = useHub();
   const bands = weekBands(hub, v, chores, shown);
@@ -399,14 +402,14 @@ function ChoreRows({ rows: all }: { rows: ChoreRow[] }) {
   );
 }
 
-/** Chores ready now that Today doesn't already show. Hidden while we're away. */
+/** My partner's chores that are ready (mine are in Today). Hidden while we're away. */
 export function ChoresWidget({ v, chores }: { v: TodayView; chores: ChoresView }) {
   const hub = useHub();
   const ready = choresReady(hub, v, chores);
   if (!ready.length) return null;
   return (
     <Section
-      title="Chores ready"
+      title={WIDGETS.chores.title(hub)}
       count={ready.length}
       action={
         <button type="button" className="textbtn" onClick={() => navigate({ name: 'chores' })}>

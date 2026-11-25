@@ -58,7 +58,8 @@ if (typeof window !== 'undefined') {
  */
 let memory: string[] | null = null;
 
-function currentPath(): string {
+/** The path on screen now (also in a sandboxed frame, where history is kept in memory). */
+export function currentPath(): string {
   return memory ? memory[memory.length - 1] : location.pathname;
 }
 

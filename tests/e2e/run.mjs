@@ -294,7 +294,7 @@ try {
     await shot(guy, '10-chores');
     const row = guy.locator('li.row', { hasText: 'Water the plants' });
     await row.getByRole('checkbox').click();
-    await guy.getByText(/Fresh again/).waitFor({ timeout: 5000 });
+    await guy.getByText(/fresh again/).waitFor({ timeout: 5000 });
   });
 
   await check('Projects: create a new one from a template', async () => {

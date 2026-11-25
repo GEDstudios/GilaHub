@@ -7,7 +7,7 @@ import { use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { useTick } from '../tick';
+import { ticksAway, useTick } from '../tick';
 import { doerOf, requestState, visTagFor } from '../privacy';
 import { Avatar, Check, ListBullet, StepRing } from '../ui/primitives';
 import { ReqTag, UrgentTag, VisTag } from '../ui/tags';
@@ -77,7 +77,8 @@ export const ItemRow = memo(function ItemRow({
       toast(`That one is ${hub.member(hub.ownerOf(item))?.name ?? 'theirs'}’s to tick off.`);
       return;
     }
-    if (!item.done) hold?.(item.id);
+    // Taking back a "did it" just un-ticks: no strike-and-fold.
+    if (ticksAway(hub, item)) hold?.(item.id);
     tick(item);
   };
 

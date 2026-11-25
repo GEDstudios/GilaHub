@@ -457,22 +457,32 @@ export class Hub {
     this.store.mutate('item', id, { assignee: this.meId });
   }
 
-  /** Tick / untick. Repeating items roll forward instead of finishing. */
+  /**
+   * What a tick on it does. Repeating things roll forward. A request that needs an OK: the
+   * doer's tick asks for it (and a second tick takes that back); the asker's tick gives it.
+   */
+  tickKind(item: Item): 'undone' | 'roll' | 'submit' | 'take-back' | 'confirm' | 'done' {
+    if (item.done) return 'undone';
+    if (item.repeat) return 'roll';
+    if (item.needsOk && item.requestedBy) {
+      if (item.requestedBy !== this.meId) return item.submittedAt ? 'take-back' : 'submit';
+      if (item.submittedAt) return 'confirm';
+    }
+    return 'done';
+  }
+
+  /** Tick / untick, as tickKind says. */
   toggle(id: string, opts: { withChildren?: boolean } = {}): Undo {
     const item = this.item(id);
     if (!item) return () => {};
-    if (item.repeat && !item.done) return this.completeRepeating(id);
-    // Requests that need an OK: the doer's tick asks for it; the asker's tick gives it.
-    if (!item.done && item.needsOk && item.requestedBy) {
-      if (item.requestedBy === this.meId) {
-        if (item.submittedAt) return this.confirm(id);
-      } else if (item.submittedAt) {
-        return this.sendBack(id);
-      } else {
-        const back = { sentBackAt: item.sentBackAt ?? null, sentBackBy: item.sentBackBy ?? null };
-        this.store.mutate('item', id, { submittedAt: Date.now(), submittedBy: this.meId, sentBackAt: null, sentBackBy: null });
-        return () => this.store.mutate('item', id, { submittedAt: null, submittedBy: null, ...back });
-      }
+    const kind = this.tickKind(item);
+    if (kind === 'roll') return this.completeRepeating(id);
+    if (kind === 'confirm') return this.confirm(id);
+    if (kind === 'take-back') return this.sendBack(id);
+    if (kind === 'submit') {
+      const back = { sentBackAt: item.sentBackAt ?? null, sentBackBy: item.sentBackBy ?? null };
+      this.store.mutate('item', id, { submittedAt: Date.now(), submittedBy: this.meId, sentBackAt: null, sentBackBy: null });
+      return () => this.store.mutate('item', id, { submittedAt: null, submittedBy: null, ...back });
     }
     const list = this.list(item.listId);
     const done = !item.done;
@@ -536,10 +546,14 @@ export class Hub {
     return this.updateItem(id, { due: to });
   }
 
+  /** Skip this one, and any others already missed: the next one is today or later. */
   skip(id: string): Undo {
     const item = this.item(id);
     if (!item?.repeat) return () => {};
-    return this.updateItem(id, { due: skipDue(item.repeat, item.due) });
+    const ref = todayStr();
+    let due = skipDue(item.repeat, item.due, ref);
+    for (let guard = 0; due < ref && guard < 400; guard++) due = skipDue(item.repeat, due, ref);
+    return this.updateItem(id, { due });
   }
 
   setPaused(id: string, paused: boolean): Undo {

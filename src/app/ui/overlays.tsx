@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
-import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway } from './motion';
+import { currentPath } from '../router';
+import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastAction } from './motion';
 
 // ---------------------------------------------------------------- sheets
 
@@ -12,7 +13,8 @@ interface SheetEntry {
 }
 
 export interface ToastOpts {
-  action?: { label: string; run: () => void };
+  /** One button, or a few (the first is the main one). */
+  action?: ToastAction | ToastAction[];
   ms?: number;
   /**
    * Toasts of one group fold into one while it shows ("3 in the cart"); Undo then undoes
@@ -20,6 +22,11 @@ export interface ToastOpts {
    */
   group?: string;
   many?: (n: number) => string;
+  /**
+   * Runs once the toast has gone without a tap on its buttons (timed out, swiped, stepped
+   * aside), or the app is put away while it shows: for news to send only if it isn't undone.
+   */
+  onExpire?: () => void;
 }
 
 interface OverlayApi {
@@ -42,9 +49,12 @@ export function useOverlays(): OverlayApi {
 interface ToastEntry {
   id: number;
   message: string;
-  action?: { label: string; run: () => void };
+  actions: ToastAction[];
+  /** The screen it was said on: it folds only with toasts from there. */
+  route: string;
   group?: string;
   many?: (n: number) => string;
+  onExpire?: () => void;
   count: number;
   /** Bumps when a toast of its group folds in, so it pops again. */
   bump: number;
@@ -75,11 +85,16 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
     return id;
   }, []);
 
-  const dismiss = useCallback((id: number) => {
+  /** `acted`: one of its buttons was tapped, so it doesn't expire. */
+  const dismiss = useCallback((id: number, acted = false) => {
     const t = timers.current.get(id)?.t;
     if (t) clearTimeout(t);
     timers.current.delete(id);
-    setToasts((all) => all.map((x) => (x.id === id ? { ...x, leaving: true } : x)));
+    const gone = live.current.find((x) => x.id === id);
+    if (!acted && !gone?.leaving) gone?.onExpire?.();
+    // Straight into `live` too, so a toast added right after keeps this one leaving.
+    live.current = live.current.map((x) => (x.id === id ? { ...x, leaving: true, onExpire: undefined } : x));
+    setToasts(live.current);
     setTimeout(() => setToasts((all) => all.filter((x) => x.id !== id)), 200);
   }, []);
 
@@ -106,26 +121,48 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
 
   const toast = useCallback<OverlayApi['toast']>(
     (message, opts = {}) => {
-      const ms = opts.ms ?? (opts.action ? 5500 : 3200);
-      const next = { message, action: opts.action, group: opts.group, many: opts.many };
-      const prev = [...live.current].reverse().find((x) => !x.leaving);
+      const actions = opts.action ? [opts.action].flat() : [];
+      const ms = opts.ms ?? (actions.length ? 5500 : 3200);
+      const route = currentPath();
+      const next = { message, actions, route, group: opts.group, many: opts.many, onExpire: opts.onExpire };
+      // A toast from a screen you've left steps aside: its Undo would reach where you can't see.
+      for (const old of live.current) if (!old.leaving && old.route !== route) dismiss(old.id);
+      const here = live.current.filter((x) => !x.leaving && x.route === route);
+      const prev = here.at(-1);
       const folded = prev ? foldToast(prev, next) : null;
       if (prev && folded) {
-        const entry = { ...folded, bump: prev.bump + 1 };
+        const [a, b] = [prev.onExpire, next.onExpire];
+        const onExpire = a && b ? () => (a(), b()) : (a ?? b);
+        const entry = { ...folded, onExpire, bump: prev.bump + 1 };
         live.current = live.current.map((x) => (x.id === prev.id ? entry : x));
         setToasts(live.current);
         arm(prev.id, ms);
         return;
       }
       const id = seq++;
-      const shown = live.current.filter((x) => !x.leaving);
-      for (const old of shown.slice(0, Math.max(0, shown.length - (MAX_TOASTS - 1)))) dismiss(old.id);
+      for (const old of here.slice(0, Math.max(0, here.length - (MAX_TOASTS - 1)))) dismiss(old.id);
       live.current = [...live.current, { id, ...next, count: 1, bump: 0 }];
       setToasts(live.current);
       arm(id, ms);
     },
     [arm, dismiss],
   );
+
+  // Put away (or closed) while a toast shows: what it holds back goes out now, not never.
+  useEffect(() => {
+    const flush = (e: Event) => {
+      if (e.type === 'visibilitychange' && document.visibilityState === 'visible') return;
+      for (const t of live.current) t.onExpire?.();
+      live.current = live.current.map((t) => (t.onExpire ? { ...t, onExpire: undefined } : t));
+      setToasts(live.current);
+    };
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, []);
 
   const api = useMemo(() => ({ openSheet, closeSheet, toast }), [openSheet, closeSheet, toast]);
 
@@ -138,7 +175,7 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
       {createPortal(
         <div className={`toasts ${top ? 'toasts--top' : ''}`} role="status" aria-live="polite">
           {toasts.map((t) => (
-            <Toast key={t.id} entry={t} onDismiss={() => dismiss(t.id)} onHold={(h) => hold(t.id, h)} />
+            <Toast key={t.id} entry={t} onDismiss={(acted) => dismiss(t.id, acted)} onHold={(h) => hold(t.id, h)} />
           ))}
         </div>,
         document.body,
@@ -148,7 +185,7 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
 }
 
 /** One toast: swipe it sideways to send it away; a finger on it keeps it. */
-function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: () => void; onHold: (held: boolean) => void }) {
+function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: (acted: boolean) => void; onHold: (held: boolean) => void }) {
   const el = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; dx: number; id: number; samples: Array<[number, number]> } | null>(null);
   const [gone, setGone] = useState<number>(0);
@@ -178,7 +215,7 @@ function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: 
       node.style.transition = calm() ? 'none' : 'transform 200ms var(--ease), opacity 200ms var(--ease)';
       node.style.transform = `translateX(${(Math.sign(d.dx) || 1) * 120}%)`;
       node.style.opacity = '0';
-      onDismiss();
+      onDismiss(false);
       e.preventDefault();
       return;
     }
@@ -198,19 +235,20 @@ function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: 
       onPointerCancel={onPointerUp}
     >
       <span dir="auto">{t.message}</span>
-      {t.action ? (
+      {t.actions.map((a) => (
         <button
+          key={a.label}
           type="button"
           className="toast__action"
           onClick={() => {
             if (gone) return;
-            t.action!.run();
-            onDismiss();
+            a.run();
+            onDismiss(true);
           }}
         >
-          {t.action.label}
+          {a.label}
         </button>
-      ) : null}
+      ))}
     </div>
   );
 }

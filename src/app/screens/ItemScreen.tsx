@@ -4,7 +4,7 @@ import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
 import { InlineEditor, useSummary, type Draft } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
-import { freshAgain, useTick } from '../tick';
+import { freshAgain, useLater, useTick } from '../tick';
 import { ListPickerSheet, OptRow } from '../components/pickers';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useAddAction } from '../addAction';
@@ -74,6 +74,7 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
 function DonePanel({ id, close }: { id: string; close: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
+  const later = useLater();
   const item = hub.item(id);
   const ref = todayStr();
   if (!item?.repeat) return null;
@@ -95,31 +96,16 @@ function DonePanel({ id, close }: { id: string; close: () => void }) {
         <Icon name="calendar" className="icon--sm" />
         <input type="date" max={ref} aria-label="Done on a day" onChange={(e) => e.target.value && done(e.target.value, `Counted for ${humanDate(e.target.value, ref)}`)} />
       </label>
-      {isFlexible(item.repeat) ? (
-        <button
-          type="button"
-          className="option"
-          onClick={() => {
-            const undo = hub.snooze(id, addDays(ref, 1));
-            toast('Tomorrow, then', { action: { label: 'Undo', run: undo } });
-            close();
-          }}
-        >
-          Not today
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="option"
-          onClick={() => {
-            const undo = hub.skip(id);
-            toast(`Skipped. Next: ${humanDate(hub.item(id)!.due!, ref)}`, { action: { label: 'Undo', run: undo } });
-            close();
-          }}
-        >
-          Skip this one
-        </button>
-      )}
+      <button
+        type="button"
+        className="option"
+        onClick={() => {
+          later.run(item);
+          close();
+        }}
+      >
+        {isFlexible(item.repeat) ? 'Not today' : 'Skip this one'}
+      </button>
       <button
         type="button"
         className="option"

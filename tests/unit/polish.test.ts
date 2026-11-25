@@ -54,29 +54,30 @@ describe('toasts', () => {
   it('fold into one per group: the count goes up and Undo undoes all, newest first', () => {
     const order: string[] = [];
     const many = (n: number) => `${n} in the cart`;
-    const first: ToastLike = { message: 'milk is in the cart', group: 'cart', many, count: 1, action: { label: 'Undo', run: () => order.push('milk') } };
-    const second = foldToast(first, { message: 'eggs is in the cart', group: 'cart', many, action: { label: 'Undo', run: () => order.push('eggs') } });
+    const first: ToastLike = { message: 'milk is in the cart', group: 'cart', many, count: 1, actions: [{ label: 'Undo', run: () => order.push('milk') }] };
+    const second = foldToast(first, { message: 'eggs is in the cart', group: 'cart', many, actions: [{ label: 'Undo', run: () => order.push('eggs') }] });
     expect(second).not.toBeNull();
     expect(second!.count).toBe(2);
     expect(second!.message).toBe('2 in the cart');
-    const third = foldToast(second!, { message: 'bread is in the cart', group: 'cart', many, action: { label: 'Undo', run: () => order.push('bread') } });
+    const third = foldToast(second!, { message: 'bread is in the cart', group: 'cart', many, actions: [{ label: 'Undo', run: () => order.push('bread') }] });
     expect(third!.message).toBe('3 in the cart');
-    third!.action!.run();
+    expect(third!.actions).toHaveLength(1);
+    third!.actions[0].run();
     expect(order).toEqual(['bread', 'eggs', 'milk']);
   });
 
   it('do not fold across groups, or without a group', () => {
-    const a: ToastLike = { message: 'Done', group: 'done', count: 1 };
-    expect(foldToast(a, { message: 'milk is in the cart', group: 'cart' })).toBeNull();
-    expect(foldToast({ message: 'Saved', count: 1 }, { message: 'Saved' })).toBeNull();
+    const a: ToastLike = { message: 'Done', group: 'done', count: 1, actions: [] };
+    expect(foldToast(a, { message: 'milk is in the cart', group: 'cart', actions: [] })).toBeNull();
+    expect(foldToast({ message: 'Saved', count: 1, actions: [] }, { message: 'Saved', actions: [] })).toBeNull();
   });
 
   it('keep the newest action when the labels differ', () => {
     const run = vi.fn();
-    const a: ToastLike = { message: 'Done', group: 'done', count: 1, action: { label: 'Undo', run: () => {} } };
-    const b = foldToast(a, { message: 'Done', group: 'done', action: { label: 'Finish them', run } });
-    b!.action!.run();
-    expect(b!.action!.label).toBe('Finish them');
+    const a: ToastLike = { message: 'Done', group: 'done', count: 1, actions: [{ label: 'Undo', run: () => {} }] };
+    const b = foldToast(a, { message: 'Done', group: 'done', actions: [{ label: 'Finish them', run }] });
+    b!.actions[0].run();
+    expect(b!.actions.map((x) => x.label)).toEqual(['Finish them']);
     expect(run).toHaveBeenCalledOnce();
     // No `many`: the newest message stays.
     expect(b!.message).toBe('Done');

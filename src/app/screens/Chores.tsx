@@ -21,7 +21,7 @@ import { NewProjectSheet } from './Lists';
 import { SyncBadge } from '../components/SyncBadge';
 import { AWAY_ON, welcomeBack } from '../settingsCopy';
 
-/** One chore row; ticking it gives the "Fresh again. Next: …" toast (useTick). Also on Today (Chores ready). */
+/** One chore row; ticking it gives the "Laundry is fresh again. Next: …" toast (useTick). Also on Today (Chores ready). */
 export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
   const hub = useHub();
   const tick = useTick();

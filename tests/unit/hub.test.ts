@@ -170,6 +170,16 @@ describe('Hub: chores', () => {
     expect(guy.item(dated)?.due).toBe(today());
   });
 
+  it('skipping one that is weeks behind skips what was missed too: the next one is not in the past', async () => {
+    const { guy } = await couple();
+    const chores = listNamed(guy, 'Housework');
+    const id = guy.addItem(chores.id, { title: 'Bins', due: addDays(today(), -15), repeat: { type: 'interval', every: 1, unit: 'week', from: 'schedule' } });
+    const undo = guy.skip(id);
+    expect(guy.item(id)?.due).toBe(addDays(today(), 6));
+    undo();
+    expect(guy.item(id)?.due).toBe(addDays(today(), -15));
+  });
+
   it('done yesterday counts from yesterday', async () => {
     const { guy } = await couple();
     const chores = listNamed(guy, 'Housework');

@@ -116,13 +116,19 @@ export function toastSwipedAway(dx: number, speed: number): boolean {
   return Math.abs(dx) > 64 || (Math.abs(speed) > 0.5 && Math.abs(dx) > 8);
 }
 
+/** A button on a toast. */
+export interface ToastAction {
+  label: string;
+  run: () => void;
+}
+
 /** A toast that shares a group with the next one turns into a count ("3 in the cart"). */
 export interface ToastLike {
   message: string;
   group?: string;
   count: number;
   many?: (n: number) => string;
-  action?: { label: string; run: () => void };
+  actions: ToastAction[];
 }
 
 /**
@@ -133,17 +139,19 @@ export function foldToast<T extends ToastLike>(prev: T, next: Omit<ToastLike, 'c
   if (!prev.group || prev.group !== next.group) return null;
   const count = prev.count + 1;
   const many = next.many ?? prev.many;
-  const a = prev.action;
-  const b = next.action;
-  const action =
-    a && b && a.label === b.label
-      ? {
-          label: b.label,
-          run: () => {
-            b.run();
-            a.run();
-          },
-        }
-      : (b ?? a);
-  return { ...prev, ...next, count, many, message: many ? many(count) : next.message, action } as T;
+  const actions = next.actions.length
+    ? next.actions.map((b) => {
+        const a = prev.actions.find((x) => x.label === b.label);
+        return a
+          ? {
+              label: b.label,
+              run: () => {
+                b.run();
+                a.run();
+              },
+            }
+          : b;
+      })
+    : prev.actions;
+  return { ...prev, ...next, count, many, message: many ? many(count) : next.message, actions } as T;
 }

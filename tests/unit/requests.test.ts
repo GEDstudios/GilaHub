@@ -120,8 +120,12 @@ describe('Today: requests between us', () => {
     const { guy, hila } = await couple();
     const id = hila.addItem(listNamed(hila, 'To do').id, { title: 'Fix the shelf', assignee: 'guy', needsOk: true });
     sync(guy, hila);
+    // What each tick does, for the words after it: his asks for her OK, hers gives it.
+    expect(guy.tickKind(guy.item(id)!)).toBe('submit');
     guy.toggle(id);
     sync(guy, hila);
+    expect(guy.tickKind(guy.item(id)!)).toBe('take-back');
+    expect(hila.tickKind(hila.item(id)!)).toBe('confirm');
     const v = todayView(guy, today());
     expect(ids(v.waitingTheirOk)).toEqual([id]);
     expect(v.asked).toHaveLength(0);
