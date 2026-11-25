@@ -23,7 +23,6 @@ import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
 import { useHub } from '../context';
 import { aheadOf, choresReady, listIdOf, visibleHome, weekBands } from '../home';
-import { navigate } from '../router';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -71,13 +70,6 @@ function swap(fn: () => void) {
 /** Widgets fade up the first time Today draws in a session. */
 let greeted = false;
 
-/** Settings' "Edit Today" lands here in edit mode. */
-let editOnArrive = false;
-export function openTodayEditor(): void {
-  editOnArrive = true;
-  navigate({ name: 'today' });
-}
-
 export function Today() {
   const hub = useHub();
   const { openSheet } = useOverlays();
@@ -87,11 +79,7 @@ export function Today() {
   const me = hub.me();
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
-  const [editing, setEditing] = useState(() => {
-    const on = editOnArrive;
-    editOnArrive = false;
-    return on;
-  });
+  const [editing, setEditing] = useState(false);
   const [entering, setEntering] = useState(() => !greeted);
 
   useEffect(() => {

@@ -3426,10 +3426,6 @@ html.is-dragging * {
 }
 
 /* No floating bar (Settings): they sit lower. */
-.no-tabbar .toasts {
-  bottom: calc(var(--safe-bottom) + 22px);
-}
-
 /* Typing near the bottom: the keyboard would hide them, so they show at the top. */
 .toasts.toasts--top {
   top: calc(var(--safe-top) + 12px);

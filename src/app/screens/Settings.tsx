@@ -1,8 +1,5 @@
-import { slotTitle, visibleHome } from '../home';
-import { openTodayEditor } from './Today';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
-import { BarEditor } from '../components/BarEditor';
 import { useOpenIdeas } from '../components/Ideas';
 import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
@@ -22,8 +19,8 @@ import { Band, initialOf, lightVar, lineVars, Logo, Section, Seg, Switch } from 
 
 /**
  * Settings (SETTINGS, DECISIONS #9): one calm page where everything changes in place.
- * Profile, Bottom bar, Today page, Notifications, Together, On this device, Your data, About.
- * The floating tab bar steps aside here (App.tsx): the Bottom bar section shows its own preview.
+ * Profile, Notifications, Together, On this device, Your data, About. The bottom bar is
+ * arranged on Projects and Today on Today, each where it lives.
  */
 
 type Toast = ReturnType<typeof useOverlays>['toast'];
@@ -742,26 +739,12 @@ export function Settings() {
   const me = hub.me();
   const partner = hub.partner();
   if (!me) return null;
-  // The order on Today, on one line.
-  const todayOrder = visibleHome(hub)
-    .map((x) => slotTitle(hub, x.key))
-    .join(' · ');
 
   return (
     <>
       <Band title="Settings" onBack={() => back({ name: 'today' })} />
       <div className="column settings">
         <MeCard me={me} partner={partner} />
-
-        <Section title="Bottom bar">
-          <BarEditor />
-        </Section>
-
-        <Section title="Today page">
-          <div className="group">
-            <OptRow icon="sun" title="Edit Today" sub={todayOrder} chev onClick={openTodayEditor} />
-          </div>
-        </Section>
 
         <Notifications me={me} partner={partner} />
         <Together partner={partner} />

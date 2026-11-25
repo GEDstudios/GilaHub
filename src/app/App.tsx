@@ -248,12 +248,6 @@ function Duties() {
 }
 
 function Shell() {
-  // Settings arranges the bar and shows its own preview, so the floating one steps aside there.
-  const route = useRoute();
-  const bar = route.name !== 'settings';
-  useEffect(() => {
-    document.documentElement.classList.toggle('no-tabbar', !bar);
-  }, [bar]);
   // An old /search link (or bookmark): Today, with search open over it.
   useEffect(() => {
     if (currentPath() === '/search') {
@@ -267,7 +261,7 @@ function Shell() {
       <main className="main">
         <Screen />
       </main>
-      {bar ? <TabBar /> : null}
+      <TabBar />
       <IdeaTag />
       <SearchLayer />
       <Duties />

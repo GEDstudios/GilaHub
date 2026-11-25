@@ -120,13 +120,13 @@ try {
   await waitFor(() => guy.locator('.syncdot--synced').count(), 20000, 'guy synced');
   await shot(guy, '03-today-guy');
 
-  await check('Settings on his own: one page, no floating bar, "Your person?" on the card', async () => {
+  await check('Settings on his own: one page, "Your person?" on the card', async () => {
     await guy.goto(`${url}/settings`);
     await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
     await guy.getByRole('button', { name: 'Your person?' }).waitFor({ timeout: 5000 });
     await guy.waitForTimeout(600);
     await guy.screenshot({ path: resolve(shots, '03s-settings-solo-full.png'), fullPage: true });
-    if (await guy.locator('.tabbar:not(.tabbar--preview)').count()) throw new Error('the floating tab bar shows on /settings');
+    if (await guy.getByRole('heading', { name: /Bottom bar|Today page/ }).count()) throw new Error('Settings still edits the bar or Today');
     await guy.goto(`${url}/`);
     await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
   });
@@ -389,63 +389,11 @@ try {
   });
 
   // ---------- Settings
-  await check('Settings: no floating bar; Chores dragged before Shopping on the stage bar sticks', async () => {
+  await check('Settings: color, and Check for updates is honest', async () => {
     await guy.goto(`${url}/settings`);
     await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
-    await guy.locator('.mecard__tag', { hasText: 'Hila' }).waitFor({ timeout: 5000 });
-    if (await guy.locator('.tabbar:not(.tabbar--preview)').count()) throw new Error('the floating tab bar shows on /settings');
     await guy.waitForTimeout(600);
     await guy.screenshot({ path: resolve(shots, '18-settings-paired-full.png'), fullPage: true });
-    const preview = () =>
-      guy.locator('.tabbar--preview [data-key]').evaluateAll((els) => els.map((e) => e.dataset.key).filter((k) => k !== '__gap').join());
-    if ((await preview()) !== 'today,shop,chores,projects') throw new Error(`unexpected bar: ${await preview()}`);
-    if (await guy.locator('.bareditor .slot').count()) throw new Error('the bar editor still has a row list');
-    await guy.locator('.barstage').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 160));
-    await guy.waitForTimeout(300);
-    // The tab itself is the grip: drag Chores left, before Shopping.
-    const from = await guy.locator('.tabbar--preview [data-key="chores"] .tab').boundingBox();
-    const to = await guy.locator('.tabbar--preview [data-key="shop"] .tab').boundingBox();
-    const y = from.y + from.height / 2;
-    let x = from.x + from.width / 2;
-    await guy.mouse.move(x, y);
-    await guy.mouse.down();
-    while (x > to.x + 4) {
-      x -= 8;
-      await guy.mouse.move(x, y);
-      await guy.waitForTimeout(30);
-    }
-    await guy.waitForTimeout(300);
-    await shot(guy, '19-settings-bar-mid-drag');
-    await guy.mouse.up();
-    await waitFor(async () => (await preview()) === 'today,chores,shop,projects', 3000, 'Chores before Shopping on the stage bar');
-    await guy.getByRole('button', { name: 'Back' }).first().click();
-    await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
-    const live = await guy.locator('.tabbar .tab').evaluateAll((els) => els.map((e) => e.dataset.key).join());
-    if (live !== 'today,chores,shop,projects') throw new Error(`live bar after going back: ${live}`);
-  });
-
-  await check('Settings: four tray tokens make 8 tabs, and holding the stage bar never scrubs; Check for updates is honest', async () => {
-    await guy.goto(`${url}/settings`);
-    await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
-    const tray = guy.locator('.bareditor .tray .token');
-    for (let i = 0; i < 4; i++) {
-      await tray.first().click();
-      await guy.waitForTimeout(400);
-    }
-    const n = await guy.locator('.tabbar--preview [data-key]:not(.is-gap)').count();
-    if (n !== 8) throw new Error(`expected 8 tabs, found ${n}`);
-    if (await guy.getByText('Crowded? Hold the bar and slide to pick.').count()) throw new Error('the crowded caption is back');
-    await guy.locator('.barstage').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 120));
-    // Holding the stage bar is a drag, never a scrub: no bubble, and letting go stays on Settings.
-    const box = await guy.locator('.tabbar--preview').boundingBox();
-    await guy.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await guy.mouse.down();
-    await guy.waitForTimeout(500);
-    if (await guy.locator('.tabbar__bubble').count()) throw new Error('the stage bar scrubbed');
-    await shot(guy, '20-settings-bar-dock');
-    await guy.mouse.up();
-    await guy.waitForTimeout(300);
-    if (!guy.url().endsWith('/settings')) throw new Error(`holding the stage bar navigated to ${guy.url()}`);
     await guy.locator('.mecard').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 100));
     await guy.getByRole('button', { name: 'Color', exact: true }).click();
     await guy.getByRole('radio', { name: 'pink, Hila’s' }).waitFor({ timeout: 3000 });
@@ -458,8 +406,6 @@ try {
     await guy.getByRole('button', { name: 'You’re up to date' }).waitFor({ timeout: 12000 });
     await shot(guy, '22-settings-up-to-date');
     if ((await guy.evaluate(() => window.__stay)) !== 'here') throw new Error('the page reloaded');
-    await guy.locator('.bareditor').getByRole('button', { name: 'Back to the default' }).click();
-    await guy.getByText('The bar is back to the default').waitFor({ timeout: 3000 });
   });
 
   await check('Projects: Guy drags To do onto his bar; Hila’s bar stays hers', async () => {
