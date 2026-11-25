@@ -7,7 +7,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** Onboarding is two light steps: your name and color, then the projects you want (four starters, or start empty). No account, no email, no tour.
 - **●** A new item is a circle and a title. Details stay out of sight until the item is opened.
 - **●** A bottom bar you arrange: **Today**, then up to three of your choice (Shopping, Chores, or any project), then **Projects**. Change it in Settings, or with "Show in bottom bar" on any project. It follows you across your own devices.
-- **●** Adding happens inline, in a row at the end of each list. `N` opens the **New** composer on desktop.
+- **●** Two ways to add, the same on every screen: the add row in each list, and **New** (the black "+" at the top right, or `N` on desktop), which opens a sheet pointed at where you are.
 - **●** Today links straight to what's due: tap a project tag or a project name to open it.
 - **●** Quick add shows what it understood as chips. Tap a chip to undo it. **New** shows a live color card that says, in one sentence, what you're adding.
 - **●** Inline controls: under every item, *Date · Repeat · Remind me · Who · Ours · Urgent* chips open their options in place. No forms.
@@ -40,7 +40,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** Two repeat types in plain words: **"Every N days after it's done"** and **"On set days"**. A new chore starts fresh: it first comes due one period from now, not today.
 - **●** **Done** is always available, not only when a chore is due. Pick *Today*, *Yesterday*, or a date. An early tick on a set-days chore "counts for Thursday", and a late one collapses every missed occurrence into one, so chores never pile up.
 - **●** **Not now**: Snooze (flexible chores), Skip this one (set days), or Pause (seasonal).
-- **●** **Away mode** freezes every chore clock while you travel.
+- **●** **Away mode** freezes every chore clock while you travel. Turn it on with "Going away? Pause chores" under the chores add row, or in Settings.
 - **●** Owner per chore: **Me · Partner · Either · Take turns**. With Take turns, the turn moves only when the chore is done.
 - **●** Freshness in words and a draining bar: *Fresh → Soon → Today → When you can*.
 - **●** History of who did what and when. A one-tap **♡ thanks** on your partner's work, and no scores.

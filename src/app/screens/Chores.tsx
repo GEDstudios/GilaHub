@@ -1,18 +1,22 @@
 import { useRef, useState } from 'react';
+import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
 import { humanDate, relativeAgo, sinceDate, today as todayStr } from '../../core/dates';
-import type { Assignee, RepeatRule } from '../../core/model';
 import { useAddAction } from '../addAction';
-import { Options, ruleShort } from '../components/editors';
+import { ruleShort } from '../components/editors';
+import { AddRow, type AddRowHandle } from '../components/QuickAdd';
+import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { doerOf, requestState } from '../privacy';
-import { Avatar, Band, Check, IconButton, lineVars, Section } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, lineVars, NewButton, Section } from '../ui/primitives';
+import { useFresh } from '../ui/fresh';
 import { ReqTag, VisTag } from '../ui/tags';
 import { useSettle } from '../ui/useSettle';
 import { choresView, type ChoreRow } from '../views';
-import { ProjectHero, ProjectMenuButton } from './ListScreen';
+import { ProjectActions, ProjectHero } from './ListScreen';
+import { NewProjectSheet } from './Lists';
 import { SyncBadge } from './Today';
 
 function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
@@ -22,6 +26,7 @@ function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean
   const ref = todayStr();
   const who = doerOf(hub, item);
   const req = requestState(hub, item);
+  const fresh = useFresh(item.id);
   const meta = [
     item.repeat ? ruleShort(item.repeat) : 'Once',
     item.assignee === 'turns' && who ? (who.id === hub.meId ? 'your turn' : `${who.name}’s turn`) : null,
@@ -43,10 +48,11 @@ function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean
 
   return (
     <li
-      className={`row row--tap chore ${settling ? 'is-settling' : ''}`}
+      className={`row row--tap chore ${settling ? 'is-settling' : ''} ${fresh ? 'row--fresh row--flash' : ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
       style={lineVars(list.color)}
       data-settle={item.id}
+      data-id={item.id}
     >
       <Check on={settling} color={list.color} onToggle={done} label={`${item.title}, done`} />
       <div className="row__body">
@@ -69,137 +75,64 @@ function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean
 
 const choreId = (r: ChoreRow) => r.item.id;
 
-const OFTEN: Array<{ key: string; label: string; rule: RepeatRule }> = [
-  { key: 'd1', label: 'Every day', rule: { type: 'interval', every: 1, unit: 'day', from: 'done' } },
-  { key: 'w1', label: 'Every week', rule: { type: 'interval', every: 1, unit: 'week', from: 'done' } },
-  { key: 'm1', label: 'Every month', rule: { type: 'interval', every: 1, unit: 'month', from: 'done' } },
-];
-
-/** Add a chore in place: a name, how often, who. */
-function AddChore({ listId, focusRef, suggest }: { listId: string | undefined; focusRef: React.RefObject<HTMLInputElement | null>; suggest?: boolean }) {
-  const hub = useHub();
-  const { toast } = useOverlays();
-  const partner = hub.partner();
-  const [title, setTitle] = useState('');
-  const [often, setOften] = useState('w1');
-  const [who, setWho] = useState<Assignee>(null);
-
-  const save = () => {
-    if (!title.trim()) return;
-    const target = listId ?? hub.createList({ name: 'Chores', kind: 'chores' });
-    hub.addItem(target, { title: title.trim(), repeat: OFTEN.find((o) => o.key === often)!.rule, assignee: who });
-    toast(`Added ${title.trim()}`, { ms: 1800 });
-    setTitle('');
-    setWho(null);
-  };
-
-  return (
-    <form
-      className={`quickadd ${title.trim() ? 'is-typing' : ''}`}
-      onSubmit={(e) => {
-        e.preventDefault();
-        save();
-      }}
-    >
-      <div className="addrow">
-        <span className="addrow__plus" aria-hidden="true">
-          <Icon name="plus" className="icon--sm" />
-        </span>
-        <input ref={focusRef} value={title} dir="auto" onChange={(e) => setTitle(e.target.value)} placeholder="Add a chore" aria-label="Add a chore" enterKeyHint="done" />
-      </div>
-      {title.trim() ? (
-        <div className="panel panel--flat">
-          <Options value={often} onPick={setOften} options={OFTEN.map((o) => ({ value: o.key, label: o.label }))} />
-          {partner ? (
-            <Options
-              value={who ?? 'either'}
-              onPick={(k) => setWho(k === 'either' ? null : (k as Assignee))}
-              options={[
-                { value: 'either', label: 'Either of us' },
-                { value: hub.meId, label: 'Me' },
-                { value: partner.id, label: partner.name },
-                { value: 'turns', label: 'Take turns' },
-              ]}
-            />
-          ) : null}
-          <button type="submit" className="btn btn--sm">
-            Add chore
-          </button>
-        </div>
-      ) : suggest ? (
-        <div className="tokens">
-          {['Dishes', 'Laundry', 'Bins', 'Sheets'].map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="token"
-              onClick={() => {
-                setTitle(s);
-                focusRef.current?.focus();
-              }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </form>
-  );
-}
+/** A few to start with, while there are none of your own yet. */
+const STARTERS = ['Dishes', 'Laundry', 'Bins', 'Sheets'];
 
 export function Chores({ listId }: { listId?: string } = {}) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const { openSheet, toast } = useOverlays();
   const ref = todayStr();
   const all = choresView(hub, ref);
   const scoped = listId ? hub.list(listId) : undefined;
   const only = (rows: ChoreRow[]) => (scoped ? rows.filter((r) => r.list.id === scoped.id) : rows);
   const v = { ...all, now: only(all.now), soon: only(all.soon), fresh: only(all.fresh), paused: only(all.paused) };
-  const total = v.now.length + v.soon.length + v.fresh.length + v.paused.length;
+  const rows = [...v.now, ...v.soon, ...v.fresh, ...v.paused];
   const away = hub.isAway();
   const list = scoped ?? all.lists[0];
-  const input = useRef<HTMLInputElement>(null);
-  useAddAction(() => input.current?.focus());
+  const addRef = useRef<AddRowHandle>(null);
+  const [showPaused, setShowPaused] = useState(false);
+
+  const openNew = () =>
+    list
+      ? openSheet((close) => <QuickAddSheet onClose={close} listId={list.id} />)
+      : openSheet((close) => <NewProjectSheet onClose={close} initial={{ kind: 'chores' }} />);
+  useAddAction(openNew, 'New chore');
 
   const toggleAway = () => {
     hub.setAway(!away);
     toast(away ? 'Welcome back. The chores waited for you.' : 'Have a good trip. Chore clocks are paused.');
   };
-  const sub = away ? 'Away · clocks paused' : v.now.length ? `${v.now.length} ready` : total ? 'All fresh' : undefined;
-  const awayBtn = <IconButton icon="plane" label={away ? 'We’re back' : 'We’re away'} onClick={toggleAway} pressed={away} />;
+  const sub = away ? 'Away · clocks paused' : v.now.length ? `${v.now.length} ready` : rows.length ? 'All fresh' : undefined;
   // A finished chore stays a moment in its group (check, strike, fold), then shows up fresh.
   const settle = useSettle(choreId);
+  const titles = new Set(rows.map((r) => r.item.title.toLowerCase()));
+  const starters = rows.every((r) => STARTERS.includes(r.item.title)) ? STARTERS.filter((t) => !titles.has(t.toLowerCase())) : [];
 
+  const choreRows = (shown: Array<{ row: ChoreRow; settling: boolean }>) => (
+    <ul className="rows">
+      {shown.map(({ row: r, settling }) => (
+        <ChoreItem key={r.item.id} row={r} settling={settling} onHold={settle.hold} />
+      ))}
+    </ul>
+  );
   const group = (title: string, rows: ChoreRow[]) => {
     const shown = settle.view(title, rows);
     return shown.length ? (
       <Section title={title} count={rows.length}>
-        <ul className="rows">
-          {shown.map(({ row: r, settling }) => (
-            <ChoreItem key={r.item.id} row={r} settling={settling} onHold={settle.hold} />
-          ))}
-        </ul>
+        {choreRows(shown)}
       </Section>
     ) : null;
   };
+  const paused = settle.view('Paused', v.paused);
 
   return (
     <>
       {scoped ? (
-        <Band
-          onBack={() => back({ name: 'lists' })}
-          mini={scoped.name}
-          actions={
-            <>
-              {awayBtn}
-              <ProjectMenuButton listId={scoped.id} />
-            </>
-          }
-        >
+        <Band onBack={() => back({ name: 'lists' })} mini={scoped.name} actions={<ProjectActions listId={scoped.id} label="New chore" onNew={openNew} />}>
           <ProjectHero list={scoped} sub={sub ?? 'Empty'} />
         </Band>
       ) : (
-        <Band top={<SyncBadge />} title="Chores" sub={sub} actions={awayBtn} />
+        <Band top={<SyncBadge />} title="Chores" sub={sub} actions={<NewButton label="New chore" onClick={openNew} />} />
       )}
       <div className="column">
         {away ? (
@@ -214,11 +147,51 @@ export function Chores({ listId }: { listId?: string } = {}) {
         {group('Today', v.now)}
         {group('Soon', v.soon)}
         {group('Fresh', v.fresh)}
-        {group('Paused', v.paused)}
 
-        <div className="section">
-          <AddChore listId={list?.id} focusRef={input} suggest={!total} />
-        </div>
+        {list ? (
+          <div>
+            <AddRow listId={list.id} handle={addRef} />
+            {starters.length ? (
+              <div className="tokens addrow__suggest">
+                {starters.map((t) => (
+                  <button key={t} type="button" className="token" onClick={() => addRef.current?.submit(t)}>
+                    <Icon name="plus" />
+                    {t}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {!away && rows.length ? (
+              <button type="button" className="textbtn away" onClick={toggleAway}>
+                <Icon name="plane" className="icon--sm" /> Going away? Pause chores
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <Empty title="No chores project yet">
+            <div className="tokens tokens--center">
+              {PROJECT_TEMPLATES.filter((t) => t.kind === 'chores').map((t) => (
+                <button key={t.key} type="button" className="token" onClick={() => createFromTemplate(hub, t)}>
+                  <Icon name="plus" /> {t.name}
+                </button>
+              ))}
+            </div>
+          </Empty>
+        )}
+
+        {paused.length ? (
+          <Section
+            title="Paused"
+            count={v.paused.length}
+            action={
+              <button type="button" className="textbtn" onClick={() => setShowPaused(!showPaused)} aria-expanded={showPaused}>
+                {showPaused ? 'Hide' : 'Show'}
+              </button>
+            }
+          >
+            {showPaused ? choreRows(paused) : null}
+          </Section>
+        ) : null}
       </div>
     </>
   );

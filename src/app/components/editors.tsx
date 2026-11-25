@@ -8,7 +8,7 @@ import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { REMIND_OPTIONS } from '../reminders';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Avatar, Chip, Switch } from '../ui/primitives';
+import { Avatar, Switch } from '../ui/primitives';
 import { PairSheet } from './PairSheet';
 
 /** Everything the inline editor can change about an item. */
@@ -65,33 +65,40 @@ export function useSummary() {
   };
 }
 
-/** One soft chip of the inline editor. `ghost` = a dashed invitation (e.g. while on my own). */
+/**
+ * One soft chip of the inline editor. `ghost` = a dashed invitation (e.g. while on my own).
+ * `lead` replaces the icon (a project's bullet); `compact` is the add row's 34 px size.
+ */
 export function EChip({
   label,
   icon,
+  lead,
   set,
   open,
   onToggle,
   disabled,
   ghost,
+  compact,
 }: {
   label: ReactNode;
-  icon: IconName;
+  icon?: IconName;
+  lead?: ReactNode;
   set: boolean;
   open: boolean;
   onToggle: () => void;
   disabled?: boolean;
   ghost?: boolean;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''}`}
+      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${compact ? 'echip--sm' : ''}`}
       onClick={onToggle}
       aria-expanded={open}
       disabled={disabled}
     >
-      <Icon name={icon} className="icon--sm" />
+      {lead ?? (icon ? <Icon name={icon} className="icon--sm" /> : null)}
       <span dir="auto">{label}</span>
     </button>
   );
@@ -108,6 +115,7 @@ export function VisChip({
   open,
   onToggle,
   disabled,
+  compact,
 }: {
   value: VisChoice;
   allowed: VisChoice[];
@@ -115,6 +123,7 @@ export function VisChip({
   open: boolean;
   onToggle: () => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const hub = useHub();
   const { openSheet } = useOverlays();
@@ -123,7 +132,15 @@ export function VisChip({
   const hint = visHint(value, partner?.name ?? null);
   return (
     <>
-      <EChip label={visLabel(value, partner?.name)} icon={VIS_ICON[value]} set={value !== allowed[0]} open={open} onToggle={onToggle} disabled={disabled} />
+      <EChip
+        label={visLabel(value, partner?.name)}
+        icon={VIS_ICON[value]}
+        set={value !== allowed[0]}
+        open={open}
+        onToggle={onToggle}
+        disabled={disabled}
+        compact={compact}
+      />
       {open ? (
         <Panel>
           <Options value={value} options={allowed.map((v) => ({ value: v, label: visLabel(v, partner?.name), icon: VIS_ICON[v] }))} onPick={onChange} />
@@ -153,6 +170,7 @@ export function WhoChip({
   open,
   onToggle,
   disabled,
+  compact,
 }: {
   value: Assignee;
   turn?: string | null;
@@ -164,6 +182,7 @@ export function WhoChip({
   open: boolean;
   onToggle: () => void;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const hub = useHub();
   const { openSheet } = useOverlays();
@@ -173,7 +192,7 @@ export function WhoChip({
   if (!partner) {
     return (
       <>
-        <EChip label="Ask your person" icon="user" set={false} open={open} onToggle={onToggle} disabled={disabled} ghost />
+        <EChip label="Ask your person" icon="user" set={false} open={open} onToggle={onToggle} disabled={disabled} ghost compact={compact} />
         {open ? (
           <Panel>
             <p className="panel__hint panel__hint--first">Hand things to your person, and ask for an OK when they’re done.</p>
@@ -197,7 +216,7 @@ export function WhoChip({
         : whoText(hub, value);
   return (
     <>
-      <EChip label={label} icon="user" set={!!value} open={open} onToggle={onToggle} disabled={disabled} />
+      <EChip label={label} icon="user" set={!!value} open={open} onToggle={onToggle} disabled={disabled} compact={compact} />
       {open ? (
         <Panel>
           <Options
@@ -244,6 +263,10 @@ export function InlineEditor({
   prompt = null,
   turn,
   extras = [],
+  whoMode = 'item',
+  compact,
+  after,
+  className,
 }: {
   value: Draft;
   onChange: (patch: Partial<Draft>) => void;
@@ -254,21 +277,28 @@ export function InlineEditor({
   prompt?: string | null;
   /** For "turns": whose turn it is. */
   turn?: string | null;
-  /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores). */
-  extras?: Array<{ key: string; label: ReactNode; icon: IconName; panel: (close: () => void) => ReactNode }>;
+  /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores, List in the composer). */
+  extras?: Array<{ key: string; label: ReactNode; icon?: IconName; lead?: ReactNode; panel: (close: () => void) => ReactNode }>;
+  /** 'compose' while the thing is being written ("Ask Hila" rather than "Asked Hila"). */
+  whoMode?: 'item' | 'compose';
+  /** The add row's smaller chips. */
+  compact?: boolean;
+  /** After the chips, in the same row (an add row's parsed tokens). */
+  after?: ReactNode;
+  className?: string;
 }) {
   const prefs = usePrefs();
   const h24 = use24h(prefs);
   const [open, setOpen] = useState<string | null>(null);
   const ref = todayStr();
   const toggle = (f: string) => setOpen(open === f ? null : f);
-  const chip = (f: string, label: ReactNode, icon: IconName, set: boolean) => (
-    <EChip key={f} label={label} icon={icon} set={set} open={open === f} onToggle={() => toggle(f)} disabled={readOnly} />
+  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode) => (
+    <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={() => toggle(f)} disabled={readOnly} compact={compact} />
   );
 
   const chips: ReactNode[] = [];
   for (const x of extras) {
-    chips.push(chip(x.key, x.label, x.icon, true));
+    chips.push(chip(x.key, x.label, x.icon, true, x.lead));
     if (open === x.key) chips.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
   for (const f of fields) {
@@ -313,11 +343,12 @@ export function InlineEditor({
           turn={turn}
           needsOk={!!value.needsOk}
           repeating={!!value.repeat}
-          mode="item"
+          mode={whoMode}
           onChange={onChange}
           open={open === 'who'}
           onToggle={() => toggle('who')}
           disabled={readOnly}
+          compact={compact}
         />,
       );
     if (f === 'vis')
@@ -330,6 +361,7 @@ export function InlineEditor({
           open={open === 'vis'}
           onToggle={() => toggle('vis')}
           disabled={readOnly}
+          compact={compact}
         />,
       );
     if (f === 'urgent')
@@ -337,7 +369,7 @@ export function InlineEditor({
         <button
           key="urgent"
           type="button"
-          className={`echip ${value.urgent ? 'is-urgent' : ''}`}
+          className={`echip ${value.urgent ? 'is-urgent' : ''} ${compact ? 'echip--sm' : ''}`}
           onClick={() => onChange({ urgent: !value.urgent })}
           aria-pressed={value.urgent}
           disabled={readOnly}
@@ -349,9 +381,12 @@ export function InlineEditor({
   }
 
   return (
-    <div className="inline">
+    <div className={`inline ${className ?? ''}`}>
       {prompt ? <p className="inline__prompt">{prompt}</p> : null}
-      <div className="inline__chips">{chips}</div>
+      <div className="inline__chips">
+        {chips}
+        {after}
+      </div>
     </div>
   );
 }
@@ -533,13 +568,12 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
         </div>
       ) : null}
       {rule?.type === 'interval' ? (
-        <label className="panel__toggle">
-          <input type="checkbox" checked={rule.from === 'done'} onChange={(e) => onChange({ ...rule, from: e.target.checked ? 'done' : 'schedule' })} />
-          <span>Count from when it’s done</span>
-        </label>
+        <div className="optrow optrow--panel">
+          <span className="optrow__text">Count from when it’s done</span>
+          <Switch on={rule.from === 'done'} label="Count from when it’s done" onChange={(v) => onChange({ ...rule, from: v ? 'done' : 'schedule' })} />
+        </div>
       ) : null}
     </Panel>
   );
 }
 
-export { Chip };

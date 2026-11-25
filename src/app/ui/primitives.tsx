@@ -90,22 +90,23 @@ export function useScrolledPast<T extends HTMLElement>(): [React.RefObject<T | n
   return [ref, past];
 }
 
-export function IconButton({
-  icon,
-  label,
-  onClick,
-  solid,
-  pressed,
-}: {
-  icon: IconName;
-  label: string;
-  onClick: () => void;
-  solid?: boolean;
-  pressed?: boolean;
-}) {
+/** A gray circle for header and sheet chrome (Search, …, Back, Close, Pause). */
+export function IconButton({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
   return (
-    <button type="button" className={`iconbtn ${solid ? 'iconbtn--solid' : ''}`} onClick={onClick} aria-label={label} title={label} aria-pressed={pressed}>
+    <button type="button" className="iconbtn" onClick={onClick} aria-label={label} title={label}>
       <Icon name={icon} />
+    </button>
+  );
+}
+
+/**
+ * New: the one black "+" in the app, always the rightmost thing in a screen's header.
+ * It opens a sheet already pointed at where you are (see addAction.ts).
+ */
+export function NewButton({ onClick, label = 'New' }: { onClick: () => void; label?: string }) {
+  return (
+    <button type="button" className="iconbtn iconbtn--solid" onClick={onClick} aria-label={label} title={label} aria-keyshortcuts="N">
+      <Icon name="plus" />
     </button>
   );
 }
@@ -203,51 +204,6 @@ export function ColorCard({
   );
 }
 
-/** A soft pill you tap to change something — the inline control. */
-export function Chip({
-  children,
-  onClick,
-  on,
-  icon,
-  color,
-  title,
-  disabled,
-  pressed,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-  on?: boolean;
-  icon?: IconName;
-  color?: LineColor;
-  title?: string;
-  disabled?: boolean;
-  pressed?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      className={`chip ${on ? 'is-on' : ''} ${color ? 'chip--color' : ''}`}
-      style={color ? lineVars(color) : undefined}
-      onClick={onClick}
-      title={title}
-      disabled={disabled}
-      aria-pressed={pressed}
-    >
-      {icon ? <Icon name={icon} className="icon--sm" /> : null}
-      {children}
-    </button>
-  );
-}
-
-/** A pastel pill, e.g. a project tag. */
-export function Tag({ color, children, small }: { color?: LineColor; children: ReactNode; small?: boolean }) {
-  return (
-    <span className={`tag ${small ? 'tag--sm' : ''}`} style={lineVars(color)}>
-      {children}
-    </span>
-  );
-}
-
 /** A name tag with a cursor — two people working in the same space. */
 export function NameTag({ name, color, style, flip }: { name: string; color: LineColor; style?: CSSProperties; flip?: boolean }) {
   return (
@@ -268,7 +224,8 @@ export function Section({
   id,
 }: {
   title: ReactNode;
-  count?: number;
+  /** Hidden at 0. */
+  count?: number | ReactNode;
   action?: ReactNode;
   children: ReactNode;
   id?: string;

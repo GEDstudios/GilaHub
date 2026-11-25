@@ -6,12 +6,14 @@ import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
+import { AddRow } from './QuickAdd';
+import { Section } from '../ui/primitives';
 
 const idOf = (i: Item) => i.id;
 
-function SortableRow({ item, fresh, settling }: { item: Item; fresh?: boolean; settling: boolean }) {
+function SortableRow({ item, settling }: { item: Item; settling: boolean }) {
   const s = useSortableItem(item.id, { disabled: settling });
-  return <ItemRow item={item} fresh={fresh} settling={settling} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
+  return <ItemRow item={item} settling={settling} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
 }
 
 /** A number that bumps when it goes up. */
@@ -23,14 +25,28 @@ function Count({ n }: { n: number }) {
     prev.current = n;
   }, [n]);
   return (
-    <span key={bump} className={`num ${bump ? 'bump' : ''}`}>
+    <span key={bump} className={bump ? 'bump' : undefined}>
       {n}
     </span>
   );
 }
 
-/** Open items (hold to reorder) + a collapsible done group. Ticked rows settle before they leave. */
-export function Children({ listId, parentId, freshId, readonly }: { listId: string; parentId: string | null; freshId?: string | null; readonly?: boolean }) {
+/**
+ * Open items (hold to reorder), then the add row, then a collapsible Done group.
+ * Ticked rows settle before they leave.
+ */
+export function Children({
+  listId,
+  parentId,
+  readonly,
+  add,
+}: {
+  listId: string;
+  parentId: string | null;
+  readonly?: boolean;
+  /** The in-place add, between the open rows and Done. */
+  add?: { placeholder?: string; onAdded?: (id: string) => void };
+}) {
   const hub = useHub();
   const settle = useSettle(idOf);
   const [showDone, setShowDone] = useState(false);
@@ -71,7 +87,7 @@ export function Children({ listId, parentId, freshId, readonly }: { listId: stri
         >
           <ul className="rows">
             {rows.map(({ row, settling }) => (
-              <SortableRow key={row.id} item={row} fresh={row.id === freshId} settling={settling} />
+              <SortableRow key={row.id} item={row} settling={settling} />
             ))}
           </ul>
         </Sortable>
@@ -82,11 +98,17 @@ export function Children({ listId, parentId, freshId, readonly }: { listId: stri
           {matchMedia('(pointer: coarse)').matches ? 'Hold any row to reorder' : 'Drag any row to reorder'}
         </p>
       ) : null}
+      {add && !readonly ? <AddRow listId={listId} parentId={parentId} placeholder={add.placeholder} onAdded={add.onAdded} /> : null}
       {doneRows.length ? (
-        <>
-          <button type="button" className="donetoggle" onClick={() => setShowDone(!showDone)} aria-expanded={showDone}>
-            {showDone ? 'Hide' : 'Show'} <Count n={doneRows.length} /> done
-          </button>
+        <Section
+          title="Done"
+          count={<Count n={doneRows.length} />}
+          action={
+            <button type="button" className="textbtn" onClick={() => setShowDone(!showDone)} aria-expanded={showDone}>
+              {showDone ? 'Hide' : 'Show'}
+            </button>
+          }
+        >
           {showDone ? (
             <ul className="rows">
               {doneRows.map(({ row }) => (
@@ -94,7 +116,7 @@ export function Children({ listId, parentId, freshId, readonly }: { listId: stri
               ))}
             </ul>
           ) : null}
-        </>
+        </Section>
       ) : null}
     </SettleContext.Provider>
   );

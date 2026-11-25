@@ -1,6 +1,6 @@
 import type { Hub } from '../core/actions';
 import type { Item } from '../core/model';
-import { notifyMembers, type Runtime } from './runtime';
+import { enablePush, notifyMembers, type Runtime } from './runtime';
 
 /** Tell my partner about a request — never for "Only me" things. */
 export function notifyAbout(rt: Runtime, hub: Hub, item: Item, to: string | null | undefined, title: string, body: string): void {
@@ -21,4 +21,13 @@ export function afterTick(rt: Runtime, hub: Hub, id: string): string | null {
     notifyAbout(rt, hub, it, it.requestedBy, `${hub.me()?.name ?? 'Your partner'} did it`, `“${it.title}” is done`);
   }
   return null;
+}
+
+/** A reminder was just set: make sure it can reach this phone, and say so when it can't. */
+export function setUpReminders(rt: Runtime, toast: (msg: string) => void): void {
+  void enablePush(rt).then((s) => {
+    if (s === 'install') toast('Add Gila Hub to your Home Screen to get reminders on iPhone.');
+    else if (s === 'denied') toast('Notifications are blocked in your settings. Reminders will show in the app.');
+    else if (s === 'no-relay') toast('Reminder set. It pops up while Gila Hub is open.');
+  });
 }

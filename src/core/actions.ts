@@ -598,7 +598,11 @@ export class Hub {
    * Add to a shopping list without ever creating a duplicate:
    * already open → report it; crossed off / archived → bring it back.
    */
-  addShopping(listId: string, raw: string, extra: { urgent?: boolean; visibility?: ItemVisibility; qty?: string | null } = {}): ShoppingAddResult {
+  addShopping(
+    listId: string,
+    raw: string,
+    extra: { urgent?: boolean; visibility?: ItemVisibility; qty?: string | null; owner?: string | null } = {},
+  ): ShoppingAddResult {
     const { name, qty } = extra.qty !== undefined ? { name: raw.trim(), qty: extra.qty } : parseQuantity(raw);
     const existing = this.findOnList([listId], name);
     if (existing && !existing.done && !existing.archived) {
@@ -618,7 +622,7 @@ export class Hub {
       });
       return { kind: 'revived', id: existing.id, listId };
     }
-    const id = this.addItem(listId, { title: name, qty, urgent: extra.urgent, visibility: extra.visibility });
+    const id = this.addItem(listId, { title: name, qty, urgent: extra.urgent, visibility: extra.visibility, owner: extra.owner });
     return { kind: 'added', id, listId };
   }
 

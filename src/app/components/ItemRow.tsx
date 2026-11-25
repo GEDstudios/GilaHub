@@ -11,6 +11,7 @@ import { useOverlays } from '../ui/overlays';
 import { doerOf, requestState, visTagFor } from '../privacy';
 import { Avatar, Check, ListBullet, StepRing } from '../ui/primitives';
 import { ReqTag, UrgentTag, VisTag } from '../ui/tags';
+import { useFresh } from '../ui/fresh';
 import { useSettleHold } from '../ui/useSettle';
 import { stepProgress, todayRef } from '../views';
 
@@ -34,7 +35,6 @@ export const ItemRow = memo(function ItemRow({
   dateMode = 'full',
   trailing,
   below,
-  fresh,
   settling,
   liRef,
   liStyle,
@@ -47,7 +47,6 @@ export const ItemRow = memo(function ItemRow({
   trailing?: ReactNode;
   /** Under the text, e.g. OK / Not yet (RequestActions className="row__acts"). */
   below?: ReactNode;
-  fresh?: boolean;
   /** Just ticked: drawn checked while it strikes through and folds away (useSettle). */
   settling?: boolean;
   liRef?: Ref<HTMLLIElement>;
@@ -69,6 +68,7 @@ export const ItemRow = memo(function ItemRow({
   const readonly = !hub.canEdit(item);
   const rt = useRt();
   const hold = useSettleHold();
+  const fresh = useFresh(item.id);
   // The owner never shows as an avatar (the privacy tag says whose); my own avatar only where it tells something.
   const avatar = !trailing && doer && (list?.visibility === 'shared' || doer.id !== list?.owner) ? doer : undefined;
 
@@ -112,7 +112,8 @@ export const ItemRow = memo(function ItemRow({
       style={liStyle}
       {...dragProps}
       data-settle={item.id}
-      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
+      data-id={item.id}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh row--flash' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
       <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />

@@ -8,7 +8,7 @@ import { useHub } from '../context';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, IconButton, lineVars } from '../ui/primitives';
+import { Band, lineVars, NewButton } from '../ui/primitives';
 import { SyncBadge } from './Today';
 import { Glyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
@@ -182,14 +182,14 @@ export function Lists() {
   const lists = hub.lists();
   const [showArchived, setShowArchived] = useState(false);
   const newProject = () => openSheet((close) => <NewProjectSheet onClose={close} />);
-  useAddAction(newProject);
+  useAddAction(newProject, 'New project');
 
   const archived = hub.store.all('list').filter((l) => l.archived);
   const onMove = (next: string[], id: string) => hub.moveList(id, next[next.indexOf(id) + 1] ?? null);
 
   return (
     <>
-      <Band top={<SyncBadge />} actions={<IconButton icon="plus" label="New project" onClick={newProject} />} title="Projects" />
+      <Band top={<SyncBadge />} actions={<NewButton label="New project" onClick={newProject} />} title="Projects" />
       <div className="column">
         <Sortable
           ids={lists.map((l) => l.id)}

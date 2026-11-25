@@ -5,14 +5,14 @@ import { useAddAction } from '../addAction';
 import { AsksWidget } from '../components/Asks';
 import { ItemRow } from '../components/ItemRow';
 import { PairSheet } from '../components/PairSheet';
-import { QuickAdd } from '../components/QuickAdd';
+import { AddRow } from '../components/QuickAdd';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub, usePartnerShopping, useSync } from '../context';
 import { getPrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Avatar, Band, IconButton, lineVars, Section } from '../ui/primitives';
+import { Avatar, Band, IconButton, lineVars, NewButton, Section } from '../ui/primitives';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { choresView, todayView } from '../views';
 
@@ -69,9 +69,10 @@ export function Today() {
   // Asks waiting on me count too, so the summary never says "nothing" above them.
   const due = v.today.length + v.earlier.length + v.awaitingOk.length + v.asked.length;
   const dueProjects = [...new Set([...v.today, ...v.earlier].map((i) => i.listId))].map((id) => hub.list(id)!).filter(Boolean).slice(0, 3);
-  const taskLists = hub.lists().filter((l) => l.kind !== 'shopping');
+  // Today's add row puts things in the last task project used (To do, at first).
+  const taskLists = hub.lists().filter((l) => l.kind === 'tasks');
   const last = getPrefs().lastList;
-  const addTo = (last && taskLists.find((l) => l.id === last)) || taskLists.find((l) => l.kind === 'tasks') || taskLists[0];
+  const addTo = (last && taskLists.find((l) => l.id === last)) || taskLists.find((l) => l.name === 'To do') || taskLists[0];
   const shopper = shopping ? hub.member(shopping.member) : undefined;
   // Ticked rows stay a moment (check, strike, fold) before they leave their group.
   const settle = useSettle(idOf);
@@ -85,7 +86,21 @@ export function Today() {
     .filter((g) => g.rows.length);
   days.current = upcoming.map((g) => g.date);
 
-  useAddAction(() => document.querySelector<HTMLInputElement>('.today-add input')?.focus());
+  const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={ref} />);
+  useAddAction(openNew);
+
+  // The row moves into the Today section once Today has rows: keep typing there.
+  const [refocus, setRefocus] = useState(false);
+  const addRow = addTo ? (
+    <AddRow
+      listId={addTo.id}
+      defaultDue={ref}
+      placeholder="Add something for today"
+      allowListChange
+      autoFocus={refocus}
+      onAdded={(id) => setRefocus(!todayRows.length && hub.item(id)?.due === ref)}
+    />
+  ) : null;
 
   const strips = [
     v.shopping.count ? { color: 'lemon' as const, num: v.shopping.count, label: 'to buy', go: () => navigate({ name: 'shop' }) } : null,
@@ -100,7 +115,7 @@ export function Today() {
         actions={
           <>
             <IconButton icon="search" label="Search" onClick={() => navigate({ name: 'search' })} />
-            <IconButton solid icon="plus" label="New" onClick={() => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={ref} />)} />
+            <NewButton onClick={openNew} />
           </>
         }
         title={`${greeting()}, ${me?.name ?? 'you'}!`}
@@ -134,6 +149,8 @@ export function Today() {
           ) : null}
         </div>
 
+        {todayRows.length ? null : addRow}
+
         {shopper ? (
           <button type="button" className="notice" onClick={() => navigate({ name: 'shop' })}>
             <Avatar member={shopper} size="sm" />
@@ -146,20 +163,16 @@ export function Today() {
 
         <AsksWidget v={v} settle={settle} />
 
-        <Section title="Today" id="today">
-          {todayRows.length ? (
+        {todayRows.length ? (
+          <Section title="Today" id="today">
             <ul className="rows">
               {todayRows.map(({ row: i, settling }) => (
                 <ItemRow key={i.id} item={i} showList settling={settling} />
               ))}
             </ul>
-          ) : null}
-          {addTo ? (
-            <div className="today-add">
-              <QuickAdd listId={addTo.id} defaultDue={ref} placeholder="Add something for today" allowListChange />
-            </div>
-          ) : null}
-        </Section>
+            {addRow}
+          </Section>
+        ) : null}
 
         {earlierRows.length ? (
           <Section

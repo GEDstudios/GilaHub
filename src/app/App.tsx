@@ -3,7 +3,7 @@ import { seedHousehold } from '../core/actions';
 import type { Persistence } from '../core/db';
 import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
-import { runAdd } from './addAction';
+import { runAdd, useAddLabel } from './addAction';
 import { QuickAddSheet } from './components/QuickAddSheet';
 import { RuntimeProvider, useHub, usePartnerShopping, useRt } from './context';
 import { usePrefs } from './prefs';
@@ -28,6 +28,7 @@ import { openCount, todayRef, todayView } from './views';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
 
+/** New: what the current screen registered (addAction.ts), else the plain composer. */
 function useAdd() {
   const { openSheet } = useOverlays();
   return () => runAdd(() => openSheet((close) => <QuickAddSheet onClose={close} />));
@@ -71,6 +72,7 @@ function Sidebar() {
   const route = useRoute();
   const hub = useHub();
   const add = useAdd();
+  const addLabel = useAddLabel();
   const tabs = tabsOf(hub);
   const on = activeTabKey(hub, route);
   const v = todayView(hub, todayRef());
@@ -80,7 +82,7 @@ function Sidebar() {
       <div className="sidebar__brand">
         <Logo size={28} />
       </div>
-      <button type="button" className="sidebar__new" onClick={add}>
+      <button type="button" className="sidebar__new" onClick={add} title={addLabel} aria-label={addLabel === 'New' ? 'New' : `New: ${addLabel}`} aria-keyshortcuts="N">
         <Icon name="plus" className="icon--sm" /> New
         <span className="kbd">N</span>
       </button>
@@ -156,7 +158,8 @@ function Duties() {
   const rt = useRt();
   const hub = useHub();
   const prefs = usePrefs();
-  const { openSheet, toast } = useOverlays();
+  const { toast } = useOverlays();
+  const add = useAdd();
   const me = hub.me();
 
   const partnerColor = hub.partner()?.color;
@@ -238,15 +241,15 @@ function Duties() {
         navigate({ name: 'search' });
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        openSheet((close) => <QuickAddSheet onClose={close} />);
-      } else if (/^[1-5]$/.test(e.key)) {
+        add();
+      } else if (/^[1-9]$/.test(e.key)) {
         const t = tabsOf(hub)[+e.key - 1];
         if (t) navigate(t.path);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openSheet, hub]);
+  }, [add, hub]);
 
   return null;
 }

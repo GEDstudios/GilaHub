@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from 'react';
 import type { Item, List } from '../../core/model';
 import { suggestFromCatalog } from '../../smart/categorize';
-import { fold, itemKey, parseQuantity, splitPasted } from '../../smart/normalize';
-import { parseQuickAdd } from '../../smart/parse';
+import { fold, itemKey, parseQuantity } from '../../smart/normalize';
+import type { ParseResult } from '../../smart/parse';
 import { cadenceLabel, historyMatches } from '../../smart/suggest';
-import { useParseContext } from '../components/QuickAdd';
+import { AddRow, type AddRowHandle } from '../components/QuickAdd';
+import { QuickAddSheet } from '../components/QuickAddSheet';
+import type { Draft } from '../components/editors';
+import { useShopAdd } from '../components/shopAdd';
 import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, usePartnerShopping, useRt } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
@@ -12,13 +15,15 @@ import { notifyMembers } from '../runtime';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { Avatar, Band, Check, Empty, ListBullet, Section, Seg } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton, Section, Seg } from '../ui/primitives';
 import { UrgentTag, VisTag } from '../ui/tags';
+import { useFresh } from '../ui/fresh';
 import { visTagFor } from '../privacy';
 import { back } from '../router';
 import { useAddAction } from '../addAction';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
 import { ProjectHero, ProjectMenuButton } from './ListScreen';
+import { NewProjectSheet } from './Lists';
 import { SyncBadge } from './Today';
 import { shoppingView } from '../views';
 
@@ -67,9 +72,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const [override, setOverride] = useState<string | null>(null);
   const partnerShopping = usePartnerShopping();
   const partner = hub.partner();
-  const parseCtx = useParseContext(lists[0]);
-  const input = useRef<HTMLInputElement>(null);
-  useAddAction(() => input.current?.focus());
+  const addRef = useRef<AddRowHandle>(null);
+  const shopAdd = useShopAdd();
   const seen = useRef<Set<string> | null>(null);
 
   useWakeLock(mode);
@@ -122,49 +126,21 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     return hub.routeShopping(name, lists);
   };
 
-  const add = (raw: string, opts: { quiet?: boolean } = {}) => {
-    const p = parseQuickAdd(raw, { ...parseCtx, mode: 'shopping' });
-    if (!p.title.trim()) return;
+  /** The add row's words → the right list (routed in "Both"), without duplicates. */
+  const add = (p: ParseResult, chips: Draft, opts: { quiet?: boolean } = {}) => {
     const dest = destFor(p.title, p.listId);
     if (!dest) return;
-    const res = hub.addShopping(dest.id, p.title, { qty: p.qty ?? null, urgent: p.urgent });
-    setFlash(new Set([res.id]));
-    setTimeout(() => setFlash(new Set()), 2000);
-    if (opts.quiet) return res;
-    const item = hub.item(res.id);
-    if (res.kind === 'exists') {
-      toast(`${item?.title} is already on the list`, { action: { label: '+1', run: () => hub.bump(res.id) } });
-    } else if (res.kind === 'revived') {
-      toast(`Brought back ${item?.title}`);
-    }
-    if (p.urgent && partnerShopping && item) {
-      void notifyMembers(rt, [partnerShopping.member], {
-        title: `${hub.me()?.name ?? 'Your partner'} added ${item.title}`,
-        body: 'Marked urgent, while you’re there 🙏',
-        url: '/shop',
-        tag: 'urgent',
-      });
-    }
-    return res;
+    shopAdd(dest.id, { title: p.title, qty: p.qty ?? null, urgent: chips.urgent, vis: chips.visibility }, opts);
   };
 
-  const submit = (raw = query) => {
-    if (!raw.trim()) return;
-    add(raw);
-    setQuery('');
-    setOverride(null);
-    input.current?.focus();
-  };
-
-  const onPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const lines = splitPasted(e.clipboardData.getData('text'));
-    if (lines.length < 2) return;
-    e.preventDefault();
-    hub.store.batch(() => {
-      for (const l of lines) add(l, { quiet: true });
-    });
-    toast(`Added ${lines.length} items, sorted into aisles`);
-  };
+  // New: the composer pointed at the list an item would go to (routed per item in "Both").
+  const openNew = () =>
+    allLists.length
+      ? openSheet((close) => <QuickAddSheet onClose={close} listId={destFor('')?.id ?? lists[0].id} route={filter === 'all'} />)
+      : openSheet((close) => <NewProjectSheet onClose={close} initial={{ kind: 'shopping' }} />);
+  useAddAction(openNew, 'Add an item');
+  const newBtn = <NewButton label="Add an item" onClick={openNew} />;
+  const pause = <IconButton icon="pause" label="Pause shopping" onClick={() => setMode(false)} />;
 
   const tick = (i: Item) => {
     const undo = hub.toggle(i.id);
@@ -194,6 +170,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   ];
 
   const q = query.trim();
+  // Nothing to buy: just the add row and a few things you often buy.
+  const empty = !v.openCount && !v.inCart.length;
   const searching = q.length > 0;
   const many = filter === 'all' && lists.length > 1;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
@@ -202,7 +180,16 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   return (
     <div className={mode ? 'shopmode' : undefined}>
       {scoped ? (
-        <Band onBack={() => back({ name: 'lists' })} actions={mode ? undefined : <ProjectMenuButton listId={scoped.id} />} mini={scoped.name}>
+        <Band
+          onBack={() => back({ name: 'lists' })}
+          actions={
+            <>
+              {mode ? pause : <ProjectMenuButton listId={scoped.id} />}
+              {newBtn}
+            </>
+          }
+          mini={scoped.name}
+        >
           <ProjectHero list={scoped} sub={mode ? `Shopping now · ${sub}` : sub} />
         </Band>
       ) : (
@@ -211,11 +198,10 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           title={mode ? 'Shopping now' : 'Shopping'}
           sub={sub}
           actions={
-            mode ? (
-              <button type="button" className="pill" onClick={() => setMode(false)}>
-                Pause
-              </button>
-            ) : null
+            <>
+              {mode ? pause : null}
+              {newBtn}
+            </>
           }
         />
       )}
@@ -224,7 +210,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           <Empty title="No shopping lists yet">
             <div className="tokens tokens--center">
               {PROJECT_TEMPLATES.filter((t) => t.kind === 'shopping').map((t) => (
-                <button key={t.key} type="button" className="token token--ink" onClick={() => createFromTemplate(hub, t)}>
+                <button key={t.key} type="button" className="token" onClick={() => createFromTemplate(hub, t)}>
                   <Icon name="plus" /> {t.name}
                 </button>
               ))}
@@ -238,39 +224,27 @@ export function Shopping({ listId }: { listId?: string } = {}) {
         ) : null}
 
         {allLists.length ? (
-          <form
-            className="searchbar"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
+          <AddRow
+            listId={(filter !== 'all' && hub.list(filter)?.id) || (destFor('') ?? lists[0]).id}
+            placeholder={filter === 'all' ? 'Add an item' : `Add to ${hub.list(filter)?.name}`}
+            text={query}
+            onText={(t) => {
+              setQuery(t);
+              if (!t) setOverride(null);
             }}
-          >
-            <Icon name="search" className="icon--sm" />
-            <input
-              ref={input}
-              value={query}
-              dir="auto"
-              onChange={(e) => {
-                setQuery(e.target.value);
-                if (!e.target.value) setOverride(null);
-              }}
-              onPaste={onPaste}
-              placeholder={filter === 'all' ? 'Add or find an item' : `Add to ${hub.list(filter)?.name}`}
-              aria-label="Add or find an item"
-              enterKeyHint="done"
-              autoComplete="off"
-            />
-            {query ? (
-              <button type="button" className="searchbar__clear" onClick={() => setQuery('')} aria-label="Clear">
-                <Icon name="x" className="icon--sm" />
+            onSubmit={add}
+            handle={addRef}
+          />
+        ) : null}
+        {allLists.length && empty && !searching && v.buyAgain.length ? (
+          <div className="tokens addrow__suggest">
+            {v.buyAgain.slice(0, 4).map((s) => (
+              <button key={s.key} type="button" className="token" onClick={() => addRef.current?.submit(s.name)}>
+                <Icon name="plus" />
+                <span dir="auto">{s.name}</span>
               </button>
-            ) : null}
-            {q ? (
-              <button type="submit" className="searchbar__go" aria-label="Add">
-                <Icon name="plus" className="icon--sm" />
-              </button>
-            ) : null}
-          </form>
+            ))}
+          </div>
         ) : null}
 
         {shopper && !mode ? (
@@ -286,7 +260,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           <SearchResults
             query={q}
             view={v}
-            onAdd={submit}
+            onAdd={(raw) => addRef.current?.submit(raw)}
             onTick={tick}
             onOpen={openItem}
             filter={filter}
@@ -296,13 +270,13 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           />
         ) : (
           <>
-            {!mode && v.buyAgain.length ? (
+            {!mode && !empty && v.buyAgain.length ? (
               <div className="buyagain">
                 <p className="inline__prompt">Buy again?</p>
                 <div className="tokens tokens--scroll">
                   {v.buyAgain.map((s) => (
                     <span key={s.key} className="token token--split" title={cadenceLabel(s.avgDays)}>
-                      <button type="button" onClick={() => add(s.name)}>
+                      <button type="button" onClick={() => addRef.current?.submit(s.name)}>
                         <Icon name="plus" />
                         <span dir="auto">{s.name}</span>
                       </button>
@@ -318,10 +292,6 @@ export function Shopping({ listId }: { listId?: string } = {}) {
                   ))}
                 </div>
               </div>
-            ) : null}
-
-            {allLists.length && !v.openCount && !v.inCart.length ? (
-              <Empty title="All bought" />
             ) : null}
 
             {v.urgent.length || v.groups.length ? (
@@ -528,12 +498,14 @@ function ShopRow({
   const list = hub.list(item.listId);
   const vis = visTagFor(hub, item);
   const note = item.notes?.slice(0, 60);
+  const mine = useFresh(item.id);
   return (
     <li
       ref={liRef}
       style={liStyle}
       {...dragProps}
-      className={`row row--tap ${item.done ? 'is-done' : ''} ${flash ? 'row--flash' : ''} ${liClass ?? ''}`}
+      data-id={item.id}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${mine ? 'row--fresh row--flash' : flash ? 'row--flash' : ''} ${liClass ?? ''}`}
       onClick={() => onOpen(item)}
     >
       <Check on={item.done} color={list?.color} onToggle={() => onTick(item)} label={item.title} />

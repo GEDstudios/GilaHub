@@ -3,14 +3,14 @@ import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/d
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
 import { InlineEditor, useSummary, type Draft } from '../components/editors';
-import { afterTick, notifyAbout } from '../notify';
+import { afterTick, notifyAbout, setUpReminders } from '../notify';
 import { ListPickerSheet, OptRow } from '../components/pickers';
-import { QuickAdd } from '../components/QuickAdd';
+import { QuickAddSheet } from '../components/QuickAddSheet';
+import { useAddAction } from '../addAction';
 import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, useRt } from '../context';
 import { back, navigate } from '../router';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
-import { enablePush } from '../runtime';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Empty, IconButton, lineVars, Section } from '../ui/primitives';
@@ -173,8 +173,9 @@ export function ItemScreen({ id }: { id: string }) {
   const summarize = useSummary();
   const item = hub.item(id);
   const [notes, setNotes] = useState(item?.notes ?? '');
-  const [freshId, setFreshId] = useState<string | null>(null);
   useEffect(() => setNotes(item?.notes ?? ''), [item?.notes]);
+  // No "+" here, but N and the sidebar's New add to this item's project.
+  useAddAction(() => openSheet((close) => <QuickAddSheet onClose={close} listId={item?.listId} />));
 
   useEffect(() => {
     // Shopping items edit in their own sheet.
@@ -249,13 +250,7 @@ export function ItemScreen({ id }: { id: string }) {
       hub.updateItem(id, { needsOk: !!p.needsOk });
       return;
     }
-    if ('remind' in p && p.remind !== null && p.remind !== undefined) {
-      void enablePush(rt).then((s) => {
-        if (s === 'install') toast('Add Gila Hub to your Home Screen to get reminders on iPhone.');
-        else if (s === 'denied') toast('Notifications are blocked in your settings. Reminders will show in the app.');
-        else if (s === 'no-relay') toast('Reminder set. It pops up while Gila Hub is open.');
-      });
-    }
+    if ('remind' in p && p.remind !== null && p.remind !== undefined) setUpReminders(rt, toast);
     const { visibility: _v, ...rest } = p;
     void _v;
     hub.updateItem(id, rest);
@@ -340,15 +335,10 @@ export function ItemScreen({ id }: { id: string }) {
           aria-label="Notes"
         />
 
-        {steps.length ? (
+        {steps.length || editable ? (
           <Section title="Steps" count={steps.length}>
-            <Children listId={item.listId} parentId={id} freshId={freshId} readonly={!editable} />
-            {editable ? <QuickAdd listId={item.listId} parentId={id} onAdded={setFreshId} placeholder="Add a step" /> : null}
+            <Children listId={item.listId} parentId={id} readonly={!editable} add={{ placeholder: 'Add a step' }} />
           </Section>
-        ) : editable ? (
-          <div className="steps-add">
-            <QuickAdd listId={item.listId} parentId={id} onAdded={setFreshId} placeholder="Add a step" />
-          </div>
         ) : null}
 
         {logs.length ? (

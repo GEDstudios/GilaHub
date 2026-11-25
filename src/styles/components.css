@@ -70,7 +70,6 @@
 .navitem.is-on,
 .echip.is-open,
 .option.is-on,
-.iconbtn[aria-pressed='true'],
 .iconpick__btn.is-on {
   --light: var(--me-light);
   --shift: 1;
@@ -108,7 +107,6 @@
 
 /* ON INK: rest on black */
 .iconbtn--solid,
-.token--ink,
 .toast,
 .on-ink {
   --light: var(--light-on-ink);
@@ -351,19 +349,26 @@
   transform: scale(0.94);
 }
 
-.iconbtn[aria-pressed='true'],
+/* New: the one black circle in the app (NewButton). */
 .iconbtn--solid {
   background: var(--cta);
   color: var(--cta-text);
 }
 
-.pill {
-  height: 38px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--tile);
-  font-size: 14.5px;
-  font-weight: 500;
+.iconbtn--solid:hover {
+  background: var(--cta);
+}
+
+.iconbtn--solid:active {
+  transform: scale(0.92);
+}
+
+.iconbtn--solid .icon {
+  transition: transform 220ms var(--spring);
+}
+
+.iconbtn--solid:active .icon {
+  transform: rotate(90deg);
 }
 
 .textbtn {
@@ -721,6 +726,14 @@ button.ccard:active {
   font-weight: 600;
 }
 
+/* The urgent tag sits on the card as itself, not in the black badge */
+.ccard__badge:has(> .urgent) {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  background: none;
+}
+
 .ccard--ghost .ccard__title {
   opacity: 0.38;
 }
@@ -984,6 +997,13 @@ button.ccard:active {
   animation: row-flash 2s var(--ease) both;
 }
 
+/* Just added by me: it slides in and glows (sky, so it never reads as urgent). */
+.row--fresh.row--flash {
+  animation:
+    row-in 360ms var(--ease) both,
+    row-flash 2s var(--ease) both;
+}
+
 @keyframes row-in {
   from {
     opacity: 0;
@@ -994,7 +1014,7 @@ button.ccard:active {
 @keyframes row-flash {
   0%,
   40% {
-    background: var(--lemon-soft);
+    background: var(--sky-soft);
   }
 }
 
@@ -1190,18 +1210,6 @@ html.is-dragging * {
   transform: scale(1.08);
 }
 
-.donetoggle {
-  margin: 12px 0 0;
-  padding: 6px 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-2);
-}
-
-.donetoggle + .rows {
-  margin-top: 6px;
-}
-
 /* ============================================================ Check — the tactile heart of it */
 
 .check {
@@ -1338,14 +1346,9 @@ html.is-dragging * {
   color: var(--text-2);
 }
 
-/* ============================================================ Inline add */
+/* ============================================================ Inline add (AddRow) */
 
 .quickadd {
-  margin-top: 8px;
-}
-
-.rows + .quickadd,
-.rows + .today-add {
   margin-top: 8px;
 }
 
@@ -1408,8 +1411,20 @@ html.is-dragging * {
   }
 }
 
-.quickadd .tokens {
+/* Its chips open on focus: who sees it, and for chores how often and who. */
+.inline.addrow__chips {
+  margin-top: 8px;
+  padding: 0 4px 0 16px;
+  animation: fade-in 200ms var(--ease) both;
+}
+
+/* A few gray tokens to add with one tap, while there is nothing yet (chores, buy again) */
+.addrow__suggest {
   padding-left: 16px;
+}
+
+.addrow__chips .inline__chips {
+  gap: 6px;
 }
 
 /* ============================================================ Tokens & chips — the inline controls */
@@ -1467,15 +1482,6 @@ html.is-dragging * {
 
 .token.is-parsed {
   background: var(--lemon-soft);
-}
-
-.token--ink {
-  background: var(--cta);
-  color: var(--cta-text);
-}
-
-.token--ink .icon {
-  color: inherit;
 }
 
 .token--list {
@@ -1579,6 +1585,22 @@ html.is-dragging * {
   color: var(--ink);
 }
 
+/* The add row's size, beside its parsed tokens */
+.echip--sm {
+  height: 34px;
+  gap: 6px;
+  padding: 0 13px 0 11px;
+  font-size: 14px;
+}
+
+.echip--sm .icon {
+  --s: 16;
+}
+
+.echip--sm .dot {
+  margin: 0 1px;
+}
+
 /* An invitation, not a setting: e.g. "Ask your person" while on my own */
 .echip--ghost {
   background: transparent;
@@ -1604,12 +1626,6 @@ html.is-dragging * {
   background: var(--card);
   box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.03);
   animation: panel-in 220ms var(--ease) both;
-}
-
-.panel--flat {
-  display: grid;
-  gap: 10px;
-  justify-items: start;
 }
 
 @keyframes panel-in {
@@ -1664,30 +1680,6 @@ html.is-dragging * {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
-}
-
-.panel__toggle {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 14px;
-  font-size: 14.5px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.panel__toggle input {
-  width: 18px;
-  height: 18px;
-  margin: 2px 0 0;
-  accent-color: var(--ink);
-}
-
-.panel__toggle small {
-  display: block;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--text-3);
 }
 
 .options {

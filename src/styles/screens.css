@@ -107,10 +107,6 @@
   color: var(--text-3);
 }
 
-.today-add {
-  margin-top: 0;
-}
-
 .day + .day {
   margin-top: 16px;
 }
@@ -330,10 +326,6 @@ button.projcard:active {
   margin-top: 20px;
 }
 
-.steps-add {
-  margin-top: 14px;
-}
-
 .takeit {
   margin-top: 12px;
 }
@@ -362,6 +354,10 @@ button.projcard:active {
   border: 0;
   background: transparent;
   font-size: 17px;
+}
+
+.composer__tokens {
+  margin-top: 10px;
 }
 
 .composer .ccard {
@@ -418,17 +414,6 @@ button.projcard:active {
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
-}
-
-.searchbar__go {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--cta);
-  color: var(--cta-text);
-  animation: pop 220ms var(--spring) both;
 }
 
 .buyagain {
@@ -617,6 +602,11 @@ button.projcard:active {
 }
 
 /* ============================================================ Chores */
+
+/* "Going away? Pause chores", under the add row */
+.textbtn.away {
+  margin: 10px 0 0 16px;
+}
 
 .fresh {
   display: block;

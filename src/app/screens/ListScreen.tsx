@@ -5,11 +5,11 @@ import { Children } from '../components/Children';
 import { IconPicker } from '../components/IconPicker';
 import { Glyph } from '../ui/ProjectMark';
 import { OptRow, Swatches } from '../components/pickers';
-import { QuickAdd } from '../components/QuickAdd';
+import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Empty, IconButton, lineVars, Switch } from '../ui/primitives';
+import { Band, Empty, IconButton, lineVars, NewButton, Switch } from '../ui/primitives';
 import { MAX_PINS, pinsOf, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { openCount } from '../views';
@@ -140,11 +140,23 @@ export function ListScreen({ id }: { id: string }) {
   return <TaskProject id={id} />;
 }
 
+/** The project's "…" and its New, for the header. */
+export function ProjectActions({ listId, label, onNew, menu = true }: { listId: string; label: string; onNew: () => void; menu?: boolean }) {
+  return (
+    <>
+      {menu ? <ProjectMenuButton listId={listId} /> : null}
+      <NewButton label={label} onClick={onNew} />
+    </>
+  );
+}
+
 function TaskProject({ id }: { id: string }) {
   const hub = useHub();
+  const { openSheet } = useOverlays();
   const list = hub.list(id);
-  const [freshId, setFreshId] = useState<string | null>(null);
-  useAddAction(() => document.querySelector<HTMLInputElement>('.quickadd input')?.focus());
+  const label = `Add to ${list?.name ?? 'project'}`;
+  const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={id} />);
+  useAddAction(openNew, label);
 
   if (!list) {
     return (
@@ -162,7 +174,7 @@ function TaskProject({ id }: { id: string }) {
 
   return (
     <>
-      <Band onBack={() => back({ name: 'lists' })} actions={<ProjectMenuButton listId={id} />} mini={list.name}>
+      <Band onBack={() => back({ name: 'lists' })} actions={<ProjectActions listId={id} label={label} onNew={openNew} />} mini={list.name}>
         <ProjectHero
           list={list}
           stat={pct !== null && done ? `${pct}%` : undefined}
@@ -175,8 +187,7 @@ function TaskProject({ id }: { id: string }) {
         />
       </Band>
       <div className="column">
-        <Children listId={id} parentId={null} freshId={freshId} />
-        <QuickAdd listId={id} onAdded={setFreshId} />
+        <Children listId={id} parentId={null} add={{ placeholder: label }} />
       </div>
     </>
   );

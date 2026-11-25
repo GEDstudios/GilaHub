@@ -135,7 +135,7 @@ try {
   // ---------- Shopping sync, both ways
   await check('Guy adds groceries; Hila sees them live', async () => {
     await guy.goto(`${url}/shop`);
-    const bar = guy.getByLabel('Add or find an item');
+    const bar = guy.getByRole('textbox', { name: 'Add an item' });
     await bar.fill('2 milk');
     await bar.press('Enter');
     await bar.fill('עגבניות');
@@ -155,7 +155,7 @@ try {
   });
 
   await check('No duplicates: adding milk again says it exists', async () => {
-    const bar = hila.getByLabel('Add or find an item');
+    const bar = hila.getByRole('textbox', { name: 'Add an item' });
     await bar.fill('Milk');
     await bar.press('Enter');
     await hila.getByText(/already on the list/).waitFor({ timeout: 5000 });
@@ -178,7 +178,7 @@ try {
   await check('An "Only me" item never reaches the partner', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    const add = guy.getByLabel('Add to To do');
+    const add = guy.getByRole('textbox', { name: 'Add to To do' });
     await add.fill('Ring for Hila 💍');
     await add.press('Enter');
     await add.fill('Book dinner friday');
@@ -213,7 +213,7 @@ try {
   await check('Requests: Hila asks Guy with no date; it waits on Guy’s Today, tagged "Hila asked"', async () => {
     await hila.goto(`${url}/lists`);
     await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    const add = hila.getByLabel('Add to To do');
+    const add = hila.getByRole('textbox', { name: 'Add to To do' });
     await add.fill('Fix the kettle @guy');
     await add.press('Enter');
     await hila.locator('li.row', { hasText: 'Fix the kettle' }).getByText('Asked Guy').waitFor({ timeout: 5000 });
@@ -234,9 +234,10 @@ try {
   await check('Requests: Guy asks Hila; it shows under "You asked Hila…" on his Today', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    const add = guy.getByLabel('Add to To do');
+    const add = guy.getByRole('textbox', { name: 'Add to To do' });
     await add.fill('Water the balcony plants @hila today');
-    await guy.getByRole('button', { name: /needs my ok/i }).click();
+    await guy.locator('.addrow__chips .echip', { hasText: 'Ask Hila' }).click();
+    await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
     await add.press('Enter');
     await guy.goto(`${url}/`);
     const line = guy.locator('.quietline', { hasText: 'You asked Hila for 1 thing' });
@@ -276,8 +277,9 @@ try {
   await check('Chores: add one, tick it, it rolls forward', async () => {
     await guy.goto(`${url}/chores`);
     await guy.getByRole('heading', { name: 'Chores', exact: true, level: 1 }).waitFor();
-    await guy.getByLabel('Add a chore').fill('Water the plants');
-    await guy.getByRole('button', { name: /add chore/i }).click();
+    const add = guy.getByRole('textbox', { name: 'Add a chore' });
+    await add.fill('Water the plants');
+    await add.press('Enter');
     await shot(guy, '10-chores');
     const row = guy.locator('li.row', { hasText: 'Water the plants' });
     await row.getByRole('checkbox').click();
@@ -291,6 +293,20 @@ try {
     await guy.getByRole('button', { name: /create project/i }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
     await shot(guy, '12-project');
+  });
+
+  await check('New: the "+" asks Hila from the composer, with an OK', async () => {
+    await guy.goto(`${url}/`);
+    await guy.getByRole('button', { name: 'New', exact: true }).click();
+    await guy.getByRole('textbox', { name: 'What needs doing?' }).fill('Return the library books @hila');
+    await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
+    await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
+    await shot(guy, '13-composer-ask');
+    await guy.getByRole('button', { name: 'Add', exact: true }).click();
+    await guy.getByText(/^Added to /).waitFor({ timeout: 5000 });
+    await guy.goto(`${url}/lists`);
+    await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await guy.locator('li.row', { hasText: 'Return the library books' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
   });
 
   // ---------- Desktop

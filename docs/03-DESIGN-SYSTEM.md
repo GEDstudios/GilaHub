@@ -5,7 +5,7 @@ Tokens live in [`src/styles/tokens.css`](../src/styles/tokens.css). The visual l
 ## Principles
 
 1. **Calm canvas, one color moment.** Screens are near-white and soft gray. Color is reserved for the card that says *which project*: never for alarms, never on every row.
-2. **Inline, not forms.** You change things where they are. Chips under a card open their options in place. Adding happens in a row at the end of the list.
+2. **Inline, not forms.** You change things where they are. Chips under a card open their options in place. Adding happens in a row after the open items, or with New.
 3. **Say it in a sentence.** Every card has one plain line underneath ("Friday at 8 pm, for Hila."), so you don't have to read settings.
 4. **Few choices.** Six colors. Four repeat options plus custom. No themes or display toggles.
 5. **Tactile.** Things press in (scale 0.96–0.98), checks spring, panels lift with a soft shadow, switches slide.
@@ -28,16 +28,45 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 
 | Component | Spec |
 |---|---|
-| **Header** | Quiet top row (a 42 px gray circle for back and actions, or your avatar), then a serif title. On scroll, a frosted bar keeps the name. Every tab's title sits at the same height. |
+| **Header** | Quiet top row (a 42 px gray circle for back and actions, or your avatar), then a serif title. On scroll, a frosted bar keeps the name. Every tab's title sits at the same height. The right slot holds at most one gray button and then **New**, the black "+" (always rightmost). |
 | **Color card** | Radius 24–30, the project color, serif title top-left, a sentence bottom-left, an optional black badge top-right. |
 | **Rows** | One gray tile (radius 20) per group, rows 58 px with hairline dividers. A thin 24 px check ring; done fills with the project color. Done rows are struck through in gray. |
-| **Add row** | At the end of each list: a dashed plus and an input. It lifts into a white card while you type, and shows what it understood as chips. |
+| **Add row** | One component (`AddRow`) in every list: a dashed plus, the input, and a black arrow once there's text. It sits after the open rows and before Done (Shopping pins it at the top, where it also filters). On focus it lifts into a white card and opens a row of small chips: who sees it always, plus *Every week* and *Who* for chores. What it understood from your words shows as tokens. |
 | **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open (its icon lit in my color). Urgent is lemon, with a lightning icon. A dashed ghost chip is an invitation, not a setting ("Ask your person" while on your own). |
 | **Panel** | Opens under the whole chip row, full width: white, radius 22, soft shadow, with 36 px option pills (the chosen one is black) and at most one quiet line of explanation. |
 | **Row tags** | 22 px word pills in a row's meta (`ui/tags.tsx`): lemon **Urgent** with its lightning (in the trail); **whose** only when it differs from the project: an ink "Only me" with a lock, "Mine" in my soft color, "Hila's" in hers, "Ours" in gray inside a Mine project; **who asked whom** in the other person's soft color with Tasky's cursor ("Hila asked", "Asked Hila", "Hila did it · OK?"). The row's avatar is the doer, never the owner. |
 | **Strips** | Overlapping bands (−16 px) with a big serif number and a small label. |
 | **Tab bar** | A floating white bar, 4 tabs, no central button. On desktop, a light sidebar with a black "New" pill. |
-| **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", project settings and pickers. |
+| **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", project settings and pickers. Never a sheet on a sheet: a choice inside a sheet opens as an inline panel. |
+
+### Adding
+
+Every screen that holds things has exactly two adds ([`addAction.ts`](../src/app/addAction.ts), [`QuickAdd.tsx`](../src/app/components/QuickAdd.tsx)):
+
+1. **New**: the black "+" (`NewButton`), rightmost in the header. It opens a sheet already pointed at where you are: the composer (Today: due today; a project: that project; Shopping: the list the item belongs on; Chores: a chore), or New project on Projects. The `N` key and the sidebar's New do the same thing.
+2. **In place**: the add row, or the dashed tile on the Projects grid.
+
+**The composer** (Tasky's "New task"): one sentence to type, a live color card of what you're adding (for shopping, its aisle and quantity), then "Want to modify something?" chips: *List · Date · Repeat · Remind · Who · Ours · Urgent* for tasks, *List · Repeat · Who · Ours* for chores, *List · Urgent · Ours* for shopping. A chip always wins over the words; the words it overrides go back to being plain text. Add closes the sheet, says "Added to To do", and the new row glows sky blue where you can see it.
+
+**Empty lists** show only the add row, with up to four gray tokens to add in one tap where it helps (chores: Dishes, Laundry, Bins, Sheets; shopping: what you often buy). The big serif line is kept for "gone" and "not found".
+
+### Component families
+
+One job per family.
+
+| Family | Only job | Size | Examples |
+|---|---|---|---|
+| `.btn` / `.btn--quiet` | Commit an action / secondary action | 54, 40 with `--sm` | Add, Finish, Bring them in |
+| `.iconbtn` | Header and sheet chrome, always gray. `--solid` is New, and only New. | 42 | Search, …, Back, Close, Pause |
+| `.echip` | A property of the thing; opens an inline panel | 38 (34 in the add row) | Date, Repeat, Who, Ours, Urgent, List |
+| `.option` | A choice inside a panel or sheet | 36 | Ours / Mine / Only me, Every week |
+| `.token` | A suggestion or parsed result to tap (add, keep, drop) | 34 | "Sunday ×", Dishes, Buy again, templates |
+| `.mini` | An in-row action on a tile | 30 | OK / Not yet, Today / Tomorrow, Restore |
+| `.textbtn` | A disclosure or low-emphasis link | — | Show / Hide, Going away?, Invite your person |
+| `.urgent` `.vtag` `.rtag` (+ project `.tag`) | Read-only status | 22 (project tag 30) | Urgent, Mine, Hila asked |
+
+- Nothing but New is a black circle. Dashed borders mean "create or bring in", and nothing else: the add row's plus, the New project tile, the invite card and the ghost Who chip.
+- **Disclosure:** a section title with its count, and "Show" / "Hide" on the right (From earlier, In the cart, Done, Paused).
 
 ## Icons — Gila Duo
 
@@ -47,15 +76,15 @@ Every icon is an **ink line** and a solid **light** behind it, drawn from Phosph
 |---|---|---|---|
 | Rest | text-3 in chips and tabs, text-2 in rows | ink 7% | 0 |
 | Set (has a value) | ink | ink 7% | 0 |
-| **Lit**: active tab or nav item, open chip, picked option, pressed icon button, chosen picker cell | ink (canvas on ink) | `--me-light` (my color) | 1.25 px down-right, springs in over 280 ms |
+| **Lit**: active tab or nav item, open chip, picked option, chosen picker cell | ink (canvas on ink) | `--me-light` (my color) | 1.25 px down-right, springs in over 280 ms |
 | Project identity (lists, sidebar, bar editor) | ink | the project's color | 0 |
 | Project in the tab bar or sidebar, inactive | text-3 | the project's color at 45% | 0 |
 | On color (folder cards, the urgent chip and tag, emoji tiles) | ink | ink 12% | never |
-| On ink (the solid button, ink tokens, toasts) | canvas | canvas 16% | 0 |
+| On ink (New, toasts) | canvas | canvas 16% | 0 |
 | Whose (`mine`, `theirs`, `heart-fill`) | as context | mine, my partner's color, pink: always | follows state |
 | Control (plus, check, x, chevrons, arrows, more, grip, undo, refresh) | as context | none: the button is the light | n/a |
 
-- **One lit per group.** Only the active tab, the open chip, the picked option, a pressed icon button or the chosen icon cell lights up. Chips that merely have a value, and settings rows whose switch is on, stay at rest.
+- **One lit per group.** Only the active tab, the open chip, the picked option or the chosen icon cell lights up. Chips that merely have a value, and settings rows whose switch is on, stay at rest.
 - **Controls are line only.** Their button is the light.
 - **No light-only signals.** Lemon on white is about 1.1:1, so "on" also changes the line color, the label weight and `aria-current` / `aria-pressed`.
 - **The offset appears only when lit** (and grows to 2.5 px while a row is lifted, `.is-lifted`).
