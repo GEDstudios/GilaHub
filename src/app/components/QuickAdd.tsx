@@ -1,3 +1,4 @@
+import { playSound } from '../ui/sounds';
 import { useMemo, useState } from 'react';
 import type { List } from '../../core/model';
 import { parseQuickAdd, type ParseContext, type ParseResult } from '../../smart/parse';
@@ -125,6 +126,7 @@ export function useCompose({
     // New (from Today, Search…) opens on the last task project used.
     if (!parent && to.kind === 'tasks') setPrefs({ lastList: to.id });
     markFresh(id, { scroll: opts.announce });
+    if (!opts.quiet) playSound('add');
     if (opts.announce) toast(`Added to ${to.name}`, { ms: 1800 });
     else if (!opts.quiet) ifNotInView(id, () => toast(`Added to ${to.name}`, { ms: 1800 }));
     return id;

@@ -23,6 +23,8 @@ export interface Prefs {
   lastBackupAt: number | null;
   /** The floating Ideas tag (the sheet stays reachable from Settings either way). */
   ideasTag: boolean;
+  /** Small sounds on ticks, adds, drops and finished moments (this device only). */
+  sounds: boolean;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -40,6 +42,7 @@ const DEFAULTS: Prefs = {
   inviteHiddenUntil: 0,
   lastBackupAt: null,
   ideasTag: true,
+  sounds: true,
 };
 
 function read(): Prefs {

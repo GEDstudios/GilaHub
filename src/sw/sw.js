@@ -124,12 +124,22 @@ self.addEventListener('push', (event) => {
       } catch {
         /* show the generic note */
       }
+      // A thing to do (its page is /i/<id>) gets Done and Tomorrow right on the notification.
+      const isItem = /^\/i\/[A-Za-z0-9]+$/.test(note.url || '');
       await self.registration.showNotification(note.title, {
         body: note.body || '',
         tag: note.tag || undefined,
         renotify: !!note.tag,
         icon: '/icons/icon-192.png',
         badge: '/icons/badge-96.png',
+        timestamp: Date.now(),
+        vibrate: [12, 60, 12],
+        actions: isItem
+          ? [
+              { action: 'done', title: '✓ Done' },
+              { action: 'later', title: 'Tomorrow' },
+            ]
+          : [],
         data: { url: note.url || '/' },
       });
     })(),
@@ -138,7 +148,9 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || '/';
+  const base = (event.notification.data && event.notification.data.url) || '/';
+  // Done / Tomorrow: the app does it when it opens the thing (?do=done / ?do=later).
+  const url = event.action === 'done' || event.action === 'later' ? `${base}?do=${event.action}` : base;
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

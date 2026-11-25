@@ -142,6 +142,24 @@ export function ItemScreen({ id }: { id: string }) {
   // The + adds a step of this item (a chip in the sheet makes it its own task instead).
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={item?.listId} parentId={item?.id} />);
   useAddAction(openNew, 'Add a subtask');
+  // From a notification's buttons: ?do=done ticks it, ?do=later moves it to tomorrow.
+  useEffect(() => {
+    const act = new URLSearchParams(location.search).get('do');
+    const it = hub.item(id);
+    if (!act || !it) return;
+    try {
+      history.replaceState(null, '', location.pathname);
+    } catch {
+      /* sandboxed */
+    }
+    if (act === 'done' && !it.done) {
+      if (hub.canTick(it)) tick(it);
+    } else if (act === 'later') {
+      hub.snooze(id, addDays(todayStr(), 1));
+      toast(`${it.title}: tomorrow`);
+    }
+  }, [hub, id]);
+
   // Start here: "Tap me to open me" is done by opening it (ticked as you leave, after reading).
   useEffect(
     () => () => {

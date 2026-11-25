@@ -1,3 +1,4 @@
+import { playSound } from '../ui/sounds';
 import { startTour } from '../tour';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
@@ -528,6 +529,21 @@ function ThisDevice() {
             }
           />
         ) : null}
+        <OptRow
+          icon="bell"
+          title="Sounds"
+          sub="A soft pop when you tick, a chime when you finish"
+          trail={
+            <Switch
+              on={prefs.sounds}
+              label="Sounds"
+              onChange={(on) => {
+                setPrefs({ sounds: on });
+                if (on) playSound('success');
+              }}
+            />
+          }
+        />
       </div>
     </Section>
   );

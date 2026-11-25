@@ -15,6 +15,7 @@
  * Pure progressive enhancement: silently does nothing elsewhere.
  */
 import { getPrefs } from '../prefs';
+import { playSound } from './sounds';
 
 export type HapticKind = 'select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn';
 
@@ -60,6 +61,8 @@ export function throttled(kind: HapticKind, now: number, last: number, ios: bool
 }
 
 export function haptic(kind: HapticKind = 'tick'): void {
+  // Each tactile moment has a sound too (its own switch, in Settings).
+  if (kind === 'tick' || kind === 'drop' || kind === 'success' || kind === 'warn') playSound(kind);
   try {
     if (!getPrefs().haptics) return;
     const ios = !canVibrate();
