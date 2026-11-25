@@ -35,6 +35,8 @@ A first pass copied Tasky's surface: color everywhere, heavy black buttons, a bu
 
 The wordmark is **gila** *hub*: Newsreader Medium, with *hub* in italic. The app icon is "gila" in black on a lemon tile.
 
+Icons: an ink line and a light that switches on, in your color.
+
 ## Palette
 
 | Name | Hex | Use |

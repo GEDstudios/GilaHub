@@ -93,4 +93,8 @@ npm run e2e           # two browsers pair and sync through a local relay
 npm run typecheck
 ```
 
-Stack: Vite, React 19 and TypeScript, with a hand-built design system and no UI framework. The sync engine is a field-level last-writer-wins replica with hybrid logical clocks. The relay is a Cloudflare Worker plus SQLite Durable Objects, and Web Push is implemented with WebCrypto only.
+```bash
+npm run glyphs        # regenerate src/app/ui/icons.gen.ts after adding a row to MAP in scripts/build-glyphs.mjs
+```
+
+Stack: Vite, React 19 and TypeScript, with a hand-built design system and no UI framework. Icons are Gila Duo, generated from Phosphor Duotone at build time. The sync engine is a field-level last-writer-wins replica with hybrid logical clocks. The relay is a Cloudflare Worker plus SQLite Durable Objects, and Web Push is implemented with WebCrypto only.

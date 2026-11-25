@@ -23,15 +23,128 @@
   }
 }
 
+/* ============================================================ Icons — Gila Duo
+ * An ink line and a solid light (docs/03-DESIGN-SYSTEM.md, Icons). Size is --s (px);
+ * state rides on --light, --shift and color, which inherit, so a state class on a parent
+ * lights the icons inside it. Order matters: lit, project, on color, on ink, lifted, scrub.
+ */
+
 .icon {
-  width: 22px;
-  height: 22px;
+  --s: 22;
+  --nudge: calc(var(--nudge-px) * 256px / var(--s));
+  width: calc(var(--s) * 1px);
+  height: calc(var(--s) * 1px);
   flex-shrink: 0;
+  overflow: visible;
+}
+
+.icon__light {
+  fill: var(--light-fixed, var(--light, var(--light-rest)));
+  transform: translate(calc(var(--shift, 0) * var(--nudge)), calc(var(--shift, 0) * var(--nudge)));
+  transition:
+    fill 140ms var(--ease),
+    transform 280ms var(--spring);
+}
+
+.icon__line {
+  fill: currentColor;
+  /* An optical boost: the line renders about 1.4–1.55 px from 13 to 24 px. */
+  stroke: currentColor;
+  stroke-width: max(0px, calc(1.25px - var(--s) * 0.05px));
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .icon--sm {
-  width: 17px;
-  height: 17px;
+  --s: 18;
+}
+
+.icon--xs {
+  --s: 15;
+}
+
+/* LIT: the one thing that is on, in my color, slipped off-register */
+.is-lit,
+.tab.is-on,
+.tab.is-scrub,
+.navitem.is-on,
+.echip.is-open,
+.option.is-on,
+.iconbtn[aria-pressed='true'],
+.iconpick__btn.is-on {
+  --light: var(--me-light);
+  --shift: 1;
+}
+
+/* PROJECT: the light is the project's color (lineVars sets --c) */
+.icon--project {
+  --light: var(--c);
+  color: var(--ink);
+}
+
+.tab .icon--project,
+.navitem .icon--project {
+  --light: color-mix(in srgb, var(--c) 45%, transparent);
+  color: inherit;
+}
+
+.tab.is-on .icon--project,
+.tab.is-scrub .icon--project,
+.navitem.is-on .icon--project,
+.sidebar__label + .sidebar__nav .icon--project,
+.iconpick__btn.is-on {
+  --light: var(--c);
+}
+
+/* ON COLOR: the surface already is the light */
+.ccard,
+.pmark,
+.echip.is-urgent,
+.option.is-urgent,
+.on-color {
+  --light: var(--light-on-color);
+  --shift: 0;
+}
+
+/* ON INK: rest on black */
+.iconbtn--solid,
+.token--ink,
+.toast,
+.on-ink {
+  --light: var(--light-on-ink);
+}
+
+/* LIFTED: while dragging, the light separates further */
+.is-lifted {
+  --nudge-px: 2.5;
+  --shift: 1;
+}
+
+/* SCRUB: while the bar is held, only the tab under the finger is lit */
+.tabbar.is-scrubbing .tab.is-on:not(.is-scrub) {
+  --light: var(--light-rest);
+  --shift: 0;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.tabbar.is-scrubbing .tab.is-on:not(.is-scrub) .icon--project {
+  --light: color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.tab.is-scrub {
+  color: var(--text);
+}
+
+/* .tabbar raises it above .tab:active .icon, since a finger is down while scrubbing */
+.tabbar .tab.is-scrub .icon {
+  transform: translateY(-3px) scale(1.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon__light {
+    transition: none;
+  }
 }
 
 .hint {
@@ -409,14 +522,19 @@
 .urgent {
   display: inline-flex;
   align-items: center;
+  gap: 3px;
   height: 22px;
-  padding: 0 9px;
+  padding: 0 9px 0 6px;
   border-radius: 999px;
   background: var(--lemon);
   color: var(--ink);
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+.urgent .icon {
+  --s: 14;
 }
 
 .tag {
@@ -779,8 +897,7 @@ button.ccard:active {
 
 .meta .icon,
 .row__meta > .icon {
-  width: 14px;
-  height: 14px;
+  --s: 15;
 }
 
 .meta--soft {
@@ -1051,8 +1168,7 @@ button.ccard:active {
 }
 
 .addrow__plus .icon {
-  width: 13px;
-  height: 13px;
+  --s: 13;
 }
 
 .addrow input {
@@ -1135,8 +1251,7 @@ button.ccard:active {
 }
 
 .token .icon {
-  width: 15px;
-  height: 15px;
+  --s: 15;
   color: var(--text-2);
 }
 
@@ -1159,10 +1274,12 @@ button.ccard:active {
 }
 
 .token__x {
-  width: 13px !important;
-  height: 13px !important;
   opacity: 0.55;
   margin-right: -3px;
+}
+
+.icon.token__x {
+  --s: 13;
 }
 
 .token--split {
@@ -1179,8 +1296,8 @@ button.ccard:active {
 }
 
 .token--split > .token__x {
-  width: 30px !important;
-  height: 34px !important;
+  width: 30px;
+  height: 34px;
   padding: 0;
   display: grid;
   place-items: center;
@@ -1226,6 +1343,7 @@ button.ccard:active {
 }
 
 .echip .icon {
+  --s: 18;
   color: var(--text-3);
 }
 
@@ -1234,7 +1352,7 @@ button.ccard:active {
 }
 
 .echip.is-set .icon {
-  color: var(--text-2);
+  color: var(--ink);
 }
 
 .echip.is-open {
@@ -1249,16 +1367,6 @@ button.ccard:active {
 .echip.is-urgent {
   background: var(--lemon);
   color: var(--ink);
-}
-
-.echip__diamond {
-  width: 8px;
-  height: 8px;
-  margin: 0 3px;
-  background: currentColor;
-  transform: rotate(45deg);
-  border-radius: 1.5px;
-  opacity: 0.7;
 }
 
 .panel {
@@ -1363,8 +1471,7 @@ button.ccard:active {
 }
 
 .option .icon {
-  width: 15px;
-  height: 15px;
+  --s: 18;
   color: var(--text-2);
 }
 
@@ -1541,8 +1648,7 @@ button.ccard:active {
 }
 
 .optrow__icon {
-  width: 20px;
-  height: 20px;
+  --s: 20;
   color: var(--text-2);
 }
 
@@ -1836,11 +1942,12 @@ button.ccard:active {
 
 .tab {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
+  display: grid;
+  /* A fixed icon row, so labels line up whether a tab shows an icon or an emoji tile. */
+  grid-template-rows: 28px auto;
+  place-items: center;
+  align-content: center;
+  row-gap: 2px;
   font-size: 11.5px;
   font-weight: 500;
   color: var(--text-3);
@@ -1849,8 +1956,7 @@ button.ccard:active {
 }
 
 .tab .icon {
-  width: 23px;
-  height: 23px;
+  --s: 24;
   transition: transform 220ms var(--spring);
 }
 
@@ -1862,28 +1968,6 @@ button.ccard:active {
   text-overflow: ellipsis;
 }
 
-.tab__swatch {
-  width: 19px;
-  height: 22px;
-  margin: 0 2px;
-  border-radius: 5px;
-  background: var(--c);
-  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.08);
-  transform: rotate(-6deg);
-  opacity: 0.75;
-  transition:
-    transform 220ms var(--spring),
-    opacity 160ms var(--ease);
-}
-
-.tab.is-on .tab__swatch {
-  opacity: 1;
-  transform: rotate(-6deg) scale(1.06);
-  box-shadow:
-    inset 0 0 0 1.5px var(--ink),
-    0 2px 6px rgb(10 10 4 / 0.12);
-}
-
 .tab:active .icon {
   transform: scale(0.9);
 }
@@ -1891,10 +1975,6 @@ button.ccard:active {
 .tab.is-on {
   color: var(--text);
   font-weight: 600;
-}
-
-.tab.is-on .icon {
-  stroke-width: 2.1;
 }
 
 .tab__live {
@@ -1982,8 +2062,7 @@ button.ccard:active {
 }
 
 .navitem .icon {
-  width: 20px;
-  height: 20px;
+  --s: 20;
 }
 
 .navitem .dot {
@@ -2187,13 +2266,6 @@ button.ccard:active {
   transition: transform 220ms var(--spring);
 }
 
-.pmark .icon {
-  width: 15px;
-  height: 15px;
-  stroke-width: 1.9;
-  transform: rotate(6deg);
-}
-
 .pmark .glyph-emoji {
   font-size: 13px;
   line-height: 1;
@@ -2203,11 +2275,6 @@ button.ccard:active {
 .pmark--sm {
   --size: 20px;
   border-radius: 6px;
-}
-
-.pmark--sm .icon {
-  width: 13px;
-  height: 13px;
 }
 
 .pmark--sm .glyph-emoji {
@@ -2226,28 +2293,18 @@ button.ccard:active {
     0 2px 6px rgb(10 10 4 / 0.12);
 }
 
-.tab .pmark .icon {
-  width: 15px;
-  height: 15px;
-}
-
 .ccard__glyph {
+  --s: 24;
   flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  stroke-width: 1.7;
 }
 
 .ccard__glyph.glyph-emoji {
-  width: auto;
-  height: auto;
   font-size: 22px;
   line-height: 1;
 }
 
 .ccard__lock {
-  width: 13px;
-  height: 13px;
+  --s: 14;
   margin-right: 4px;
   vertical-align: -1px;
   display: inline-block;
@@ -2276,12 +2333,12 @@ button.ccard:active {
 }
 
 .iconpick__btn .icon {
-  width: 20px;
-  height: 20px;
+  --s: 20;
 }
 
+/* The chosen cell previews the bar: ink line, the project's color as the light. */
 .iconpick__btn.is-on {
-  background: var(--c);
+  background: var(--card);
   color: var(--ink);
   box-shadow: inset 0 0 0 1.5px var(--ink);
 }

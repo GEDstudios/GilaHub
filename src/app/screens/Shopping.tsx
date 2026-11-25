@@ -13,7 +13,7 @@ import { useHub, usePartnerShopping, useRt } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
 import { notifyMembers } from '../runtime';
 import { haptic } from '../ui/haptics';
-import { Icon } from '../ui/Icon';
+import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Diamond, Empty, ListBullet, Section, Seg } from '../ui/primitives';
 import { back } from '../router';
@@ -329,7 +329,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               <ShopList
                 groups={[
                   ...(v.urgent.length ? [{ key: 'urgent', label: null, items: v.urgent }] : []),
-                  ...v.groups.map((g) => ({ key: g.key, label: g.label, items: g.items })),
+                  ...v.groups.map((g) => ({ key: g.key, label: g.label, items: g.items, icon: g.flavor === 'grocery' ? AISLE_ICON[g.category] : undefined, emoji: g.emoji })),
                 ]}
                 onTick={tick}
                 onOpen={openItem}
@@ -396,7 +396,28 @@ interface ShopGroup {
   /** null = the Urgent group */
   label: string | null;
   items: Row[];
+  /** The aisle's glyph; aisles without one keep their emoji. */
+  icon?: IconName;
+  emoji?: string;
 }
+
+/** Grocery aisles drawn as icons in their card's header. */
+const AISLE_ICON: Partial<Record<string, IconName>> = {
+  produce: 'carrot',
+  bakery: 'bread',
+  dairy: 'cheese',
+  meat: 'fish',
+  deli: 'bowl',
+  pantry: 'jar',
+  snacks: 'cookie',
+  frozen: 'snowflake',
+  drinks: 'drink',
+  household: 'spray',
+  personal: 'soap',
+  baby: 'baby',
+  pets: 'paw',
+  other: 'cart',
+};
 
 /** Sortable ids are scoped to their group: an urgent item appears twice (Urgent + its aisle). */
 const sid = (group: string, id: string) => `${group}|${id}`;
@@ -460,6 +481,13 @@ function ShopList({
           <h2 className="aisle__head">
             {g.label ? (
               <>
+                {g.icon ? (
+                  <Icon name={g.icon} />
+                ) : g.emoji ? (
+                  <span className="aisle__emoji" aria-hidden="true">
+                    {g.emoji}
+                  </span>
+                ) : null}
                 {g.label}
                 <span className="num">{g.items.length}</span>
               </>

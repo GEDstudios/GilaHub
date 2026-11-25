@@ -394,6 +394,17 @@ button.projcard:active {
   color: var(--text-3);
 }
 
+.aisle__head > .icon {
+  --s: 20;
+}
+
+.aisle__emoji {
+  width: 20px;
+  font-size: 15px;
+  line-height: 1;
+  text-align: center;
+}
+
 .results .aisle__head {
   margin-top: 22px;
 }
@@ -996,8 +1007,7 @@ button.projcard:active {
 }
 
 .bar__btn .icon {
-  width: 16px;
-  height: 16px;
+  --s: 16;
 }
 
 .bar .tokens {
@@ -1099,6 +1109,11 @@ button.projcard:active {
   font-size: 13px;
   color: var(--text-3) !important;
   font-variant-numeric: tabular-nums;
+}
+
+.about .about__credit {
+  font-size: 12px;
+  color: var(--text-3);
 }
 
 /* The Urgent card: a soft lemon wash; the same items also sit in their aisle with an Urgent tag. */

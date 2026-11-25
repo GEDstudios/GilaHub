@@ -21,7 +21,7 @@ import { Shopping } from './screens/Shopping';
 import { SyncDot, Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
-import { Logo } from './ui/primitives';
+import { lightVar, Logo } from './ui/primitives';
 import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, tabsOf, type TabDef } from './tabs';
 import { openCount, todayRef, todayView } from './views';
@@ -159,11 +159,15 @@ function Duties() {
   const { openSheet, toast } = useOverlays();
   const me = hub.me();
 
+  const partnerColor = hub.partner()?.color;
   useEffect(() => {
     if (!me) return;
     const root = document.documentElement.style;
     root.setProperty('--me', `var(--${me.color})`);
-  }, [me?.color, me]);
+    // Icons light up in my color; my partner's things carry theirs (docs/03, Icons).
+    root.setProperty('--me-light', lightVar(me.color));
+    root.setProperty('--them', partnerColor ? lightVar(partnerColor) : 'var(--tile-2)');
+  }, [me?.color, me, partnerColor]);
 
   useEffect(() => {
     void updateBadge(todayView(hub, todayRef()).dueCount, prefs.badge);

@@ -29,7 +29,7 @@ export type Field = 'when' | 'repeat' | 'remind' | 'who' | 'vis' | 'urgent';
 
 export const visLabel = (v: VisChoice, partner: string | undefined): string =>
   v === 'ours' ? 'Ours' : v === 'mine' ? 'Mine' : v === 'private' ? 'Only me' : `${partner ?? 'Their'}’s`;
-export const VIS_ICON: Record<VisChoice, IconName> = { ours: 'ours', mine: 'mine', theirs: 'user', private: 'lock' };
+export const VIS_ICON: Record<VisChoice, IconName> = { ours: 'ours', mine: 'mine', theirs: 'theirs', private: 'lock' };
 
 export const ruleShort = (r: RepeatRule) => describeRule(r, (n) => weekdayName(n)).replace(" after it's done", '');
 
@@ -134,7 +134,7 @@ export function InlineEditor({
           aria-pressed={value.urgent}
           disabled={readOnly}
         >
-          <span className="echip__diamond" aria-hidden="true" />
+          <Icon name="urgent" className="icon--sm" />
           <span>Urgent</span>
         </button>,
       );

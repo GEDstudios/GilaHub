@@ -8,7 +8,7 @@ import { setPrefs, usePrefs } from '../prefs';
 import { back } from '../router';
 import { disablePush, enablePush, isIOS, isStandalone, pushState, type PushState } from '../runtime';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Logo, Section, Switch } from '../ui/primitives';
+import { Avatar, Band, lightVar, Logo, Section, Switch } from '../ui/primitives';
 
 const PUSH_TEXT: Record<PushState, string> = {
   on: 'On for this device',
@@ -121,6 +121,7 @@ export function Settings() {
               onChange={(c) => {
                 hub.upsertMember(me.id, { color: c });
                 document.documentElement.style.setProperty('--me', `var(--${c})`);
+                document.documentElement.style.setProperty('--me-light', lightVar(c));
               }}
             />
           </div>
@@ -218,6 +219,7 @@ export function Settings() {
               Check for updates
             </button>
           </p>
+          <p className="about__credit">Icons: Phosphor (MIT)</p>
         </div>
       </div>
     </>

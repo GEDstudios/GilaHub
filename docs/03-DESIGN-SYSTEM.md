@@ -32,11 +32,35 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 | **Color card** | Radius 24–30, the project color, serif title top-left, a sentence bottom-left, an optional black badge top-right. |
 | **Rows** | One gray tile (radius 20) per group, rows 58 px with hairline dividers. A thin 24 px check ring; done fills with the project color. Done rows are struck through in gray. |
 | **Add row** | At the end of each list: a dashed plus and an input. It lifts into a white card while you type, and shows what it understood as chips. |
-| **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open. Urgent is lemon. |
+| **Chips** | 38 px gray pills: gray text when unset, ink when set, black when open (its icon lit in my color). Urgent is lemon, with a lightning icon. |
 | **Panel** | Opens under a chip: white, radius 22, soft shadow, with 36 px option pills (the chosen one is black). |
 | **Strips** | Overlapping bands (−16 px) with a big serif number and a small label. |
 | **Tab bar** | A floating white bar, 4 tabs, no central button. On desktop, a light sidebar with a black "New" pill. |
 | **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", project settings and pickers. |
+
+## Icons — Gila Duo
+
+Every icon is an **ink line** and a solid **light** behind it, drawn from Phosphor Duotone (MIT, see [THIRD-PARTY](THIRD-PARTY.md)) on a 256 grid. The light rests as a faint ink tint and switches on, in your color, for the one thing that is on. Guy's icons light lemon, Hila's light pink.
+
+| State | Line | Light | Offset |
+|---|---|---|---|
+| Rest | text-3 in chips and tabs, text-2 in rows | ink 7% | 0 |
+| Set (has a value) | ink | ink 7% | 0 |
+| **Lit**: active tab or nav item, open chip, picked option, pressed icon button, chosen picker cell | ink (canvas on ink) | `--me-light` (my color) | 1.25 px down-right, springs in over 280 ms |
+| Project identity (lists, sidebar, bar editor) | ink | the project's color | 0 |
+| Project in the tab bar or sidebar, inactive | text-3 | the project's color at 45% | 0 |
+| On color (folder cards, the urgent chip and tag, emoji tiles) | ink | ink 12% | never |
+| On ink (the solid button, ink tokens, toasts) | canvas | canvas 16% | 0 |
+| Whose (`mine`, `theirs`, `heart-fill`) | as context | mine, my partner's color, pink: always | follows state |
+| Control (plus, check, x, chevrons, arrows, more, grip, undo, refresh) | as context | none: the button is the light | n/a |
+
+- **One lit per group.** Only the active tab, the open chip, the picked option, a pressed icon button or the chosen icon cell lights up. Chips that merely have a value, and settings rows whose switch is on, stay at rest.
+- **Controls are line only.** Their button is the light.
+- **No light-only signals.** Lemon on white is about 1.1:1, so "on" also changes the line color, the label weight and `aria-current` / `aria-pressed`.
+- **The offset appears only when lit** (and grows to 2.5 px while a row is lifted, `.is-lifted`).
+- **Privacy family:** Ours is two overlapping circles whose shared lens is the light; Mine fills my circle in my color; my partner's fills theirs in their color; Only me is a lock.
+- **Sizes** are set with `--s` (px), never width/height: 24 tab bar and folder cards · 22 default (icon buttons) · 20 sidebar, settings rows, icon picker, aisle headers · 18 chips and options (`.icon--sm`) · 16 bar editor buttons · 15 meta and tokens (`.icon--xs`) · 14 card lock and the urgent tag · 13 add-row plus and token ×. Never above 28 px: the line gets too heavy.
+- **Adding an icon:** add one row to `MAP` in [`scripts/build-glyphs.mjs`](../scripts/build-glyphs.mjs) and run `npm run glyphs`. Never hand-edit `src/app/ui/icons.gen.ts`. Use `<Icon name="…" />`; `lit` lights it when no parent state does.
 
 ## Motion
 

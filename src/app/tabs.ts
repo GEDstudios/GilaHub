@@ -19,7 +19,7 @@ export interface TabDef {
 
 export function pinOptions(hub: Hub): TabDef[] {
   return [
-    { key: 'shop', label: 'Shopping', path: '/shop', icon: 'bag' },
+    { key: 'shop', label: 'Shopping', path: '/shop', icon: 'basket' },
     { key: 'chores', label: 'Chores', path: '/chores', icon: 'sparkle' },
     ...hub.lists().map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
@@ -52,7 +52,7 @@ export function tabsOf(hub: Hub): TabDef[] {
   return [
     { key: 'today', label: 'Today', path: '/', icon: 'sun' },
     ...pinsOf(hub).map((k) => opts.get(k)!),
-    { key: 'projects', label: 'Projects', path: '/lists', icon: 'lines' },
+    { key: 'projects', label: 'Projects', path: '/lists', icon: 'folders' },
   ];
 }
 

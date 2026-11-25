@@ -52,6 +52,15 @@
   /* Me — set at runtime from my color */
   --me: var(--lemon);
 
+  /* Icons (Gila Duo): the light at rest, on a color, on ink; whose lights (set at runtime) */
+  --light-rest: rgb(10 10 4 / 0.07);
+  --light-on-color: rgb(10 10 4 / 0.12);
+  --light-on-ink: rgb(250 250 248 / 0.16);
+  --me-light: var(--lemon);
+  --them: var(--tile-2);
+  /* The off-register slip of a lit light, in screen px */
+  --nudge-px: 1.25;
+
   /* Type */
   --font: 'Figtree Variable', 'Heebo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --serif: 'Newsreader Variable', 'Frank Ruhl Libre Variable', Georgia, 'Times New Roman', serif;

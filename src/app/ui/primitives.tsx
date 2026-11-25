@@ -6,6 +6,9 @@ import { Icon, type IconName } from './Icon';
 export const lineVars = (c: LineColor | undefined): CSSProperties =>
   ({ '--c': c ? `var(--${c})` : 'var(--tile-2)', '--c-soft': c ? `var(--${c}-soft)` : 'var(--tile)' }) as CSSProperties;
 
+/** A person's icon light (--me-light, --them): their color, with lemon standing in for ink. */
+export const lightVar = (c: LineColor): string => `var(--${c === 'ink' ? 'lemon' : c})`;
+
 const firstGrapheme = (s: string): string => {
   const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
   const t = s.trim();
@@ -42,6 +45,7 @@ export function ListBullet({ list, size = 'sm' }: { list: Pick<List, 'name' | 'c
 export function Diamond({ title = 'Urgent' }: { title?: string }) {
   return (
     <span className="urgent" title={title} aria-label={title} role="img">
+      <Icon name="urgent" className="icon--xs on-color" />
       Urgent
     </span>
   );

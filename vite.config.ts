@@ -49,6 +49,8 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: false,
     assetsInlineLimit: 0,
+    // Keep /*! … */ and @license notices (React, the Phosphor-derived glyphs) in the shipped bundle.
+    rolldownOptions: { output: { comments: { legal: true } } },
   },
   server: {
     port: 5173,

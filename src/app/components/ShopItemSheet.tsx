@@ -57,7 +57,7 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
           </button>
         </span>
         <button type="button" className={`option ${item.urgent ? 'is-urgent' : ''}`} onClick={() => editable && hub.updateItem(id, { urgent: !item.urgent })} aria-pressed={!!item.urgent}>
-          <span className="echip__diamond" aria-hidden="true" /> Urgent
+          <Icon name="urgent" className="icon--sm" /> Urgent
         </button>
         <button
           type="button"

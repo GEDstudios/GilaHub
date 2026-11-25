@@ -44,7 +44,7 @@ export function BarEditor() {
           );
         })}
         <div className="optrow optrow--fixed">
-          <Icon name="lines" className="optrow__icon" />
+          <Icon name="folders" className="optrow__icon" />
           <span className="optrow__text">Projects</span>
         </div>
       </div>
