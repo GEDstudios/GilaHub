@@ -31,7 +31,8 @@
  *
  * Starting a drag
  *   - a grip ([data-grip]): pointer, after 3px, no delay (the grip is touch-action:none)
- *   - touch on the row body: a 220ms long-press within 6px; moving first scrolls the page
+ *   - touch on the row body: a 320ms long-press within 6px; moving first scrolls the page
+ *     (shorter would catch an unhurried tap, ~250ms, and lift the row instead of opening it)
  *   - mouse on the row body: after 4px
  *   - keyboard, from a focused grip: Space/Enter picks up, arrows move, Space drops, Esc cancels
  *   Buttons, links, inputs, switches and the check never start one. A button marked
@@ -42,7 +43,9 @@
  *   resting lean plus a velocity tilt (±3deg), shadow --lift-3, and the `is-lifted` class. The
  *   tilt is written to --lean on the overlay in rAF, never through React state. The source
  *   becomes a dashed ghost slot (`is-ghost`). Neighbours slide 260ms with a little overshoot;
- *   the drop settles 320ms to its landing lean. Haptics: lift, select on each new spot, drop.
+ *   the drop glides 320ms into the slot with a landing beat (gives to 0.975, swings back past
+ *   its lean, settles). Haptics: lift, select on each new spot, drop. Auto-scroll starts only
+ *   at the floating bar's top edge (scrollEdge).
  *   Reduced motion: no tilt, scale or overshoot; the shadow and the slot stay.
  */
 import {
@@ -101,6 +104,17 @@ const ROW_X = 0.15;
 const REFUSE_AT = 24;
 
 const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Where auto-scroll starts, as a fraction of the window (top and bottom alike): at the floating
+ * bar's top edge, so a pause to aim over the last rows above the bar never scrolls the page.
+ */
+function scrollEdge(): number {
+  if (typeof window === 'undefined' || !window.innerHeight) return 0.1;
+  const bar = document.querySelector('.tabbar:not(.tabbar--preview)')?.getBoundingClientRect();
+  const under = bar && bar.height ? window.innerHeight - bar.top : 0;
+  return Math.min(0.14, Math.max(0.08, (under + 12) / window.innerHeight));
+}
 
 // ---------------------------------------------------------------- sensors
 
@@ -197,16 +211,20 @@ const dropAnimation: DropAnimationFunction = async ({ active, dragOverlay, trans
   ];
   const lift = dragOverlay.node.firstElementChild;
   if (lift instanceof HTMLElement && !quiet) {
+    // The landing beat, the same whatever the distance: it gives, swings back past its lean, settles.
     const cs = getComputedStyle(lift);
-    const land = lift.style.getPropertyValue('--land') || '0deg';
+    const land = parseFloat(lift.style.getPropertyValue('--land')) || 0;
     const bg = cs.getPropertyValue('--land-bg').trim();
+    const to = bg ? { backgroundColor: bg } : {};
     runs.push(
       lift.animate(
         [
-          { transform: cs.transform, boxShadow: cs.boxShadow, ...(bg ? { backgroundColor: cs.backgroundColor } : {}) },
-          { transform: `rotate(${land}) scale(1)`, boxShadow: 'none', ...(bg ? { backgroundColor: bg } : {}) },
+          { offset: 0, easing: 'cubic-bezier(.3,0,.5,1)', transform: cs.transform, boxShadow: cs.boxShadow, ...(bg ? { backgroundColor: cs.backgroundColor } : {}) },
+          { offset: 0.55, easing: 'cubic-bezier(.3,0,.4,1)', transform: `rotate(${land - 0.6}deg) scale(0.975)`, boxShadow: 'none', ...to },
+          { offset: 0.8, easing: 'ease-out', transform: `rotate(${land + 0.2}deg) scale(1.01)`, boxShadow: 'none', ...to },
+          { offset: 1, transform: `rotate(${land}deg) scale(1)`, boxShadow: 'none', ...to },
         ],
-        { duration, easing, fill: 'forwards' },
+        { duration, easing: 'linear', fill: 'forwards' },
       ),
     );
   }
@@ -302,7 +320,7 @@ export function Sortable({
 }: SortableProps) {
   const sensors = useSensors(
     useSensor(GripSensor, { activationConstraint: { distance: 3 } }),
-    useSensor(RowTouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
+    useSensor(RowTouchSensor, { activationConstraint: { delay: 320, tolerance: 6 } }),
     useSensor(RowMouseSensor, { activationConstraint: { distance: 4 } }),
     useSensor(GripKeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
@@ -445,7 +463,7 @@ export function Sortable({
       collisionDetection={closestCenter}
       modifiers={modifiers}
       measuring={MEASURING}
-      autoScroll={{ threshold: { x: 0, y: 0.18 }, acceleration: 12 }}
+      autoScroll={{ threshold: { x: 0, y: scrollEdge() }, acceleration: 8 }}
       accessibility={{
         announcements,
         screenReaderInstructions: {
