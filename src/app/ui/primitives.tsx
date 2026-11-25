@@ -4,7 +4,7 @@ import { haptic } from './haptics';
 import { Icon } from './Icon';
 
 export const lineVars = (c: LineColor | undefined): CSSProperties =>
-  ({ '--c': `var(--${c ?? 'pebble'})`, '--ci': `var(--${c ?? 'pebble'}-ink)` }) as CSSProperties;
+  ({ '--c': c ? `var(--${c})` : 'var(--surface-2)', '--ci': c ? `var(--${c}-ink)` : 'var(--text)' }) as CSSProperties;
 
 const firstGrapheme = (s: string): string => {
   const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
@@ -50,13 +50,13 @@ export function ListBullet({ list, size }: { list: Pick<List, 'name' | 'color' |
 
 export function PersonBullet({ member, size = 'sm' }: { member: Member | undefined; size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }) {
   if (!member) return null;
-  return <Bullet color={member.color} label={member.name} size={size} title={member.name} />;
+  return <Bullet color={member.color} label={member.name} size={size} title={member.name} className="bullet--round" />;
 }
 
 export function Diamond({ title = 'Urgent' }: { title?: string }) {
   return (
     <span className="diamond" title={title} aria-label={title} role="img">
-      <span>!</span>
+      Urgent
     </span>
   );
 }
@@ -80,7 +80,7 @@ export function Check({
     <button
       type="button"
       className={`check ${on ? 'is-on' : ''} ${square ? 'check--square' : ''}`}
-      style={lineVars(color ?? 'pebble')}
+      style={lineVars(color)}
       role="checkbox"
       aria-checked={on}
       aria-label={label}
@@ -117,43 +117,51 @@ export function Band({
   title,
   sub,
   lead,
+  top,
   actions,
   crumbs,
   mini,
   onBack,
   className,
+  style,
 }: {
-  className?: string;
   title: ReactNode;
   sub?: ReactNode;
+  /** Beside the title (a check, a project mark). */
   lead?: ReactNode;
+  /** Top-left corner (an avatar) when there is no Back button. */
+  top?: ReactNode;
   actions?: ReactNode;
   crumbs?: ReactNode;
   mini?: string;
   onBack?: () => void;
+  className?: string;
+  style?: CSSProperties;
 }) {
   const [ref, past] = useScrolledPast<HTMLElement>();
   return (
     <>
-      <header className={`band ${className ?? ''}`} ref={ref}>
-        <div className="band__row">
-          <div style={{ minWidth: 0 }}>
-            {crumbs}
-            <div className="band__lead">
-              {onBack ? (
-                <button type="button" className="iconbtn" onClick={onBack} aria-label="Back" style={{ marginLeft: -10 }}>
-                  <Icon name="arrow-back" />
-                </button>
-              ) : null}
-              {lead}
-              <h1 className="band__title" dir="auto">
-                {title}
-              </h1>
-            </div>
-            {sub ? <p className="band__sub">{sub}</p> : null}
+      <header className={`band ${className ?? ''}`} ref={ref} style={style}>
+        {onBack || top || actions ? (
+          <div className="band__top">
+            {onBack ? (
+              <button type="button" className="iconbtn" onClick={onBack} aria-label="Back">
+                <Icon name="arrow-back" />
+              </button>
+            ) : (
+              top
+            )}
+            {actions ? <div className="band__actions">{actions}</div> : null}
           </div>
-          {actions ? <div className="band__actions">{actions}</div> : null}
+        ) : null}
+        {crumbs}
+        <div className="band__lead">
+          {lead}
+          <h1 className="band__title" dir="auto">
+            {title}
+          </h1>
         </div>
+        {sub ? <p className="band__sub">{sub}</p> : null}
       </header>
       <div className={`miniband ${past ? 'is-on' : ''}`} aria-hidden={!past}>
         {onBack ? (
@@ -164,6 +172,27 @@ export function Band({
         <span dir="auto">{mini ?? (typeof title === 'string' ? title : '')}</span>
       </div>
     </>
+  );
+}
+
+/** A pastel pill, e.g. a project tag. */
+export function Tag({ color, children, small }: { color?: LineColor; children: ReactNode; small?: boolean }) {
+  return (
+    <span className={`tag ${small ? 'tag--sm' : ''}`} style={lineVars(color)}>
+      {children}
+    </span>
+  );
+}
+
+/** A name tag with a cursor — two people working in the same space. */
+export function NameTag({ name, color, style }: { name: string; color: LineColor; style?: CSSProperties }) {
+  return (
+    <span className="nametag" style={{ ...lineVars(color), ...style }}>
+      <svg className="nametag__cursor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M5 3l14 7-6 2-2 6z" fill="currentColor" stroke="var(--bg)" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+      <span dir="auto">{name}</span>
+    </span>
   );
 }
 
@@ -239,12 +268,11 @@ export function Empty({ mark, title, text, children }: { mark?: ReactNode; title
   );
 }
 
-/** Two route bullets: the Gila Hub mark. */
-export function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' | 'xl' | 'hero' }) {
+/** The wordmark: "gila hub" set in a soft, heavy serif. */
+export function Logo({ size = 28, short }: { size?: number; short?: boolean }) {
   return (
-    <span className="bullets" aria-label="Gila Hub" role="img">
-      <Bullet color="lime" label="G" size={size} />
-      <Bullet color="tangerine" label="H" size={size} />
+    <span className="wordmark" style={{ fontSize: size }} aria-label="Gila Hub" role="img">
+      {short ? 'gila' : 'gila hub'}
     </span>
   );
 }
@@ -256,7 +284,7 @@ export function StepRing({ done, total }: { done: number; total: number }) {
   const p = total ? done / total : 0;
   return (
     <svg className="steps__ring" viewBox="0 0 14 14" aria-hidden="true">
-      <circle cx="7" cy="7" r={r} fill="none" stroke="var(--rule-strong)" strokeWidth="2.2" />
+      <circle cx="7" cy="7" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="2.2" />
       <circle
         cx="7"
         cy="7"

@@ -4,13 +4,12 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 0 · Simplicity & clarity: the rules every feature obeys
 
-- **●** One question at onboarding (your name; tap a color). No account, no email, no tour.
-- **●** The tutorial *is* content. Your private **Start here** list holds six lessons you tick off ("Tap the circle", "Hold and drag me").
+- **●** Onboarding is three light steps: your name, your color, and the projects you want (tap template cards, or start empty). No account, no email, no tour.
 - **●** A new item is a circle and a title. Details stay out of sight until the item is opened.
-- **●** Four tabs: **Today · Shopping · Chores · Lists**. One **+** per screen.
+- **●** Four tabs: **Today · Shopping · Chores · Projects**, plus one black **+** that does the obvious thing on each screen.
 - **●** Quick add shows what it understood as chips. Tap a chip to undo it.
 - **●** No red, no badge spam, no streaks. Late items say "since Tue".
-- **●** Starter lists show the three privacy levels by example. *Ours*: To do, Groceries, Home stuff, Chores. *Mine*: your own list. *Only me*: Start here.
+- **●** Nothing is imposed: every project, including shopping and chores, can be renamed, recolored, archived or deleted.
 
 ## 1 · Smart shared grocery list
 
@@ -77,7 +76,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 7 · Gila Hub
 
-- **●** Bold brand: the NYCTA-manual steal, route-bullet logo **G·H**, black-band signage, line colors. See [Brand](02-BRAND.md).
+- **●** Bold brand after Tasky by H3Y Lab: color cards, stacked strips, soft-serif wordmark, name-tag cursors. See [Brand](02-BRAND.md).
 
 ## 8 · Extras we think you'll love
 

@@ -341,7 +341,7 @@ export function ItemScreen({ id }: { id: string }) {
                         <Icon name={l.thankedBy ? 'heart-fill' : 'heart'} />
                       </button>
                     ) : l.thankedBy ? (
-                      <span className="meta" style={{ color: 'var(--tomato)' }}>
+                      <span className="meta" style={{ color: '#ff3d7f' }}>
                         <Icon name="heart-fill" className="icon--sm" /> thanked
                       </span>
                     ) : null}

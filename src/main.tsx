@@ -1,4 +1,6 @@
-import '@fontsource-variable/inter';
+import '@fontsource-variable/outfit';
+import '@fontsource-variable/fraunces/soft.css';
+import '@fontsource-variable/frank-ruhl-libre';
 import '@fontsource-variable/heebo';
 import './styles/tokens.css';
 import './styles/base.css';

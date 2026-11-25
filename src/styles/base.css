@@ -8,18 +8,18 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
-  background: var(--paper);
+  background: var(--bg);
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font);
   font-size: var(--fs-body);
   line-height: 1.45;
-  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  font-feature-settings: normal;
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -61,13 +61,13 @@ svg {
 }
 
 :focus-visible {
-  outline: 3px solid var(--me);
+  outline: 3px solid var(--text);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--me) 35%, transparent);
+  background: color-mix(in srgb, var(--lemon) 70%, transparent);
 }
 
 .num {

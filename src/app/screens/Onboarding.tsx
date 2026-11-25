@@ -1,27 +1,53 @@
 import { useState } from 'react';
+import { PROJECT_TEMPLATES } from '../../core/actions';
 import { formatInviteCode, normalizeInviteCode } from '../../core/ids';
-import type { LineColor } from '../../core/model';
+import { LINE_COLORS, type LineColor } from '../../core/model';
 import { claimInvite, InviteError, type InvitePayload } from '../../core/session';
-import { Swatches } from '../components/pickers';
 import { query } from '../router';
 import { Icon } from '../ui/Icon';
-import { Bullet, Logo } from '../ui/primitives';
+import { lineVars, Logo, NameTag } from '../ui/primitives';
 
 export interface OnboardResult {
   kind: 'new' | 'partner' | 'device';
   name?: string;
   color?: LineColor;
   invite?: InvitePayload;
+  projects?: string[];
 }
 
-type Step = 'welcome' | 'name' | 'code';
+type Step = 'welcome' | 'name' | 'projects' | 'code';
 
-/** One question. No account, no tour. The rest is learned by doing. */
+const SHAPES: Array<{ c: LineColor; style: React.CSSProperties }> = [
+  { c: 'lilac', style: { left: '-6%', top: '14%', width: 70, height: 86, borderRadius: 22, transform: 'rotate(8deg)' } },
+  { c: 'orange', style: { right: '-4%', top: '10%', width: 64, height: 120, borderRadius: 20, transform: 'rotate(-6deg)' } },
+  { c: 'pink', style: { right: '18%', top: '22%', width: 92, height: 64, borderRadius: 20, transform: 'rotate(8deg)' } },
+  { c: 'lemon', style: { left: '14%', top: '26%', width: 160, height: 142, borderRadius: 30, transform: 'rotate(10deg)' } },
+  { c: 'sky', style: { right: '-8%', top: '34%', width: 96, height: 104, borderRadius: '50% 42% 50% 46%' } },
+  { c: 'pink', style: { left: '5%', top: '44%', width: 38, height: 110, borderRadius: 20, transform: 'rotate(-4deg)' } },
+  { c: 'mint', style: { right: '8%', top: '50%', width: 104, height: 76, borderRadius: 22, transform: 'rotate(8deg)' } },
+];
+
+function Splash() {
+  return (
+    <div className="splash" aria-hidden="true">
+      {SHAPES.map((s, i) => (
+        <span key={i} className="splash__shape" style={{ ...lineVars(s.c), ...s.style, animationDelay: `${i * 70}ms` }} />
+      ))}
+      <span className="splash__outline" style={{ left: '32%', top: '36%', width: 54, height: 40, borderRadius: 16 }} />
+      <span className="splash__outline" style={{ right: '12%', top: '49%', width: 100, height: 88, borderRadius: 20, transform: 'rotate(8deg)' }} />
+      <NameTag name="Guy" color="pink" style={{ position: 'absolute', left: '52%', top: '34%' }} />
+      <NameTag name="Hila" color="lemon" style={{ position: 'absolute', left: '28%', top: '55%' }} />
+    </div>
+  );
+}
+
+/** Three light steps: who you are, your color, what you want to keep track of. */
 export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<void> }) {
   const joinParam = query('join');
   const [step, setStep] = useState<Step>(joinParam ? 'code' : 'welcome');
   const [name, setName] = useState('');
-  const [color, setColor] = useState<LineColor>('lime');
+  const [color, setColor] = useState<LineColor>('lemon');
+  const [picked, setPicked] = useState<string[]>(['groceries', 'chores', 'todo']);
   const [code, setCode] = useState(joinParam ? formatInviteCode(normalizeInviteCode(joinParam)) : '');
   const [invite, setInvite] = useState<InvitePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +73,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
       setBusy(false);
       if (inv.kind === 'device') await finish({ kind: 'device', invite: inv });
       else {
-        if (inv.fromColor === color) setColor(inv.fromColor === 'tangerine' ? 'lime' : 'tangerine');
+        if (inv.fromColor === color) setColor(inv.fromColor === 'pink' ? 'lemon' : 'pink');
         setStep('name');
       }
     } catch (e) {
@@ -56,18 +82,22 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     }
   };
 
+  const toggle = (key: string) => setPicked((p) => (p.includes(key) ? p.filter((k) => k !== key) : [...p, key]));
+
   if (step === 'welcome') {
     return (
-      <main className="onboard onboard--dark">
-        <div className="onboard__stripe" />
-        <div className="onboard__hero">
-          <Logo size="hero" />
-          <h1 className="onboard__title">Gila Hub</h1>
-          <p className="onboard__tag">Where our lines meet.</p>
+      <main className="onboard onboard--splash">
+        <div className="onboard__logo">
+          <Logo size={44} />
         </div>
-        <div className="onboard__actions">
-          <button type="button" className="btn btn--onband btn--block onboard__go" onClick={() => setStep('name')}>
-            Start <Icon name="arrow" />
+        <Splash />
+        <div className="onboard__bottom">
+          <h1 className="onboard__headline display">Life together, sorted.</h1>
+          <button type="button" className="btn btn--light btn--block onboard__go" onClick={() => setStep('name')}>
+            Get started
+            <span className="btn__arrow">
+              <Icon name="arrow" className="icon--sm" />
+            </span>
           </button>
           <button type="button" className="onboard__link" onClick={() => setStep('code')}>
             I have a code
@@ -81,7 +111,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     return (
       <main className="onboard">
         <div className="onboard__body">
-          <button type="button" className="iconbtn" onClick={() => setStep('welcome')} aria-label="Back" style={{ marginLeft: -10 }}>
+          <button type="button" className="iconbtn iconbtn--solid" onClick={() => setStep('welcome')} aria-label="Back">
             <Icon name="arrow-back" />
           </button>
           <h1 className="onboard__q">Type the code from the other phone</h1>
@@ -116,32 +146,92 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     );
   }
 
+  if (step === 'projects') {
+    return (
+      <main className="onboard">
+        <div className="onboard__body">
+          <button type="button" className="iconbtn iconbtn--solid" onClick={() => setStep('name')} aria-label="Back">
+            <Icon name="arrow-back" />
+          </button>
+          <p className="onboard__step">2 of 2</p>
+          <h1 className="onboard__q">What do you want to keep track of?</h1>
+          <p className="onboard__lede">Tap to pick. You can add or remove projects any time.</p>
+          <div className="pickgrid">
+            {PROJECT_TEMPLATES.map((t) => {
+              const on = picked.includes(t.key);
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  className={`pickcard ${on ? 'is-on' : ''}`}
+                  style={lineVars(t.color)}
+                  onClick={() => toggle(t.key)}
+                  aria-pressed={on}
+                >
+                  <span className="pickcard__top">
+                    <span className="pickcard__icon">{t.icon}</span>
+                    <span className="pickcard__check">{on ? <Icon name="check" className="icon--sm" /> : null}</span>
+                  </span>
+                  <span className="pickcard__name">{t.name}</span>
+                  <span className="pickcard__blurb">{t.blurb}</span>
+                </button>
+              );
+            })}
+          </div>
+          {error ? <p className="onboard__error">{error}</p> : null}
+          <div className="onboard__actions">
+            <button type="button" className="btn btn--block" disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked })}>
+              {busy ? 'Setting up…' : picked.length ? `Start with ${picked.length} project${picked.length > 1 ? 's' : ''}` : 'Start empty'}
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="onboard">
       <div className="onboard__body">
-        <button type="button" className="iconbtn" onClick={() => setStep(invite ? 'code' : 'welcome')} aria-label="Back" style={{ marginLeft: -10 }}>
+        <button type="button" className="iconbtn iconbtn--solid" onClick={() => setStep(invite ? 'code' : 'welcome')} aria-label="Back">
           <Icon name="arrow-back" />
         </button>
-        {invite?.fromName ? <p className="onboard__invited">{invite.fromName} invited you 👋</p> : null}
-        <h1 className="onboard__q">What’s your name?</h1>
+        {invite?.fromName ? <p className="onboard__invited">{invite.fromName} invited you 👋</p> : <p className="onboard__step">1 of 2</p>}
+        <h1 className="onboard__q">Hey! What should we call you?</h1>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (name.trim()) void finish({ kind: invite ? 'partner' : 'new', name: name.trim(), color, invite: invite ?? undefined });
+            if (!name.trim()) return;
+            if (invite) void finish({ kind: 'partner', name: name.trim(), color, invite });
+            else setStep('projects');
           }}
         >
-          <input className="input input--big" value={name} dir="auto" autoFocus autoComplete="given-name" placeholder="Guy, Hila…" aria-label="Your name" onChange={(e) => setName(e.target.value)} />
+          <input className="input input--big" value={name} dir="auto" autoFocus autoComplete="given-name" placeholder="Your name" aria-label="Your name" onChange={(e) => setName(e.target.value)} />
           <div className="field" style={{ marginTop: 26 }}>
-            <span className="field__label">Pick your line</span>
-            <Swatches value={color} onChange={setColor} label={name || '?'} taken={taken} />
+            <span className="field__label">Pick your color</span>
+            <div className="colorrow" role="radiogroup" aria-label="Color">
+              {LINE_COLORS.filter((c) => c !== 'ink').map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  role="radio"
+                  aria-checked={c === color}
+                  aria-label={c}
+                  disabled={taken.includes(c)}
+                  className={`colordot ${c === color ? 'is-on' : ''}`}
+                  style={lineVars(c)}
+                  onClick={() => setColor(c)}
+                />
+              ))}
+            </div>
           </div>
           <div className="onboard__preview">
-            <Bullet color={color} label={name || '?'} size="lg" />
+            <NameTag name={name.trim() || 'You'} color={color} />
             <span>This is you, everywhere in the app.</span>
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
-          <button type="submit" className="btn btn--me btn--block" style={{ marginTop: 22, ['--me' as string]: `var(--${color})`, ['--me-ink' as string]: `var(--${color}-ink)` }} disabled={!name.trim() || busy}>
-            {busy ? 'Setting up…' : 'Let’s go'} <Icon name="arrow" />
+          <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim() || busy}>
+            {busy ? 'Setting up…' : invite ? 'Join' : 'Next'}
+            <Icon name="arrow" className="icon--sm" />
           </button>
         </form>
       </div>

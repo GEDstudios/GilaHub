@@ -105,5 +105,5 @@ export function applyTheme(theme: Prefs['theme']): void {
   if (theme === 'system') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', theme);
   const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#000000' : '#111111');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0c0c09' : '#fafafa');
 }

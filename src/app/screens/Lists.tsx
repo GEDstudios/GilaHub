@@ -1,75 +1,79 @@
 import { useState } from 'react';
+import { PROJECT_TEMPLATES } from '../../core/actions';
 import type { LineColor, List, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
+import { useAddAction } from '../addAction';
 import { Swatches } from '../components/pickers';
 import { useHub } from '../context';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Bullet, ListBullet, Seg } from '../ui/primitives';
+import { Band, Bullet, lineVars, Seg } from '../ui/primitives';
 import { openCount } from '../views';
-
-const TEMPLATES: Array<{ name: string; icon: string; kind: ListKind; color: LineColor }> = [
-  { name: 'Packing', icon: '🧳', kind: 'tasks', color: 'teal' },
-  { name: 'Movies to watch', icon: '🎬', kind: 'tasks', color: 'plum' },
-  { name: 'Gift ideas', icon: '🎁', kind: 'tasks', color: 'tomato' },
-  { name: 'Trip', icon: '✈️', kind: 'tasks', color: 'royal' },
-  { name: 'Restaurants', icon: '🍜', kind: 'tasks', color: 'tangerine' },
-  { name: 'Pharmacy', icon: '💊', kind: 'shopping', color: 'forest' },
-];
 
 const KIND_LABEL: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
 
-export function NewListSheet({ onClose, initial }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }> }) {
+export function openProject(list: List) {
+  navigate(list.kind === 'shopping' ? { name: 'list', id: list.id } : { name: 'list', id: list.id });
+}
+
+export function NewProjectSheet({ onClose, initial }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }> }) {
   const hub = useHub();
-  const me = hub.me();
   const partner = hub.partner();
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('');
   const [kind, setKind] = useState<ListKind>(initial?.kind ?? 'tasks');
   const [flavor, setFlavor] = useState<ShoppingFlavor>('grocery');
-  const [color, setColor] = useState<LineColor>('royal');
+  const [color, setColor] = useState<LineColor>('sky');
   const [visibility, setVisibility] = useState<Visibility>(initial?.visibility ?? 'shared');
+  const taken = new Set(hub.lists().map((l) => l.name.toLowerCase()));
 
   const create = () => {
     if (!name.trim()) return;
     const id = hub.createList({ name, kind, color, icon, flavor: kind === 'shopping' ? flavor : undefined, visibility });
     onClose();
-    navigate(kind === 'shopping' ? { name: 'shop' } : { name: 'list', id });
+    navigate({ name: 'list', id });
   };
 
   return (
-    <Sheet onClose={onClose} title="New list">
+    <Sheet onClose={onClose} title="New project">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           create();
         }}
       >
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-          <Bullet color={color} label={name || '?'} emoji={icon || undefined} size="xl" />
-          <input className="input input--big" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="List name" />
+        <div className="projpreview" style={lineVars(color)}>
+          <span className="projpreview__icon">{icon || '✦'}</span>
+          <input className="projpreview__name" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
         </div>
         {!name ? (
-          <div className="chips" style={{ marginTop: 14 }}>
-            {TEMPLATES.map((t) => (
-              <button
-                key={t.name}
-                type="button"
-                className="chip"
-                onClick={() => {
-                  setName(t.name);
-                  setIcon(t.icon);
-                  setKind(t.kind);
-                  setColor(t.color);
-                }}
-              >
-                {t.icon} {t.name}
-              </button>
-            ))}
-          </div>
+          <>
+            <span className="field__label" style={{ marginTop: 16 }}>
+              Or start from
+            </span>
+            <div className="chips">
+              {PROJECT_TEMPLATES.filter((t) => !taken.has(t.name.toLowerCase())).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className="chip"
+                  onClick={() => {
+                    setName(t.name);
+                    setIcon(t.icon);
+                    setKind(t.kind);
+                    setColor(t.color);
+                    if (t.flavor) setFlavor(t.flavor);
+                    if (t.visibility) setVisibility(t.visibility);
+                  }}
+                >
+                  {t.icon} {t.name}
+                </button>
+              ))}
+            </div>
+          </>
         ) : null}
         <div className="field">
-          <span className="field__label">Kind</span>
+          <span className="field__label">What kind</span>
           <Seg
             label="Kind"
             value={kind}
@@ -83,7 +87,7 @@ export function NewListSheet({ onClose, initial }: { onClose: () => void; initia
           {kind === 'shopping' ? (
             <div style={{ marginTop: 10 }}>
               <Seg
-                label="Aisles"
+                label="Sorted by"
                 value={flavor}
                 onChange={setFlavor}
                 options={[
@@ -95,9 +99,9 @@ export function NewListSheet({ onClose, initial }: { onClose: () => void; initia
           ) : null}
         </div>
         <div className="field">
-          <span className="field__label">Who can see it</span>
+          <span className="field__label">Who sees it</span>
           <Seg
-            label="Who can see it"
+            label="Who sees it"
             value={visibility}
             onChange={setVisibility}
             options={[
@@ -108,50 +112,40 @@ export function NewListSheet({ onClose, initial }: { onClose: () => void; initia
           />
           <p className="hint" style={{ margin: '8px 2px 0' }}>
             {visibility === 'shared'
-              ? 'We both see and change everything in it.'
+              ? 'You both see and change everything in it.'
               : visibility === 'visible'
                 ? `${partner?.name ?? 'Your partner'} can see it. Only you change it.`
                 : `${partner?.name ?? 'Your partner'} can’t see it exists. Encrypted with your personal key.`}
           </p>
         </div>
         <div className="field">
-          <span className="field__label">Line color</span>
-          <Swatches value={color} onChange={setColor} label={icon || name || me?.name || 'G'} />
+          <span className="field__label">Color</span>
+          <Swatches value={color} onChange={setColor} label={icon || name || '✦'} />
         </div>
-        <button type="submit" className="btn btn--me btn--block" style={{ marginTop: 22 }} disabled={!name.trim()}>
-          Create list
+        <button type="submit" className="btn btn--block" style={{ marginTop: 22 }} disabled={!name.trim()}>
+          Create project
         </button>
       </form>
     </Sheet>
   );
 }
 
-function ListRowLink({ list }: { list: List }) {
+function ProjectCard({ list }: { list: List }) {
   const hub = useHub();
   const n = openCount(hub, list.id);
   return (
-    <li className="row row--tap" onClick={() => navigate(list.kind === 'shopping' ? `/shop` : { name: 'list', id: list.id })}>
-      <ListBullet list={list} size="lg" />
-      <div className="row__body">
-        <span className="row__title" dir="auto">
-          {list.name}
-        </span>
-        <span className="row__meta">
-          <span className="meta">{KIND_LABEL[list.kind]}</span>
-          {list.visibility === 'private' ? (
-            <span className="meta">
-              <Icon name="lock" /> only me
-            </span>
-          ) : null}
-        </span>
-      </div>
-      <span className="row__trail">
-        <span className="num" style={{ fontWeight: 700, color: 'var(--ink-2)' }}>
-          {n || ''}
-        </span>
-        <Icon name="chevron-right" className="icon--sm" />
+    <button type="button" className="projcard" style={lineVars(list.color)} onClick={() => openProject(list)}>
+      <span className="projcard__top">
+        <span className="projcard__icon">{list.icon || <Bullet color={list.color} label={list.name} size="sm" />}</span>
+        {list.visibility === 'private' ? <Icon name="lock" className="icon--sm" /> : null}
       </span>
-    </li>
+      <span className="projcard__name" dir="auto">
+        {list.name}
+      </span>
+      <span className="projcard__meta">
+        {n ? `${n} open` : 'All done'} · {KIND_LABEL[list.kind]}
+      </span>
+    </button>
   );
 }
 
@@ -160,11 +154,14 @@ export function Lists() {
   const { openSheet } = useOverlays();
   const lists = hub.lists();
   const partner = hub.partner();
-  const groups: Array<{ key: string; title: string; icon: 'ours' | 'mine' | 'lock'; items: List[]; visibility: Visibility }> = [
+  const newProject = (visibility?: Visibility) => openSheet((close) => <NewProjectSheet onClose={close} initial={{ visibility }} />);
+  useAddAction(() => newProject());
+
+  const groups: Array<{ key: string; title: string; icon: 'ours' | 'mine' | 'lock'; items: List[]; visibility?: Visibility }> = [
     { key: 'ours', title: 'Ours', icon: 'ours', items: lists.filter((l) => l.visibility === 'shared'), visibility: 'shared' },
     { key: 'mine', title: 'Mine', icon: 'mine', items: lists.filter((l) => l.visibility === 'visible' && l.owner === hub.meId), visibility: 'visible' },
     ...(partner
-      ? [{ key: 'theirs', title: `${partner.name}’s`, icon: 'mine' as const, items: lists.filter((l) => l.visibility === 'visible' && l.owner !== hub.meId), visibility: 'visible' as Visibility }]
+      ? [{ key: 'theirs', title: `${partner.name}’s`, icon: 'mine' as const, items: lists.filter((l) => l.visibility === 'visible' && l.owner !== hub.meId) }]
       : []),
     { key: 'private', title: 'Only me', icon: 'lock', items: lists.filter((l) => l.visibility === 'private'), visibility: 'private' },
   ];
@@ -172,33 +169,37 @@ export function Lists() {
 
   return (
     <>
-      <Band title="Lists" sub={`${lists.length} lines`} />
+      <Band title="Projects" sub={lists.length ? `${lists.length} on the go` : 'Start your first one'} />
       <div className="column">
         {groups.map((g) =>
-          g.items.length || g.key !== 'theirs' ? (
+          g.items.length || g.key === 'ours' ? (
             <section key={g.key} className="section">
               <div className="section__head">
                 <h2 className="section__title">
                   <Icon name={g.icon} className="icon--sm" /> {g.title}
                 </h2>
-                {g.key !== 'theirs' ? (
-                  <button type="button" className="section__action" onClick={() => openSheet((close) => <NewListSheet onClose={close} initial={{ visibility: g.visibility }} />)}>
-                    + New
+              </div>
+              <div className="projgrid">
+                {g.items.map((l) => (
+                  <ProjectCard key={l.id} list={l} />
+                ))}
+                {g.visibility ? (
+                  <button type="button" className="projcard projcard--new" onClick={() => newProject(g.visibility)}>
+                    <span className="projcard__plus">
+                      <Icon name="plus" />
+                    </span>
+                    <span className="projcard__name">New project</span>
                   </button>
                 ) : null}
               </div>
-              {g.items.length ? (
-                <ul className="rows">
-                  {g.items.map((l) => (
-                    <ListRowLink key={l.id} list={l} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="hint">{g.key === 'private' ? 'Lists here are invisible to your partner.' : 'Nothing here yet.'}</p>
-              )}
             </section>
           ) : null,
         )}
+        {!groups.find((g) => g.key === 'private')!.items.length ? (
+          <p className="hint" style={{ marginTop: 22 }}>
+            Want something just for you? Make a project <strong>Only me</strong>. It’s encrypted with your personal key.
+          </p>
+        ) : null}
         {archived.length ? (
           <section className="section">
             <div className="section__head">
@@ -209,13 +210,13 @@ export function Lists() {
             <ul className="rows">
               {archived.map((l) => (
                 <li key={l.id} className="row">
-                  <ListBullet list={l} size="md" />
+                  <Bullet color={l.color} label={l.name} emoji={l.icon || undefined} size="md" />
                   <div className="row__body">
                     <span className="row__title" dir="auto">
                       {l.name}
                     </span>
                   </div>
-                  <button type="button" className="btn btn--sm btn--quiet" onClick={() => hub.updateList(l.id, { archived: false })}>
+                  <button type="button" className="btn btn--sm btn--light" onClick={() => hub.updateList(l.id, { archived: false })}>
                     Restore
                   </button>
                 </li>
@@ -224,9 +225,6 @@ export function Lists() {
           </section>
         ) : null}
       </div>
-      <button type="button" className="fab" aria-label="New list" onClick={() => openSheet((close) => <NewListSheet onClose={close} />)}>
-        <Icon name="plus" className="icon--lg" />
-      </button>
     </>
   );
 }

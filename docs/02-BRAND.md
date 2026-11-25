@@ -2,84 +2,64 @@
 
 ## The name
 
-**Gila Hub.** Three meanings, one word:
+**Gila Hub.** **G**uy + H**ila** = **Gila**, and **גִּילָה** (*gila*) is Hebrew for **joy**. The hub is the one place your shared life lives.
 
-1. **G**uy + H**ila** = **Gila**.
-2. **גִּילָה** (*gila*) is Hebrew for **joy**, which is the feeling the brief asked for.
-3. A **hub** is where lines meet. Every list in the app is a *line*, and the hub is where yours and hers come together.
-
-> ### Where our lines meet.
-
-The tagline works three ways: subway lines, list lines, and two lives.
+> ### Life together, sorted.
 
 ---
 
 ## What we stole
 
-**The 1970 New York City Transit Authority Graphics Standards Manual**, by Massimo Vignelli and Bob Noorda of Unimark International. It is in MoMA's permanent collection. When Standards Manual reissued it in 2014, the Kickstarter became one of the best-funded design-book campaigns ever. It is about as canonical as design gets.
+**Tasky, AI Task Organizer**, by [H3Y Lab](https://www.h3ylab.com/details/tasky-productivity) (Buenos Aires, 2024; [Behance case study](https://www.behance.net/gallery/200074661/Tasky-AI-Task-Organizer-UX-UI-Design)). The system is bold and joyful: saturated color cards on near-white, a sturdy grotesk for the interface and a soft serif for big numbers and titles. It also has a playful collaboration motif of cursors carrying people's name tags.
 
-**Why this, of all things?** Unimark was hired to end the "typographic chaos" of the subway's signs. The result was a system so clear that millions of hurried, stressed people read it every day without noticing they're reading. A couple's shared life is a busy transit system too: two people, many lines, things arriving all the time. Requirement #0 is clarity without stress, and nobody has done that better than this manual.
+*This replaces the first direction (the 1970 NYC subway manual). The structure stayed; only the look changed.*
 
-### Five things we took, nearly verbatim
+### What we took
 
-| # | NYCTA Manual | In Gila Hub |
-|---|---|---|
-| 1 | **Black bands with a thin white stripe.** Unimark's drawings had a black strip along the top marking the part of each sign that metal mounting channels would hide. The channels were never used. When signs flipped to white-on-black, that strip became the famous thin white line. | Every screen title sits on a black band with the white stripe. Supermarket aisles in the shopping list are little station signs. We kept a happy accident. |
-| 2 | **Route bullets.** A colored circle with a letter tells you which line you're on, wherever you see it. | Every list is a line with its own bullet: **G** Groceries, **H** Home stuff, and so on. Wherever an item shows up (Today, the combined shopping run, search), its bullet tells you where it lives. |
-| 3 | **One typeface, set large.** Standard Medium (Akzidenz-Grotesk), later Helvetica. | **Inter** (a Helvetica-school grotesk, free and open) set bold and big, with **Heebo** for Hebrew. |
-| 4 | **The trunk-line palette.** Bright colors plus black and white. | The exact MTA route colors are our ten "lines" (below). |
-| 5 | **The arrow and the grid.** A heavy square-shouldered arrow and a strict modular sign grid. | A square-cut arrow for "go" actions, and an 8-pt grid. |
+| Tasky | In Gila Hub |
+|---|---|
+| **Color cards.** Big rounded tiles in acid yellow, pink, purple, light blue, green and orange, with black text. | Every **project** is a color card. Project screens paint their header in the project's color. |
+| **Stacked strips.** Overlapping colored bands, each with a big serif number ("24 · Completed tasks"). | **Today's summary:** to buy, chores ready, done together this week, coming up. |
+| **Overlapping tag pills.** "Health · Study · Team". | Today's "You have 4 things to tackle today" card, with the projects involved. |
+| **Name tags with cursors.** "Juan", "Delfina". | The onboarding splash ("Guy", "Hila"), and your own name tag when you pick your color. |
+| **Outfit + a soft serif.** | **Outfit** for the interface and **Fraunces** (soft) for titles, numbers and the wordmark. **Heebo** and **Frank Ruhl Libre** cover Hebrew. |
+| **Black pill CTAs and black circle buttons.** "Get started →", the bell, the centered "+". | The same: one black "+" on the tab bar does the obvious thing on each screen. |
 
-### What we changed to make it ours
+### What we changed
 
-- **Paper, not enamel.** The background is warm paper (`#F5F4F0`) instead of signage white. It's a home, not a platform.
-- **Thumbs, not eyes.** Signs are read from 10 metres away and apps are touched from 10 centimetres, so touch targets get soft corners and sheets slide up from the bottom.
-- **Color means *whose* or *which*, never *danger*.** There are no red alarms anywhere. Late things get words ("since Tuesday"), not colors.
-- **Your line is yours.** At onboarding each person picks a line color. It becomes their bullet and the color of their **+** button. Guy's app glows in Guy's color, Hila's in hers.
-- **It moves, a little.** Signs are static. Gila Hub has a satisfying tick, a gentle spring, and a haptic where the phone allows it. All of it is honest motion, and it switches off when the system's reduce-motion setting is on.
-- **Bilingual.** Hebrew and English sit side by side. Each item's text direction follows its own content.
-
----
+- **Two people, not a team.** The cursor tags are always the two of you.
+- **No scores.** Tasky celebrates streaks and percentages. We show one shared number ("done together this week") and never compare partners.
+- **Privacy is visible.** "Ours / Mine / Only me" are part of every project and item.
+- **Bilingual.** Hebrew sits naturally beside English; every string keeps its own direction.
 
 ## Logo
 
-Two route bullets: **G** in lime (the actual color of the G train) and **H** in tangerine.
+The wordmark is **gila hub** in lowercase Fraunces at its heaviest, softest setting, a cousin of Tasky's chunky logotype. The **app icon** is the word *gila* in black on an acid-yellow tile.
 
-They read as **G**uy and **H**ila, as **G**roceries and **H**ome, and as **G**ila **H**ub.
+## Palette
 
-- **Wordmark:** `Gila Hub` in Inter Bold, tracking −2%, white on a black band.
-- **App icon:** a black tile with the thin white stripe and the two bullets, like a station sign on your home screen.
-- **Clear space:** one bullet radius on every side. Never recolor the bullets, outline them, or add shadows.
+| Name | Hex | Use |
+|---|---|---|
+| Lemon | `#EAFF00` | Signature. Groceries, the icon, highlights |
+| Pink | `#FBC6F2` | Chores |
+| Lilac | `#B88EFE` | Together, trips |
+| Sky | `#24D1FE` | To do |
+| Mint | `#1BB36A` | Success, gifts |
+| Amber | `#EFB43D` | Movies, warm accents |
+| Orange | `#FF8C1A` | Home shopping |
+| Ink | `#0A0A04` | Text, CTAs, the "+" |
+| White / Gray | `#FAFAFA` / `#F2F2F0` | Background and tiles |
 
-## Palette: "Lines"
-
-Ten bullet colors taken from the NYCTA trunk lines. The letter color is picked for contrast: bold letters on bullets meet WCAG AA for large text, or we switch to ink.
-
-| Line | Hex | Letter | Taken from |
-|---|---|---|---|
-| Tomato | `#EE352E` | white | 1 2 3 |
-| Tangerine | `#FF6319` | white | B D F M |
-| Sunflower | `#FCCC0A` | ink | N Q R W |
-| Lime | `#6CBE45` | ink | G |
-| Forest | `#00933C` | white | 4 5 6 |
-| Teal | `#00ADD0` | ink | T |
-| Royal | `#0039A6` | white | A C E |
-| Plum | `#B933AD` | white | 7 |
-| Cocoa | `#996633` | white | J Z |
-| Pebble | `#A7A9AC` | ink | L |
-
-**Neutrals.** Ink `#111111` · Paper `#F5F4F0` · Card `#FFFFFF` · Rule `#E4E2DC`. Dark mode is real signage: Black `#000000` · Card `#141414` · Ink `#F4F4F2`.
+Text on every color is ink. Dark mode keeps the colored cards and turns the canvas near-black.
 
 ## Voice
 
-Write like a good sign: short, kind, plain. Use sentence case. Never shout.
+Warm, short, encouraging, never nagging.
 
 | Say | Not |
 |---|---|
-| All clear. Enjoy today. | You have 0 tasks! 🎉🎉 |
-| since Tuesday | OVERDUE · 3 DAYS |
-| Hila is shopping. Need anything? | ⚠️ Shopping session started by user Hila |
+| You have 4 things to tackle today | 4 OVERDUE TASKS |
+| Nothing to tackle today. Enjoy it. | You have 0 tasks! 🎉🎉 |
+| since Tuesday | Overdue by 3 days |
+| Hila is shopping now | Shopping session started by user Hila |
 | This will disappear for Hila. | Changing visibility will restrict access permissions. |
-| Welcome back. The chores waited for you. | 14 chores are overdue. |
-| Milk is already on the list. +1? | Duplicate item detected. |
-| Saved on this phone · syncs when online | Error: network unavailable |

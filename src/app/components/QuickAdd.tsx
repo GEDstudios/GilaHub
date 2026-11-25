@@ -124,7 +124,7 @@ export function QuickAdd({
           submit();
         }}
       >
-        <Icon name="plus" className="icon--sm" style={{ color: 'var(--ink-3)' }} />
+        <Icon name="plus" className="icon--sm" style={{ color: 'var(--text-3)' }} />
         <input
           ref={input}
           value={text}

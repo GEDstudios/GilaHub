@@ -10,31 +10,10 @@ export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 's
 /** Encryption scope: 'h' = household key (both partners), 'p:<memberId>' = personal key. */
 export type Scope = 'h' | `p:${string}`;
 
-/** Palette ids ("lines") — see src/styles/tokens.css and docs/BRAND.md. */
-export type LineColor =
-  | 'tomato'
-  | 'tangerine'
-  | 'sunflower'
-  | 'lime'
-  | 'forest'
-  | 'teal'
-  | 'royal'
-  | 'plum'
-  | 'cocoa'
-  | 'pebble';
+/** Palette ids — the Tasky color system (see docs/02-BRAND.md). */
+export type LineColor = 'lemon' | 'pink' | 'lilac' | 'sky' | 'mint' | 'amber' | 'orange' | 'ink';
 
-export const LINE_COLORS: LineColor[] = [
-  'tomato',
-  'tangerine',
-  'sunflower',
-  'lime',
-  'forest',
-  'teal',
-  'royal',
-  'plum',
-  'cocoa',
-  'pebble',
-];
+export const LINE_COLORS: LineColor[] = ['lemon', 'pink', 'lilac', 'sky', 'mint', 'amber', 'orange', 'ink'];
 
 export interface Member {
   id: string;

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { seedHousehold, seedPersonal } from '../core/actions';
+import { seedHousehold } from '../core/actions';
 import type { Persistence } from '../core/db';
 import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
+import { runAdd } from './addAction';
 import { QuickAddSheet } from './components/QuickAddSheet';
 import { RuntimeProvider, useHub, usePartnerShopping, useRt } from './context';
 import { applyTheme, getPrefs, usePrefs } from './prefs';
@@ -29,7 +30,7 @@ const TABS: Array<{ route: Route['name']; label: string; icon: IconName; path: s
   { route: 'today', label: 'Today', icon: 'sun', path: '/' },
   { route: 'shop', label: 'Shopping', icon: 'bag', path: '/shop' },
   { route: 'chores', label: 'Chores', icon: 'sparkle', path: '/chores' },
-  { route: 'lists', label: 'Lists', icon: 'lines', path: '/lists' },
+  { route: 'lists', label: 'Projects', icon: 'lines', path: '/lists' },
 ];
 
 function activeTab(r: Route, rt: Runtime): Route['name'] {
@@ -41,31 +42,47 @@ function activeTab(r: Route, rt: Runtime): Route['name'] {
   return r.name;
 }
 
+function useAdd() {
+  const { openSheet } = useOverlays();
+  return () => runAdd(() => openSheet((close) => <QuickAddSheet onClose={close} />));
+}
+
 function TabBar() {
   const route = useRoute();
   const rt = useRt();
   useHub();
   const shopping = usePartnerShopping();
+  const add = useAdd();
   const on = activeTab(route, rt);
+  const tab = (t: (typeof TABS)[number]) => (
+    <a
+      key={t.route}
+      href={t.path}
+      className={`tab ${on === t.route ? 'is-on' : ''}`}
+      aria-current={on === t.route ? 'page' : undefined}
+      onClick={(e) => {
+        e.preventDefault();
+        navigate(t.path);
+      }}
+    >
+      <Icon name={t.icon} />
+      {t.label}
+      {t.route === 'shop' && shopping ? <span className="tab__live live" /> : null}
+    </a>
+  );
   return (
-    <nav className="tabbar" aria-label="Main">
-      {TABS.map((t) => (
-        <a
-          key={t.route}
-          href={t.path}
-          className={`tab ${on === t.route ? 'is-on' : ''}`}
-          aria-current={on === t.route ? 'page' : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            navigate(t.path);
-          }}
-        >
-          <Icon name={t.icon} />
-          {t.label}
-          {t.route === 'shop' && shopping ? <span className="tab__live live" /> : null}
-        </a>
-      ))}
-    </nav>
+    <>
+      <nav className="tabbar" aria-label="Main">
+        {tab(TABS[0])}
+        {tab(TABS[1])}
+        <span aria-hidden="true" />
+        {tab(TABS[2])}
+        {tab(TABS[3])}
+      </nav>
+      <button type="button" className="fab" aria-label="Add" onClick={add}>
+        <Icon name="plus" className="icon--lg" />
+      </button>
+    </>
   );
 }
 
@@ -74,14 +91,17 @@ function Sidebar() {
   const rt = useRt();
   const hub = useHub();
   const on = activeTab(route, rt);
+  const add = useAdd();
   const v = todayView(hub, todayRef());
   const counts: Partial<Record<Route['name'], number>> = { today: v.dueCount, shop: v.shopping.count };
   return (
     <aside className="sidebar" aria-label="Navigation">
       <div className="sidebar__brand">
-        <Logo size="sm" />
-        Gila Hub
+        <Logo size={30} />
       </div>
+      <button type="button" className="btn btn--block sidebar__new" onClick={add}>
+        <Icon name="plus" className="icon--sm" /> New
+      </button>
       <nav className="sidebar__nav">
         {TABS.map((t) => (
           <button key={t.route} type="button" className={`navitem ${on === t.route ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
@@ -95,7 +115,7 @@ function Sidebar() {
           Search <span className="navitem__count kbd">/</span>
         </button>
       </nav>
-      <div className="sidebar__label">Lines</div>
+      <div className="sidebar__label">Projects</div>
       <nav className="sidebar__nav">
         {hub.lists().map((l) => (
           <button
@@ -256,8 +276,7 @@ async function completeOnboarding(persistence: Persistence, r: OnboardResult): P
   if (r.kind === 'new' || r.kind === 'partner') {
     rt.store.batch(() => {
       rt.hub.upsertMember(session.memberId, { name: r.name!, color: r.color as LineColor, createdAt: Date.now(), shopAlerts: true });
-      if (r.kind === 'new') seedHousehold(rt.hub, { name: r.name!, color: r.color as LineColor }, 'tangerine');
-      else seedPersonal(rt.hub, r.name!, r.color as LineColor);
+      if (r.kind === 'new') seedHousehold(rt.hub, r.projects ?? []);
     });
   }
   return rt;

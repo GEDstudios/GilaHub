@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Hub, seedHousehold, seedPersonal } from '../../src/core/actions';
+import { Hub, seedHousehold } from '../../src/core/actions';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
@@ -26,11 +26,13 @@ function sync(...hubs: Hub[]) {
 async function couple() {
   const guy = await person('guy');
   const hila = await person('hila');
-  guy.upsertMember('guy', { name: 'Guy', color: 'royal', createdAt: 1 });
-  seedHousehold(guy, { name: 'Guy', color: 'royal' }, 'tangerine');
+  guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+  seedHousehold(guy, ['groceries', 'home', 'chores', 'todo']);
+  guy.createList({ name: "Guy's things", kind: 'tasks', color: 'sky', visibility: 'visible' });
+  guy.createList({ name: 'Notes to self', kind: 'tasks', color: 'ink', visibility: 'private' });
   sync(guy, hila);
-  hila.upsertMember('hila', { name: 'Hila', color: 'tangerine', createdAt: 2 });
-  seedPersonal(hila, 'Hila', 'tangerine');
+  hila.upsertMember('hila', { name: 'Hila', color: 'orange', createdAt: 2 });
+  hila.createList({ name: 'Notes to self', kind: 'tasks', color: 'pink', visibility: 'private' });
   sync(guy, hila);
   return { guy, hila };
 }
@@ -38,15 +40,17 @@ async function couple() {
 const listNamed = (hub: Hub, name: string) => hub.lists().find((l) => l.name === name)!;
 
 describe('Hub: household & privacy', () => {
-  it('seeds shared lists for both, and private lessons for each', async () => {
+  it('creates only the picked projects, plus each person’s private ones', async () => {
     const { guy, hila } = await couple();
-    expect(hila.lists().map((l) => l.name)).toEqual(expect.arrayContaining(['To do', 'Groceries', 'Home stuff', 'Chores', 'Guy’s things'.replace('’', "'"), 'Hila\'s things', 'Start here']));
-    // Each sees exactly one "Start here": their own.
-    expect(guy.lists().filter((l) => l.name === 'Start here')).toHaveLength(1);
-    expect(hila.lists().filter((l) => l.name === 'Start here')).toHaveLength(1);
-    const guysLessons = guy.store.all('item').filter((i) => i.listId === listNamed(guy, 'Start here').id);
-    expect(guysLessons.length).toBeGreaterThan(3);
-    for (const l of guysLessons) expect(hila.item(l.id)).toBeUndefined();
+    expect(hila.lists().map((l) => l.name)).toEqual(expect.arrayContaining(['To do', 'Groceries', 'Home shopping', 'Chores', "Guy's things", 'Notes to self']));
+    expect(hila.lists().filter((l) => l.kind === 'shopping')).toHaveLength(2);
+    // Each sees exactly one "Notes to self": their own.
+    expect(guy.lists().filter((l) => l.name === 'Notes to self')).toHaveLength(1);
+    expect(hila.lists().filter((l) => l.name === 'Notes to self')).toHaveLength(1);
+    const mine = listNamed(guy, 'Notes to self');
+    const secret = guy.addItem(mine.id, { title: 'Therapy notes' });
+    sync(guy, hila);
+    expect(hila.item(secret)).toBeUndefined();
   });
 
   it('"Mine" items are visible but read-only for the partner', async () => {
@@ -75,7 +79,7 @@ describe('Hub: household & privacy', () => {
 
   it('making a whole list private removes it and its items from the partner', async () => {
     const { guy, hila } = await couple();
-    const id = guy.createList({ name: 'Plans', kind: 'tasks', color: 'plum' });
+    const id = guy.createList({ name: 'Plans', kind: 'tasks', color: 'lilac' });
     const a = guy.addItem(id, { title: 'Anniversary' });
     const b = guy.addItem(id, { title: 'Book the place', parentId: a });
     sync(guy, hila);

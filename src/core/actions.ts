@@ -1,4 +1,4 @@
-import { addDays, atLocal, diffDays, today as todayStr, type DateStr } from './dates';
+import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
 import type { Item, LineColor, List, ListKind, LogEntry, Member, Scope, ShoppingFlavor, Visibility } from './model';
 import { byOrder, keyBetween } from './order';
@@ -687,40 +687,39 @@ export class Hub {
   }
 }
 
-/** Starter content for a brand-new household (the onboarding *is* this content). */
-export function seedHousehold(hub: Hub, me: { name: string; color: LineColor }, partnerColor: LineColor): void {
-  hub.store.batch(() => {
-    hub.createList({ name: 'To do', kind: 'tasks', color: 'royal', icon: '' });
-    hub.createList({ name: 'Groceries', kind: 'shopping', flavor: 'grocery', color: 'lime', icon: '' });
-    hub.createList({ name: 'Home stuff', kind: 'shopping', flavor: 'home', color: 'tangerine', icon: '' });
-    const chores = hub.createList({ name: 'Chores', kind: 'chores', color: 'sunflower', icon: '' });
-    hub.addItem(chores, { title: 'Take out the trash', repeat: { type: 'interval', every: 2, unit: 'day', from: 'done' }, assignee: 'turns' });
-    hub.addItem(chores, { title: 'Water the plants', repeat: { type: 'interval', every: 4, unit: 'day', from: 'done' }, assignee: null });
-    hub.addItem(chores, { title: 'Change the sheets', repeat: { type: 'interval', every: 2, unit: 'week', from: 'done' }, assignee: null, due: addDays(todayStr(), 3) });
-    seedPersonal(hub, me.name, me.color);
-    void partnerColor;
-  });
+export interface ProjectTemplate {
+  key: string;
+  name: string;
+  icon: string;
+  kind: ListKind;
+  flavor?: ShoppingFlavor;
+  color: LineColor;
+  visibility?: Visibility;
+  blurb: string;
 }
 
-/** Each person's own lists: a visible "Mine" list and the private "Start here" lessons. */
-export function seedPersonal(hub: Hub, name: string, color: LineColor): void {
+/** Starting points offered at onboarding and in "New project". Nothing is created unless picked. */
+export const PROJECT_TEMPLATES: ProjectTemplate[] = [
+  { key: 'groceries', name: 'Groceries', icon: '🛒', kind: 'shopping', flavor: 'grocery', color: 'lemon', blurb: 'Sorted by aisle' },
+  { key: 'home', name: 'Home shopping', icon: '🏠', kind: 'shopping', flavor: 'home', color: 'orange', blurb: 'Bulbs, towels, a new pan' },
+  { key: 'chores', name: 'Chores', icon: '🧽', kind: 'chores', color: 'pink', blurb: 'Repeats, fairly' },
+  { key: 'todo', name: 'To do', icon: '✅', kind: 'tasks', color: 'sky', blurb: 'Everything else' },
+  { key: 'trip', name: 'Next trip', icon: '✈️', kind: 'tasks', color: 'lilac', blurb: 'Plans and packing' },
+  { key: 'gifts', name: 'Gift ideas', icon: '🎁', kind: 'tasks', color: 'mint', visibility: 'private', blurb: 'Only you see it' },
+  { key: 'movies', name: 'Movies & shows', icon: '🎬', kind: 'tasks', color: 'amber', blurb: 'For date nights' },
+  { key: 'bills', name: 'Bills & admin', icon: '🧾', kind: 'tasks', color: 'ink', blurb: 'Due dates, reminders' },
+];
+
+export function createFromTemplate(hub: Hub, t: ProjectTemplate): string {
+  return hub.createList({ name: t.name, kind: t.kind, flavor: t.flavor, color: t.color, icon: t.icon, visibility: t.visibility ?? 'shared' });
+}
+
+/** A brand-new household: only the projects the person picked. */
+export function seedHousehold(hub: Hub, templateKeys: string[]): void {
   hub.store.batch(() => {
-    hub.createList({ name: `${name}'s things`, kind: 'tasks', color, visibility: 'visible' });
-    const start = hub.createList({ name: 'Start here', kind: 'tasks', color: 'pebble', icon: '👋', visibility: 'private' });
-    const lessons: Array<string | [string, string[]]> = [
-      'Tap the circle to finish me',
-      'Tap my title to open me',
-      ['I have steps inside — open me', ['Steps can have steps too', 'As deep as you like']],
-      'Hold and drag me to reorder',
-      'Type “call mom tomorrow 6pm” in the bar up top',
-      'Lists in “Only me” are invisible to your partner — like this one',
-    ];
-    for (const l of lessons) {
-      if (typeof l === 'string') hub.addItem(start, { title: l });
-      else {
-        const pid = hub.addItem(start, { title: l[0] });
-        for (const s of l[1]) hub.addItem(start, { title: s, parentId: pid });
-      }
+    for (const key of templateKeys) {
+      const t = PROJECT_TEMPLATES.find((x) => x.key === key);
+      if (t) createFromTemplate(hub, t);
     }
   });
 }

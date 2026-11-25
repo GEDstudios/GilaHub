@@ -75,7 +75,7 @@ export function PairSheet({ kind, onClose }: { kind: 'partner' | 'device'; onClo
         </li>
       </ol>
       <div className="codepanel" aria-live="polite">
-        {code ? <span className="codepanel__code num">{formatInviteCode(code)}</span> : error ? <span className="codepanel__err">{error}</span> : <Logo size="md" />}
+        {code ? <span className="codepanel__code num">{formatInviteCode(code)}</span> : error ? <span className="codepanel__err">{error}</span> : <Logo size={34} />}
         <span className="codepanel__meta">{code ? (left ? `Works for ${Math.ceil(left / 60)} min · once` : 'Expired') : ' '}</span>
       </div>
       {code ? (

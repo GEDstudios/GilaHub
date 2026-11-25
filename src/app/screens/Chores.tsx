@@ -8,6 +8,9 @@ import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Check, Empty, PersonBullet, Section, lineVars } from '../ui/primitives';
+import { back } from '../router';
+import { useAddAction } from '../addAction';
+import { ProjectMenuButton } from './ListScreen';
 import { choresView, type ChoreRow } from '../views';
 
 const WORD = { fresh: 'Fresh', soon: 'Soon', today: 'Today', whenever: 'When you can' } as const;
@@ -108,18 +111,23 @@ export function NewChoreSheet({ onClose, listId }: { onClose: () => void; listId
   );
 }
 
-export function Chores() {
+export function Chores({ listId }: { listId?: string } = {}) {
   const hub = useHub();
   const { openSheet, toast } = useOverlays();
   const ref = todayStr();
-  const v = choresView(hub, ref);
+  const all = choresView(hub, ref);
+  const scoped = listId ? hub.list(listId) : undefined;
+  const only = (rows: ChoreRow[]) => (scoped ? rows.filter((r) => r.list.id === scoped.id) : rows);
+  const v = { ...all, now: only(all.now), soon: only(all.soon), fresh: only(all.fresh), paused: only(all.paused) };
+  const total = v.now.length + v.soon.length + v.fresh.length + v.paused.length;
   const away = hub.isAway();
-  const list = v.lists[0];
+  const list = scoped ?? all.lists[0];
 
   const newChore = () => {
-    const target = list ?? hub.list(hub.createList({ name: 'Chores', kind: 'chores', color: 'sunflower' }));
+    const target = list ?? hub.list(hub.createList({ name: 'Chores', kind: 'chores', color: 'pink', icon: '🧽' }));
     if (target) openSheet((close) => <NewChoreSheet onClose={close} listId={target.id} />);
   };
+  useAddAction(newChore);
 
   const toggleAway = () => {
     hub.setAway(!away);
@@ -129,12 +137,19 @@ export function Chores() {
   return (
     <>
       <Band
-        title="Chores"
+        className={scoped ? 'band--tone' : undefined}
+        style={scoped ? lineVars(scoped.color) : undefined}
+        lead={scoped?.icon ? <span className="band__icon">{scoped.icon}</span> : undefined}
+        onBack={scoped ? () => back({ name: 'lists' }) : undefined}
+        title={scoped?.name ?? 'Chores'}
         sub={away ? 'Away mode · clocks paused' : v.now.length ? `${v.now.length} ready when you are` : 'Everything’s fresh'}
         actions={
-          <button type="button" className="iconbtn" onClick={toggleAway} aria-label={away ? 'We’re back' : 'We’re away'} aria-pressed={away}>
-            <Icon name="plane" />
-          </button>
+          <>
+            <button type="button" className="iconbtn" onClick={toggleAway} aria-label={away ? 'We’re back' : 'We’re away'} aria-pressed={away}>
+              <Icon name="plane" />
+            </button>
+            {scoped ? <ProjectMenuButton listId={scoped.id} /> : null}
+          </>
         }
       />
       <div className="column">
@@ -149,7 +164,7 @@ export function Chores() {
           </button>
         ) : null}
 
-        {!v.total ? (
+        {!total ? (
           <Empty mark={<span style={{ fontSize: 56 }}>✨</span>} title="No chores yet" text="Add the things that keep coming back — dishes, bins, sheets. Tick them whenever you do them.">
             <button type="button" className="btn btn--me" style={{ marginTop: 18 }} onClick={newChore}>
               Add a chore
@@ -165,7 +180,7 @@ export function Chores() {
               ))}
             </ul>
           </Section>
-        ) : v.total ? (
+        ) : total ? (
           <p className="hint" style={{ marginTop: 24 }}>
             Nothing needs doing today. Tick anything early — it just resets the clock.
           </p>
@@ -198,9 +213,6 @@ export function Chores() {
           </Section>
         ) : null}
       </div>
-      <button type="button" className="fab" aria-label="New chore" onClick={newChore}>
-        <Icon name="plus" className="icon--lg" />
-      </button>
     </>
   );
 }

@@ -1,18 +1,16 @@
-# Gila Hub · Where our lines meet
+# Gila Hub · Life together, sorted.
 
 **A shared home for two people's groceries, chores, plans and private lists.** It's free, private, and runs on iPhone, Android, Mac and Windows.
 
-<p align="center"><img src="public/icons/icon-512.png" width="128" alt="Gila Hub icon: two subway-style bullets, G and H, on a black sign with a white stripe"></p>
+<p align="center"><img src="public/icons/icon-512.png" width="128" alt="Gila Hub icon: the word gila in a soft black serif on an acid-yellow tile"></p>
 
-The name works three ways. **G**uy + H**ila** = **Gila**. גִּילָה means *joy* in Hebrew. And a hub is where lines meet.
-
-The design is lifted, on purpose, from the 1970 NYC subway signage manual by Vignelli & Noorda, the most famous clarity system ever made.
+**G**uy + H**ila** = **Gila**, and גִּילָה means *joy* in Hebrew. The look follows Tasky by H3Y Lab: bold color cards, a soft serif and playful name-tag cursors.
 
 | | |
 |---|---|
 | 🛒 **Shopping** | One bar adds and searches. It never creates duplicates, sorts items into aisles automatically (Hebrew and English), parses quantities like `2 milk` and `1 ק"ג עגבניות`, and suggests what to buy again. Groceries and Home stuff can be shown together or apart. **Shopping mode** keeps the screen awake, and your partner sees "Guy is shopping. Need anything?" |
 | ✨ **Chores** | Two repeat types, in plain words: *every N days after it's done* and *on set days*. Tick a chore any time; it never piles up. Also: Away mode, taking turns, and ♡ thanks instead of scores. |
-| 📋 **Lists** | Steps can hold steps, as deep as you need. Drag to reorder. Quick add understands `call mom tomorrow 6pm`, `every sun`, `@hila`, `!` and `מחר`. |
+| 📋 **Projects** | Make as many as you like (or start from templates); each gets its own color page. Steps can hold steps, as deep as you need. Drag to reorder. Quick add understands `call mom tomorrow 6pm`, `every sun`, `@hila`, `!` and `מחר`. |
 | 🔒 **Privacy** | **Ours · Mine · Only me** on every list *and* every item. "Only me" is encrypted with your personal key, so your partner's phone can't read it. |
 | ⏰ **Reminders** | Notifications go through your own relay, end-to-end encrypted. |
 
@@ -49,7 +47,7 @@ You'll get an address like `https://gila-hub.<you>.workers.dev`.
 
 ### 3. Pair
 
-1. Open Gila Hub, tap **Start**, and type your name. That's the whole setup.
+1. Open Gila Hub, tap **Get started**, type your name, pick a color and tap the projects you want.
 2. Tap **Bring your person in** to get a one-time code.
 3. On their phone, open the installed app → **I have a code**.
 4. To add your own laptop, use **Settings → Add another device**.

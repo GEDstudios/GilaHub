@@ -46,6 +46,7 @@ if (!url) {
     cwd: root,
     env: { ...process.env, WRANGLER_SEND_METRICS: 'false', CI: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
   });
   let out = '';
   server.stdout.on('data', (d) => (out += d));
@@ -89,12 +90,15 @@ try {
   // ---------- Guy starts the household
   await guy.goto(url);
   await shot(guy, '01-welcome');
-  await guy.getByRole('button', { name: /start/i }).click();
+  await guy.getByRole('button', { name: /get started/i }).click();
   await guy.getByLabel('Your name').fill('Guy');
-  await guy.getByRole('radio', { name: 'royal' }).click();
+  await guy.getByRole('radio', { name: 'sky' }).click();
   await shot(guy, '02-name');
-  await guy.getByRole('button', { name: /let’s go/i }).click();
-  await guy.getByRole('heading', { name: 'Today', exact: true, level: 1 }).waitFor();
+  await guy.getByRole('button', { name: /^next/i }).click();
+  await guy.getByRole('button', { name: /home shopping/i }).click();
+  await shot(guy, '02b-projects');
+  await guy.getByRole('button', { name: /start with 4 projects/i }).click();
+  await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
   await waitFor(() => guy.locator('.syncdot--synced').count(), 20000, 'guy synced');
   await shot(guy, '03-today-guy');
 
@@ -113,20 +117,16 @@ try {
   await hila.getByRole('button', { name: /^join$/i }).click();
   await hila.getByText(/Guy invited you/).waitFor({ timeout: 15000 });
   await hila.getByLabel('Your name').fill('Hila');
-  await hila.getByRole('radio', { name: 'tangerine' }).click();
-  await hila.getByRole('button', { name: /let’s go/i }).click();
-  await hila.getByRole('heading', { name: 'Today', exact: true, level: 1 }).waitFor();
+  await hila.getByRole('radio', { name: 'pink' }).click();
+  await hila.getByRole('button', { name: /^join/i }).click();
+  await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();
 
-  await check('Hila receives the shared household', async () => {
+  await check('Hila receives the shared projects', async () => {
     await hila.goto(`${url}/lists`);
-    await waitFor(async () => (await hila.getByText('Groceries').count()) > 0, 20000, 'groceries list on hila');
-    await waitFor(async () => (await hila.getByText('Guy’s', { exact: false }).count()) > 0, 20000, 'guy’s list visible to hila');
+    for (const name of ['Groceries', 'Home shopping', 'Chores', 'To do']) {
+      await waitFor(async () => (await hila.locator('.projcard__name', { hasText: name }).count()) > 0, 20000, `${name} on hila`);
+    }
     await shot(hila, '05-lists-hila');
-  });
-
-  await check('Start here lessons stay private to each person', async () => {
-    const n = await hila.locator('.row__title', { hasText: 'Start here' }).count();
-    if (n !== 1) throw new Error(`Hila sees ${n} "Start here" lists (expected only her own)`);
   });
 
   // ---------- Shopping sync, both ways
@@ -146,7 +146,7 @@ try {
   });
 
   await check('Smart routing: light bulbs go to Home stuff', async () => {
-    await hila.getByRole('radio', { name: /home stuff/i }).click();
+    await hila.getByRole('radio', { name: /home shopping/i }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'light bulbs' }).count()) > 0, 10000, 'bulbs in home');
     await hila.getByRole('radio', { name: /both/i }).click();
   });
@@ -174,7 +174,7 @@ try {
   // ---------- Privacy
   await check('An "Only me" item never reaches the partner', async () => {
     await guy.goto(`${url}/lists`);
-    await guy.locator('.row__title', { hasText: /^To do$/ }).click();
+    await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
     const add = guy.getByLabel('Add to To do');
     await add.fill('Ring for Hila 💍');
     await add.press('Enter');
@@ -185,7 +185,7 @@ try {
     await shot(guy, '08-private-item');
     await guy.goBack();
     await hila.goto(`${url}/lists`);
-    await hila.locator('.row__title', { hasText: /^To do$/ }).click();
+    await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'Book dinner' }).count()) > 0, 15000, 'dinner on hila');
     await new Promise((r) => setTimeout(r, 1500));
     const leaked = await hila.locator('.row__title', { hasText: 'Ring for Hila' }).count();
@@ -206,13 +206,25 @@ try {
   });
 
   // ---------- Chores
-  await check('Chores: done today rolls the chore forward', async () => {
+  await check('Chores: add one, tick it, it rolls forward', async () => {
     await guy.goto(`${url}/chores`);
     await guy.getByRole('heading', { name: 'Chores', exact: true, level: 1 }).waitFor();
+    await guy.getByRole('button', { name: 'Add', exact: true }).click();
+    await guy.getByLabel('Chore', { exact: true }).fill('Water the plants');
+    await guy.getByRole('button', { name: /add chore/i }).click();
     await shot(guy, '10-chores');
     const row = guy.locator('li.row', { hasText: 'Water the plants' });
     await row.getByRole('checkbox').click();
     await guy.getByText(/Fresh again/).waitFor({ timeout: 5000 });
+  });
+
+  await check('Projects: create a new one from a template', async () => {
+    await guy.goto(`${url}/lists`);
+    await guy.locator('.projcard--new').first().click();
+    await guy.getByRole('button', { name: /movies & shows/i }).click();
+    await guy.getByRole('button', { name: /create project/i }).click();
+    await guy.getByRole('heading', { name: 'Movies & shows', level: 1 }).waitFor({ timeout: 5000 });
+    await shot(guy, '12-project');
   });
 
   // ---------- Desktop & dark
@@ -223,7 +235,13 @@ try {
   await desk.close();
 } finally {
   await browser.close();
-  server?.kill('SIGTERM');
+  if (server) {
+    try {
+      process.kill(-server.pid, 'SIGTERM');
+    } catch {
+      server.kill('SIGTERM');
+    }
+  }
 }
 
 if (failures) {
@@ -231,3 +249,4 @@ if (failures) {
   process.exit(1);
 }
 console.log('\nAll end-to-end checks passed. Screenshots in', shots);
+process.exit(0);

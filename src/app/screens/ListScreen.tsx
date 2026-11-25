@@ -1,18 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Visibility } from '../../core/model';
+import { useAddAction } from '../addAction';
 import { Children } from '../components/Children';
 import { Swatches } from '../components/pickers';
 import { QuickAdd } from '../components/QuickAdd';
-import { NewChoreSheet } from './Chores';
+import { Chores } from './Chores';
+import { Shopping } from './Shopping';
 import { useHub } from '../context';
-import { setPrefs } from '../prefs';
 import { back, navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Empty, ListBullet, Seg } from '../ui/primitives';
+import { Band, Empty, lineVars, Seg } from '../ui/primitives';
 import { openCount } from '../views';
 
-function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
+export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const list = hub.list(listId);
@@ -108,24 +109,35 @@ function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) 
   );
 }
 
+/** Settings button for a project header (rename, color, who sees it, archive, delete). */
+export function ProjectMenuButton({ listId }: { listId: string }) {
+  const { openSheet } = useOverlays();
+  return (
+    <button type="button" className="iconbtn" aria-label="Project settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)}>
+      <Icon name="more" />
+    </button>
+  );
+}
+
 export function ListScreen({ id }: { id: string }) {
   const hub = useHub();
-  const { openSheet } = useOverlays();
+  const list = hub.list(id);
+  if (list?.kind === 'shopping') return <Shopping listId={id} />;
+  if (list?.kind === 'chores') return <Chores listId={id} />;
+  return <TaskProject id={id} />;
+}
+
+function TaskProject({ id }: { id: string }) {
+  const hub = useHub();
   const list = hub.list(id);
   const [freshId, setFreshId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (list?.kind === 'shopping') {
-      setPrefs({ shopFilter: list.id });
-      navigate({ name: 'shop' }, { replace: true });
-    }
-  }, [list]);
+  useAddAction(() => document.querySelector<HTMLInputElement>('.quickadd input')?.focus());
 
   if (!list) {
     return (
       <>
         <Band title="Not here" onBack={() => back({ name: 'lists' })} />
-        <Empty title="This list is gone" text="It may have been deleted or made private." />
+        <Empty title="This project is gone" text="It may have been deleted or made private." />
       </>
     );
   }
@@ -133,40 +145,35 @@ export function ListScreen({ id }: { id: string }) {
   const owner = hub.member(list.owner);
   const readonly = !!list.owner && list.owner !== hub.meId;
   const n = openCount(hub, id);
+  const all = hub.children(id, null);
+  const done = all.filter((i) => i.done).length;
   const vis = list.visibility === 'shared' ? 'Ours' : list.visibility === 'private' ? 'Only me' : owner?.id === hub.meId ? 'Mine' : `${owner?.name}’s`;
-  const isChores = list.kind === 'chores';
 
   return (
     <>
       <Band
+        className="band--tone"
+        style={lineVars(list.color)}
         title={list.name}
-        lead={<ListBullet list={list} size="lg" />}
-        sub={`${vis} · ${n ? `${n} open` : 'all done'}`}
+        lead={list.icon ? <span className="band__icon">{list.icon}</span> : undefined}
+        sub={`${vis} · ${n ? `${n} open` : 'all done'}${all.length ? ` · ${Math.round((done / all.length) * 100)}% done` : ''}`}
         onBack={() => back({ name: 'lists' })}
-        actions={
-          <button type="button" className="iconbtn" aria-label="List settings" onClick={() => openSheet((close) => <ListMenu listId={id} onClose={close} />)}>
-            <Icon name="more" />
-          </button>
-        }
+        actions={<ProjectMenuButton listId={id} />}
       />
       <div className="column">
         {readonly ? (
           <p className="hint" style={{ marginTop: 16 }}>
-            This is {owner?.name}’s list. You can see it; only {owner?.name} changes it.
+            This is {owner?.name}’s project. You can see it; only {owner?.name} changes it.
           </p>
-        ) : isChores ? (
-          <div style={{ margin: '16px var(--gutter) 0' }}>
-            <button type="button" className="btn btn--quiet btn--block" onClick={() => openSheet((close) => <NewChoreSheet onClose={close} listId={id} />)}>
-              <Icon name="plus" className="icon--sm" /> New chore
-            </button>
-          </div>
         ) : (
           <QuickAdd listId={id} onAdded={setFreshId} />
         )}
         <div style={{ marginTop: 14 }}>
           <Children listId={id} parentId={null} freshId={freshId} readonly={readonly} />
         </div>
-        {!hub.children(id, null).length ? <Empty title="Empty line" text={readonly ? 'Nothing here yet.' : 'Add the first thing above. Items can hold steps — as deep as you need.'} /> : null}
+        {!all.length ? (
+          <Empty title="Fresh start" text={readonly ? 'Nothing here yet.' : 'Add the first thing above. Anything can hold steps, as deep as you need.'} />
+        ) : null}
       </div>
     </>
   );

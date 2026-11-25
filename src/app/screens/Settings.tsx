@@ -255,9 +255,8 @@ export function Settings() {
         </Section>
 
         <div className="about">
-          <Logo size="lg" />
-          <p className="about__name">Gila Hub</p>
-          <p className="about__line">Where our lines meet.</p>
+          <Logo size={44} />
+          <p className="about__line">Life together, sorted.</p>
           <p className="hint" style={{ margin: '10px 0 0' }}>
             Free, private, yours. No accounts, no ads, no tracking. Everything is end-to-end encrypted.
           </p>

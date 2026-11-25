@@ -1,73 +1,67 @@
 /*
- * The Hub Standards Manual — tokens.
- * Lines are the NYCTA trunk-line colors (see docs/02-BRAND.md).
+ * Gila Hub tokens — after the Tasky system (H3Y Lab): saturated color cards on
+ * near-white, Outfit for the interface, a soft serif for big titles and numbers.
+ * See docs/02-BRAND.md and docs/03-DESIGN-SYSTEM.md.
  */
 :root {
-  /* Lines */
-  --tomato: #ee352e;
-  --tomato-ink: #ffffff;
-  --tangerine: #ff6319;
-  --tangerine-ink: #ffffff;
-  --sunflower: #fccc0a;
-  --sunflower-ink: #111111;
-  --lime: #6cbe45;
-  --lime-ink: #111111;
-  --forest: #00933c;
-  --forest-ink: #ffffff;
-  --teal: #00add0;
-  --teal-ink: #111111;
-  --royal: #0039a6;
-  --royal-ink: #ffffff;
-  --plum: #b933ad;
-  --plum-ink: #ffffff;
-  --cocoa: #996633;
-  --cocoa-ink: #ffffff;
-  --pebble: #a7a9ac;
-  --pebble-ink: #111111;
+  /* Project & people colors (ink text on all but ink) */
+  --lemon: #eaff00;
+  --lemon-ink: #0a0a04;
+  --pink: #fbc6f2;
+  --pink-ink: #0a0a04;
+  --lilac: #b88efe;
+  --lilac-ink: #0a0a04;
+  --sky: #24d1fe;
+  --sky-ink: #0a0a04;
+  --mint: #1bb36a;
+  --mint-ink: #0a0a04;
+  --amber: #efb43d;
+  --amber-ink: #0a0a04;
+  --orange: #ff8c1a;
+  --orange-ink: #0a0a04;
+  --ink: #0a0a04;
+  --ink-ink: #fafafa;
 
-  /* Neutrals — warm paper */
-  --paper: #f5f4f0;
-  --paper-2: #edebe5;
+  /* Neutrals */
+  --bg: #fafafa;
+  --surface: #f2f2f0;
+  --surface-2: #e8e8e4;
   --card: #ffffff;
-  --ink: #111111;
-  --ink-2: #57554f;
-  --ink-3: #8b8881;
-  --rule: #e4e2dc;
-  --rule-strong: #cdc9c0;
-  --band: #111111;
-  --band-ink: #ffffff;
-  --band-ink-2: #b9b7b1;
-  --stripe: #ffffff;
-  --scrim: rgb(17 17 17 / 0.42);
-  --hover: rgb(17 17 17 / 0.045);
-  --press: rgb(17 17 17 / 0.08);
-  --glass: rgb(245 244 240 / 0.86);
-  --shadow-sheet: 0 -12px 40px rgb(17 17 17 / 0.16);
-  --shadow-pop: 0 10px 30px rgb(17 17 17 / 0.16), 0 2px 6px rgb(17 17 17 / 0.08);
+  --text: #0a0a04;
+  --text-2: #5b5b55;
+  --text-3: #95958d;
+  --line: #e6e6e1;
+  --scrim: rgb(10 10 4 / 0.36);
+  --hover: rgb(10 10 4 / 0.04);
+  --press: rgb(10 10 4 / 0.08);
+  --glass: rgb(250 250 250 / 0.86);
+  --cta: #0a0a04;
+  --cta-text: #fafafa;
+  --shadow-pop: 0 12px 32px rgb(10 10 4 / 0.14), 0 2px 6px rgb(10 10 4 / 0.06);
+  --shadow-sheet: 0 -10px 40px rgb(10 10 4 / 0.14);
 
-  /* Me — overridden at runtime with the user's own line */
-  --me: var(--lime);
-  --me-ink: var(--lime-ink);
+  /* Me — set at runtime from my color */
+  --me: var(--lemon);
+  --me-ink: var(--lemon-ink);
 
   /* Type */
-  --font: 'Inter Variable', 'Heebo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-  --fs-band: 34px;
-  --fs-display: 56px;
-  --fs-title: 22px;
+  --font: 'Outfit Variable', 'Heebo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-display: 'Fraunces Variable', 'Frank Ruhl Libre Variable', Georgia, 'Times New Roman', serif;
+  --fs-hero: 40px;
+  --fs-title: 32px;
+  --fs-sub: 20px;
   --fs-row: 17px;
   --fs-body: 16px;
   --fs-meta: 13px;
-  --fs-aisle: 12.5px;
+  --fs-caption: 12px;
 
   /* Space & shape */
   --gutter: 20px;
-  --row-h: 56px;
-  --radius-s: 8px;
-  --radius-m: 14px;
-  --radius-l: 22px;
-  --tabbar-h: 58px;
-  --sidebar-w: 268px;
-
+  --radius-s: 12px;
+  --radius-m: 20px;
+  --radius-l: 28px;
+  --tabbar-h: 64px;
+  --sidebar-w: 272px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
@@ -85,50 +79,52 @@
 
 @media (min-width: 600px) {
   :root {
-    --gutter: 32px;
+    --gutter: 28px;
   }
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --paper: #000000;
-    --paper-2: #0d0d0d;
-    --card: #141414;
-    --ink: #f4f4f2;
-    --ink-2: #aeaca6;
-    --ink-3: #75736e;
-    --rule: #242424;
-    --rule-strong: #3a3a3a;
-    --band: #000000;
-    --band-ink: #ffffff;
-    --band-ink-2: #9a9893;
-    --scrim: rgb(0 0 0 / 0.62);
+    --bg: #0c0c09;
+    --surface: #181814;
+    --surface-2: #22221d;
+    --card: #1c1c18;
+    --text: #f6f6f0;
+    --text-2: #b3b3aa;
+    --text-3: #7a7a72;
+    --line: #2a2a24;
+    --scrim: rgb(0 0 0 / 0.6);
     --hover: rgb(255 255 255 / 0.05);
     --press: rgb(255 255 255 / 0.09);
-    --glass: rgb(0 0 0 / 0.82);
-    --shadow-sheet: 0 -12px 40px rgb(0 0 0 / 0.6);
-    --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.6);
+    --glass: rgb(12 12 9 / 0.84);
+    --cta: #f6f6f0;
+    --cta-text: #0a0a04;
+    --ink: #f6f6f0;
+    --ink-ink: #0a0a04;
+    --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.6);
+    --shadow-sheet: 0 -10px 40px rgb(0 0 0 / 0.6);
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --paper: #000000;
-  --paper-2: #0d0d0d;
-  --card: #141414;
-  --ink: #f4f4f2;
-  --ink-2: #aeaca6;
-  --ink-3: #75736e;
-  --rule: #242424;
-  --rule-strong: #3a3a3a;
-  --band: #000000;
-  --band-ink: #ffffff;
-  --band-ink-2: #9a9893;
-  --scrim: rgb(0 0 0 / 0.62);
+  --bg: #0c0c09;
+  --surface: #181814;
+  --surface-2: #22221d;
+  --card: #1c1c18;
+  --text: #f6f6f0;
+  --text-2: #b3b3aa;
+  --text-3: #7a7a72;
+  --line: #2a2a24;
+  --scrim: rgb(0 0 0 / 0.6);
   --hover: rgb(255 255 255 / 0.05);
   --press: rgb(255 255 255 / 0.09);
-  --glass: rgb(0 0 0 / 0.82);
-  --shadow-sheet: 0 -12px 40px rgb(0 0 0 / 0.6);
-  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.6);
+  --glass: rgb(12 12 9 / 0.84);
+  --cta: #f6f6f0;
+  --cta-text: #0a0a04;
+  --ink: #f6f6f0;
+  --ink-ink: #0a0a04;
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.6);
+  --shadow-sheet: 0 -10px 40px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }

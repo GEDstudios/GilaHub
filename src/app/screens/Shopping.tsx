@@ -11,7 +11,11 @@ import { setPrefs, usePrefs } from '../prefs';
 import { notifyMembers } from '../runtime';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Band, Check, Diamond, Empty, ListBullet, PersonBullet, Seg } from '../ui/primitives';
+import { Band, Check, Diamond, Empty, lineVars, ListBullet, PersonBullet, Seg } from '../ui/primitives';
+import { back } from '../router';
+import { useAddAction } from '../addAction';
+import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
+import { ProjectMenuButton } from './ListScreen';
 import { shoppingView } from '../views';
 
 type Row = Item & { emoji: string };
@@ -41,13 +45,15 @@ function useWakeLock(on: boolean) {
   }, [on]);
 }
 
-export function Shopping() {
+export function Shopping({ listId }: { listId?: string } = {}) {
   const hub = useHub();
   const rt = useRt();
   const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
-  const lists = hub.shoppingLists();
-  const filter = lists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
+  const allLists = hub.shoppingLists();
+  const scoped = listId ? hub.list(listId) : undefined;
+  const lists = scoped ? [scoped] : allLists;
+  const filter = scoped ? scoped.id : allLists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
   const v = shoppingView(hub, filter, prefs.dismissed);
   const [mode, setMode] = useState(false);
   const [query, setQuery] = useState('');
@@ -59,6 +65,7 @@ export function Shopping() {
   const partner = hub.partner();
   const parseCtx = useParseContext(lists[0]);
   const input = useRef<HTMLInputElement>(null);
+  useAddAction(() => input.current?.focus());
   const seen = useRef<Set<string> | null>(null);
 
   useWakeLock(mode);
@@ -188,18 +195,35 @@ export function Shopping() {
   return (
     <div className={mode ? 'shopmode' : undefined}>
       <Band
-        title={mode ? 'Shopping now' : 'Shopping'}
+        className={scoped ? 'band--tone' : undefined}
+        style={scoped ? lineVars(scoped.color) : undefined}
+        lead={scoped?.icon ? <span className="band__icon">{scoped.icon}</span> : undefined}
+        onBack={scoped ? () => back({ name: 'lists' }) : undefined}
+        title={mode ? 'Shopping now' : (scoped?.name ?? 'Shopping')}
         sub={v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy'}
         actions={
           mode ? (
-            <button type="button" className="btn btn--sm btn--onband" onClick={() => setMode(false)}>
+            <button type="button" className="btn btn--sm btn--light" onClick={() => setMode(false)}>
               Pause
             </button>
+          ) : scoped ? (
+            <ProjectMenuButton listId={scoped.id} />
           ) : null
         }
       />
       <div className="column">
-        {lists.length > 1 ? (
+        {!allLists.length ? (
+          <Empty title="No shopping projects yet" text="Make one for groceries, one for the house — or both.">
+            <div className="chips" style={{ justifyContent: 'center', marginTop: 18 }}>
+              {PROJECT_TEMPLATES.filter((t) => t.kind === 'shopping').map((t) => (
+                <button key={t.key} type="button" className="chip chip--on" onClick={() => createFromTemplate(hub, t)}>
+                  {t.icon} {t.name}
+                </button>
+              ))}
+            </div>
+          </Empty>
+        ) : null}
+        {!scoped && lists.length > 1 ? (
           <div style={{ margin: '16px var(--gutter) 0' }}>
             <Seg label="Which list" value={filter} onChange={(val) => setPrefs({ shopFilter: val })} options={filterOptions} />
           </div>
@@ -212,7 +236,7 @@ export function Shopping() {
             submit();
           }}
         >
-          <Icon name="search" className="icon--sm" style={{ color: 'var(--ink-3)' }} />
+          <Icon name="search" className="icon--sm" style={{ color: 'var(--text-3)' }} />
           <input
             ref={input}
             value={query}
@@ -286,7 +310,7 @@ export function Shopping() {
               </div>
             ) : null}
 
-            {!v.openCount && !v.inCart.length ? (
+            {allLists.length && !v.openCount && !v.inCart.length ? (
               <Empty
                 mark={<span style={{ fontSize: 56 }}>🧺</span>}
                 title="The list is empty. Nice."
@@ -298,7 +322,7 @@ export function Shopping() {
               <section aria-label="Urgent">
                 <div className="aisle aisle--urgent">
                   <span className="aisle__label">
-                    <Diamond /> Urgent
+                    <Diamond />
                   </span>
                   <span className="aisle__count num">{v.urgent.length}</span>
                 </div>

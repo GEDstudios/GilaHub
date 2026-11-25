@@ -16,7 +16,7 @@ export function Search() {
       <Band title="Search" onBack={() => back({ name: 'today' })} />
       <div className="column">
         <div className="addbar">
-          <Icon name="search" className="icon--sm" style={{ color: 'var(--ink-3)' }} />
+          <Icon name="search" className="icon--sm" style={{ color: 'var(--text-3)' }} />
           <input autoFocus value={q} dir="auto" onChange={(e) => setQ(e.target.value)} placeholder="Everything you can see…" aria-label="Search" enterKeyHint="search" />
           {q ? (
             <button type="button" className="iconbtn" onClick={() => setQ('')} aria-label="Clear">
