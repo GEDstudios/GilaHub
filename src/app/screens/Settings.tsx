@@ -34,7 +34,8 @@ function exportData(rt: Runtime) {
   const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea'] as const;
   const data: Record<string, unknown[]> = {};
   for (const t of tables) data[t] = rt.store.all(t);
-  const blob = new Blob([JSON.stringify({ app: 'gila-hub', v: 1, exportedAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' });
+  // `me`: whose backup it is, so restoring it on a new device makes those things mine again.
+  const blob = new Blob([JSON.stringify({ app: 'gila-hub', v: 2, me: rt.session.memberId, exportedAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `gila-hub-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -389,7 +390,7 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
             <OptRow
               icon="hand"
               title={`When ${partner.name} asks me for something`}
-              sub={`And when ${partner.name} does what I asked`}
+              sub={`And when ${partner.name} does what I asked, or says not yet`}
               trail={<Switch on={me.requestAlerts !== false} onChange={(on) => hub.upsertMember(me.id, { requestAlerts: on })} label="Request alerts" />}
             />
             <OptRow
@@ -573,9 +574,9 @@ function YourData() {
 
   const restore = async (f: File) => {
     try {
-      const json = JSON.parse(await f.text()) as { app?: string; data?: Record<string, Array<{ id: string } & Record<string, unknown>>> };
+      const json = JSON.parse(await f.text()) as { app?: string; me?: string; data?: Record<string, Array<{ id: string } & Record<string, unknown>>> };
       if (json.app !== 'gila-hub' || !json.data) throw new Error('not a backup');
-      const n = hub.importBackup(json.data);
+      const n = hub.importBackup(json.data, { me: typeof json.me === 'string' ? json.me : undefined });
       toast(n ? `Restored ${n} things` : 'Nothing new in that backup');
     } catch {
       toast('That file isn’t a Gila Hub backup.');

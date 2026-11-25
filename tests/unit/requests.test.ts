@@ -136,6 +136,39 @@ describe('Today: requests between us', () => {
     expect(requestState(guy, guy.item(id)!)).toBeNull();
   });
 
+  it('"Not yet" shows the doer "Hila said not yet" until they tick again; their own un-tick does not', async () => {
+    const { guy, hila } = await couple();
+    const id = hila.addItem(listNamed(hila, 'To do').id, { title: 'Fix the shelf', assignee: 'guy', needsOk: true });
+    sync(guy, hila);
+    guy.toggle(id);
+    sync(guy, hila);
+    const undo = hila.sendBack(id);
+    sync(guy, hila);
+    expect(reqLabel(requestState(guy, guy.item(id)!)!)).toBe('Hila said not yet');
+    expect(ids(todayView(guy, today()).asked)).toEqual([id]);
+    undo();
+    sync(guy, hila);
+    expect(requestState(guy, guy.item(id)!)?.kind).toBe('waiting-ok');
+    hila.sendBack(id);
+    sync(guy, hila);
+    // Ticking again clears it, and so does Hila's OK.
+    guy.toggle(id);
+    sync(guy, hila);
+    expect(requestState(guy, guy.item(id)!)?.kind).toBe('waiting-ok');
+    // Guy taking his tick back is not a "not yet".
+    guy.toggle(id);
+    sync(guy, hila);
+    expect(requestState(guy, guy.item(id)!)?.kind).toBe('they-asked');
+    guy.toggle(id);
+    hila.sendBack(id);
+    sync(guy, hila);
+    guy.toggle(id);
+    sync(guy, hila);
+    hila.confirm(id);
+    sync(guy, hila);
+    expect(guy.item(id)?.sentBackAt).toBeNull();
+  });
+
   it('asks a needs-OK request with its label, and nothing request-related while solo', async () => {
     const { guy, hila } = await couple();
     const id = guy.addItem(listNamed(guy, 'To do').id, { title: 'Clean the car', assignee: 'hila', needsOk: true });

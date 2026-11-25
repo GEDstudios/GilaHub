@@ -110,6 +110,27 @@ describe('home layout', () => {
     expect(pinnedProjects(hub)).toEqual([c.id, d.id]);
   });
 
+  it('keeps a pin to an archived project through edits, so restoring brings it back', async () => {
+    const hub = await solo();
+    const [a, b, c] = hub.lists();
+    for (const l of [a, b, c]) showHome(hub, `l:${l.id}`);
+    expect(pinnedProjects(hub)).toEqual([a.id, b.id, c.id]);
+    hub.updateList(a.id, { archived: true });
+    expect(pinnedProjects(hub)).toEqual([b.id, c.id]);
+    // Editing Today meanwhile must not drop it.
+    hideHome(hub, 'upcoming');
+    reorderHome(hub, [...visibleHome(hub).map((s) => s.key)].reverse());
+    hub.updateList(a.id, { archived: false });
+    expect(pinnedProjects(hub)).toContain(a.id);
+    expect(pinnedProjects(hub)).toHaveLength(3);
+    // Unpinning a live project still removes it; a deleted one is let go on the next write.
+    hideHome(hub, `l:${b.id}`);
+    expect(pinnedProjects(hub)).not.toContain(b.id);
+    hub.deleteList(c.id);
+    hideHome(hub, 'partner');
+    expect((hub.me()?.home ?? []).some((s) => s.key === `l:${c.id}`)).toBe(false);
+  });
+
   it("merges a widget I've never seen in after its predecessor, at its default", async () => {
     const hub = await solo();
     // An older build knew only these, in a custom order.
@@ -197,6 +218,18 @@ describe('home blocks', () => {
     expect(s.lists.map((l) => l.name)).toEqual(['To do']);
   });
 
+  it('the summary counts an ask with a date on its day, not before; the person tag still shows', async () => {
+    const { guy, hila } = await couple();
+    const id = hila.addItem(listNamed(hila, 'To do').id, { title: 'Call the bank', assignee: 'guy', due: addDays(today(), 7) });
+    sync(guy, hila);
+    const s = summaryOf(guy, todayView(guy, today()));
+    expect(s.n).toBe(0);
+    expect(s.mood).toBe('free');
+    expect(s.person).toBe(true);
+    // On its day it counts, from Today.
+    expect(summaryOf(guy, todayView(guy, guy.item(id)!.due!)).n).toBe(1);
+  });
+
   it('the summary says all done once I have finished things today', async () => {
     const hub = await solo();
     const id = hub.addItem(listNamed(hub, 'To do').id, { title: 'Pay the bill', due: today() });
@@ -218,6 +251,19 @@ describe('home blocks', () => {
     expect(weekBands(hub, v, c).map((b) => b.label)).toEqual(['to buy', 'done this week']);
     showHome(hub, 'shop');
     expect(weekBands(hub, todayView(hub, today()), c).map((b) => b.key)).toEqual(['done']);
+  });
+
+  it('the chores strip never repeats chores Today already lists, and the Chores widget changes nothing then', async () => {
+    const hub = await solo();
+    const chores = listNamed(hub, 'Chores').id;
+    const start = addDays(today(), -3);
+    for (const title of ['Dishes', 'Water plants']) hub.addItem(chores, { title, repeat: { type: 'interval', every: 1, unit: 'day', from: 'done' }, due: start });
+    const v = todayView(hub, today());
+    const c = choresView(hub, today());
+    expect(v.earlier.length + v.today.length).toBe(2);
+    expect(weekBands(hub, v, c).map((b) => b.key)).not.toContain('chores');
+    showHome(hub, 'chores');
+    expect(weekBands(hub, todayView(hub, today()), c).map((b) => b.key)).not.toContain('chores');
   });
 
   it('coming up flattens the week ahead, and previews say what each block holds', async () => {

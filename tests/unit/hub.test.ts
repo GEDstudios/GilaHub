@@ -215,6 +215,41 @@ describe('Hub: backup import', () => {
     expect(fresh.lists().some((l) => l.name === 'To do')).toBe(true);
   });
 
+  it('restoring my own backup on a new device makes nobody new, no second projects, and my private things mine', async () => {
+    const old = await person('old');
+    old.upsertMember('old', { name: 'Guy', color: 'sky', createdAt: 1 });
+    seedHousehold(old, ['groceries', 'chores', 'todo']);
+    const secret = old.addItem(listNamed(old, 'To do').id, { title: 'Ring', visibility: 'private' });
+    const milk = old.addItem(listNamed(old, 'Groceries').id, { title: 'milk' });
+    old.addIdea('Bigger fonts');
+    const data = JSON.parse(JSON.stringify(Object.fromEntries((['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea'] as const).map((t) => [t, old.store.all(t)]))));
+
+    for (const me of ['old', undefined]) {
+      // A fresh device: a new member id, the same starter projects.
+      const phone = await person('new');
+      phone.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
+      seedHousehold(phone, ['groceries', 'chores', 'todo']);
+      phone.importBackup(data, { me });
+      expect(phone.partner()).toBeUndefined();
+      expect(phone.members()).toHaveLength(1);
+      expect(phone.lists()).toHaveLength(3);
+      expect(phone.item(secret)?.title).toBe('Ring');
+      expect(phone.store.scopeOf('item', secret)).toBe('p:new');
+      expect(phone.item(milk)?.listId).toBe(listNamed(phone, 'Groceries').id);
+      expect(phone.item(milk)?.createdBy).toBe('new');
+      expect(phone.store.all('idea')[0]?.by).toBe('new');
+    }
+  });
+
+  it('a restore never adds the partner on a device that isn’t paired', async () => {
+    const { guy } = await couple();
+    const data = JSON.parse(JSON.stringify(Object.fromEntries((['member', 'list', 'item'] as const).map((t) => [t, guy.store.all(t)]))));
+    const phone = await person('new');
+    phone.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
+    phone.importBackup(data);
+    expect(phone.partner()).toBeUndefined();
+  });
+
   it('a "Mine" project can hold things for both of us, steps included', async () => {
     const { guy, hila } = await couple();
     const list = listNamed(guy, "Guy's things");

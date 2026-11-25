@@ -76,6 +76,16 @@ export class Hub {
     return [...this.store.all('list')].filter((l) => !l.archived).sort(byOrder);
   }
 
+  /**
+   * A project that's out of sight for now but may come back: archived, or made "Only me" by my
+   * partner. Pins to it (bar, Today) are kept, not shown, so a restore brings them back.
+   */
+  listDormant(id: string): boolean {
+    if (this.lists().some((l) => l.id === id)) return false;
+    if (this.store.all('list').some((l) => l.id === id)) return true;
+    return !!this.store.record('list', id) && !this.store.canRead(this.store.scopeOf('list', id));
+  }
+
   list(id: string | null | undefined): List | undefined {
     return id ? this.store.get('list', id) : undefined;
   }
@@ -239,6 +249,7 @@ export class Hub {
     const item = this.item(id);
     if (!item) return;
     const request = this.isRequest(assignee);
+    const same = item.assignee === assignee;
     this.store.mutate('item', id, {
       assignee: assignee ?? null,
       turn: assignee === 'turns' ? (item.turn ?? this.meId) : null,
@@ -246,6 +257,8 @@ export class Hub {
       needsOk: request ? (opts.needsOk ?? item.needsOk ?? false) : false,
       submittedAt: request ? (item.submittedAt ?? null) : null,
       submittedBy: request ? (item.submittedBy ?? null) : null,
+      // A "Not yet" belongs to the ask it answered.
+      ...(same ? {} : { sentBackAt: null, sentBackBy: null }),
     });
   }
 
@@ -258,17 +271,27 @@ export class Hub {
   confirm(id: string): Undo {
     const item = this.item(id);
     if (!item?.submittedAt) return () => {};
-    const prev: Partial<Item> = { done: item.done, doneAt: item.doneAt ?? null, doneBy: item.doneBy ?? null, submittedAt: item.submittedAt, submittedBy: item.submittedBy ?? null };
-    this.store.mutate('item', id, { done: true, doneAt: item.submittedAt, doneBy: item.submittedBy ?? null, submittedAt: null, submittedBy: null });
+    const prev: Partial<Item> = {
+      done: item.done,
+      doneAt: item.doneAt ?? null,
+      doneBy: item.doneBy ?? null,
+      submittedAt: item.submittedAt,
+      submittedBy: item.submittedBy ?? null,
+      sentBackAt: item.sentBackAt ?? null,
+      sentBackBy: item.sentBackBy ?? null,
+    };
+    this.store.mutate('item', id, { done: true, doneAt: item.submittedAt, doneBy: item.submittedBy ?? null, submittedAt: null, submittedBy: null, sentBackAt: null, sentBackBy: null });
     return () => this.store.mutate('item', id, prev);
   }
 
-  /** "Not yet": back to the doer's list. */
+  /** "Not yet": back to the doer's list, saying so (they see "{asker} said not yet"). */
   sendBack(id: string): Undo {
     const item = this.item(id);
     if (!item?.submittedAt) return () => {};
-    const prev: Partial<Item> = { submittedAt: item.submittedAt, submittedBy: item.submittedBy ?? null };
-    this.store.mutate('item', id, { submittedAt: null, submittedBy: null });
+    const prev: Partial<Item> = { submittedAt: item.submittedAt, submittedBy: item.submittedBy ?? null, sentBackAt: item.sentBackAt ?? null, sentBackBy: item.sentBackBy ?? null };
+    // Only the asker's "Not yet" says so; the doer taking it back just un-ticks.
+    const said = item.requestedBy === this.meId ? { sentBackAt: Date.now(), sentBackBy: this.meId } : {};
+    this.store.mutate('item', id, { submittedAt: null, submittedBy: null, ...said });
     return () => this.store.mutate('item', id, prev);
   }
 
@@ -406,8 +429,9 @@ export class Hub {
       } else if (item.submittedAt) {
         return this.sendBack(id);
       } else {
-        this.store.mutate('item', id, { submittedAt: Date.now(), submittedBy: this.meId });
-        return () => this.store.mutate('item', id, { submittedAt: null, submittedBy: null });
+        const back = { sentBackAt: item.sentBackAt ?? null, sentBackBy: item.sentBackBy ?? null };
+        this.store.mutate('item', id, { submittedAt: Date.now(), submittedBy: this.meId, sentBackAt: null, sentBackBy: null });
+        return () => this.store.mutate('item', id, { submittedAt: null, submittedBy: null, ...back });
       }
     }
     const list = this.list(item.listId);
@@ -783,9 +807,37 @@ export class Hub {
   /**
    * Import a JSON backup without overwriting anything, sealing every entity in the
    * scope its privacy implies (an "Only me" item must never be re-shared by an import).
+   *
+   * A restore never adds people: pairing does. The backup's own person (`me`, recorded by
+   * newer backups; for older ones, its only member when this household is just me) becomes me
+   * in every person field, so my private things land under my key. Other people the household
+   * doesn't know are left out. A project this household already has (same kind and name)
+   * takes the backup's items instead of coming in a second time.
    */
-  importBackup(data: Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>): number {
+  importBackup(data: Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>, opts: { me?: string } = {}): number {
     let n = 0;
+    const members = data.member ?? [];
+    const known = new Set(this.members().map((m) => m.id));
+    let from = opts.me;
+    if (!from && !members.some((m) => m.id === this.meId)) {
+      const strangers = members.filter((m) => !known.has(m.id));
+      if (strangers.length === 1 && [...known].every((id) => id === this.meId)) from = strangers[0].id;
+    }
+    const who = (v: unknown) => (from && v === from ? this.meId : v);
+    const lists = new Map<string, string>();
+    for (const l of data.list ?? []) {
+      const twin = this.store.all('list').find((x) => x.id !== l.id && !x.deleted && x.kind === l.kind && fold(x.name) === fold(String(l.name ?? '')));
+      if (twin && !this.store.record('list', l.id)) lists.set(l.id, twin.id);
+    }
+    const listOf = (v: unknown) => (typeof v === 'string' ? (lists.get(v) ?? v) : v);
+    const keyOf = (k: unknown) => (typeof k === 'string' && k.startsWith('l:') ? `l:${listOf(k.slice(2))}` : k);
+    /** Person fields, and list references, through the maps. */
+    const fix = (row: { id: string } & Record<string, unknown>) => {
+      const out: { id: string } & Record<string, unknown> = { ...row };
+      for (const k of PERSON_FIELDS) if (k in out) out[k] = who(out[k]);
+      if ('listId' in out) out.listId = listOf(out.listId);
+      return out;
+    };
     const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member' | 'idea', row: { id: string } & Record<string, unknown>, scope: Scope) => {
       if (!row?.id || this.store.record(t, row.id)) return;
       const { id, ...fields } = row;
@@ -794,22 +846,33 @@ export class Hub {
       n++;
     };
     this.store.batch(() => {
-      for (const m of data.member ?? []) put('member', m, 'h');
-      for (const l of data.list ?? []) {
+      for (const m of members) {
+        const id = who(m.id);
+        // Only my own record, and only when this device has none yet.
+        if (id !== this.meId) continue;
+        const mine = { ...m, id: this.meId } as Record<string, unknown> & { id: string };
+        if (Array.isArray(mine.tabs)) mine.tabs = mine.tabs.map(keyOf);
+        if (Array.isArray(mine.home)) mine.home = (mine.home as Array<{ key: unknown }>).map((h) => ({ ...h, key: keyOf(h?.key) }));
+        put('member', mine, 'h');
+      }
+      for (const raw of data.list ?? []) {
+        if (lists.has(raw.id)) continue;
+        const l = fix(raw);
         const vis = (l.visibility as Visibility) ?? 'shared';
         put('list', l, vis === 'private' ? `p:${(l.owner as string) ?? this.meId}` : 'h');
       }
       // Parents before children so inherited privacy resolves.
-      const items = [...(data.item ?? [])].sort((x, y) => Number(!!x.parentId) - Number(!!y.parentId));
+      const items = [...(data.item ?? [])].map(fix).sort((x, y) => Number(!!x.parentId) - Number(!!y.parentId));
       for (const it of items) put('item', it, this.scopeForItem({ ...(it as unknown as Item) }));
-      for (const l of data.log ?? []) {
+      for (const raw of data.log ?? []) {
+        const l = fix(raw);
         const item = this.item(l.itemId as string);
         put('log', l, item ? this.store.scopeOf('item', item.id) : 'h');
       }
       for (const m of data.memory ?? []) put('memory', m, m.id.startsWith('p:') ? `p:${this.meId}` : 'h');
       for (const st of data.store ?? []) put('store', st, 'h');
-      for (const st of data.settings ?? []) put('settings', st, 'h');
-      for (const idea of data.idea ?? []) put('idea', idea, 'h');
+      for (const st of data.settings ?? []) put('settings', fix(st), 'h');
+      for (const idea of data.idea ?? []) put('idea', fix(idea), 'h');
     });
     return n;
   }
@@ -835,6 +898,25 @@ export class Hub {
     return hits.slice(0, limit).map((h) => h.it);
   }
 }
+
+/** Fields that name a person (a member id), across every table a backup holds. */
+const PERSON_FIELDS = [
+  'by',
+  'createdBy',
+  'owner',
+  'assignee',
+  'turn',
+  'requestedBy',
+  'submittedBy',
+  'sentBackBy',
+  'doneBy',
+  'lastDoneBy',
+  'urgentBy',
+  'thankedBy',
+  'resolvedBy',
+  'editedBy',
+  'awayBy',
+] as const;
 
 export interface ProjectTemplate {
   key: string;

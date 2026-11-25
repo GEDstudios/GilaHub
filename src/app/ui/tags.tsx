@@ -1,5 +1,6 @@
 import type { Item } from '../../core/model';
-import { useHub } from '../context';
+import { useHub, useRt } from '../context';
+import { notifyAbout } from '../notify';
 import { reqLabel, visLabel, visTagFor, VIS_ICON, type ReqState } from '../privacy';
 import { haptic } from './haptics';
 import { Icon } from './Icon';
@@ -64,6 +65,7 @@ export function ReqTag({ state }: { state: ReqState }) {
 /** OK / Not yet for something my partner says is done. Same on Today and on the item page. */
 export function RequestActions({ item, className }: { item: Item; className?: string }) {
   const hub = useHub();
+  const rt = useRt();
   const { toast } = useOverlays();
   const hold = useSettleHold();
   const doer = hub.member(item.submittedBy)?.name ?? 'them';
@@ -85,7 +87,9 @@ export function RequestActions({ item, className }: { item: Item; className?: st
         type="button"
         className="mini"
         onClick={() => {
+          const to = item.submittedBy;
           const undo = hub.sendBack(item.id);
+          notifyAbout(rt, hub, item, to, `${hub.me()?.name ?? 'Your partner'} said not yet`, `“${item.title}” needs another go`);
           toast(`Sent back to ${doer}`, { action: { label: 'Undo', run: undo } });
         }}
       >

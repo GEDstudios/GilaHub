@@ -66,8 +66,35 @@ export function isDefaultPins(pins: readonly string[]): boolean {
   return pins.join() === DEFAULT_PINS.join();
 }
 
+/**
+ * `next` with the stored entries it can't show back in their places: each goes right after the
+ * nearest entry before it that is still there (pure, for tests). Writes keep pins to dormant
+ * projects (Hub.listDormant), so archiving and restoring one doesn't lose them.
+ */
+export function keepDormant<T>(raw: readonly T[], next: readonly T[], key: (t: T) => string, keep: (t: T) => boolean): T[] {
+  const out = [...next];
+  const have = new Set(out.map(key));
+  raw.forEach((r, i) => {
+    if (have.has(key(r)) || !keep(r)) return;
+    let at = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const k = out.findIndex((o) => key(o) === key(raw[j]));
+      if (k >= 0) {
+        at = k + 1;
+        break;
+      }
+    }
+    out.splice(at, 0, r);
+    have.add(key(r));
+  });
+  return out;
+}
+
+const dormantKey = (hub: Hub) => (k: string) => k.startsWith('l:') && hub.listDormant(k.slice(2));
+
 export function setPins(hub: Hub, pins: string[]): void {
-  hub.upsertMember(hub.meId, { tabs: cleanPins(pins, validKeys(hub)) });
+  const raw = (hub.me()?.tabs ?? []).filter((k): k is string => typeof k === 'string');
+  hub.upsertMember(hub.meId, { tabs: keepDormant(raw, cleanPins(pins, validKeys(hub)), (k) => k, dormantKey(hub)) });
 }
 
 /** Pin or unpin; returns whether it is pinned now. New pins go last, just before Projects. */

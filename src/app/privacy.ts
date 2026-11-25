@@ -94,8 +94,9 @@ export function visHint(v: VisChoice, partnerName: string | null): string {
  * they-asked  My partner asked me; still open.
  * ok-needed   My partner says my ask is done; my OK is next.
  * waiting-ok  I did my partner's ask; waiting for their OK.
+ * sent-back   I did my partner's ask and they said "Not yet"; it's mine again.
  */
-export type ReqKind = 'asked-them' | 'they-asked' | 'ok-needed' | 'waiting-ok';
+export type ReqKind = 'asked-them' | 'they-asked' | 'ok-needed' | 'waiting-ok' | 'sent-back';
 export interface ReqState {
   kind: ReqKind;
   other: Member | undefined;
@@ -115,7 +116,7 @@ export function requestState(hub: Hub, item: Item): ReqState | null {
     return { kind: 'asked-them', other: asked, needsOk };
   }
   const asker = hub.member(item.requestedBy);
-  return { kind: item.submittedAt ? 'waiting-ok' : 'they-asked', other: asker, needsOk };
+  return { kind: item.submittedAt ? 'waiting-ok' : item.sentBackAt ? 'sent-back' : 'they-asked', other: asker, needsOk };
 }
 
 export function reqLabel(s: ReqState): string {
@@ -123,6 +124,7 @@ export function reqLabel(s: ReqState): string {
   if (s.kind === 'asked-them') return `Asked ${p ?? 'them'}${s.needsOk ? ' · needs OK' : ''}`;
   if (s.kind === 'they-asked') return `${p ?? 'They'} asked`;
   if (s.kind === 'ok-needed') return `${p ?? 'They'} did it · OK?`;
+  if (s.kind === 'sent-back') return `${p ?? 'They'} said not yet`;
   return `Waiting for ${p ? `${p}’s` : 'their'} OK`;
 }
 

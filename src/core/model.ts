@@ -146,6 +146,9 @@ export interface Item {
   /** "I did it" — waiting for the asker's OK. */
   submittedAt?: number | null;
   submittedBy?: string | null;
+  /** The asker said "Not yet": the doer sees it until they tick again. */
+  sentBackAt?: number | null;
+  sentBackBy?: string | null;
   /** Shopping: the purchase log written when it was checked. */
   logId?: string | null;
   createdAt: number;

@@ -1,6 +1,7 @@
 import type { Hub } from '../core/actions';
 import { diffDays, fromDateStr, humanDate, weekdayName } from '../core/dates';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';
+import { keepDormant } from './tabs';
 import type { IconName } from './ui/Icon';
 import { openCount, type ChoreRow, type ChoresView, type TodayView } from './views';
 
@@ -103,8 +104,14 @@ export function pinnedProjects(hub: Hub): string[] {
     .filter((id): id is string => !!id);
 }
 
+/** Write my Today page. Pins to projects that are only out of sight for now (archived) stay stored. */
 export function setHome(hub: Hub, slots: readonly HomeSlot[]): void {
-  hub.upsertMember(hub.meId, { home: slots.map((s) => ({ key: s.key, on: s.on })) });
+  const raw = (hub.me()?.home ?? []).filter((s): s is HomeSlot => !!s && typeof s.key === 'string');
+  const next = keepDormant(raw, slots, (s) => s.key, (s) => {
+    const id = listIdOf(s.key);
+    return !!id && hub.listDormant(id);
+  });
+  hub.upsertMember(hub.meId, { home: next.map((s) => ({ key: s.key, on: s.on !== false })) });
 }
 
 export function isDefaultHome(hub: Hub): boolean {
@@ -154,7 +161,9 @@ export function showHome(hub: Hub, key: string): boolean {
 
 /** The summary: how many things today, and which projects (and person) they're in. */
 export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | 'done' | 'free'; lists: List[]; person: boolean } {
-  const counted: Item[] = [...v.today, ...v.earlier, ...v.awaitingOk, ...v.asked];
+  // An ask with a date counts on its day (it moves into today or earlier then), not before.
+  const askedNow = v.asked.filter((i) => !i.due);
+  const counted: Item[] = [...v.today, ...v.earlier, ...v.awaitingOk, ...askedNow];
   const n = counted.length;
   const person = !!hub.partner() && v.awaitingOk.length + v.asked.length > 0;
   const tally = new Map<string, number>();
@@ -190,7 +199,8 @@ export function choresReady(hub: Hub, v: TodayView, chores: ChoresView): ChoreRo
 export function weekBands(hub: Hub, v: TodayView, chores: ChoresView, shown: ReadonlySet<string> = new Set(visibleHome(hub).map((s) => s.key))): WeekBand[] {
   const out: WeekBand[] = [];
   if (v.shopping.count && !shown.has('shop')) out.push({ key: 'shop', color: 'lemon', num: v.shopping.count, label: 'to buy' });
-  const ready = hub.isAway() ? 0 : chores.now.length;
+  // The same "ready" the Chores widget shows: not what Today already lists.
+  const ready = choresReady(hub, v, chores).length;
   if (ready && !shown.has('chores')) out.push({ key: 'chores', color: 'pink', num: ready, label: ready === 1 ? 'chore ready' : 'chores ready' });
   if (v.together) out.push({ key: 'done', color: 'lilac', num: v.together, label: hub.partner() ? 'done together this week' : 'done this week' });
   return out;
