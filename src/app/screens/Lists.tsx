@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
-import { pickColor, PROJECT_TEMPLATES } from '../../core/actions';
+import { PROJECT_TEMPLATES } from '../../core/actions';
+import { suggestIcon } from '../../core/projectIcons';
 import type { List, ListKind, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
@@ -24,18 +25,20 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
   const [look, setLook] = useState<ProjectLook>(() => ({
     kind: initial?.kind ?? 'tasks',
     flavor: 'grocery',
-    color: pickColor(hub.lists().map((l) => l.color)),
-    icon: '',
+    color: hub.freshColor(),
+    // Unset until picked: the name suggests one as it's typed.
+    icon: undefined,
     visibility: initial?.visibility ?? 'shared',
     pinned: false,
   }));
   const kind = look.kind ?? 'tasks';
+  const icon = look.icon ?? suggestIcon(name, kind, look.flavor, hub.lists().at(-1)?.icon);
   const taken = new Set(hub.lists().map((l) => l.name.toLowerCase()));
   const starts = PROJECT_TEMPLATES.filter((t) => !taken.has(t.name.toLowerCase())).slice(0, 4);
 
   const create = () => {
     if (!name.trim()) return;
-    const id = hub.createList({ name, kind, color: look.color, icon: look.icon || undefined, flavor: kind === 'shopping' ? look.flavor : undefined, visibility: look.visibility });
+    const id = hub.createList({ name, kind, color: look.color, icon, flavor: kind === 'shopping' ? look.flavor : undefined, visibility: look.visibility });
     if (look.pinned) togglePin(hub, `l:${id}`);
     onClose();
     navigate({ name: 'list', id });
@@ -52,7 +55,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
         <div className="ccard ccard--lg ccard--edit" style={lineVars(look.color)}>
           <span className="ccard__top">
             <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
-            {look.icon ? <Glyph icon={look.icon} className="ccard__glyph" /> : null}
+            {icon ? <Glyph icon={icon} className="ccard__glyph" /> : null}
           </span>
           <span className="ccard__sub">
             {KIND[kind]} · {visLabel(LIST_VIS[look.visibility])}
@@ -68,7 +71,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
                 className="token"
                 onClick={() => {
                   setName(t.name);
-                  setLook((l) => ({ ...l, kind: t.kind, flavor: t.flavor ?? l.flavor, visibility: t.visibility ?? l.visibility, icon: t.icon || l.icon }));
+                  setLook((l) => ({ ...l, kind: t.kind, flavor: t.flavor ?? l.flavor, visibility: t.visibility ?? l.visibility, icon: t.icon }));
                 }}
               >
                 <Icon name="plus" />
@@ -78,7 +81,7 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
           </div>
         ) : null}
 
-        <ProjectFields value={look} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis withKind />
+        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis withKind />
 
         <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim()}>
           Create project

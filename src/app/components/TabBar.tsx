@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { useHub, usePartnerShopping } from '../context';
 import { navigate, useRoute } from '../router';
 import { activeTabKey, barDensity, tabsOf, type TabDef } from '../tabs';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
-import { CANCEL_LIFT, centerScroll, clampBubble, edgeSpeed, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../ui/scrub';
+import { CANCEL_LIFT, centerScroll, clampBubble, EDGE_DWELL, EDGE_STEP_MS, edgeDir, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../ui/scrub';
 import { useOnce } from '../ui/useOnce';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
 
@@ -22,34 +22,42 @@ interface Gesture {
   raf: number;
   /** Reduced motion: no swell. */
   still: boolean;
+  /** Dock: which way the finger asks the middle to step, and when it next may. */
+  edge: { dir: number; next: number };
 }
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const onPhone = () => typeof matchMedia === 'function' && matchMedia('(max-width: 959px)').matches;
 
 /**
- * The live bottom bar. A tap goes straight to a tab. Hold it still for a moment and slide:
- * the tab under the finger lights up and swells, a bubble names it, and letting go goes
- * there (lift above the bar to cancel). In dock mode the middle scrolls, follows the
- * finger near its edges, and keeps the active tab centered. DECISIONS #8.
+ * Hold-and-scrub on a bar of tabs (TabBarView): hold still for a moment and slide; the tab under
+ * the finger lights up and swells, a bubble names it, and letting go picks it (lift above the
+ * bar to cancel). In the dock the middle steps one tab at a time once the finger rests past the
+ * outermost tab in view. Used by the live bar (picking navigates) and by Settings' preview
+ * (picking flashes that tab's row). DECISIONS #8.
  */
-export function TabBar() {
-  const route = useRoute();
-  const hub = useHub();
-  const shopping = usePartnerShopping();
-  const tabs = tabsOf(hub);
-  const on = activeTabKey(hub, route);
-  const density = barDensity(tabs.length);
+export function useBarScrub({
+  tabs,
+  navRef,
+  scrollRef,
+  onPick,
+  onTouch,
+}: {
+  tabs: TabDef[];
+  navRef: RefObject<HTMLElement | null>;
+  scrollRef: RefObject<HTMLDivElement | null>;
+  onPick: (t: TabDef) => void;
+  /** Any finger on the bar (the one-time hint leaves). */
+  onTouch?: () => void;
+}): { scrubKey: string | null; navProps: HTMLAttributes<HTMLElement>; bubble: ReactNode } {
   const [scrub, setScrub] = useState<{ key: string | null } | null>(null);
-  const [hint, hinted] = useOnce('scrub-hint', tabs.length >= 6 && onPhone());
-
-  const navRef = useRef<HTMLElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLSpanElement>(null);
   const g = useRef<Gesture | null>(null);
   const swallow = useRef(false);
   const tabsRef = useRef<TabDef[]>(tabs);
   tabsRef.current = tabs;
+  const pickRef = useRef(onPick);
+  pickRef.current = onPick;
 
   /** Put the bubble over the finger, inside the bar. */
   const placeBubble = useCallback(() => {
@@ -59,7 +67,7 @@ export function TabBar() {
     if (!s || !nav || !b) return;
     const r = nav.getBoundingClientRect();
     b.style.setProperty('--bx', `${clampBubble(s.x, b.offsetWidth, r.left, r.right) - r.left}px`);
-  }, []);
+  }, [navRef]);
 
   const end = useCallback(() => {
     const s = g.current;
@@ -76,49 +84,59 @@ export function TabBar() {
     }
     nav.querySelectorAll<HTMLElement>('.tab').forEach((el) => el.style.removeProperty('--d'));
     setScrub(null);
-  }, []);
+  }, [navRef]);
 
-  /** One frame of scrubbing: auto-scroll, find the tab under the finger, magnify, place the bubble. */
-  const frame = useCallback(() => {
-    const s = g.current;
-    const nav = navRef.current;
-    if (!s?.live || !nav) return;
-    const bar = nav.getBoundingClientRect();
-    const cancel = s.y < bar.top - CANCEL_LIFT;
-    const sc = scrollRef.current;
-    const view = sc?.getBoundingClientRect();
-    if (sc && view && !cancel) {
-      const v = edgeSpeed(s.x, view.left, view.right, sc.scrollLeft, sc.scrollWidth - sc.clientWidth);
-      if (v) {
-        sc.scrollLeft += v;
+  /** One frame of scrubbing: find the tab under the finger, magnify, place the bubble, step the dock. */
+  const frame = useCallback(
+    (now: number) => {
+      const s = g.current;
+      const nav = navRef.current;
+      if (!s?.live || !nav) return;
+      const bar = nav.getBoundingClientRect();
+      const cancel = s.y < bar.top - CANCEL_LIFT;
+      const sc = scrollRef.current;
+      const view = sc?.getBoundingClientRect();
+      const els = [...nav.querySelectorAll<HTMLElement>('.tab')];
+      const rects = els.map((el) => el.getBoundingClientRect());
+      const x = Math.min(Math.max(s.x, bar.left), bar.right);
+      // Only tabs you can see can be picked: in the dock, a middle tab's center must be in view.
+      const inView: number[] = [];
+      const centers = rects.map((r, i) => {
+        const c = r.left + r.width / 2;
+        if (!sc?.contains(els[i])) return c;
+        if (view && (c < view.left || c > view.right)) return Infinity;
+        inView.push(c);
+        return c;
+      });
+      const i = cancel ? -1 : nearestIndex(x, centers);
+      const magnify = !cancel && !s.still;
+      els.forEach((el, j) => {
+        const d = magnify ? slotDistance(x, rects[j].left + rects[j].width / 2, rects[j].width) : 9;
+        el.style.setProperty('--d', Math.min(d, 9).toFixed(3));
+      });
+      const key = i >= 0 ? (els[i].dataset.key ?? null) : null;
+      if (key !== s.key) {
+        // The first pick already got the lift; every change after it gets a select.
+        if (key && s.key !== undefined) haptic('select');
+        s.key = key;
+        setScrub({ key });
+      }
+      // Dock: rest past the outermost tab in view and the middle steps one tab, then another.
+      if (sc && view && inView.length) {
+        const dir = cancel ? 0 : edgeDir(s.x, view.left, view.right, sc.scrollLeft, sc.scrollWidth - sc.clientWidth, Math.min(...inView), Math.max(...inView));
+        if (dir !== s.edge.dir) s.edge = { dir, next: now + EDGE_DWELL };
+        else if (dir && now >= s.edge.next) {
+          const w = rects[i]?.width || 52;
+          sc.scrollBy({ left: dir * w, behavior: s.still ? 'auto' : 'smooth' });
+          s.edge.next = now + EDGE_STEP_MS;
+        }
         markEdges(sc);
       }
-    }
-    const els = [...nav.querySelectorAll<HTMLElement>('.tab')];
-    const rects = els.map((el) => el.getBoundingClientRect());
-    const x = Math.min(Math.max(s.x, bar.left), bar.right);
-    // Only tabs you can see can be picked: in the dock, a middle tab's center must be in view.
-    const centers = rects.map((r, i) => {
-      const c = r.left + r.width / 2;
-      const inScroller = sc?.contains(els[i]);
-      return inScroller && view && (c < view.left || c > view.right) ? Infinity : c;
-    });
-    const i = cancel ? -1 : nearestIndex(x, centers);
-    const magnify = !cancel && !s.still;
-    els.forEach((el, j) => {
-      const d = magnify ? slotDistance(x, rects[j].left + rects[j].width / 2, rects[j].width) : 9;
-      el.style.setProperty('--d', Math.min(d, 9).toFixed(3));
-    });
-    const key = i >= 0 ? (els[i].dataset.key ?? null) : null;
-    if (key !== s.key) {
-      // The first pick already got the lift; every change after it gets a select.
-      if (key && s.key !== undefined) haptic('select');
-      s.key = key;
-      setScrub({ key });
-    }
-    placeBubble();
-    s.raf = requestAnimationFrame(frame);
-  }, [placeBubble]);
+      placeBubble();
+      s.raf = requestAnimationFrame(frame);
+    },
+    [navRef, scrollRef, placeBubble],
+  );
 
   const begin = useCallback(() => {
     const s = g.current;
@@ -136,13 +154,25 @@ export function TabBar() {
     s.still = reducedMotion();
     haptic('lift');
     s.raf = requestAnimationFrame(frame);
-  }, [frame, end]);
+  }, [navRef, frame, end]);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
     if (g.current || (e.pointerType === 'mouse' && e.button !== 0)) return;
     swallow.current = false;
-    if (hint) hinted();
-    g.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, timer: window.setTimeout(begin, HOLD_MS), live: false, key: null, raf: 0, still: false };
+    onTouch?.();
+    g.current = {
+      id: e.pointerId,
+      x0: e.clientX,
+      y0: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      timer: window.setTimeout(begin, HOLD_MS),
+      live: false,
+      key: null,
+      raf: 0,
+      still: false,
+      edge: { dir: 0, next: 0 },
+    };
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
@@ -150,7 +180,7 @@ export function TabBar() {
     if (!s || e.pointerId !== s.id) return;
     s.x = e.clientX;
     s.y = e.clientY;
-    // Moving first means a tap that slipped, or a swipe the dock scrolls natively.
+    // Moving first means a tap that slipped, or a swipe that scrolls natively.
     if (!s.live && Math.hypot(s.x - s.x0, s.y - s.y0) > HOLD_SLOP) end();
   };
 
@@ -165,7 +195,7 @@ export function TabBar() {
     end();
     if (t) {
       haptic('tick');
-      navigate(t.path);
+      pickRef.current(t);
     }
   };
 
@@ -178,13 +208,67 @@ export function TabBar() {
     };
     nav.addEventListener('touchmove', hold, { passive: false });
     return () => nav.removeEventListener('touchmove', hold);
-  }, []);
+  }, [navRef]);
 
   useEffect(() => end, [end]);
 
   useLayoutEffect(() => {
     if (scrub) placeBubble();
   }, [scrub, placeBubble]);
+
+  const scrubTab = scrub?.key ? tabs.find((t) => t.key === scrub.key) : undefined;
+
+  return {
+    scrubKey: scrub?.key ?? null,
+    navProps: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerCancel: end,
+      // Leaving before the hold fires (a mouse sliding off) is not a hold either.
+      onPointerLeave: (e) => g.current && !g.current.live && e.pointerId === g.current.id && end(),
+      // Only the bar's own capture counts (taking it from the tab underneath also fires this).
+      onLostPointerCapture: (e) => e.target === e.currentTarget && g.current?.live && e.pointerId === g.current.id && end(),
+      // A held tab must not open the link menu or callout.
+      onContextMenu: (e) => g.current && e.preventDefault(),
+      onClickCapture: (e) => {
+        if (!swallow.current) return;
+        swallow.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+      },
+    },
+    bubble: scrub ? (
+      <span ref={bubbleRef} className={`tabbar__bubble${scrubTab ? ' is-lit' : ' is-cancel'}`} aria-hidden="true">
+        {scrubTab ? <TabMark t={scrubTab} /> : <Icon name="x" className="icon--sm" />}
+        <span dir="auto">{scrubTab ? scrubTab.label : 'Let go to cancel'}</span>
+      </span>
+    ) : null,
+  };
+}
+
+/**
+ * The live bottom bar. A tap goes straight to a tab; hold and slide to pick one (useBarScrub).
+ * In dock mode the middle scrolls and keeps the active tab centered. DECISIONS #8.
+ */
+export function TabBar() {
+  const route = useRoute();
+  const hub = useHub();
+  const shopping = usePartnerShopping();
+  const tabs = tabsOf(hub);
+  const on = activeTabKey(hub, route);
+  const density = barDensity(tabs.length);
+  const [hint, hinted] = useOnce('scrub-hint', tabs.length >= 6 && onPhone());
+
+  const navRef = useRef<HTMLElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { scrubKey, navProps, bubble } = useBarScrub({
+    tabs,
+    navRef,
+    scrollRef,
+    onPick: (t) => navigate(t.path),
+    onTouch: hint ? hinted : undefined,
+  });
 
   // Dock: keep the active tab centered, and the edge fades honest.
   const first = useRef(true);
@@ -213,23 +297,27 @@ export function TabBar() {
     };
   }, [density]);
 
-  // The one-time hint leaves after a while on screen (not counting time under a sheet), or on the first touch.
+  // The one-time hint leaves after six seconds really on screen: time under a sheet or a toast
+  // (which would cover it) doesn't count. A first touch on the bar sends it away too.
+  const [covered, setCovered] = useState(false);
   useEffect(() => {
     if (!hint) return;
     let shown = 0;
-    const timer = setInterval(() => {
-      if (!document.querySelector('.sheet') && ++shown >= 6) hinted();
-    }, 1000);
+    const tick = () => {
+      const hidden = !!document.querySelector('.sheet, .toasts .toast');
+      setCovered(hidden);
+      if (!hidden && (shown += 250) >= 6000) hinted();
+    };
+    tick();
+    const timer = setInterval(tick, 250);
     return () => clearInterval(timer);
   }, [hint, hinted]);
-
-  const scrubTab = scrub?.key ? tabs.find((t) => t.key === scrub.key) : undefined;
 
   return (
     <TabBarView
       tabs={tabs}
       activeKey={on}
-      scrubKey={scrub?.key ?? null}
+      scrubKey={scrubKey}
       live={shopping ? new Set(['shop']) : undefined}
       navRef={navRef}
       scrollRef={scrollRef}
@@ -237,32 +325,10 @@ export function TabBar() {
         e.preventDefault();
         navigate(t.path);
       }}
-      navProps={{
-        onPointerDown,
-        onPointerMove,
-        onPointerUp,
-        onPointerCancel: end,
-        // Leaving before the hold fires (a mouse sliding off) is not a hold either.
-        onPointerLeave: (e) => g.current && !g.current.live && e.pointerId === g.current.id && end(),
-        // Only the bar's own capture counts (taking it from the tab underneath also fires this).
-        onLostPointerCapture: (e) => e.target === e.currentTarget && g.current?.live && e.pointerId === g.current.id && end(),
-        // A held tab must not open the link menu or callout.
-        onContextMenu: (e) => g.current && e.preventDefault(),
-        onClickCapture: (e) => {
-          if (!swallow.current) return;
-          swallow.current = false;
-          e.preventDefault();
-          e.stopPropagation();
-        },
-      }}
+      navProps={navProps}
     >
-      {scrub ? (
-        <span ref={bubbleRef} className={`tabbar__bubble${scrubTab ? ' is-lit' : ' is-cancel'}`} aria-hidden="true">
-          {scrubTab ? <TabMark t={scrubTab} /> : <Icon name="x" className="icon--sm" />}
-          <span dir="auto">{scrubTab ? scrubTab.label : 'Let go to cancel'}</span>
-        </span>
-      ) : null}
-      {hint && !scrub ? (
+      {bubble}
+      {hint && !scrubKey && !bubble && !covered ? (
         <span className="tabbar__hint" role="status">
           <Icon name="hand" className="icon--sm" />
           Hold and slide to pick

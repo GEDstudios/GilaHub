@@ -1318,13 +1318,19 @@ html.is-dragging * {
   }
 }
 
-/* The tray: + tokens to bring things back; one can open a panel of choices under it */
+/*
+ * The tray: + tokens to bring things back; one can open a panel of choices under it. It belongs
+ * to the list above it: a quiet label close under the rows, not a section of its own.
+ */
 .tray {
-  margin-top: 30px;
+  margin-top: 14px;
 }
 
-.tray .section__head {
-  margin-bottom: 4px;
+.tray__label {
+  margin: 0 0 9px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
 }
 
 .tray__empty {
@@ -2789,6 +2795,20 @@ html.is-dragging * {
   }
 }
 
+/* While the bar is held, what floats on it steps down and away: the bubble is the one thing above it */
+.shopbar,
+.toasts {
+  transition:
+    opacity 160ms var(--ease),
+    translate 200ms var(--spring);
+}
+
+:root:has(.tabbar.is-scrubbing:not(.tabbar--preview)) :is(.shopbar, .toasts, .ideatag) {
+  opacity: 0;
+  translate: 0 8px;
+  pointer-events: none;
+}
+
 /* "Hold and slide to pick", once, the first time the bar holds 6 or more */
 .tabbar__hint {
   position: absolute;
@@ -2822,8 +2842,8 @@ html.is-dragging * {
 /*
  * Settings shows the same bar, standing still (the page still scrolls through it). Its order
  * follows a drag as it happens; the slot of the row in hand lifts (is-lifted), a slot that
- * arrives pops (is-new), one that leaves shrinks away (is-leaving). "Crowded?" plays the
- * hold-and-slide visuals (is-scrubbing, --d) with a finger dot, .scrubdot.
+ * arrives pops (is-new), one that leaves shrinks away (is-leaving). Hold and slide works on it
+ * as on the real bar (useBarScrub); picking flashes that tab's row instead of going there.
  */
 .tabbar--preview {
   position: relative;
@@ -2898,25 +2918,6 @@ html.is-dragging * {
   }
 }
 
-.scrubdot {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  width: 10px;
-  height: 10px;
-  margin-left: -5px;
-  border-radius: 50%;
-  background: var(--ink);
-  opacity: 0;
-  transform: translateX(var(--x, 0px));
-  transition: opacity 160ms var(--ease);
-  pointer-events: none;
-}
-
-.tabbar--preview.is-scrubbing .scrubdot {
-  opacity: 1;
-}
-
 @media (prefers-reduced-motion: reduce) {
   /* No swell while scrubbing; nothing slides. */
   .tab__mark {
@@ -2956,10 +2957,22 @@ html.is-dragging * {
     display: flex;
     flex-direction: column;
     padding: 28px 16px 18px;
-    overflow-y: auto;
     border-right: 1px solid var(--line);
     background: var(--bg);
   }
+}
+
+/* Brand, New and Settings stay put at any size; only the navigation between them scrolls. */
+.sidebar > * {
+  flex-shrink: 0;
+}
+
+.sidebar > .sidebar__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+  overflow-y: auto;
 }
 
 .sidebar__brand {
@@ -3051,7 +3064,6 @@ html.is-dragging * {
 }
 
 .sidebar__foot {
-  margin-top: auto;
   padding-top: 18px;
 }
 
@@ -3072,8 +3084,8 @@ html.is-dragging * {
   padding: 0 16px;
 }
 
-/* No floating bar (Settings): they sit lower, unless the Ideas tag holds its spot there. */
-.no-tabbar:not(.has-ideatag) .toasts {
+/* No floating bar (Settings): they sit lower. */
+.no-tabbar .toasts {
   bottom: calc(var(--safe-bottom) + 22px);
 }
 
@@ -3459,7 +3471,8 @@ html.is-dragging * {
   right: calc(max(12px, (100% - 460px) / 2) + 16px);
   bottom: calc(var(--safe-bottom) + 10px + var(--tabbar-h));
   min-width: 44px;
-  height: 44px;
+  /* Only the paper that shows takes taps (and 2px for its lean): never the rows scrolling just above it. */
+  height: 25px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -3470,9 +3483,19 @@ html.is-dragging * {
     visibility 0s;
 }
 
-/* No bar here (Settings): the same spot, the whole tag showing */
+/*
+ * No bar here (Settings): the tag moves to the empty top-right of the header, whole. Down at
+ * the bottom right it would sit on the page's column of switches and grips.
+ */
 .no-tabbar .ideatag {
   --tuck: 0px;
+  z-index: 31;
+  top: calc(var(--safe-top) + 12px);
+  bottom: auto;
+}
+
+.no-tabbar.has-ideatag {
+  --tag-h: 0px;
 }
 
 .ideatag__body {

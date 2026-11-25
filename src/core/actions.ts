@@ -5,6 +5,7 @@ import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { categorize, routeFlavor, type Flavor } from '../smart/categorize';
 import { fold, itemKey, parseQuantity } from '../smart/normalize';
+import { suggestIcon } from './projectIcons';
 import { firstDue, isFlexible, nextDue, shiftForAway, skipDue } from '../smart/recurrence';
 
 export type ItemVisibility = 'ours' | 'mine' | 'private';
@@ -114,8 +115,8 @@ export class Hub {
         name: input.name.trim() || 'Untitled',
         kind: input.kind,
         flavor: input.kind === 'shopping' ? (input.flavor ?? 'grocery') : undefined,
-        color: input.color ?? pickColor(this.lists().map((l) => l.color)),
-        icon: input.icon ?? '',
+        color: input.color ?? this.freshColor(),
+        icon: input.icon ?? suggestIcon(input.name, input.kind, input.flavor, last?.icon),
         owner,
         visibility,
         order: keyBetween(last?.order ?? null, null),
@@ -124,6 +125,31 @@ export class Hub {
       });
     });
     return id;
+  }
+
+  /**
+   * A color for a new project: one no project uses yet; once all are taken, one its neighbours
+   * don't have (the last projects, and the last pins, where a new pin lands in the bar).
+   */
+  freshColor(rand: () => number = Math.random): LineColor {
+    const lists = this.lists();
+    const pinned = (this.me()?.tabs ?? []).filter((k) => k.startsWith('l:')).slice(-2);
+    const near = [...lists.slice(-2), ...pinned.map((k) => this.list(k.slice(2)))].flatMap((l) => (l ? [l.color] : []));
+    return pickColor(
+      lists.map((l) => l.color),
+      rand,
+      near,
+    );
+  }
+
+  /** Projects started from a template before they came with icons get the template's icon (once per device). */
+  fillTemplateIcons(): void {
+    this.store.batch(() => {
+      for (const l of this.lists()) {
+        const t = !l.icon && PROJECT_TEMPLATES.find((x) => x.name === l.name && x.kind === l.kind);
+        if (t && t.icon) this.store.mutate('list', l.id, { icon: t.icon });
+      }
+    });
   }
 
   updateList(id: string, fields: Partial<Pick<List, 'name' | 'color' | 'icon' | 'kind' | 'flavor' | 'archived'>>): void {
@@ -930,22 +956,23 @@ export interface ProjectTemplate {
 
 /** Starting points offered at onboarding and in "New project". Nothing is created unless picked. */
 export const PROJECT_TEMPLATES: ProjectTemplate[] = [
-  { key: 'groceries', name: 'Groceries', icon: '', kind: 'shopping', flavor: 'grocery', blurb: 'Sorted by aisle, for both of you' },
-  { key: 'home', name: 'Home shopping', icon: '', kind: 'shopping', flavor: 'home', blurb: 'Bulbs, towels, a new pan' },
-  { key: 'chores', name: 'Chores', icon: '', kind: 'chores', blurb: 'Things that repeat, shared fairly' },
-  { key: 'todo', name: 'To do', icon: '', kind: 'tasks', blurb: 'Everything else, with dates and steps' },
-  { key: 'trip', name: 'Next trip', icon: '', kind: 'tasks', blurb: 'Plans and packing' },
-  { key: 'gifts', name: 'Gift ideas', icon: '', kind: 'tasks', visibility: 'private', blurb: 'Only you can see it' },
+  { key: 'groceries', name: 'Groceries', icon: 'i:cart', kind: 'shopping', flavor: 'grocery', blurb: 'Sorted by aisle, for both of you' },
+  { key: 'home', name: 'Home shopping', icon: 'i:bag', kind: 'shopping', flavor: 'home', blurb: 'Bulbs, towels, a new pan' },
+  { key: 'chores', name: 'Chores', icon: 'i:broom', kind: 'chores', blurb: 'Things that repeat, shared fairly' },
+  { key: 'todo', name: 'To do', icon: 'i:lines', kind: 'tasks', blurb: 'Everything else, with dates and steps' },
+  { key: 'trip', name: 'Next trip', icon: 'i:suitcase', kind: 'tasks', blurb: 'Plans and packing' },
+  { key: 'gifts', name: 'Gift ideas', icon: 'i:gift', kind: 'tasks', visibility: 'private', blurb: 'Only you can see it' },
 ];
 
 export function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineColor): string {
   return hub.createList({ name: t.name, kind: t.kind, flavor: t.flavor, color, icon: t.icon, visibility: t.visibility ?? 'shared' });
 }
 
-/** A random color from the palette, preferring ones no project uses yet. */
-export function pickColor(used: LineColor[], rand: () => number = Math.random): LineColor {
+/** A random color from the palette, preferring ones no project uses yet, then ones not in `avoid`. */
+export function pickColor(used: LineColor[], rand: () => number = Math.random, avoid: LineColor[] = []): LineColor {
   const free = LINE_COLORS.filter((c) => !used.includes(c));
-  const pool = free.length ? free : LINE_COLORS;
+  const apart = LINE_COLORS.filter((c) => !avoid.includes(c));
+  const pool = free.length ? free : apart.length ? apart : LINE_COLORS;
   return pool[Math.floor(rand() * pool.length)];
 }
 

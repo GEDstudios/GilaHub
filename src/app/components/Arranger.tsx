@@ -284,10 +284,8 @@ export function Arranger({
       {anchors(bottom)}
 
       {tokens.length || trayEmpty ? (
-        <section className="section tray">
-          <div className="section__head">
-            <h2 className="section__title">{trayTitle}</h2>
-          </div>
+        <div className="tray">
+          <p className="tray__label">{trayTitle}</p>
           {tokens.length ? null : <p className="tray__empty">{trayEmpty}</p>}
           <div className="tokens">
             {tokens.map((t) => (
@@ -307,7 +305,7 @@ export function Arranger({
             ))}
           </div>
           {panel}
-        </section>
+        </div>
       ) : null}
 
       {reset ? (

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Hub, seedHousehold } from '../../src/core/actions';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
-import { activeTabKey, barDensity, cleanPins, DEFAULT_PINS, MAX_PINS, pinOptions, pinsOf, setPins, tabsOf, togglePin } from '../../src/app/tabs';
-import { CANCEL_LIFT, centerScroll, clampBubble, EDGE_SPEED, EDGE_ZONE, edgeSpeed, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../../src/app/ui/scrub';
+import { activeTabKey, barDensity, cleanPins, DEFAULT_PINS, keepDormant, MAX_PINS, pinOptions, pinsOf, setPins, tabsOf, togglePin } from '../../src/app/tabs';
+import { CANCEL_LIFT, centerScroll, clampBubble, EDGE_DWELL, EDGE_ZONE, edgeDir, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../../src/app/ui/scrub';
 
 async function guy() {
   const store = await Store.load(new MemoryPersistence(), 'dev-guy', ['h', 'p:guy']);
@@ -49,6 +49,24 @@ describe('bottom bar pins', () => {
     expect(pinsOf(hub)).toContain(`l:${todo.id}`);
     hub.deleteList(todo.id);
     expect(pinsOf(hub)).not.toContain(`l:${todo.id}`);
+  });
+
+  it("keeps an archived project's pin through edits, in its place, so restoring brings it back", async () => {
+    const hub = await guy();
+    const [a, b] = hub.lists();
+    setPins(hub, ['shop', `l:${a.id}`, `l:${b.id}`, 'chores']);
+    hub.updateList(a.id, { archived: true });
+    expect(pinsOf(hub)).toEqual(['shop', `l:${b.id}`, 'chores']);
+    togglePin(hub, 'search');
+    hub.updateList(a.id, { archived: false });
+    expect(pinsOf(hub)).toEqual(['shop', `l:${a.id}`, `l:${b.id}`, 'chores', 'search']);
+  });
+
+  it('keepDormant puts what it keeps back after its old neighbour', () => {
+    const keep = (k: string) => k.startsWith('x');
+    expect(keepDormant(['a', 'x1', 'b', 'x2'], ['b', 'a'], (k) => k, keep)).toEqual(['b', 'x2', 'a', 'x1']);
+    expect(keepDormant(['x1', 'a'], ['a'], (k) => k, keep)).toEqual(['x1', 'a']);
+    expect(keepDormant(['a', 'gone'], ['a'], (k) => k, keep)).toEqual(['a']);
   });
 
   it('togglePin always works, even with a crowded bar, and says what it did', async () => {
@@ -104,18 +122,28 @@ describe('hold-and-scrub maths', () => {
     expect(clampBubble(50, 400, 12, 378)).toBe(195);
   });
 
-  it('auto-scrolls near the edges only, and only where there is more to see', () => {
+  it('steps the dock only past the outermost tab in view, so the edge tab can be picked', () => {
     const [l, r] = [70, 320];
-    expect(edgeSpeed(200, l, r, 50, 200)).toBe(0);
-    expect(edgeSpeed(l + 1, l, r, 50, 200)).toBeLessThan(0);
-    expect(edgeSpeed(l + 1, l, r, 0, 200)).toBe(0);
-    expect(edgeSpeed(r - 1, l, r, 50, 200)).toBeGreaterThan(0);
-    expect(edgeSpeed(r - 1, l, r, 200, 200)).toBe(0);
-    expect(Math.abs(edgeSpeed(l, l, r, 50, 200))).toBe(EDGE_SPEED);
-    expect(Math.abs(edgeSpeed(l + EDGE_ZONE - 8, l, r, 50, 200))).toBeLessThan(EDGE_SPEED);
+    // The outermost tabs in view are centered at 91 and 304 (half under the fades).
+    const step = (x: number, scroll = 50, max = 200) => edgeDir(x, l, r, scroll, max, 91, 304);
+    expect(step(200)).toBe(0);
+    // Resting on the edge tab's center picks it; nothing moves.
+    expect(step(304)).toBe(0);
+    expect(step(91)).toBe(0);
+    // Past its center, toward the edge: step that way.
+    expect(step(310)).toBe(1);
+    expect(step(85)).toBe(-1);
+    // Nothing more to see that way.
+    expect(step(310, 200)).toBe(0);
+    expect(step(85, 0)).toBe(0);
     // Past the scroller, over Today or Projects: no scrolling.
-    expect(edgeSpeed(l - 5, l, r, 50, 200)).toBe(0);
-    expect(edgeSpeed(r + 5, l, r, 50, 200)).toBe(0);
+    expect(step(l - 5)).toBe(0);
+    expect(step(r + 5)).toBe(0);
+    // A tab well inside: only the outer strip under the fade steps.
+    expect(edgeDir(r - EDGE_ZONE + 1, l, r, 50, 200, 120, 260)).toBe(1);
+    expect(edgeDir(280, l, r, 50, 200, 120, 260)).toBe(1);
+    expect(edgeDir(250, l, r, 50, 200, 120, 260)).toBe(0);
+    expect(EDGE_DWELL).toBeGreaterThanOrEqual(250);
   });
 
   it('centers a slot without scrolling past either end', () => {

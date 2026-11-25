@@ -5,14 +5,13 @@ import { barDensity, COMFY_TABS, DEFAULT_PINS, isDefaultPins, pinOptions, pinsOf
 import { useFlip, replay } from '../ui/flip';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { slotDistance } from '../ui/scrub';
 import { choresView, openCount, todayView } from '../views';
 import { Arranger, type ArrangerRow, type ArrangerToken } from './Arranger';
+import { useBarScrub } from './TabBar';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
 
 const TODAY: TabDef = { key: 'today', label: 'Today', path: '/', icon: 'sun' };
 const PROJECTS: TabDef = { key: 'projects', label: 'Projects', path: '/lists', icon: 'folders' };
-const DEMO_MS = 1600;
 const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
@@ -32,17 +31,17 @@ export function BarEditor() {
   const [draft, setDraft] = useState<string[] | null>(null);
   const [lifted, setLifted] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<string | null>(null);
-  const [scrub, setScrub] = useState<string | null>(null);
 
   const order = (draft ?? pins).filter((k) => byKey.has(k));
   const tabs = [TODAY, ...order.map((k) => byKey.get(k)!), PROJECTS];
   const crowded = tabs.length > COMFY_TABS;
   const navRef = useRef<HTMLElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   useFlip(navRef, tabs.map((t) => t.key).join('|'), barDensity(tabs.length));
 
   // In the dock, the scrolling middle fades only on the sides with more to see, as on the real bar.
   useLayoutEffect(() => {
-    const sc = navRef.current?.querySelector<HTMLElement>('.tabbar__scroll');
+    const sc = scrollRef.current;
     if (!sc) return;
     const on = () => markEdges(sc);
     on();
@@ -61,7 +60,7 @@ export function BarEditor() {
     setFresh(added ?? null);
     if (!added) return;
     // In the dock, bring the newcomer into the scrolling middle's view.
-    const sc = navRef.current?.querySelector<HTMLElement>('.tabbar__scroll');
+    const sc = scrollRef.current;
     const el = sc?.querySelector<HTMLElement>(`[data-key="${CSS.escape(added)}"]`);
     if (sc && el) sc.scrollTo({ left: el.offsetLeft + el.offsetWidth / 2 - sc.clientWidth / 2, behavior: calm() ? 'auto' : 'smooth' });
     const t = setTimeout(() => setFresh(null), 400);
@@ -100,63 +99,15 @@ export function BarEditor() {
     .filter((o) => !pins.includes(o.key))
     .map((o) => ({ key: o.key, label: o.label, mark: <TabMark t={o} />, onClick: () => save([...pins, o.key]) }));
 
-  /** Tap a slot in the preview: its row comes into view and flashes. */
+  /** Tap a slot in the preview, or pick it by holding and sliding: its row comes into view and flashes. */
   const findRow = (t: TabDef) => {
     const row = document.querySelector<HTMLElement>(`.bareditor [data-slot="${CSS.escape(t.key)}"]`);
     if (!row) return;
     row.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
     replay(row, 'is-flash');
   };
-
-  /** "Crowded?": a finger slides along the preview and each slot lifts in turn, like hold-and-slide. */
-  const demoRef = useRef(0);
-  useEffect(() => () => cancelAnimationFrame(demoRef.current), []);
-  const demo = () => {
-    const nav = navRef.current;
-    if (!nav || demoRef.current) return;
-    const dot = nav.querySelector<HTMLElement>('.scrubdot');
-    const els = [...nav.querySelectorAll<HTMLElement>('.tab')];
-    const box = nav.getBoundingClientRect();
-    const sc = nav.querySelector<HTMLElement>('.tabbar__scroll');
-    const view = sc?.getBoundingClientRect();
-    const slots = els
-      .map((el) => {
-        const r = el.getBoundingClientRect();
-        return { el, key: el.dataset.key ?? '', c: r.left + r.width / 2 - box.left, w: r.width };
-      })
-      // Only what you can see, as with a real finger on the dock.
-      .filter((s) => !sc?.contains(s.el) || !view || (s.c + box.left >= view.left && s.c + box.left <= view.right));
-    if (!slots.length) return;
-    const from = slots[0].c;
-    const to = slots[slots.length - 1].c;
-    const still = calm();
-    const start = performance.now();
-    let last = '';
-    const frame = (now: number) => {
-      const p = Math.min(1, (now - start) / DEMO_MS);
-      // Ease in and out, with a beat at each end.
-      const e = p < 0.1 ? 0 : p > 0.9 ? 1 : 0.5 - Math.cos(((p - 0.1) / 0.8) * Math.PI) / 2;
-      const x = from + (to - from) * e;
-      dot?.style.setProperty('--x', `${x}px`);
-      let near = slots[0];
-      for (const s of slots) {
-        if (Math.abs(s.c - x) < Math.abs(near.c - x)) near = s;
-        if (!still) s.el.style.setProperty('--d', Math.min(slotDistance(x, s.c, s.w), 9).toFixed(3));
-      }
-      if (near.key !== last) {
-        last = near.key;
-        setScrub(near.key);
-      }
-      if (p < 1) {
-        demoRef.current = requestAnimationFrame(frame);
-        return;
-      }
-      demoRef.current = 0;
-      els.forEach((el) => el.style.removeProperty('--d'));
-      setScrub(null);
-    };
-    demoRef.current = requestAnimationFrame(frame);
-  };
+  // The preview scrubs for real, the same gesture as the bar, so "Hold and slide" can be tried here.
+  const scrub = useBarScrub({ tabs, navRef, scrollRef, onPick: findRow });
 
   return (
     <div className="bareditor">
@@ -164,20 +115,22 @@ export function BarEditor() {
         <TabBarView
           tabs={tabs}
           activeKey="today"
-          scrubKey={scrub}
+          scrubKey={scrub.scrubKey}
           preview
           liftedKey={lifted}
           slotClass={(k) => (k === leaving ? 'is-leaving' : k === fresh ? 'is-new' : undefined)}
           navRef={navRef}
+          scrollRef={scrollRef}
           onTab={findRow}
+          navProps={scrub.navProps}
         >
-          <span className="scrubdot" aria-hidden="true" />
+          {scrub.bubble}
         </TabBarView>
         {crowded ? (
-          <button type="button" className="barhint" onClick={demo}>
+          <p className="barstage__cap barstage__try">
             <Icon name="hand" className="icon--sm" />
             Crowded? Hold the bar and slide to pick.
-          </button>
+          </p>
         ) : (
           <p className="barstage__cap">
             <span className="on-phone">Drag to arrange. It follows you to your other devices.</span>

@@ -416,7 +416,7 @@ try {
     if (live !== 'today,chores,shop,projects') throw new Error(`live bar after going back: ${live}`);
   });
 
-  await check('Settings: four tray tokens make 8 tabs and the crowded hint appears; Check for updates is honest', async () => {
+  await check('Settings: four tray tokens make 8 tabs, and the preview scrubs like the bar; Check for updates is honest', async () => {
     await guy.goto(`${url}/settings`);
     await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
     const tray = guy.locator('.bareditor .tray .token');
@@ -426,12 +426,20 @@ try {
     }
     const n = await guy.locator('.tabbar--preview .tab').count();
     if (n !== 8) throw new Error(`expected 8 tabs, found ${n}`);
-    const hint = guy.getByRole('button', { name: 'Crowded? Hold the bar and slide to pick.' });
-    await hint.waitFor({ timeout: 3000 });
+    await guy.getByText('Crowded? Hold the bar and slide to pick.').waitFor({ timeout: 3000 });
     await guy.locator('.barstage').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 120));
-    await hint.click();
-    await guy.waitForTimeout(700);
-    await shot(guy, '20-settings-crowded-demo');
+    // Hold the preview and slide: the bubble names the tab; letting go stays on Settings.
+    const box = await guy.locator('.tabbar--preview').boundingBox();
+    const y = box.y + box.height / 2;
+    await guy.mouse.move(box.x + 30, y);
+    await guy.mouse.down();
+    await guy.waitForTimeout(400);
+    for (let x = box.x + 30; x < box.x + box.width * 0.6; x += 10) await guy.mouse.move(x, y);
+    await guy.locator('.tabbar--preview .tabbar__bubble').waitFor({ timeout: 3000 });
+    await shot(guy, '20-settings-crowded-scrub');
+    await guy.mouse.up();
+    await guy.waitForTimeout(300);
+    if (!guy.url().endsWith('/settings')) throw new Error(`scrubbing the preview navigated to ${guy.url()}`);
     await guy.locator('.mecard').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 100));
     await guy.getByRole('button', { name: 'Color', exact: true }).click();
     await guy.getByRole('radio', { name: 'pink, Hila’s' }).waitFor({ timeout: 3000 });

@@ -124,7 +124,7 @@ export function ProjectFields({
             ) : null}
           </>
         ) : null}
-        <button type="button" className={`echip ${value.pinned ? 'is-set is-lit' : ''}`} aria-pressed={value.pinned} onClick={() => onChange({ pinned: !value.pinned })}>
+        <button type="button" className={`echip ${value.pinned ? 'is-set' : ''}`} aria-pressed={value.pinned} onClick={() => onChange({ pinned: !value.pinned })}>
           <Icon name="pin" className="icon--sm" />
           <span>In bar</span>
         </button>

@@ -46,6 +46,9 @@ function Sidebar() {
   const on = activeTabKey(hub, route);
   const v = todayView(hub, todayRef());
   const counts: Record<string, number> = { today: v.dueCount, shop: v.shopping.count };
+  // The bar's order first (as on the phone), then the projects not pinned there, each once.
+  const pinned = new Set(tabs.map((t) => t.key));
+  const more = hub.lists().filter((l) => !pinned.has(`l:${l.id}`));
   return (
     <aside className="sidebar" aria-label="Navigation">
       <div className="sidebar__brand">
@@ -55,42 +58,48 @@ function Sidebar() {
         <Icon name="plus" className="icon--sm" /> New
         <span className="kbd">N</span>
       </button>
-      <nav className="sidebar__nav">
-        {tabs.map((t) => (
-          <button key={t.key} type="button" className={`navitem ${on === t.key ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
-            {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
-            <span className="navitem__label" dir="auto">
-              {t.label}
-            </span>
-            {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : t.key === 'search' ? <span className="navitem__count kbd">/</span> : null}
-          </button>
-        ))}
-        {tabs.some((t) => t.key === 'search') ? null : (
-          <button type="button" className={`navitem ${route.name === 'search' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'search' })}>
-            <Icon name="search" />
-            <span className="navitem__label">Search</span>
-            <span className="navitem__count kbd">/</span>
-          </button>
-        )}
-      </nav>
-      <div className="sidebar__label">Projects</div>
-      <nav className="sidebar__nav">
-        {hub.lists().map((l) => (
-          <button
-            key={l.id}
-            type="button"
-            className={`navitem ${route.name === 'list' && route.id === l.id ? 'is-on' : ''}`}
-            onClick={() => navigate({ name: 'list', id: l.id })}
-          >
-            <ProjectMark color={l.color} icon={l.icon} size="sm" />
-            <span className="navitem__label" dir="auto">
-              {l.name}
-            </span>
-            {l.visibility === 'private' ? <Icon name="lock" className="icon--sm" /> : null}
-            <span className="navitem__count">{openCount(hub, l.id) || ''}</span>
-          </button>
-        ))}
-      </nav>
+      <div className="sidebar__scroll">
+        <nav className="sidebar__nav">
+          {tabs.map((t) => (
+            <button key={t.key} type="button" className={`navitem ${on === t.key ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
+              {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
+              <span className="navitem__label" dir="auto">
+                {t.label}
+              </span>
+              {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : t.key === 'search' ? <span className="navitem__count kbd">/</span> : null}
+            </button>
+          ))}
+          {tabs.some((t) => t.key === 'search') ? null : (
+            <button type="button" className={`navitem ${route.name === 'search' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'search' })}>
+              <Icon name="search" />
+              <span className="navitem__label">Search</span>
+              <span className="navitem__count kbd">/</span>
+            </button>
+          )}
+        </nav>
+        {more.length ? (
+          <>
+            <div className="sidebar__label">{more.length < hub.lists().length ? 'Other projects' : 'Projects'}</div>
+            <nav className="sidebar__nav">
+              {more.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  className={`navitem ${route.name === 'list' && route.id === l.id ? 'is-on' : ''}`}
+                  onClick={() => navigate({ name: 'list', id: l.id })}
+                >
+                  <ProjectMark color={l.color} icon={l.icon} size="sm" />
+                  <span className="navitem__label" dir="auto">
+                    {l.name}
+                  </span>
+                  {l.visibility === 'private' ? <Icon name="lock" className="icon--sm" /> : null}
+                  <span className="navitem__count">{openCount(hub, l.id) || ''}</span>
+                </button>
+              ))}
+            </nav>
+          </>
+        ) : null}
+      </div>
       <div className="sidebar__foot">
         <button type="button" className={`navitem ${route.name === 'settings' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'settings' })}>
           <Icon name="gear" />
@@ -164,6 +173,14 @@ function Duties() {
     const off = rt.store.subscribe(run);
     const offRelay = rt.onRelay(run);
     hub.autoArchive();
+    try {
+      if (!localStorage.getItem('gila-hub:template-icons')) {
+        hub.fillTemplateIcons();
+        localStorage.setItem('gila-hub:template-icons', '1');
+      }
+    } catch {
+      /* storage blocked: next time */
+    }
     const timer = setInterval(() => {
       hub.autoArchive();
       local.refresh();

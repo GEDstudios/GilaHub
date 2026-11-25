@@ -9,10 +9,12 @@ export const HOLD_MS = 240;
 export const HOLD_SLOP = 10;
 /** Lifting the finger this far above the bar turns the release into a cancel. */
 export const CANCEL_LIFT = 72;
-/** In dock mode, the bar scrolls by itself while the finger is this close to an edge. */
-export const EDGE_ZONE = 32;
-/** The fastest auto-scroll, in px per frame. */
-export const EDGE_SPEED = 9;
+/** In dock mode, the outer strip of the scrolling middle (under the fade) that always steps it. */
+export const EDGE_ZONE = 14;
+/** How long the finger rests at an edge before the dock steps: passing through never scrolls. */
+export const EDGE_DWELL = 300;
+/** Then one tab every this many ms, so the picks can be counted (one select haptic each). */
+export const EDGE_STEP_MS = 230;
 
 /** The index of the slot whose center is nearest to x, or -1 for none. */
 export function nearestIndex(x: number, centers: readonly number[]): number {
@@ -41,14 +43,16 @@ export function clampBubble(x: number, width: number, left: number, right: numbe
 }
 
 /**
- * Auto-scroll speed near the edges of the scrolling middle: negative toward the start,
- * positive toward the end, faster the deeper the finger is in the zone, 0 elsewhere or
- * when that way is already fully scrolled. The finger past the edge (over a fixed tab) stops it.
+ * Which way the dock's middle should step while scrubbing: -1 toward the start, 1 toward the
+ * end, 0 to stay. Only past the center of the outermost tab in view (`first`/`last` are the
+ * centers of the first and last tabs whose centers are in view), or in the outer EDGE_ZONE, so
+ * the tab at the edge can always be picked. Never once that way is fully scrolled, and never
+ * with the finger past the scroller (over a fixed tab: Today or Projects is picked instead).
  */
-export function edgeSpeed(x: number, left: number, right: number, scrollLeft: number, maxScroll: number): number {
+export function edgeDir(x: number, left: number, right: number, scrollLeft: number, maxScroll: number, first: number, last: number): -1 | 0 | 1 {
   if (x < left || x > right) return 0;
-  if (x < left + EDGE_ZONE && scrollLeft > 0) return -Math.ceil(((left + EDGE_ZONE - x) / EDGE_ZONE) * EDGE_SPEED);
-  if (x > right - EDGE_ZONE && scrollLeft < maxScroll) return Math.ceil(((x - (right - EDGE_ZONE)) / EDGE_ZONE) * EDGE_SPEED);
+  if (x < Math.max(first, left + EDGE_ZONE) && scrollLeft > 0) return -1;
+  if (x > Math.min(last, right - EDGE_ZONE) && scrollLeft < maxScroll - 1) return 1;
   return 0;
 }
 
