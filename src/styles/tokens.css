@@ -1,0 +1,134 @@
+/*
+ * The Hub Standards Manual — tokens.
+ * Lines are the NYCTA trunk-line colors (see docs/02-BRAND.md).
+ */
+:root {
+  /* Lines */
+  --tomato: #ee352e;
+  --tomato-ink: #ffffff;
+  --tangerine: #ff6319;
+  --tangerine-ink: #ffffff;
+  --sunflower: #fccc0a;
+  --sunflower-ink: #111111;
+  --lime: #6cbe45;
+  --lime-ink: #111111;
+  --forest: #00933c;
+  --forest-ink: #ffffff;
+  --teal: #00add0;
+  --teal-ink: #111111;
+  --royal: #0039a6;
+  --royal-ink: #ffffff;
+  --plum: #b933ad;
+  --plum-ink: #ffffff;
+  --cocoa: #996633;
+  --cocoa-ink: #ffffff;
+  --pebble: #a7a9ac;
+  --pebble-ink: #111111;
+
+  /* Neutrals — warm paper */
+  --paper: #f5f4f0;
+  --paper-2: #edebe5;
+  --card: #ffffff;
+  --ink: #111111;
+  --ink-2: #57554f;
+  --ink-3: #8b8881;
+  --rule: #e4e2dc;
+  --rule-strong: #cdc9c0;
+  --band: #111111;
+  --band-ink: #ffffff;
+  --band-ink-2: #b9b7b1;
+  --stripe: #ffffff;
+  --scrim: rgb(17 17 17 / 0.42);
+  --hover: rgb(17 17 17 / 0.045);
+  --press: rgb(17 17 17 / 0.08);
+  --glass: rgb(245 244 240 / 0.86);
+  --shadow-sheet: 0 -12px 40px rgb(17 17 17 / 0.16);
+  --shadow-pop: 0 10px 30px rgb(17 17 17 / 0.16), 0 2px 6px rgb(17 17 17 / 0.08);
+
+  /* Me — overridden at runtime with the user's own line */
+  --me: var(--lime);
+  --me-ink: var(--lime-ink);
+
+  /* Type */
+  --font: 'Inter Variable', 'Heebo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --fs-band: 34px;
+  --fs-display: 56px;
+  --fs-title: 22px;
+  --fs-row: 17px;
+  --fs-body: 16px;
+  --fs-meta: 13px;
+  --fs-aisle: 12.5px;
+
+  /* Space & shape */
+  --gutter: 20px;
+  --row-h: 56px;
+  --radius-s: 8px;
+  --radius-m: 14px;
+  --radius-l: 22px;
+  --tabbar-h: 58px;
+  --sidebar-w: 268px;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-micro: 120ms;
+  --t-state: 200ms;
+  --t-sheet: 300ms;
+
+  color-scheme: light;
+}
+
+@media (min-width: 600px) {
+  :root {
+    --gutter: 32px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #000000;
+    --paper-2: #0d0d0d;
+    --card: #141414;
+    --ink: #f4f4f2;
+    --ink-2: #aeaca6;
+    --ink-3: #75736e;
+    --rule: #242424;
+    --rule-strong: #3a3a3a;
+    --band: #000000;
+    --band-ink: #ffffff;
+    --band-ink-2: #9a9893;
+    --scrim: rgb(0 0 0 / 0.62);
+    --hover: rgb(255 255 255 / 0.05);
+    --press: rgb(255 255 255 / 0.09);
+    --glass: rgb(0 0 0 / 0.82);
+    --shadow-sheet: 0 -12px 40px rgb(0 0 0 / 0.6);
+    --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #000000;
+  --paper-2: #0d0d0d;
+  --card: #141414;
+  --ink: #f4f4f2;
+  --ink-2: #aeaca6;
+  --ink-3: #75736e;
+  --rule: #242424;
+  --rule-strong: #3a3a3a;
+  --band: #000000;
+  --band-ink: #ffffff;
+  --band-ink-2: #9a9893;
+  --scrim: rgb(0 0 0 / 0.62);
+  --hover: rgb(255 255 255 / 0.05);
+  --press: rgb(255 255 255 / 0.09);
+  --glass: rgb(0 0 0 / 0.82);
+  --shadow-sheet: 0 -12px 40px rgb(0 0 0 / 0.6);
+  --shadow-pop: 0 10px 30px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}

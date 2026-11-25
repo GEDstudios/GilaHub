@@ -1,0 +1,23 @@
+{
+  // Gila Hub — one free Cloudflare Worker serves the app AND the private sync relay.
+  // Deploy: `npm run deploy` (runs `vite build` then `wrangler deploy`).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gila-hub",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "HOUSEHOLD", "class_name": "Household" },
+      { "name": "INVITES", "class_name": "Invites" }
+    ]
+  },
+  // SQLite-backed Durable Objects are included in the Workers Free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Household", "Invites"] }],
+  "observability": { "enabled": false }
+}
