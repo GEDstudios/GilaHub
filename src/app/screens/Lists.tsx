@@ -1,8 +1,4 @@
-import { closestCenter, DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { haptic } from '../ui/haptics';
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { pickColor, PROJECT_TEMPLATES } from '../../core/actions';
 import type { LineColor, List, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
@@ -15,6 +11,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, IconButton, lineVars } from '../ui/primitives';
 import { SyncBadge } from './Today';
 import { Glyph } from '../ui/ProjectMark';
+import { Sortable, useSortableItem } from '../ui/Sortable';
 import { openCount } from '../views';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
@@ -139,21 +136,16 @@ export function tilt(id: string): number {
 
 /** Drag a folder to reorder projects (a long press on phones). */
 function SortableProject({ list }: { list: List }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: list.id });
+  const s = useSortableItem(list.id);
   return (
-    <div
-      ref={setNodeRef}
-      className={`projslot ${isDragging ? 'is-dragging' : ''}`}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      {...attributes}
-      {...listeners}
-      role={undefined}
-      tabIndex={undefined}
-    >
+    <div ref={s.ref} className={`projslot ${s.className}`} style={{ ...s.style, '--tilt': `${tilt(list.id)}deg` } as CSSProperties} {...s.props}>
       <ProjectCard list={list} />
     </div>
   );
 }
+
+/** A folder lifts with its own tilt, plus 3deg, and lands back at its tilt. */
+const folderLean = (id: string) => ({ rest: tilt(id) + 3, land: tilt(id) });
 
 function ProjectCard({ list }: { list: List }) {
   const hub = useHub();
@@ -164,6 +156,7 @@ function ProjectCard({ list }: { list: List }) {
       className="ccard ccard--md projcard"
       style={{ ...lineVars(list.color), ['--tilt' as string]: `${tilt(list.id)}deg` }}
       onClick={() => navigate({ name: 'list', id: list.id })}
+      data-drag
     >
       <span className="ccard__top">
         <span className="ccard__title projcard__name" dir="auto">
@@ -189,38 +182,35 @@ export function Lists() {
   useAddAction(newProject);
 
   const archived = hub.store.all('list').filter((l) => l.archived);
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-  const onDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const ids = lists.map((l) => l.id);
-    const next = arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id)));
-    hub.moveList(String(active.id), next[next.indexOf(String(active.id)) + 1] ?? null);
-  };
+  const onMove = (next: string[], id: string) => hub.moveList(id, next[next.indexOf(id) + 1] ?? null);
 
   return (
     <>
       <Band top={<SyncBadge />} actions={<IconButton icon="plus" label="New project" onClick={newProject} />} title="Projects" />
       <div className="column">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => haptic()} onDragEnd={onDragEnd}>
-          <SortableContext items={lists.map((l) => l.id)} strategy={rectSortingStrategy}>
-            <div className="projgrid">
-              {lists.map((l) => (
-                <SortableProject key={l.id} list={l} />
-              ))}
-          <button type="button" className="projcard projcard--new" onClick={newProject}>
-            <span className="projcard__plus">
-              <Icon name="plus" />
-            </span>
-            <span>New project</span>
-          </button>
-            </div>
-          </SortableContext>
-        </DndContext>
+        <Sortable
+          ids={lists.map((l) => l.id)}
+          onMove={onMove}
+          layout="grid"
+          lean={folderLean}
+          label={(id) => hub.list(id)?.name ?? ''}
+          renderOverlay={(id) => {
+            const l = hub.list(id);
+            return l ? <ProjectCard list={l} /> : null;
+          }}
+        >
+          <div className="projgrid">
+            {lists.map((l) => (
+              <SortableProject key={l.id} list={l} />
+            ))}
+            <button type="button" className="projcard projcard--new" onClick={newProject}>
+              <span className="projcard__plus">
+                <Icon name="plus" />
+              </span>
+              <span>New project</span>
+            </button>
+          </div>
+        </Sortable>
 
         {archived.length ? (
           <div className="archived">

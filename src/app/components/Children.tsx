@@ -1,92 +1,101 @@
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Item } from '../../core/model';
 import { useHub } from '../context';
-import { haptic } from '../ui/haptics';
+import { useOnce } from '../ui/useOnce';
+import { Icon } from '../ui/Icon';
+import { Sortable, useSortableItem } from '../ui/Sortable';
+import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 
-function SortableRow({ item, fresh }: { item: Item; fresh?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+const idOf = (i: Item) => i.id;
+
+function SortableRow({ item, fresh, settling }: { item: Item; fresh?: boolean; settling: boolean }) {
+  const s = useSortableItem(item.id, { disabled: settling });
+  return <ItemRow item={item} fresh={fresh} settling={settling} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
+}
+
+/** A number that bumps when it goes up. */
+function Count({ n }: { n: number }) {
+  const prev = useRef(n);
+  const [bump, setBump] = useState(0);
+  useEffect(() => {
+    if (n > prev.current) setBump((b) => b + 1);
+    prev.current = n;
+  }, [n]);
   return (
-    <ItemRow
-      item={item}
-      fresh={fresh}
-      liRef={setNodeRef}
-      liStyle={{ transform: CSS.Translate.toString(transform), transition }}
-      liClass={isDragging ? 'dragging' : ''}
-      dragProps={{ ...attributes, ...listeners, role: undefined, tabIndex: undefined }}
-    />
+    <span key={bump} className={`num ${bump ? 'bump' : ''}`}>
+      {n}
+    </span>
   );
 }
 
-/** Open items (drag to reorder) + a collapsible done group. */
+/** Open items (hold to reorder) + a collapsible done group. Ticked rows settle before they leave. */
 export function Children({ listId, parentId, freshId, readonly }: { listId: string; parentId: string | null; freshId?: string | null; readonly?: boolean }) {
   const hub = useHub();
+  const settle = useSettle(idOf);
   const [showDone, setShowDone] = useState(false);
   const all = parentId ? hub.childrenOf(parentId) : hub.children(listId, null);
   const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  const rows = settle.view('open', open);
+  const doneRows = settle.view('done', done);
+  const [coach, coached] = useOnce('reorder', !readonly && open.length >= 3);
 
-  const onDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const ids = open.map((i) => i.id);
-    const from = ids.indexOf(String(active.id));
-    const to = ids.indexOf(String(over.id));
-    const next = arrayMove(ids, from, to);
-    const at = next.indexOf(String(active.id));
-    hub.reorder(String(active.id), next[at - 1] ?? null, next[at + 1] ?? null);
+  const onMove = (next: string[], id: string) => {
+    const at = next.indexOf(id);
+    hub.reorder(id, next[at - 1] ?? null, next[at + 1] ?? null);
   };
 
   return (
-    <>
+    <SettleContext.Provider value={settle}>
       {readonly ? (
         <ul className="rows">
-          {open.map((i) => (
-            <ItemRow key={i.id} item={i} />
+          {rows.map(({ row, settling }) => (
+            <ItemRow key={row.id} item={row} settling={settling} />
           ))}
         </ul>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => haptic()} onDragEnd={onDragEnd}>
-          <SortableContext items={open.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-            <ul className="rows">
-              {open.map((i) => (
-                <SortableRow key={i.id} item={i} fresh={i.id === freshId} />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
+        <Sortable
+          ids={open.map(idOf)}
+          onMove={onMove}
+          onLift={coached}
+          label={(id) => hub.item(id)?.title ?? ''}
+          renderOverlay={(id) => {
+            const item = hub.item(id);
+            return item ? (
+              <ul className="rows">
+                <ItemRow item={item} />
+              </ul>
+            ) : null;
+          }}
+        >
+          <ul className="rows">
+            {rows.map(({ row, settling }) => (
+              <SortableRow key={row.id} item={row} fresh={row.id === freshId} settling={settling} />
+            ))}
+          </ul>
+        </Sortable>
       )}
-      {done.length ? (
+      {coach ? (
+        <p className="coach">
+          <Icon name="hand" className="icon--sm" />
+          {matchMedia('(pointer: coarse)').matches ? 'Hold any row to reorder' : 'Drag any row to reorder'}
+        </p>
+      ) : null}
+      {doneRows.length ? (
         <>
           <button type="button" className="donetoggle" onClick={() => setShowDone(!showDone)} aria-expanded={showDone}>
-            {showDone ? 'Hide' : 'Show'} {done.length} done
+            {showDone ? 'Hide' : 'Show'} <Count n={doneRows.length} /> done
           </button>
           {showDone ? (
             <ul className="rows">
-              {done.map((i) => (
-                <ItemRow key={i.id} item={i} />
+              {doneRows.map(({ row }) => (
+                <ItemRow key={row.id} item={row} />
               ))}
             </ul>
           ) : null}
         </>
       ) : null}
-    </>
+    </SettleContext.Provider>
   );
 }

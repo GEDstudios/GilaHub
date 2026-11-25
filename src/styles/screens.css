@@ -172,13 +172,12 @@
 /* Projects sit like folders: a little tab, a slight tilt, and they straighten when you touch them. */
 .projcard {
   --tilt: 0deg;
+  --fold-shadow: 0 1px 0 rgb(255 255 255 / 0.4) inset, 0 1px 2px rgb(10 10 4 / 0.06), 0 8px 20px -8px rgb(10 10 4 / 0.18);
+  --fold-lift: 0 1px 0 rgb(255 255 255 / 0.4) inset, 0 4px 8px rgb(10 10 4 / 0.06), 0 24px 48px -14px rgb(10 10 4 / 0.28);
   min-height: 140px;
   border-top-left-radius: 8px;
   transform: rotate(var(--tilt));
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.4) inset,
-    0 1px 2px rgb(10 10 4 / 0.06),
-    0 8px 20px -8px rgb(10 10 4 / 0.18);
+  box-shadow: var(--fold-shadow);
   transition:
     transform 260ms var(--spring),
     box-shadow 200ms var(--ease);
@@ -1091,13 +1090,57 @@ button.projcard:active {
   flex: 1;
 }
 
-.projslot.is-dragging {
-  z-index: 10;
+/* A folder being moved leaves a dashed slot at its own tilt */
+.projslot.is-ghost > .projcard {
+  opacity: 0;
 }
 
-.projslot.is-dragging .projcard {
-  transform: rotate(0deg) scale(1.04);
-  box-shadow: var(--lift-2);
+.projslot.is-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px var(--r-l) var(--r-l) var(--r-l);
+  border: 1.5px dashed rgb(10 10 4 / 0.18);
+  background: rgb(10 10 4 / 0.03);
+  transform: rotate(var(--tilt));
+}
+
+/* The lifted folder: its own tilt plus 3deg and the velocity tilt (Sortable writes --lean) */
+.lift--card {
+  --lift-scale: 1.06;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.lift--card .projcard {
+  transform: none;
+  box-shadow: var(--fold-lift);
+}
+
+.is-dropping .lift--card .projcard {
+  box-shadow: var(--fold-shadow);
+  transition: box-shadow 320ms var(--ease);
+}
+
+/* An aisle saying "not here" when a row is dragged out of it */
+.is-refusing {
+  animation: refuse 240ms var(--ease);
+}
+
+@keyframes refuse {
+  20% {
+    transform: translateX(-3px);
+  }
+  45% {
+    transform: translateX(3px);
+  }
+  70% {
+    transform: translateX(-2px);
+  }
+  90% {
+    transform: translateX(1px);
+  }
 }
 
 .about__build {
@@ -1119,5 +1162,10 @@ button.projcard:active {
 /* The Urgent card: a soft lemon wash; the same items also sit in their aisle with an Urgent tag. */
 .rows--urgent,
 .rows--urgent .row {
+  background: var(--lemon-soft);
+}
+
+.lift--urgent {
+  --land-bg: var(--lemon-soft);
   background: var(--lemon-soft);
 }

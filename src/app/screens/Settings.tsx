@@ -7,6 +7,7 @@ import { useHub, useRt, useSync } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
 import { back } from '../router';
 import { disablePush, enablePush, isIOS, isStandalone, pushState, type PushState } from '../runtime';
+import { haptic } from '../ui/haptics';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, lightVar, Logo, Section, Switch } from '../ui/primitives';
 
@@ -180,6 +181,25 @@ export function Settings() {
             <OptRow icon="sun" title="App badge" trail={<Switch on={prefs.badge} onChange={(on) => setPrefs({ badge: on })} label="App badge" />} />
           </div>
           {push === 'install' && isIOS() && !isStandalone() ? <p className="hint">On iPhone: tap Share, then Add to Home Screen, and open Gila Hub from there.</p> : null}
+        </Section>
+
+        <Section title="On this device">
+          <div className="group">
+            <OptRow
+              icon="hand"
+              title="Haptics"
+              trail={
+                <Switch
+                  on={prefs.haptics}
+                  label="Haptics"
+                  onChange={(on) => {
+                    setPrefs({ haptics: on });
+                    if (on) haptic('tick');
+                  }}
+                />
+              }
+            />
+          </div>
         </Section>
 
         <Section title="Home">

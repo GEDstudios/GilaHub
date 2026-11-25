@@ -64,10 +64,11 @@ export function Check({
   label: string;
   disabled?: boolean;
 }) {
+  const [pop, setPop] = useState(false);
   return (
     <button
       type="button"
-      className={`check ${on ? 'is-on' : ''}`}
+      className={`check ${on ? 'is-on' : ''} ${pop ? 'is-pop' : ''}`}
       style={lineVars(color)}
       role="checkbox"
       aria-checked={on}
@@ -75,12 +76,16 @@ export function Check({
       disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
-        if (!on) haptic();
+        if (!on) {
+          haptic('tick');
+          setPop(true);
+        }
         onToggle();
       }}
+      onAnimationEnd={() => setPop(false)}
     >
-      <svg className="check__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 12.5l4 4L18 8" />
+      <svg className="check__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M6 12.5l4 4L18 8" pathLength={20} />
       </svg>
     </button>
   );

@@ -1,6 +1,3 @@
-import { closestCenter, DndContext, KeyboardSensor, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from 'react';
 import type { Item, List } from '../../core/model';
 import { suggestFromCatalog } from '../../smart/categorize';
@@ -12,9 +9,9 @@ import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, usePartnerShopping, useRt } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
 import { notifyMembers } from '../runtime';
-import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
+import { Sortable, useSortableItem } from '../ui/Sortable';
 import { Avatar, Band, Check, Diamond, Empty, ListBullet, Section, Seg } from '../ui/primitives';
 import { back } from '../router';
 import { useAddAction } from '../addAction';
@@ -419,24 +416,12 @@ const AISLE_ICON: Partial<Record<string, IconName>> = {
   other: 'cart',
 };
 
-/** Sortable ids are scoped to their group: an urgent item appears twice (Urgent + its aisle). */
-const sid = (group: string, id: string) => `${group}|${id}`;
-const unsid = (s: string | number) => String(s).split('|')[1];
-
-function SortableShopRow(props: Parameters<typeof ShopRow>[0] & { group: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: sid(props.group, props.item.id) });
-  return (
-    <ShopRow
-      {...props}
-      liRef={setNodeRef}
-      liStyle={{ transform: CSS.Translate.toString(transform), transition }}
-      liClass={isDragging ? 'dragging' : ''}
-      dragProps={{ ...attributes, ...listeners, role: undefined, tabIndex: undefined }}
-    />
-  );
+function SortableShopRow(props: Parameters<typeof ShopRow>[0]) {
+  const s = useSortableItem(props.item.id);
+  return <ShopRow {...props} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
 }
 
-/** One continuous list; aisles are slim labels inside it. Drag to reorder within an aisle. */
+/** A card per aisle (and the Urgent card on top). Hold a row to reorder it within its aisle. */
 function ShopList({
   groups,
   onTick,
@@ -453,31 +438,17 @@ function ShopList({
   draggable: boolean;
 }) {
   const hub = useHub();
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 280, tolerance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-  const onDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const [ga] = String(active.id).split('|');
-    const [go] = String(over.id).split('|');
-    if (ga !== go) return; // reorder only within one card
-    const g = groups.find((x) => x.key === ga);
-    if (!g) return;
-    const ids = g.items.map((i) => i.id);
-    const id = unsid(active.id);
-    const next = arrayMove(ids, ids.indexOf(id), ids.indexOf(unsid(over.id)));
+  /** Order within one aisle; an item only moves among rows of its own list. */
+  const onMove = (next: string[], id: string) => {
     const at = next.indexOf(id);
     const listId = hub.item(id)?.listId;
     const same = (x: string | undefined) => (x && hub.item(x)?.listId === listId ? x : null);
     hub.reorder(id, same(next[at - 1]), same(next[at + 1]));
   };
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => haptic()} onDragEnd={onDragEnd}>
+    <>
       {groups.map((g) => (
-        <section key={g.key} className="aisle" aria-label={g.label ?? 'Urgent'}>
+        <section key={g.key} className="aisle" aria-label={g.label ?? 'Urgent'} data-sort-bounds>
           <h2 className="aisle__head">
             {g.label ? (
               <>
@@ -495,20 +466,35 @@ function ShopList({
               <Diamond />
             )}
           </h2>
-          <SortableContext items={g.items.map((i) => sid(g.key, i.id))} strategy={verticalListSortingStrategy}>
+          <Sortable
+            ids={g.items.map((i) => i.id)}
+            onMove={onMove}
+            bounds="refuse"
+            disabled={!draggable}
+            liftClass={g.label ? undefined : 'lift--urgent'}
+            label={(id) => hub.item(id)?.title ?? ''}
+            renderOverlay={(id) => {
+              const item = g.items.find((i) => i.id === id);
+              return item ? (
+                <ul className={`rows ${g.label ? '' : 'rows--urgent'}`}>
+                  <ShopRow item={item} onTick={onTick} onOpen={onOpen} showList={showList} inUrgent={!g.label} />
+                </ul>
+              ) : null;
+            }}
+          >
             <ul className={`rows ${g.label ? '' : 'rows--urgent'}`}>
               {g.items.map((i) =>
                 draggable ? (
-                  <SortableShopRow key={i.id} group={g.key} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
+                  <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
                 ) : (
                   <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
                 ),
               )}
             </ul>
-          </SortableContext>
+          </Sortable>
         </section>
       ))}
-    </DndContext>
+    </>
   );
 }
 

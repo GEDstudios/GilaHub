@@ -13,6 +13,8 @@ export interface Prefs {
   dismissed: Record<string, number>;
   /** Show the done section in lists. */
   showDone: Record<string, boolean>;
+  /** Vibrate on ticks, drags and picks (this device only). */
+  haptics: boolean;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -25,6 +27,7 @@ const DEFAULTS: Prefs = {
   shopFilter: 'all',
   dismissed: {},
   showDone: {},
+  haptics: true,
 };
 
 function read(): Prefs {

@@ -8,11 +8,12 @@ import { back, navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, IconButton, lineVars, Section } from '../ui/primitives';
+import { useSettle } from '../ui/useSettle';
 import { choresView, type ChoreRow } from '../views';
 import { ProjectHero, ProjectMenuButton } from './ListScreen';
 import { SyncBadge } from './Today';
 
-function ChoreItem({ row }: { row: ChoreRow }) {
+function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const { item, list } = row;
@@ -25,6 +26,7 @@ function ChoreItem({ row }: { row: ChoreRow }) {
   ].filter(Boolean);
 
   const done = () => {
+    onHold(item.id);
     if (!item.repeat) {
       const undo = hub.toggle(item.id);
       toast('Done.', { action: { label: 'Undo', run: undo } });
@@ -37,8 +39,13 @@ function ChoreItem({ row }: { row: ChoreRow }) {
   };
 
   return (
-    <li className="row row--tap chore" onClick={() => navigate({ name: 'item', id: item.id })} style={lineVars(list.color)}>
-      <Check on={false} color={list.color} onToggle={done} label={`${item.title}, done`} />
+    <li
+      className={`row row--tap chore ${settling ? 'is-settling' : ''}`}
+      onClick={() => navigate({ name: 'item', id: item.id })}
+      style={lineVars(list.color)}
+      data-settle={item.id}
+    >
+      <Check on={settling} color={list.color} onToggle={done} label={`${item.title}, done`} />
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title}
@@ -54,6 +61,8 @@ function ChoreItem({ row }: { row: ChoreRow }) {
     </li>
   );
 }
+
+const choreId = (r: ChoreRow) => r.item.id;
 
 const OFTEN: Array<{ key: string; label: string; rule: RepeatRule }> = [
   { key: 'd1', label: 'Every day', rule: { type: 'interval', every: 1, unit: 'day', from: 'done' } },
@@ -153,17 +162,21 @@ export function Chores({ listId }: { listId?: string } = {}) {
   };
   const sub = away ? 'Away · clocks paused' : v.now.length ? `${v.now.length} ready` : total ? 'All fresh' : undefined;
   const awayBtn = <IconButton icon="plane" label={away ? 'We’re back' : 'We’re away'} onClick={toggleAway} pressed={away} />;
+  // A finished chore stays a moment in its group (check, strike, fold), then shows up fresh.
+  const settle = useSettle(choreId);
 
-  const group = (title: string, rows: ChoreRow[]) =>
-    rows.length ? (
+  const group = (title: string, rows: ChoreRow[]) => {
+    const shown = settle.view(title, rows);
+    return shown.length ? (
       <Section title={title} count={rows.length}>
         <ul className="rows">
-          {rows.map((r) => (
-            <ChoreItem key={r.item.id} row={r} />
+          {shown.map(({ row: r, settling }) => (
+            <ChoreItem key={r.item.id} row={r} settling={settling} onHold={settle.hold} />
           ))}
         </ul>
       </Section>
     ) : null;
+  };
 
   return (
     <>

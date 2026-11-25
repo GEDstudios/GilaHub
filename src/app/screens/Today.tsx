@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { addDays, fromDateStr, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
-import type { LineColor } from '../../core/model';
+import type { Item, LineColor } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { ItemRow } from '../components/ItemRow';
 import { PairSheet } from '../components/PairSheet';
@@ -12,7 +12,10 @@ import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Avatar, Band, IconButton, lineVars, Section } from '../ui/primitives';
+import { SettleContext, useSettle } from '../ui/useSettle';
 import { choresView, todayView } from '../views';
+
+const idOf = (i: Item) => i.id;
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -68,6 +71,18 @@ export function Today() {
   const last = getPrefs().lastList;
   const addTo = (last && taskLists.find((l) => l.id === last)) || taskLists.find((l) => l.kind === 'tasks') || taskLists[0];
   const shopper = shopping ? hub.member(shopping.member) : undefined;
+  // Ticked rows stay a moment (check, strike, fold) before they leave their group.
+  const settle = useSettle(idOf);
+  const awaitingRows = settle.view('ok', v.awaitingOk);
+  const todayRows = settle.view('today', v.today);
+  const earlierRows = settle.view('earlier', v.earlier);
+  // A day that just lost its last row stays until that row has settled.
+  const days = useRef<string[]>([]);
+  const upcoming = [...new Set([...days.current, ...v.upcoming.map((g) => g.date)])]
+    .sort()
+    .map((date) => ({ date, rows: settle.view(`up:${date}`, v.upcoming.find((g) => g.date === date)?.items ?? []) }))
+    .filter((g) => g.rows.length);
+  days.current = upcoming.map((g) => g.date);
 
   useAddAction(() => document.querySelector<HTMLInputElement>('.today-add input')?.focus());
 
@@ -78,7 +93,7 @@ export function Today() {
   ].filter(Boolean) as Array<{ color: LineColor; num: number; label: string; go?: () => void }>;
 
   return (
-    <>
+    <SettleContext.Provider value={settle}>
       <Band
         top={<SyncBadge />}
         actions={
@@ -128,13 +143,14 @@ export function Today() {
           </button>
         ) : null}
 
-        {v.awaitingOk.length ? (
+        {awaitingRows.length ? (
           <Section title="Waiting for your OK" count={v.awaitingOk.length}>
             <ul className="rows">
-              {v.awaitingOk.map((i) => (
+              {awaitingRows.map(({ row: i, settling }) => (
                 <ItemRow
                   key={i.id}
                   item={i}
+                  settling={settling}
                   showList
                   dateMode="none"
                   trailing={
@@ -168,10 +184,10 @@ export function Today() {
         ) : null}
 
         <Section title="Today" id="today">
-          {v.today.length ? (
+          {todayRows.length ? (
             <ul className="rows">
-              {v.today.map((i) => (
-                <ItemRow key={i.id} item={i} showList />
+              {todayRows.map(({ row: i, settling }) => (
+                <ItemRow key={i.id} item={i} showList settling={settling} />
               ))}
             </ul>
           ) : null}
@@ -182,7 +198,7 @@ export function Today() {
           ) : null}
         </Section>
 
-        {v.earlier.length ? (
+        {earlierRows.length ? (
           <Section
             title="From earlier"
             count={v.earlier.length}
@@ -194,11 +210,12 @@ export function Today() {
           >
             {earlierOpen ? (
               <ul className="rows">
-                {v.earlier.map((i) => (
+                {earlierRows.map(({ row: i, settling }) => (
                   <ItemRow
                     key={i.id}
                     item={i}
                     showList
+                    settling={settling}
                     trailing={
                       hub.canEdit(i) ? (
                         <span className="catchup" onClick={(e) => e.stopPropagation()}>
@@ -230,14 +247,14 @@ export function Today() {
           </Section>
         ) : null}
 
-        {v.upcoming.length ? (
+        {upcoming.length ? (
           <Section title="Coming up" id="upcoming">
-            {v.upcoming.map((g) => (
+            {upcoming.map((g) => (
               <div key={g.date} className="day">
                 <div className="day__head">{humanDate(g.date, ref)}</div>
                 <ul className="rows">
-                  {g.items.map((i) => (
-                    <ItemRow key={i.id} item={i} showList dateMode="none" />
+                  {g.rows.map(({ row: i, settling }) => (
+                    <ItemRow key={i.id} item={i} showList dateMode="none" settling={settling} />
                   ))}
                 </ul>
               </div>
@@ -291,6 +308,6 @@ export function Today() {
           </button>
         ) : null}
       </div>
-    </>
+    </SettleContext.Provider>
   );
 }

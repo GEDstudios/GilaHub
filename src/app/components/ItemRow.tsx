@@ -9,6 +9,7 @@ import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Check, Diamond, ListBullet, PersonBullet, StepRing } from '../ui/primitives';
+import { useSettleHold } from '../ui/useSettle';
 import { stepProgress, todayRef } from '../views';
 
 export function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
@@ -36,6 +37,7 @@ export const ItemRow = memo(function ItemRow({
   dateMode = 'full',
   trailing,
   fresh,
+  settling,
   liRef,
   liStyle,
   liClass,
@@ -46,6 +48,8 @@ export const ItemRow = memo(function ItemRow({
   dateMode?: 'full' | 'none';
   trailing?: ReactNode;
   fresh?: boolean;
+  /** Just ticked: drawn checked while it strikes through and folds away (useSettle). */
+  settling?: boolean;
   liRef?: Ref<HTMLLIElement>;
   liStyle?: CSSProperties;
   liClass?: string;
@@ -63,6 +67,7 @@ export const ItemRow = memo(function ItemRow({
   const due = dateMode === 'full' ? dueLabel(item, ref, use24h(prefs)) : null;
   const readonly = !hub.canEdit(item);
   const rt = useRt();
+  const hold = useSettleHold();
   const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
   const request =
     item.submittedAt && !item.done
@@ -78,6 +83,7 @@ export const ItemRow = memo(function ItemRow({
       toast(`That one is ${hub.member(hub.ownerOf(item))?.name ?? 'theirs'}’s to tick off.`);
       return;
     }
+    if (!item.done) hold?.(item.id);
     if (item.repeat && !item.done) {
       const undo = hub.completeRepeating(item.id);
       const next = hub.item(item.id)?.due;
@@ -101,7 +107,9 @@ export const ItemRow = memo(function ItemRow({
           },
         },
       });
+      return;
     }
+    if (!item.done) toast('Done', { action: { label: 'Undo', run: undo } });
   };
 
   return (
@@ -109,10 +117,11 @@ export const ItemRow = memo(function ItemRow({
       ref={liRef}
       style={liStyle}
       {...dragProps}
-      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh' : ''} ${liClass ?? ''}`}
+      data-settle={item.id}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
-      <Check on={item.done} color={list?.color} onToggle={onToggle} label={item.title} />
+      <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
