@@ -1057,10 +1057,15 @@ button.ccard:active {
 }
 
 /* A grip lifts at once, so the page must not scroll from it */
-/* A flick from a grip still scrolls the page; a short press lifts the row (Sortable.tsx). */
+/* A flick from a grip still scrolls the page; a short press lifts the row (Sortable.tsx). In the
+   bar's dock a flick scrolls the dock instead. */
 [data-grip] {
   touch-action: pan-y;
   cursor: grab;
+}
+
+.tabbar__scroll [data-grip] {
+  touch-action: pan-x;
 }
 
 /* A press you can feel before the long-press lifts it */
@@ -1113,7 +1118,7 @@ html.is-dragging * {
   }
 }
 
-/* Where it came from: a dashed slot */
+/* Where it came from: a dashed slot (.dropslot, Edit mode) */
 .row.is-ghost > * {
   visibility: hidden;
 }
@@ -1123,14 +1128,166 @@ html.is-dragging * {
   position: absolute;
   inset: 5px 8px;
   border-radius: 14px;
-  border: 1.5px dashed rgb(10 10 4 / 0.16);
-  background: rgb(10 10 4 / 0.045);
+}
+
+/* Over an outside target (the bar) the copy becomes what lands there, just above the finger
+   (--gx/--gy: where the hand holds it), and tips from there. */
+.lift.is-outside {
+  background: none;
+  box-shadow: none;
+  transform-origin: var(--gx) var(--gy);
+}
+
+.lift.is-outside > :first-child {
+  position: absolute;
+  left: calc(var(--gx) - 32px);
+  top: calc(var(--gy) - 68px);
+}
+
+.lift__note {
+  position: absolute;
+  left: var(--gx);
+  top: calc(var(--gy) - 118px);
+  transform: translateX(-50%);
+  animation: fade-in 160ms var(--ease) both;
+}
+
+/* A token in the hand (the bar's tray) */
+.lift.lift--token {
+  --lift-scale: 1.06;
+  width: max-content;
+  border-radius: 999px;
+}
+
+.lift.lift--token > .token {
+  background: var(--card);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .lift {
     transform: rotate(var(--land));
     animation: none;
+  }
+}
+
+/* ============================================================ Edit mode (ui/edit.tsx)
+ * One language for editing the bar, Today and Projects (round 7, DECISIONS §2). Enter by a quiet
+ * text link at the end of the page; the thing being edited becomes a white object you pick up
+ * (the whole object is the grip); × takes it out, + puts it here; dashed means "not real yet";
+ * Done leaves, and everything is saved as it happens.
+ */
+
+/* The quiet links at the end of an editable page: "Arrange the bar", "Back to the default" */
+.editlink {
+  display: flex;
+  justify-content: center;
+  margin: 32px 0 0;
+}
+
+.editlink .textbtn .icon {
+  color: var(--text-3);
+}
+
+/* × on an object: a badge on a small one's shoulder, or the end of a card's head */
+.editx {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-2);
+  animation: pop 220ms var(--spring) both;
+  transition: transform 140ms var(--ease);
+}
+
+.editx .icon {
+  color: inherit;
+}
+
+.editx:active {
+  transform: scale(0.88);
+}
+
+.editx--badge {
+  width: 20px;
+  height: 20px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 1px 3px rgb(10 10 4 / 0.08);
+}
+
+.editx--badge .icon {
+  --s: 10;
+}
+
+/* The badge is small to see and big to hit */
+.editx--badge::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.editx--head {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  background: var(--tile);
+}
+
+.editx--head .icon {
+  --s: 16;
+}
+
+/* + where something can be added; it turns into × while its container is open */
+.adddisc {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--lift-1);
+}
+
+.adddisc .icon {
+  --s: 16;
+  color: inherit;
+  transition: transform 220ms var(--spring);
+}
+
+.adddisc.is-open .icon {
+  transform: rotate(45deg);
+}
+
+/* Hidden, and can come back right here */
+.hatch {
+  background: repeating-linear-gradient(-45deg, rgb(10 10 4 / 0.07) 0 1.5px, transparent 1.5px 9px);
+  box-shadow: inset 0 0 0 1.5px var(--tile-2);
+  color: var(--text-3);
+}
+
+/* Where it will land (or where it came from) */
+.dropslot,
+.row.is-ghost::after,
+.projslot.is-ghost::after,
+.tabbar .is-gap::after,
+.tabslot.is-ghost::after,
+.token.is-ghost::after {
+  border: 1.5px dashed rgb(10 10 4 / 0.16);
+  background: rgb(10 10 4 / 0.03);
+}
+
+.dropslot {
+  border-radius: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editx,
+  .adddisc .icon {
+    animation: none;
+    transition: none;
   }
 }
 
@@ -1351,6 +1508,22 @@ html.is-dragging * {
 
 .token.is-new {
   animation: pop 220ms var(--spring) both;
+}
+
+.token.is-ghost {
+  position: relative;
+  background: transparent;
+}
+
+.token.is-ghost > * {
+  visibility: hidden;
+}
+
+.token.is-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
 }
 
 .token.is-going {
@@ -2842,12 +3015,7 @@ html.is-dragging * {
   }
 }
 
-/*
- * Settings shows the same bar, standing still (the page still scrolls through it). Its order
- * follows a drag as it happens; the slot of the row in hand lifts (is-lifted), a slot that
- * arrives pops (is-new), one that leaves shrinks away (is-leaving). Hold and slide works on it
- * as on the real bar (useBarScrub); picking flashes that tab's row instead of going there.
- */
+/* Settings shows the same bar on its stage, standing still (the page still scrolls through it). */
 .tabbar--preview {
   position: relative;
   z-index: 0;
@@ -2864,44 +3032,223 @@ html.is-dragging * {
   touch-action: auto;
 }
 
-.tabbar--preview .tab {
-  cursor: pointer;
+/*
+ * The bar being edited (BarEdit; DECISIONS §3): every tab keeps its name, nothing is current,
+ * Today and Projects are quiet anchors, each tab between is a .tabslot (the whole slot is the
+ * grip) with its × on the mark's shoulder. A gap (is-gap) is where a drag would land: the faint
+ * mark of what's in the hand under a dashed slot, or a + when nothing is there yet.
+ */
+.tabbar--edit .tabbar__pill,
+.tabbar--edit .tab::before {
+  display: none;
 }
 
-.tabbar--preview .tab.is-lifted {
-  --light: var(--me-light);
-  color: var(--text);
-  font-weight: 600;
+.tabbar--edit .tab {
+  grid-template-rows: 28px auto;
+  font-size: 10.5px;
+  color: var(--text-2);
 }
 
-.tabbar--preview .tab.is-lifted .icon--project {
+.tabbar--edit .tab__label {
+  position: static;
+  max-width: 100%;
+  padding: 0 2px;
+  font-size: 10.5px;
+  opacity: 1;
+  transform: none;
+}
+
+.tabbar--edit .tab .icon {
+  --light: var(--light-rest);
+}
+
+.tabbar--edit .tab .icon--project {
   --light: var(--c);
 }
 
-.tabbar--preview .tab.is-lifted .tab__mark {
-  transform: translateY(-6px) scale(1.12);
+.tabbar--edit .tab.is-anchor {
+  color: var(--text-3);
+  cursor: default;
 }
 
-.tabbar--preview .tab.is-lifted .pmark {
-  opacity: 1;
-  transform: rotate(-10deg) scale(1.12);
-  box-shadow:
-    inset 0 0 0 1.5px var(--ink),
-    0 4px 10px rgb(10 10 4 / 0.16);
+.tabbar--edit .tab.is-anchor .tab__mark {
+  opacity: 0.55;
 }
 
-.tabbar--snug .tab.is-lifted .tab__label,
-.tabbar--dock .tab.is-lifted .tab__label {
-  opacity: 1;
-  transform: translate(-50%, 0);
+.tabslot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-width: 0;
 }
 
-.tabbar--preview .tab.is-new {
+.tabslot > .tab {
+  height: 100%;
+  cursor: grab;
+}
+
+.tabbar__scroll > .tabslot,
+.tabbar__scroll > .tab.is-gap {
+  flex: 0 0 52px;
+  scroll-snap-align: center;
+}
+
+.tabslot > .editx--badge {
+  position: absolute;
+  z-index: 2;
+  top: calc(50% - 30px);
+  left: calc(50% + 5px);
+}
+
+/* The edited live bar, or the bar a folder is dragged toward: it rises and goes opaque */
+.tabbar--edit:not(.tabbar--preview),
+.tabbar.is-receiving {
+  transform: translateY(-6px);
+  background: var(--card);
+  box-shadow: var(--lift-3), 0 0 0 1px rgb(10 10 4 / 0.05);
+  transition:
+    transform 260ms var(--spring),
+    box-shadow 200ms var(--ease);
+}
+
+.tabbar.is-refusing {
+  animation: bar-refuse 260ms var(--ease);
+}
+
+@keyframes bar-refuse {
+  20% {
+    translate: -4px 0;
+  }
+  45% {
+    translate: 4px 0;
+  }
+  70% {
+    translate: -2px 0;
+  }
+}
+
+/* Where it will land (the dashed rule: .dropslot), and where a moving tab came from */
+.tab.is-gap .tab__mark,
+.tab.is-gap .tab__label,
+.tabslot.is-ghost .tab__mark,
+.tabslot.is-ghost .tab__label {
+  opacity: 0.28;
+}
+
+.tab.is-gap.is-empty .tab__mark {
+  opacity: 0.5;
+}
+
+.tab.is-gap.is-empty .icon {
+  --s: 18;
+}
+
+.tab.is-gap::after,
+.tabslot.is-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 7px 3px;
+  border-radius: 16px;
+}
+
+.tabslot.is-ghost > .editx {
+  visibility: hidden;
+}
+
+/* Held up out of the bar: its slot closes */
+.tabslot.is-out {
+  display: none;
+}
+
+.tab.is-new,
+.tabslot.is-new {
   animation: tab-pop 320ms var(--spring);
 }
 
-.tabbar--preview .tab.is-leaving {
+.tabslot.is-leaving {
+  pointer-events: none;
   animation: tab-out 200ms var(--ease) forwards;
+}
+
+/* Found from elsewhere (a covered folder's pin): the tab nods */
+.tabslot.is-flash .tab__mark,
+.tab.is-flash .tab__mark {
+  animation: tab-nod 520ms var(--spring);
+}
+
+@keyframes tab-nod {
+  35% {
+    transform: translateY(-5px) scale(1.15);
+  }
+}
+
+/* In the hand: a tab, leaning, lifted (the overlay of a tab, or of a folder or token over the bar) */
+.lift.lift--tab {
+  --lift-scale: 1.06;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.tabchip {
+  width: 64px;
+  height: 58px;
+  display: grid;
+  grid-template-rows: 28px auto;
+  place-items: center;
+  align-content: center;
+  row-gap: 2px;
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--lift-3), 0 0 0 1px rgb(10 10 4 / 0.04);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    opacity 160ms var(--ease),
+    scale 200ms var(--spring);
+}
+
+.tabchip .tab__mark {
+  transform: none;
+}
+
+.tabchip .icon {
+  --s: 24;
+}
+
+.tabchip .tab__label {
+  max-width: 60px;
+  padding: 0 2px;
+}
+
+.tabchip.is-out {
+  opacity: 0.62;
+  scale: 0.94;
+}
+
+/* Over the hand when letting go would take a tab out */
+.handnote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 15px 0 12px;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+}
+
+.handnote .icon {
+  --s: 14;
+  color: inherit;
 }
 
 @keyframes tab-pop {
@@ -2934,11 +3281,23 @@ html.is-dragging * {
   }
   .tabbar__bubble,
   .tabbar__hint,
-  .tabbar--preview .tab.is-new {
+  .tab.is-new,
+  .tabslot.is-new,
+  .tabslot.is-flash .tab__mark,
+  .tab.is-flash .tab__mark,
+  .lift__note {
     animation: none;
   }
-  .tabbar--preview .tab.is-lifted .tab__mark {
-    transform: translateY(-6px);
+  /* The edited bar just goes opaque; nothing rises or tips */
+  .tabbar--edit:not(.tabbar--preview),
+  .tabbar.is-receiving {
+    transform: none;
+    transition: none;
+  }
+  .tabchip,
+  .tabchip.is-out {
+    scale: none;
+    transition: none;
   }
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Hub, seedHousehold } from '../../src/core/actions';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
-import { activeTabKey, barDensity, cleanPins, coveredByTab, DEFAULT_PINS, keepDormant, MAX_PINS, pinOptions, pinsOf, setPins, tabsOf, togglePin } from '../../src/app/tabs';
+import { activeTabKey, barDensity, cleanPins, coveredByTab, DEFAULT_PINS, keepDormant, MAX_PINS, pinAt, pinOptions, pinsOf, placePin, setPins, tabsOf, togglePin } from '../../src/app/tabs';
 import { CANCEL_LIFT, centerScroll, clampBubble, EDGE_DWELL, EDGE_ZONE, edgeDir, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../../src/app/ui/scrub';
 
 async function guy() {
@@ -111,9 +111,38 @@ describe('bottom bar pins', () => {
   });
 
   it('chooses the density from the tab count, Today and Projects included', () => {
-    expect([3, 5].map(barDensity)).toEqual(['comfy', 'comfy']);
-    expect([6, 7].map(barDensity)).toEqual(['snug', 'snug']);
-    expect([8, 12, 26].map(barDensity)).toEqual(['dock', 'dock', 'dock']);
+    expect([3, 5].map((n) => barDensity(n))).toEqual(['comfy', 'comfy']);
+    expect([6, 7].map((n) => barDensity(n))).toEqual(['snug', 'snug']);
+    expect([8, 12, 26].map((n) => barDensity(n))).toEqual(['dock', 'dock', 'dock']);
+  });
+
+  it('keeps every label while editing: an equal grid up to 6 slots, a dock from 7', () => {
+    expect([3, 5, 6].map((n) => barDensity(n, { editing: true }))).toEqual(['comfy', 'comfy', 'comfy']);
+    expect([7, 8, 26].map((n) => barDensity(n, { editing: true }))).toEqual(['dock', 'dock', 'dock']);
+  });
+
+  it('placePin inserts, moves, clamps, and leaves a full bar alone', () => {
+    expect(placePin(['a', 'b', 'c'], 'n', 1)).toEqual(['a', 'n', 'b', 'c']);
+    // Moving: `at` counts the pins without it.
+    expect(placePin(['a', 'b', 'c'], 'c', 0)).toEqual(['c', 'a', 'b']);
+    expect(placePin(['a', 'b', 'c'], 'a', 2)).toEqual(['b', 'c', 'a']);
+    expect(placePin(['a', 'b'], 'n', 99)).toEqual(['a', 'b', 'n']);
+    expect(placePin(['a', 'b'], 'n', -3)).toEqual(['n', 'a', 'b']);
+    const full = Array.from({ length: MAX_PINS }, (_, i) => `k${i}`);
+    expect(placePin(full, 'n', 3)).toEqual(full);
+    expect(placePin(full, 'k0', 3).slice(0, 4)).toEqual(['k1', 'k2', 'k3', 'k0']);
+  });
+
+  it('pinAt pins where it was dropped and hands back the bar before, for Undo', async () => {
+    const hub = await guy();
+    const todo = hub.lists().find((l) => l.name === 'To do')!;
+    const before = pinAt(hub, `l:${todo.id}`, 1);
+    expect(before).toEqual(DEFAULT_PINS);
+    expect(pinsOf(hub)).toEqual(['shop', `l:${todo.id}`, 'chores']);
+    pinAt(hub, 'chores', 0);
+    expect(pinsOf(hub)).toEqual(['chores', 'shop', `l:${todo.id}`]);
+    setPins(hub, before);
+    expect(pinsOf(hub)).toEqual(DEFAULT_PINS);
   });
 });
 

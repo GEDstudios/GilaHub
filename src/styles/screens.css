@@ -1251,6 +1251,102 @@ button.projcard:active {
   flex: 1;
 }
 
+/* Found from its tab on the bar */
+.projslot.is-flash > .projcard {
+  animation: proj-flash 420ms var(--spring);
+}
+
+@keyframes proj-flash {
+  30% {
+    scale: 0.97;
+  }
+}
+
+/* Arranging the bar: each folder carries its pin on its corner, like a badge (BAR §4.2) */
+.projpin {
+  position: absolute;
+  z-index: 2;
+  top: -15px;
+  right: -13px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  animation: pop 240ms var(--spring) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 20ms);
+}
+
+.projpin .adddisc {
+  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.05);
+  transition: transform 140ms var(--ease);
+}
+
+.projpin:active > span {
+  transform: scale(0.9);
+}
+
+.projpin__in {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--cta-text);
+  box-shadow: var(--lift-2);
+  transition: transform 140ms var(--ease);
+}
+
+.projpin__in .icon {
+  --s: 15;
+  --light: var(--me-light);
+  --shift: 1;
+  color: inherit;
+}
+
+.projpin[aria-disabled='true']:not(.is-in) {
+  opacity: 0.4;
+}
+
+/* Shopping, Chores and Search, while they're out of the bar: just above it */
+.bartray {
+  position: fixed;
+  z-index: 41;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 26px);
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  transition: opacity 160ms var(--ease);
+}
+
+.bartray .token {
+  pointer-events: auto;
+  background: var(--card);
+  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+}
+
+html.is-dragging .bartray {
+  opacity: 0;
+}
+
+/* "Arrange the bar" is the phone's: a computer has no floating bar */
+@media (min-width: 960px) {
+  .editlink--phone,
+  .bartray {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projpin,
+  .projslot.is-flash > .projcard {
+    animation: none;
+  }
+}
+
 /* A folder being moved leaves a dashed slot at its own tilt */
 .projslot.is-ghost > .projcard {
   opacity: 0;
@@ -1261,8 +1357,6 @@ button.projcard:active {
   position: absolute;
   inset: 0;
   border-radius: 8px var(--r-l) var(--r-l) var(--r-l);
-  border: 1.5px dashed rgb(10 10 4 / 0.18);
-  background: rgb(10 10 4 / 0.03);
   transform: rotate(var(--tilt));
 }
 
@@ -1513,11 +1607,15 @@ button.projcard:active {
   cursor: not-allowed;
 }
 
-/* The bottom bar on a gray stage, above its arranger; phone-sized on a computer too */
+/* The bottom bar on a gray stage, where it is edited; phone-sized on a computer too */
 .barstage {
   padding: 18px 12px 12px;
   border-radius: 26px;
   background: var(--tile);
+}
+
+.barstage--edit {
+  padding: 22px 12px 16px;
 }
 
 .barstage > .tabbar--preview {
@@ -1533,20 +1631,20 @@ button.projcard:active {
   text-align: center;
 }
 
-.barstage__try {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--text-2);
+/* One line, on a computer only: there the bar is the sidebar's order */
+.barstage__desk {
+  display: none;
+  margin-top: 14px;
 }
 
-.barstage__try .icon {
-  color: var(--text-2);
+@media (min-width: 960px) {
+  .barstage__desk {
+    display: block;
+  }
 }
 
-.barstage + .arranger {
-  margin-top: 12px;
+.barstage + .tray {
+  margin-top: 16px;
 }
 
 /* Rows: chevrons on the ones that open something; white tokens and compact segmented controls as trailers */

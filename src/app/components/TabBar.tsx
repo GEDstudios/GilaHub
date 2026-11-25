@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { useBarEdit, withGap } from '../barEdit';
 import { useHub, usePartnerShopping } from '../context';
 import { navigate, useRoute } from '../router';
-import { activeTabKey, barDensity, tabsOf, type TabDef } from '../tabs';
+import { activeTabKey, barDensity, pinsOf, setPins, tabsOf, type TabDef } from '../tabs';
+import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { CANCEL_LIFT, centerScroll, clampBubble, EDGE_DWELL, EDGE_STEP_MS, edgeDir, HOLD_MS, HOLD_SLOP, nearestIndex, slotDistance } from '../ui/scrub';
 import { useOnce } from '../ui/useOnce';
+import { BarEdit, useFresh } from './BarEdit';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
 
 /** One finger on the bar: waiting for the hold, then scrubbing (`live`). */
@@ -30,11 +33,10 @@ const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(pre
 const onPhone = () => typeof matchMedia === 'function' && matchMedia('(max-width: 959px)').matches;
 
 /**
- * Hold-and-scrub on a bar of tabs (TabBarView): hold still for a moment and slide; the tab under
- * the finger lights up and swells, a bubble names it, and letting go picks it (lift above the
+ * Hold-and-scrub on the live bar (TabBarView): hold still for a moment and slide; the tab under
+ * the finger lights up and swells, a bubble names it, and letting go goes there (lift above the
  * bar to cancel). In the dock the middle steps one tab at a time once the finger rests past the
- * outermost tab in view. Used by the live bar (picking navigates) and by Settings' preview
- * (picking flashes that tab's row). DECISIONS #8.
+ * outermost tab in view. DECISIONS #8. An edited bar (BarEdit) never scrubs: holding it drags.
  */
 export function useBarScrub({
   tabs,
@@ -199,7 +201,8 @@ export function useBarScrub({
     }
   };
 
-  // While scrubbing, a touch must not scroll the dock or the page (React's touch handlers are passive).
+  // While scrubbing, a touch must not scroll the dock or the page (React's touch handlers are
+  // passive). Every render, since the bar's element is swapped while Projects arranges it.
   useEffect(() => {
     const nav = navRef.current;
     if (!nav) return;
@@ -208,7 +211,7 @@ export function useBarScrub({
     };
     nav.addEventListener('touchmove', hold, { passive: false });
     return () => nav.removeEventListener('touchmove', hold);
-  }, [navRef]);
+  });
 
   useEffect(() => end, [end]);
 
@@ -249,23 +252,37 @@ export function useBarScrub({
   };
 }
 
+/** Arranging from Projects: tapping a project's tab finds its folder; Shopping and Chores just stay. */
+function findFolder(t: TabDef) {
+  if (!t.key.startsWith('l:')) return;
+  const el = document.querySelector<HTMLElement>(`.projslot[data-id="${CSS.escape(t.key.slice(2))}"]`);
+  if (!el) return;
+  el.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
+  replay(el, 'is-flash');
+}
+
 /**
  * The live bottom bar. A tap goes straight to a tab; hold and slide to pick one (useBarScrub).
  * In dock mode the middle scrolls and keeps the active tab centered. DECISIONS #8.
+ * While Projects arranges it, it is a BarEdit; while a folder or token is dragged toward it, it
+ * rises with its labels on and opens a gap under the finger (barEdit's aim).
  */
 export function TabBar() {
   const route = useRoute();
   const hub = useHub();
   const shopping = usePartnerShopping();
-  const tabs = tabsOf(hub);
+  const { arranging, aim } = useBarEdit();
+  const all = tabsOf(hub);
+  const { tabs, gap } = withGap(all, aim);
   const on = activeTabKey(hub, route);
-  const density = barDensity(tabs.length);
-  const [hint, hinted] = useOnce('scrub-hint', tabs.length >= 6 && onPhone());
+  const density = barDensity(all.length);
+  const receiving = !!aim;
+  const [hint, hinted] = useOnce('scrub-hint', all.length >= 6 && onPhone());
 
   const navRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { scrubKey, held, navProps, bubble } = useBarScrub({
-    tabs,
+    tabs: all,
     navRef,
     scrollRef,
     onPick: (t) => navigate(t.path),
@@ -274,7 +291,7 @@ export function TabBar() {
 
   // Dock: keep the active tab centered, and the edge fades honest.
   const first = useRef(true);
-  const tabKeys = tabs.map((t) => t.key).join('|');
+  const tabKeys = all.map((t) => t.key).join('|');
   useLayoutEffect(() => {
     const sc = scrollRef.current;
     if (!sc) {
@@ -285,7 +302,7 @@ export function TabBar() {
     if (el) sc.scrollTo({ left: centerScroll(el.offsetLeft, el.offsetWidth, sc.clientWidth, sc.scrollWidth), behavior: first.current || reducedMotion() ? 'auto' : 'smooth' });
     first.current = false;
     markEdges(sc);
-  }, [on, tabKeys, density]);
+  }, [on, tabKeys, density, arranging, receiving]);
 
   useEffect(() => {
     const sc = scrollRef.current;
@@ -297,7 +314,15 @@ export function TabBar() {
       sc.removeEventListener('scroll', edges);
       window.removeEventListener('resize', edges);
     };
-  }, [density]);
+  }, [density, arranging, receiving]);
+
+  const fresh = useFresh(pinsOf(hub), scrollRef);
+
+  // A full bar says no to a newcomer, once each time it is aimed at.
+  const refusing = !!aim?.refusing;
+  useEffect(() => {
+    if (refusing) replay(navRef.current, 'is-refusing');
+  }, [refusing]);
 
   // The one-time hint leaves after six seconds really on screen: time under a sheet or a toast
   // (which would cover it) doesn't count. A first touch on the bar sends it away too.
@@ -315,12 +340,18 @@ export function TabBar() {
     return () => clearInterval(timer);
   }, [hint, hinted]);
 
+  if (arranging) return <BarEdit mode="live" tabs={tabs} gap={gap} navRef={navRef} onPins={(next) => setPins(hub, next)} onTab={findFolder} />;
+
   return (
     <TabBarView
       tabs={tabs}
       activeKey={on}
       scrubKey={scrubKey}
       held={held}
+      editing={receiving}
+      receiving={receiving}
+      gap={gap}
+      slotClass={(k) => (k === fresh ? 'is-new' : undefined)}
       live={shopping ? new Set(['shop']) : undefined}
       navRef={navRef}
       scrollRef={scrollRef}
@@ -328,10 +359,10 @@ export function TabBar() {
         e.preventDefault();
         navigate(t.path);
       }}
-      navProps={navProps}
+      navProps={receiving ? undefined : navProps}
     >
       {bubble}
-      {hint && !scrubKey && !bubble && !covered ? (
+      {hint && !receiving && !scrubKey && !bubble && !covered ? (
         <span className="tabbar__hint" role="status">
           <Icon name="hand" className="icon--sm" />
           Hold and slide to pick

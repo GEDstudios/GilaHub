@@ -29,10 +29,13 @@ export interface TabDef {
  *   comfy  up to 5: icon and label
  *   snug   6–7: icons only, the active tab shows its label
  *   dock   8 or more: Today and Projects stay put around a scrolling middle
+ * While it is being arranged every tab keeps its label, so it is an equal grid up to 6 slots
+ * and a dock from 7 (`n` counts the gap a drag would land in).
  */
 export type BarDensity = 'comfy' | 'snug' | 'dock';
 
-export function barDensity(n: number): BarDensity {
+export function barDensity(n: number, { editing = false }: { editing?: boolean } = {}): BarDensity {
+  if (editing) return n <= 6 ? 'comfy' : 'dock';
   if (n <= COMFY_TABS) return 'comfy';
   return n <= 7 ? 'snug' : 'dock';
 }
@@ -116,6 +119,24 @@ export function resetPins(hub: Hub): () => void {
   const raw = hub.me()?.tabs;
   hub.upsertMember(hub.meId, { tabs: [...DEFAULT_PINS] });
   return () => hub.upsertMember(hub.meId, { tabs: raw });
+}
+
+/**
+ * `key` taken out of `pins` (if there) and put back at `at`, an index among the pins left
+ * (clamped). A new key on a full bar changes nothing (pure, for tests).
+ */
+export function placePin(pins: readonly string[], key: string, at: number): string[] {
+  if (!pins.includes(key) && pins.length >= MAX_PINS) return [...pins];
+  const out = pins.filter((k) => k !== key);
+  out.splice(Math.min(Math.max(Math.round(at), 0), out.length), 0, key);
+  return out;
+}
+
+/** Pin `key` at `at` (or move it there); returns the pins before, for Undo. */
+export function pinAt(hub: Hub, key: string, at: number): string[] {
+  const before = pinsOf(hub);
+  setPins(hub, placePin(before, key, at));
+  return before;
 }
 
 /** Pin or unpin; returns whether it is pinned now. New pins go last, just before Projects. */

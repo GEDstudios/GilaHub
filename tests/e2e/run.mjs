@@ -382,41 +382,42 @@ try {
   });
 
   // ---------- Settings
-  await check('Settings: no floating bar; Chores dragged above Shopping by its grip sticks', async () => {
+  await check('Settings: no floating bar; Chores dragged before Shopping on the stage bar sticks', async () => {
     await guy.goto(`${url}/settings`);
     await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
     await guy.locator('.mecard__tag', { hasText: 'Hila' }).waitFor({ timeout: 5000 });
     if (await guy.locator('.tabbar:not(.tabbar--preview)').count()) throw new Error('the floating tab bar shows on /settings');
     await guy.waitForTimeout(600);
     await guy.screenshot({ path: resolve(shots, '18-settings-paired-full.png'), fullPage: true });
-    const preview = () => guy.locator('.tabbar--preview .tab').evaluateAll((els) => els.map((e) => e.dataset.key).join());
+    const preview = () =>
+      guy.locator('.tabbar--preview [data-key]').evaluateAll((els) => els.map((e) => e.dataset.key).filter((k) => k !== '__gap').join());
     if ((await preview()) !== 'today,shop,chores,projects') throw new Error(`unexpected bar: ${await preview()}`);
-    const grip = guy.getByRole('button', { name: 'Move Chores', exact: true });
-    await grip.scrollIntoViewIfNeeded();
-    await guy.evaluate(() => scrollBy(0, 160));
+    if (await guy.locator('.bareditor .slot').count()) throw new Error('the bar editor still has a row list');
+    await guy.locator('.barstage').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 160));
     await guy.waitForTimeout(300);
-    const from = await grip.boundingBox();
-    const to = await guy.getByRole('button', { name: 'Move Shopping', exact: true }).boundingBox();
-    const x = from.x + from.width / 2;
-    let y = from.y + from.height / 2;
+    // The tab itself is the grip: drag Chores left, before Shopping.
+    const from = await guy.locator('.tabbar--preview [data-key="chores"] .tab').boundingBox();
+    const to = await guy.locator('.tabbar--preview [data-key="shop"] .tab').boundingBox();
+    const y = from.y + from.height / 2;
+    let x = from.x + from.width / 2;
     await guy.mouse.move(x, y);
     await guy.mouse.down();
-    while (y > to.y) {
-      y -= 20;
+    while (x > to.x + 4) {
+      x -= 8;
       await guy.mouse.move(x, y);
-      await guy.waitForTimeout(40);
+      await guy.waitForTimeout(30);
     }
     await guy.waitForTimeout(300);
     await shot(guy, '19-settings-bar-mid-drag');
     await guy.mouse.up();
-    await waitFor(async () => (await preview()) === 'today,chores,shop,projects', 3000, 'Chores before Shopping in the preview');
+    await waitFor(async () => (await preview()) === 'today,chores,shop,projects', 3000, 'Chores before Shopping on the stage bar');
     await guy.getByRole('button', { name: 'Back' }).first().click();
     await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
     const live = await guy.locator('.tabbar .tab').evaluateAll((els) => els.map((e) => e.dataset.key).join());
     if (live !== 'today,chores,shop,projects') throw new Error(`live bar after going back: ${live}`);
   });
 
-  await check('Settings: four tray tokens make 8 tabs, and the preview scrubs like the bar; Check for updates is honest', async () => {
+  await check('Settings: four tray tokens make 8 tabs, and holding the stage bar never scrubs; Check for updates is honest', async () => {
     await guy.goto(`${url}/settings`);
     await guy.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
     const tray = guy.locator('.bareditor .tray .token');
@@ -424,22 +425,20 @@ try {
       await tray.first().click();
       await guy.waitForTimeout(400);
     }
-    const n = await guy.locator('.tabbar--preview .tab').count();
+    const n = await guy.locator('.tabbar--preview [data-key]:not(.is-gap)').count();
     if (n !== 8) throw new Error(`expected 8 tabs, found ${n}`);
-    await guy.getByText('Crowded? Hold the bar and slide to pick.').waitFor({ timeout: 3000 });
+    if (await guy.getByText('Crowded? Hold the bar and slide to pick.').count()) throw new Error('the crowded caption is back');
     await guy.locator('.barstage').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 120));
-    // Hold the preview and slide: the bubble names the tab; letting go stays on Settings.
+    // Holding the stage bar is a drag, never a scrub: no bubble, and letting go stays on Settings.
     const box = await guy.locator('.tabbar--preview').boundingBox();
-    const y = box.y + box.height / 2;
-    await guy.mouse.move(box.x + 30, y);
+    await guy.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await guy.mouse.down();
-    await guy.waitForTimeout(400);
-    for (let x = box.x + 30; x < box.x + box.width * 0.6; x += 10) await guy.mouse.move(x, y);
-    await guy.locator('.tabbar--preview .tabbar__bubble').waitFor({ timeout: 3000 });
-    await shot(guy, '20-settings-crowded-scrub');
+    await guy.waitForTimeout(500);
+    if (await guy.locator('.tabbar__bubble').count()) throw new Error('the stage bar scrubbed');
+    await shot(guy, '20-settings-bar-dock');
     await guy.mouse.up();
     await guy.waitForTimeout(300);
-    if (!guy.url().endsWith('/settings')) throw new Error(`scrubbing the preview navigated to ${guy.url()}`);
+    if (!guy.url().endsWith('/settings')) throw new Error(`holding the stage bar navigated to ${guy.url()}`);
     await guy.locator('.mecard').evaluate((e) => scrollBy(0, e.getBoundingClientRect().top - 100));
     await guy.getByRole('button', { name: 'Color', exact: true }).click();
     await guy.getByRole('radio', { name: 'pink, Hila’s' }).waitFor({ timeout: 3000 });
@@ -454,6 +453,43 @@ try {
     if ((await guy.evaluate(() => window.__stay)) !== 'here') throw new Error('the page reloaded');
     await guy.locator('.bareditor').getByRole('button', { name: 'Back to the default' }).click();
     await guy.getByText('The bar is back to the default').waitFor({ timeout: 3000 });
+  });
+
+  await check('Projects: Guy drags To do onto his bar; Hila’s bar stays hers', async () => {
+    const keys = (p) => p.locator('nav.tabbar:not(.tabbar--preview) [data-key]').evaluateAll((els) => els.map((e) => e.dataset.key).filter((k) => k !== '__gap'));
+    await hila.goto(`${url}/`);
+    await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();
+    const hilaBefore = (await keys(hila)).join();
+    await guy.goto(`${url}/lists`);
+    await guy.getByRole('heading', { name: 'Projects', level: 1 }).waitFor();
+    const cdp = await guyCtx.newCDPSession(guy);
+    const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
+    const folder = guy.locator('.projslot', { has: guy.locator('.projcard__name', { hasText: /^To do$/ }) });
+    await folder.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+    await guy.waitForTimeout(300);
+    const f = await folder.boundingBox();
+    const from = { x: f.x + f.width / 2, y: f.y + f.height / 2 };
+    await touch('touchStart', from.x, from.y);
+    await guy.waitForTimeout(450);
+    if (!(await guy.locator('nav.tabbar.is-receiving').count())) throw new Error('the bar did not rise to meet the folder');
+    const chores = await guy.locator('nav.tabbar [data-key="chores"]').boundingBox();
+    const to = { x: chores.x + chores.width - 3, y: chores.y + chores.height / 2 };
+    for (let i = 1; i <= 30; i++) {
+      await touch('touchMove', from.x + ((to.x - from.x) * i) / 30, from.y + ((to.y - from.y) * i) / 30);
+      await guy.waitForTimeout(16);
+    }
+    await guy.waitForTimeout(350);
+    if (!(await guy.locator('.dragwrap .tabchip').count())) throw new Error('over the bar the folder should be a tab');
+    await shot(guy, '20b-projects-folder-over-bar');
+    await touch('touchEnd', to.x, to.y);
+    await guy.getByText('To do is in the bar').waitFor({ timeout: 3000 });
+    const mine = await keys(guy);
+    if (mine.length !== 5 || mine[2] !== 'chores' || !mine[3].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);
+    await hila.waitForTimeout(1500);
+    await hila.reload();
+    await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();
+    const hilaAfter = (await keys(hila)).join();
+    if (hilaAfter !== hilaBefore) throw new Error(`Hila's bar changed: ${hilaBefore} → ${hilaAfter}`);
   });
 
   await check('Settings: Hila sees Guy on her card and can turn request alerts off', async () => {

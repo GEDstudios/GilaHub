@@ -225,7 +225,8 @@ function Duties() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (document.querySelector('.sheet')) return;
+      // Not under a sheet, nor in an edit mode (Arrange the bar): keys there belong to it.
+      if (document.querySelector('.sheet') || document.documentElement.classList.contains('is-editing')) return;
       if (e.key === '/') {
         e.preventDefault();
         navigate({ name: 'search' });

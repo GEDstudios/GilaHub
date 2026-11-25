@@ -8,8 +8,11 @@
  *     ids={ids}                         the order now (only items that can move)
  *     onMove={(next, id) => …}          called once, on drop, with the new order
  *     label={(id) => 'Milk'}            for screen-reader announcements
- *     renderOverlay={(id) => …}         the lifted copy (rows: <ul className="rows"><Row/></ul>)
- *     layout="rows" | "grid"            rows: a vertical list (default); grid: wrapping cards
+ *     renderOverlay={(id, { outside }) => …}  the lifted copy (rows: <ul className="rows"><Row/></ul>);
+ *                                       `outside`: over the `outside` target instead of the list
+ *     layout="rows" | "grid" | "bar"    rows: a vertical list (default); grid: wrapping cards;
+ *                                       bar: the bottom bar's tabs (horizontal, y damped, the dock
+ *                                       steps at its edges, no page auto-scroll)
  *     bounds="soft" | "refuse" | "none" rows default to "soft": the row rubber-bands at its list's
  *                                       edges. "refuse" also shakes the nearest [data-sort-bounds]
  *                                       (or the list) and buzzes `warn` once dragged >24px out.
@@ -19,21 +22,30 @@
  *     onPreview={(draft | null) => …}   the order as it would drop, on each new spot; null at the end
  *     onLift={(id) => …}                a drag started, with the lifted id
  *     grips                             items have a [data-grip] handle (keyboard reordering)
+ *     outside={{ hit, aim, drop, … }}   a target outside the list, found by the pointer alone (the
+ *                                       live bar lives in App, far from this DndContext): while
+ *                                       hit(p) the list lets go (no "over"), aim(p, id) runs every
+ *                                       frame (then aim(null, id) once), and letting go there calls
+ *                                       drop(id, p) instead of onMove, with a short fade
+ *     still                             items lift but never reorder (the bar's tray tokens)
  *     disabled>
  *     …children, whose items call useSortableItem(id)…
  *   </Sortable>
  *
  *   const s = useSortableItem(id, { disabled });
  *   <li ref={s.ref} style={s.style} className={s.className} {...s.props}>…</li>
- *   With a grip (BarEditor, HomeEditor): s.props still go on the row (a long-press on the
- *   body lifts it on touch), and the handle is
+ *   With a grip (HomeEditor): s.props still go on the row (a long-press on the body lifts it on
+ *   touch), and the handle is
  *   <button data-grip ref={s.gripRef} {...s.gripProps} aria-label="Reorder Milk">.
+ *   A whole-object grip (a bar tab): [data-grip] on the object itself, with s.props, and the
+ *   keyboard activator (s.gripRef, s.gripProps) on a focusable element inside it. Controls inside
+ *   the object (its ×) never lift it.
  *
  * Starting a drag
  *   - a grip ([data-grip]), mouse or pen: after 3px, no delay
  *   - a grip, touch: a 120ms press within 6px. A flick that starts on a grip scrolls the page
- *     (the grip is touch-action:pan-y), since Settings' grips run down the right edge, where a
- *     right thumb scrolls; once it lifts, the drag stops the page from panning.
+ *     (the grip is touch-action:pan-y; in the bar's dock, pan-x), since Settings' grips run down
+ *     the right edge, where a right thumb scrolls; once it lifts, the drag stops the page panning.
  *   - touch on the row body: a 320ms long-press within 6px; moving first scrolls the page
  *     (shorter would catch an unhurried tap, ~250ms, and lift the row instead of opening it)
  *   - mouse on the row body: after 4px
@@ -57,6 +69,7 @@ import {
   DragOverlay,
   getClientRect,
   KeyboardSensor,
+  MeasuringStrategy,
   MouseSensor,
   PointerSensor,
   TouchSensor,
@@ -64,6 +77,7 @@ import {
   useSensors,
   type Announcements,
   type ClientRect,
+  type CollisionDetection,
   type DragEndEvent,
   type DraggableNode,
   type DragOverEvent,
@@ -76,8 +90,15 @@ import {
   type PointerSensorOptions,
   type TouchSensorOptions,
 } from '@dnd-kit/core';
-import { rectSortingStrategy, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import {
+  horizontalListSortingStrategy,
+  rectSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS, getEventCoordinates } from '@dnd-kit/utilities';
 import {
   createContext,
   useCallback,
@@ -93,6 +114,7 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { stepDock, type DockStep } from '../barEdit';
 import { haptic } from './haptics';
 import { leanOf, moveId, rubber, tiltStep } from './motion';
 
@@ -101,8 +123,12 @@ import { leanOf, moveId, rubber, tiltStep } from './motion';
 const NEIGHBOURS = { duration: 260, easing: 'cubic-bezier(.25,1.25,.5,1)' };
 const DROP = { duration: 320, easing: 'cubic-bezier(.34,1.4,.64,1)' };
 const CALM = { duration: 120, easing: 'ease' };
-/** Rows follow the finger sideways only a little. */
+/** Rows follow the finger sideways only a little, and bar tabs up and down. */
 const ROW_X = 0.15;
+/** Let go over an outside target: the copy fades and shrinks where it is. */
+const OUT_DROP = 140;
+/** A tab in the hand leans this way (in the bar, or a folder or token over it). */
+const TAB_LEAN = -4;
 /** How far past its list (px of finger) before a "refuse" list says no. */
 const REFUSE_AT = 24;
 
@@ -124,7 +150,14 @@ function scrollEdge(): number {
 /** Controls inside an item that never start a drag from the row body. */
 const NO_DRAG = 'button, a, input, textarea, select, label, [role="switch"], [role="checkbox"], [contenteditable="true"], [data-drag]';
 
-const inGrip = (t: EventTarget | null) => t instanceof Element && !!t.closest('[data-grip]');
+/** Is a press on `t` on a grip: a handle, or a whole object, but never a control inside one? */
+function inGrip(t: EventTarget | null): boolean {
+  if (!(t instanceof Element)) return false;
+  const grip = t.closest('[data-grip]');
+  if (!grip) return false;
+  const hit = t.closest(NO_DRAG);
+  return !hit || hit === grip || !grip.contains(hit) || hit.hasAttribute('data-drag');
+}
 
 /** May a press on `target` start a drag from the body of `item`? */
 function bodyPress(target: EventTarget | null, item: EventTarget | null): boolean {
@@ -206,6 +239,22 @@ const MEASURING: MeasuringConfiguration = {
   dragOverlay: { measure: (node) => getClientRect(node.classList.contains('lift') && node.parentElement ? node.parentElement : node) },
 };
 
+/** The bar's tabs: re-measured as they move, since its dock scrolls under the hand. */
+const BAR_MEASURING: MeasuringConfiguration = { ...MEASURING, droppable: { strategy: MeasuringStrategy.Always } };
+
+/** Let go over an outside target: the copy fades and shrinks on the spot (reduced motion: fades). */
+const fadeOut: DropAnimationFunction = ({ dragOverlay }) => {
+  const lift = dragOverlay.node.firstElementChild;
+  const runs = [...dragOverlay.node.children].map((el) =>
+    el === lift && !calm()
+      ? el.animate([{ opacity: 1, scale: 1 }, { opacity: 0, scale: 0.8 }], { duration: OUT_DROP, easing: 'ease-in', fill: 'forwards' })
+      : el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: OUT_DROP, easing: 'ease-in', fill: 'forwards' }),
+  );
+  return Promise.all(runs.map((a) => a.finished))
+    .catch(() => undefined)
+    .then(() => undefined);
+};
+
 /** The overlay glides into the slot while the lifted copy settles to its landing lean. */
 const dropAnimation: DropAnimationFunction = async ({ active, dragOverlay, transform }) => {
   const quiet = calm();
@@ -285,18 +334,41 @@ export function useSortableItem(id: string, { disabled }: { disabled?: boolean }
 
 // ---------------------------------------------------------------- the list
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** A drop target outside the list, found by the pointer (viewport px). */
+export interface Outside {
+  hit: (p: Point) => boolean;
+  /** Every frame while over it; then once with null when the pointer leaves it. */
+  aim: (p: Point | null, id: string) => void;
+  /** Let go over it (instead of onMove). */
+  drop: (id: string, p: Point) => void;
+  /** A drag started / ended (dropped or cancelled). */
+  lift?: (id: string) => void;
+  end?: () => void;
+  /** Shown over the hand while it is over the target ("Let go to take it out"). */
+  note?: ReactNode;
+}
+
 export interface SortableProps {
   ids: string[];
   onMove: (next: string[], id: string) => void;
   label: (id: string) => string;
-  renderOverlay: (id: string) => ReactNode;
-  layout?: 'rows' | 'grid';
+  renderOverlay: (id: string, state: { outside: boolean }) => ReactNode;
+  layout?: 'rows' | 'grid' | 'bar';
   bounds?: 'soft' | 'refuse' | 'none';
   lean?: (id: string) => { rest: number; land: number };
   liftClass?: string;
   onPreview?: (draft: string[] | null) => void;
   onLift?: (id: string) => void;
   grips?: boolean;
+  /** Screen-reader instructions, when the default doesn't say it all. */
+  instructions?: string;
+  outside?: Outside;
+  still?: boolean;
   disabled?: boolean;
   children: ReactNode;
 }
@@ -314,6 +386,13 @@ interface Drag {
   over: number;
   overId: string;
   stop: () => void;
+  /** Where the pointer went down, and where it is now (viewport px; null for the keyboard). */
+  origin: Point | null;
+  p: Point | null;
+  /** Over the outside target. */
+  out: boolean;
+  /** The bar's dock, stepping at its edges. */
+  edge: DockStep;
 }
 
 export function Sortable({
@@ -328,6 +407,9 @@ export function Sortable({
   onPreview,
   onLift,
   grips,
+  instructions,
+  outside,
+  still,
   disabled,
   children,
 }: SortableProps) {
@@ -338,13 +420,20 @@ export function Sortable({
     useSensor(GripKeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const [activeId, setActiveId] = useState<string | null>(null);
+  /** Over the outside target (the overlay turns into what lands there). */
+  const [outNow, setOutNow] = useState(false);
+  /** Where the hand holds the lifted copy, from its top-left (an outside copy sits over it). */
+  const [grab, setGrab] = useState<Point>({ x: 0, y: 0 });
   const nodes = useRef(new Map<string, HTMLElement>());
   const lift = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
-  const latest = useRef({ ids, onMove, onPreview, onLift, label });
-  latest.current = { ids, onMove, onPreview, onLift, label };
+  /** The drop that is under way went to the outside target. */
+  const droppedOut = useRef(false);
+  const latest = useRef({ ids, onMove, onPreview, onLift, label, outside });
+  latest.current = { ids, onMove, onPreview, onLift, label, outside };
   const leanFor = useCallback((id: string) => lean?.(id) ?? ROW_LEAN, [lean]);
   const rows = layout === 'rows';
+  const bar = layout === 'bar';
 
   const register = useCallback((id: string, el: HTMLElement | null) => {
     if (el) nodes.current.set(id, el);
@@ -354,7 +443,17 @@ export function Sortable({
   const ctx = useMemo<ItemCtx>(() => ({ register, transition: quiet ? CALM : NEIGHBOURS }), [register, quiet]);
 
   const modifiers = useMemo<Modifier[]>(() => {
-    if (!rows) return [];
+    // First, before anything bends it: where the finger is, and whether that is the outside target.
+    const probe: Modifier = ({ transform }) => {
+      const d = drag.current;
+      if (d?.origin) {
+        d.p = { x: d.origin.x + transform.x, y: d.origin.y + transform.y };
+        d.out = !!latest.current.outside?.hit(d.p);
+      }
+      return transform;
+    };
+    if (bar) return [probe, ({ transform }) => (drag.current?.out ? transform : { ...transform, y: transform.y * ROW_X })];
+    if (!rows) return [probe];
     const damp: Modifier = ({ transform }) => ({ ...transform, x: transform.x * ROW_X });
     const keep: Modifier = ({ transform }) => {
       const d = drag.current;
@@ -364,8 +463,11 @@ export function Sortable({
       d.over = r.over;
       return { ...transform, y: r.v };
     };
-    return bounds === 'none' ? [damp] : [damp, keep];
-  }, [rows, bounds]);
+    return bounds === 'none' ? [probe, damp] : [probe, damp, keep];
+  }, [rows, bar, bounds]);
+
+  /** Nothing is "over" while the hand is at the outside target, or ever for still items. */
+  const collisions = useCallback<CollisionDetection>((args) => (still || drag.current?.out ? [] : closestCenter(args)), [still]);
 
   /** The frame loop: velocity tilt on the overlay, and the refuse shake. */
   const loop = (d: Drag, rest: number, follow: 'touchmove' | 'pointermove' | null, quietNow: boolean) => {
@@ -377,6 +479,8 @@ export function Sortable({
     let lt = 0;
     let raf = 0;
     let refusing = false;
+    let wasOut = false;
+    const nav = bar ? (nodes.current.get(d.id)?.closest<HTMLElement>('.tabbar') ?? null) : null;
     const wall = bounds === 'refuse' && d.box ? ((d.box.closest('[data-sort-bounds]') as HTMLElement | null) ?? d.box) : null;
     const onPoint = (e: Event) => {
       const p = 'touches' in e ? (e as TouchEvent).touches[0] : (e as PointerEvent);
@@ -396,9 +500,18 @@ export function Sortable({
         vx *= 0.8;
         vy *= 0.8;
       }
+      const out = d.out;
+      if (out !== wasOut) {
+        wasOut = out;
+        haptic('select');
+        setOutNow(out);
+        if (!out) latest.current.outside?.aim(null, d.id);
+      }
+      if (out && d.p) latest.current.outside?.aim(d.p, d.id);
+      else if (nav && d.p) stepDock(nav, d.p.x, now, d.edge, quietNow);
       if (!quietNow) {
         vt = tiltStep(vt, vx, vy);
-        lift.current?.style.setProperty('--lean', `${leanOf(rest, vt, rows).toFixed(2)}deg`);
+        lift.current?.style.setProperty('--lean', `${leanOf(out ? TAB_LEAN : rest, vt, rows).toFixed(2)}deg`);
       }
       if (wall) {
         if (!refusing && d.over > REFUSE_AT) {
@@ -423,8 +536,23 @@ export function Sortable({
     const node = nodes.current.get(id) ?? null;
     const start = node ? getClientRect(node, { ignoreTransform: true }) : active.rect.current.initial;
     if (!start) return;
-    const d: Drag = { id, box: bounds === 'none' ? null : (node?.parentElement ?? null), start, over: 0, overId: id, stop: () => undefined };
+    const origin = activatorEvent instanceof KeyboardEvent ? null : getEventCoordinates(activatorEvent);
+    const d: Drag = {
+      id,
+      box: bounds === 'none' ? null : (node?.parentElement ?? null),
+      start,
+      over: 0,
+      overId: id,
+      stop: () => undefined,
+      origin,
+      p: origin,
+      out: false,
+      edge: { dir: 0, next: 0 },
+    };
     drag.current = d;
+    droppedOut.current = false;
+    setGrab(origin ? { x: origin.x - start.left, y: origin.y - start.top } : { x: start.width / 2, y: start.height / 2 });
+    setOutNow(false);
     const follow =
       typeof TouchEvent !== 'undefined' && activatorEvent instanceof TouchEvent ? 'touchmove' : activatorEvent instanceof KeyboardEvent ? null : 'pointermove';
     d.stop = loop(d, leanFor(id).rest, follow, calm());
@@ -432,6 +560,7 @@ export function Sortable({
     setActiveId(id);
     haptic('lift');
     latest.current.onLift?.(id);
+    latest.current.outside?.lift?.(id);
   };
 
   const onDragOver = ({ over }: DragOverEvent) => {
@@ -443,18 +572,29 @@ export function Sortable({
   };
 
   const finish = () => {
-    drag.current?.stop();
+    const d = drag.current;
+    d?.stop();
     drag.current = null;
     document.documentElement.classList.remove('is-dragging');
     setActiveId(null);
+    setOutNow(false);
     latest.current.onPreview?.(null);
+    if (d?.out) latest.current.outside?.aim(null, d.id);
+    latest.current.outside?.end?.();
   };
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     const id = String(active.id);
-    finish();
+    const d = drag.current;
     haptic('drop');
-    if (over && String(over.id) !== id) latest.current.onMove(moveId(latest.current.ids, id, String(over.id)), id);
+    if (d?.out && d.p && latest.current.outside) {
+      droppedOut.current = true;
+      latest.current.outside.drop(id, d.p);
+      finish();
+      return;
+    }
+    finish();
+    if (!still && over && String(over.id) !== id) latest.current.onMove(moveId(latest.current.ids, id, String(over.id)), id);
   };
 
   const announcements = useMemo<Announcements>(() => {
@@ -469,20 +609,24 @@ export function Sortable({
   }, []);
 
   const landing = activeId ? leanFor(activeId) : ROW_LEAN;
+  /** Let go over the outside target: no glide back to the slot, the copy just goes. */
+  const drop = useCallback<DropAnimationFunction>((args) => (droppedOut.current ? fadeOut(args) : dropAnimation(args)), []);
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisions}
       modifiers={modifiers}
-      measuring={MEASURING}
-      autoScroll={{ threshold: { x: 0, y: scrollEdge() }, acceleration: 8 }}
+      measuring={bar ? BAR_MEASURING : MEASURING}
+      // The bar's dock steps by itself (stepDock); elsewhere the page scrolls, but never while
+      // the hand is at the outside target.
+      autoScroll={bar ? false : { threshold: { x: 0, y: scrollEdge() }, acceleration: 8, canScroll: () => !drag.current?.out }}
       accessibility={{
         announcements,
         screenReaderInstructions: {
-          draggable: grips
-            ? 'Press space to pick up. Use the arrow keys to move, space to drop, escape to cancel.'
-            : 'To reorder, press and hold, then drag.',
+          draggable:
+            instructions ??
+            (grips ? 'Press space to pick up. Use the arrow keys to move, space to drop, escape to cancel.' : 'To reorder, press and hold, then drag.'),
         },
       }}
       onDragStart={onDragStart}
@@ -491,21 +635,31 @@ export function Sortable({
       onDragCancel={finish}
     >
       <SortCtx.Provider value={ctx}>
-        <SortableContext items={ids} strategy={rows ? verticalListSortingStrategy : rectSortingStrategy} disabled={disabled}>
+        <SortableContext
+          items={ids}
+          strategy={rows ? verticalListSortingStrategy : bar ? horizontalListSortingStrategy : rectSortingStrategy}
+          disabled={disabled}
+        >
           {children}
         </SortableContext>
       </SortCtx.Provider>
       {createPortal(
-        <DragOverlay zIndex={70} dropAnimation={dropAnimation} className="dragwrap">
+        <DragOverlay
+          zIndex={70}
+          dropAnimation={drop}
+          className="dragwrap"
+          style={{ '--gx': `${grab.x}px`, '--gy': `${grab.y}px` } as CSSProperties}
+        >
           {activeId ? (
             <div
               ref={lift}
-              className={`lift is-lifted ${rows ? 'lift--row' : 'lift--card'} ${liftClass ?? ''}`}
-              style={{ '--lean': `${landing.rest}deg`, '--land': `${landing.land}deg` } as CSSProperties}
+              className={`lift is-lifted ${rows ? 'lift--row' : bar ? 'lift--tab' : 'lift--card'} ${outNow ? 'is-outside' : ''} ${liftClass ?? ''}`}
+              style={{ '--lean': `${outNow ? TAB_LEAN : landing.rest}deg`, '--land': `${landing.land}deg` } as CSSProperties}
             >
-              {renderOverlay(activeId)}
+              {renderOverlay(activeId, { outside: outNow })}
             </div>
           ) : null}
+          {activeId && outNow && outside?.note ? <div className="lift__note">{outside.note}</div> : null}
         </DragOverlay>,
         document.body,
       )}

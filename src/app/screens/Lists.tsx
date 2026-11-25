@@ -1,11 +1,16 @@
-import { useState, type CSSProperties } from 'react';
-import { PROJECT_TEMPLATES } from '../../core/actions';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { PROJECT_TEMPLATES, type Hub } from '../../core/actions';
 import { suggestIcon } from '../../core/projectIcons';
 import type { List, ListKind, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
+import { barTarget, getAim, setAim, setArranging, useBarEdit } from '../barEdit';
+import { BarToken, BarTokenLifted, TabChip } from '../components/BarEdit';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
 import { useHub } from '../context';
 import { navigate } from '../router';
+import { AddDisc, DoneButton } from '../ui/edit';
+import { replay } from '../ui/flip';
+import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Disclosure, lineVars, ListBullet, NewButton } from '../ui/primitives';
@@ -13,7 +18,7 @@ import { SyncBadge } from '../components/SyncBadge';
 import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { LIST_VIS, listVisLabel, visLabel } from '../privacy';
-import { togglePin } from '../tabs';
+import { coveredByTab, MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
 import { projectCount } from '../views';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
@@ -98,12 +103,68 @@ export function tilt(id: string): number {
   return [-2.2, -1.4, -0.6, 0.8, 1.5, 2.3][Math.abs(h) % 6];
 }
 
-/** Drag a folder to reorder projects (a long press on phones). */
-function SortableProject({ list }: { list: List }) {
+/** The live bottom bar (hidden on a computer, where nothing can be dropped on it). */
+const liveBar = () => document.querySelector('.tabbar:not(.tabbar--preview)');
+const tabOf = (hub: Hub, key: string) => pinOptions(hub).find((o) => o.key === key);
+
+/**
+ * Arranging the bar, a folder tap is its pin: in goes just before Projects, out comes out. A
+ * project the Shopping or Chores tab already shows flashes that tab instead; a full bar shakes.
+ */
+function tapPin(hub: Hub, list: List) {
+  const pins = pinsOf(hub);
+  const key = `l:${list.id}`;
+  if (coveredByTab(hub, list.id, pins)) return replay(liveBar()?.querySelector(`[data-key="${list.kind === 'shopping' ? 'shop' : 'chores'}"]`), 'is-flash');
+  if (!pins.includes(key) && pins.length >= MAX_PINS) {
+    haptic('warn');
+    return replay(liveBar(), 'is-refusing');
+  }
+  haptic('tick');
+  togglePin(hub, key);
+}
+
+/** A folder's pin while arranging: a white + when it's not in the bar, an ink pin when it is. */
+function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: number }) {
+  const hub = useHub();
+  const covered = coveredByTab(hub, list.id, pins) ? tabOf(hub, list.kind === 'shopping' ? 'shop' : 'chores') : undefined;
+  const on = !!covered || pins.includes(`l:${list.id}`);
+  const label = covered ? `In the bar as ${covered.label}` : on ? `${list.name} is in the bar` : `Put ${list.name} in the bar`;
+  return (
+    <button
+      type="button"
+      className={`projpin${on ? ' is-in' : ''}`}
+      style={{ '--i': index } as CSSProperties}
+      aria-pressed={covered ? undefined : on}
+      aria-disabled={covered || (!on && pins.length >= MAX_PINS) ? true : undefined}
+      aria-label={label}
+      title={label}
+      onClick={() => tapPin(hub, list)}
+    >
+      {on ? (
+        <span className="projpin__in">
+          <Icon name="pin" />
+        </span>
+      ) : (
+        <AddDisc />
+      )}
+    </button>
+  );
+}
+
+/** Drag a folder to reorder projects (a long press on phones), or onto the bar to pin it there. */
+function SortableProject({ list, arranging, pins, index }: { list: List; arranging: boolean; pins: string[]; index: number }) {
+  const hub = useHub();
   const s = useSortableItem(list.id);
   return (
-    <div ref={s.ref} className={`projslot ${s.className}`} style={{ ...s.style, '--tilt': `${tilt(list.id)}deg` } as CSSProperties} {...s.props}>
-      <ProjectCard list={list} />
+    <div
+      ref={s.ref}
+      data-id={list.id}
+      className={`projslot ${s.className}`}
+      style={{ ...s.style, '--tilt': `${tilt(list.id)}deg` } as CSSProperties}
+      {...s.props}
+    >
+      <ProjectCard list={list} onClick={arranging ? () => tapPin(hub, list) : undefined} />
+      {arranging ? <ProjPin list={list} pins={pins} index={index} /> : null}
     </div>
   );
 }
@@ -111,7 +172,7 @@ function SortableProject({ list }: { list: List }) {
 /** A folder lifts with its own tilt, plus 3deg, and lands back at its tilt. */
 const folderLean = (id: string) => ({ rest: tilt(id) + 3, land: tilt(id) });
 
-function ProjectCard({ list }: { list: List }) {
+function ProjectCard({ list, onClick }: { list: List; onClick?: () => void }) {
   const hub = useHub();
   const count = projectCount(hub, list);
   return (
@@ -119,7 +180,7 @@ function ProjectCard({ list }: { list: List }) {
       type="button"
       className="ccard ccard--md projcard"
       style={{ ...lineVars(list.color), ['--tilt' as string]: `${tilt(list.id)}deg` }}
-      onClick={() => navigate({ name: 'list', id: list.id })}
+      onClick={onClick ?? (() => navigate({ name: 'list', id: list.id }))}
       data-drag
     >
       {/* The name gets the card's whole width; the glyph sits low, by the count. */}
@@ -140,43 +201,134 @@ function ProjectCard({ list }: { list: List }) {
   );
 }
 
+/** "+ New project" for the header, N and the sidebar; not while the bar is being arranged. */
+function NewProjectAction({ run }: { run: () => void }) {
+  useAddAction(run, 'New project');
+  return null;
+}
+
+/** While the bar tray floats over the page, the page makes room for it (as for the shopbar). */
+function useFloatHeight(el: HTMLElement | null) {
+  useLayoutEffect(() => {
+    if (!el) return;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty('--float-h', `${el.offsetHeight + 12}px`);
+    set();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(set);
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      root.style.removeProperty('--float-h');
+    };
+  }, [el]);
+}
+
+/**
+ * Projects (BAR §4): folders you open, drag to reorder, or drag down onto the bottom bar to pin
+ * there. "Arrange the bar" (phone) makes the bar itself editable: folders get pins, the real
+ * bar takes × and drags, and Shopping, Chores and Search float above it while they're out.
+ */
 export function Lists() {
   const hub = useHub();
-  const { openSheet } = useOverlays();
+  const { openSheet, toast } = useOverlays();
+  const { arranging } = useBarEdit();
   const lists = hub.lists();
+  const pins = pinsOf(hub);
   const newProject = () => openSheet((close) => <NewProjectSheet onClose={close} />);
-  useAddAction(newProject, 'New project');
 
   const archived = hub.store.all('list').filter((l) => l.archived);
   const onMove = (next: string[], id: string) => hub.moveList(id, next[next.indexOf(id) + 1] ?? null);
 
+  const arrangeRef = useRef<HTMLButtonElement>(null);
+  const doneRef = useRef<HTMLButtonElement>(null);
+  const [tray, setTray] = useState<HTMLDivElement | null>(null);
+  useFloatHeight(tray);
+  const start = () => {
+    setArranging(true);
+    requestAnimationFrame(() => doneRef.current?.focus({ preventScroll: true }));
+  };
+  const stop = () => {
+    setArranging(false);
+    requestAnimationFrame(() => arrangeRef.current?.focus({ preventScroll: true }));
+  };
+  // Leaving the page leaves the mode.
+  useEffect(() => () => setArranging(false), []);
+  // Esc leaves it too (not mid-drag, where Esc cancels the drag, nor under a sheet).
+  useEffect(() => {
+    if (!arranging) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || document.documentElement.classList.contains('is-dragging')) return;
+      if (document.querySelector('.sheet')) return;
+      stop();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [arranging]);
+
+  // Dropped on the bar: pinned where it landed. Outside the mode a newcomer says so, with Undo.
+  const arrangingRef = useRef(arranging);
+  arrangingRef.current = arranging;
+  const toBar = useMemo(() => {
+    const place = (key: string, at: number | null, full: boolean) => {
+      if (full) return toast('The bar is full');
+      const before = pinsOf(hub);
+      const was = before.includes(key);
+      pinAt(hub, key, at ?? before.length);
+      const name = tabOf(hub, key)?.label;
+      if (!was && name && !arrangingRef.current) toast(`${name} is in the bar`, { action: { label: 'Undo', run: () => setPins(hub, before) } });
+    };
+    const common = { nav: liveBar, tabOf: (key: string) => tabOf(hub, key), pinned: () => pinsOf(hub), get: getAim, set: setAim, place };
+    return { folders: barTarget({ ...common, keyOf: (id) => `l:${id}` }), tokens: barTarget(common) };
+  }, [hub, toast]);
+
+  const missing = arranging ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key)) : [];
+
   return (
     <>
-      <Band top={<SyncBadge />} actions={<NewButton label="New project" onClick={newProject} />} title="Projects" />
-      <div className="column">
+      {arranging ? null : <NewProjectAction run={newProject} />}
+      <Band
+        top={<SyncBadge />}
+        actions={arranging ? <DoneButton ref={doneRef} onClick={stop} /> : <NewButton label="New project" onClick={newProject} />}
+        title="Projects"
+        sub={arranging ? 'Drag folders into the bar, or tabs out of it.' : undefined}
+      />
+      <div className={`column${arranging ? ' is-arranging' : ''}`}>
         <Sortable
           ids={lists.map((l) => l.id)}
           onMove={onMove}
           layout="grid"
           lean={folderLean}
           label={(id) => hub.list(id)?.name ?? ''}
-          renderOverlay={(id) => {
+          outside={toBar.folders}
+          renderOverlay={(id, { outside }) => {
             const l = hub.list(id);
-            return l ? <ProjectCard list={l} /> : null;
+            const t = outside ? tabOf(hub, `l:${id}`) : undefined;
+            return t ? <TabChip t={t} /> : l ? <ProjectCard list={l} /> : null;
           }}
         >
           <div className="projgrid">
-            {lists.map((l) => (
-              <SortableProject key={l.id} list={l} />
+            {lists.map((l, i) => (
+              <SortableProject key={l.id} list={l} arranging={arranging} pins={pins} index={i} />
             ))}
-            <button type="button" className="projcard projcard--new" onClick={newProject}>
-              <span className="projcard__plus">
-                <Icon name="plus" />
-              </span>
-              <span>New project</span>
-            </button>
+            {arranging ? null : (
+              <button type="button" className="projcard projcard--new" onClick={newProject}>
+                <span className="projcard__plus">
+                  <Icon name="plus" />
+                </span>
+                <span>New project</span>
+              </button>
+            )}
           </div>
         </Sortable>
+
+        {arranging ? null : (
+          <p className="editlink editlink--phone">
+            <button ref={arrangeRef} type="button" className="textbtn" onClick={start}>
+              Arrange the bar
+              <Icon name="layout" className="icon--xs" />
+            </button>
+          </p>
+        )}
 
         {archived.length ? (
           <Disclosure title="Archived" count={archived.length}>
@@ -198,6 +350,27 @@ export function Lists() {
           </Disclosure>
         ) : null}
       </div>
+      {missing.length ? (
+        <div className="bartray" ref={setTray}>
+          <Sortable
+            still
+            layout="grid"
+            ids={missing.map((t) => t.key)}
+            onMove={() => undefined}
+            label={(key) => tabOf(hub, key)?.label ?? ''}
+            liftClass="lift--token"
+            outside={toBar.tokens}
+            renderOverlay={(key, { outside }) => {
+              const t = tabOf(hub, key);
+              return t ? <BarTokenLifted t={t} outside={outside} /> : null;
+            }}
+          >
+            {missing.map((t) => (
+              <BarToken key={t.key} t={t} full={pins.length >= MAX_PINS} onAdd={() => togglePin(hub, t.key)} />
+            ))}
+          </Sortable>
+        </div>
+      ) : null}
     </>
   );
 }

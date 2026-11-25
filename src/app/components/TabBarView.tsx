@@ -1,4 +1,5 @@
-import type { CSSProperties, HTMLAttributes, MouseEvent, ReactNode, Ref } from 'react';
+import { Fragment, type CSSProperties, type HTMLAttributes, type MouseEvent, type ReactElement, type ReactNode, type Ref } from 'react';
+import type { BarGap } from '../barEdit';
 import { barDensity, type TabDef } from '../tabs';
 import { Icon } from '../ui/Icon';
 import { ProjectMark } from '../ui/ProjectMark';
@@ -16,11 +17,15 @@ export function TabMark({ t }: { t: TabDef }) {
 
 /**
  * The bottom bar's markup and its density rules, with no behaviour of its own. The live bar
- * (TabBar.tsx) adds routing and hold-and-scrub; Settings shows the same thing as a preview.
+ * (TabBar.tsx) adds routing and hold-and-scrub; BarEdit makes it editable.
  *
  *   comfy  up to 5 tabs: icon and label, a pill slides to the active tab
  *   snug   6–7: icons only; the active tab rises and shows its label
  *   dock   8 or more: Today and Projects stay put around a scrolling middle (`scrollRef`)
+ *
+ * Editing (`editing`): every tab keeps its label, nothing is current, the ends are quiet
+ * anchors, and `gap` opens a dashed slot where a drag would land (an equal grid up to 6 slots,
+ * a dock from 7). `renderTab` draws each movable tab (BarEdit: a sortable slot with its ×).
  */
 export function TabBarView({
   tabs,
@@ -28,8 +33,12 @@ export function TabBarView({
   scrubKey = null,
   held = false,
   preview = false,
-  liftedKey = null,
+  editing = false,
+  receiving = false,
+  gap = null,
+  out = null,
   slotClass,
+  renderTab,
   live,
   navRef,
   scrollRef,
@@ -43,12 +52,17 @@ export function TabBarView({
   scrubKey?: string | null;
   /** The bar is held (a tab picked, or "Let go to cancel"): what floats over it steps aside. */
   held?: boolean;
-  /** Settings' preview: static, and the slots are not links. */
+  /** Settings' stage: it stands still in the page. */
   preview?: boolean;
-  /** A slot whose row is being dragged in Settings. */
-  liftedKey?: string | null;
-  /** Extra classes per slot in the preview (a slot popping in, or shrinking out). */
+  editing?: boolean;
+  /** A folder or token is being dragged and may land here: the bar rises to meet it. */
+  receiving?: boolean;
+  gap?: BarGap | null;
+  /** A tab held up out of the bar: its slot closes (it still counts for the density). */
+  out?: string | null;
+  /** Extra classes per tab (one popping in). */
   slotClass?: (key: string) => string | undefined;
+  renderTab?: (t: TabDef, parts: { className: string; inner: ReactNode }) => ReactElement;
   /** Tabs that carry a live dot (my partner is shopping). */
   live?: ReadonlySet<string>;
   navRef?: Ref<HTMLElement>;
@@ -59,28 +73,50 @@ export function TabBarView({
   /** Floating bits: the scrub bubble, the one-time hint. */
   children?: ReactNode;
 }) {
-  const density = barDensity(tabs.length);
-  const pill = tabs.findIndex((t) => t.key === (scrubKey ?? activeKey));
-  const cls = ['tabbar', `tabbar--${density}`, preview ? 'tabbar--preview' : '', held ? 'is-held' : '', scrubKey ? 'is-scrubbing' : ''].filter(Boolean).join(' ');
+  const n = tabs.length + (gap ? 1 : 0);
+  const density = barDensity(n, { editing });
+  const pill = editing ? -1 : tabs.findIndex((t) => t.key === (scrubKey ?? activeKey));
+  const cls = [
+    'tabbar',
+    `tabbar--${density}`,
+    editing ? 'tabbar--edit' : '',
+    preview ? 'tabbar--preview' : '',
+    receiving ? 'is-receiving' : '',
+    held ? 'is-held' : '',
+    scrubKey ? 'is-scrubbing' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-  const tab = (t: TabDef) => {
-    const on = t.key === activeKey;
+  const marks = (t: TabDef) => (
+    <>
+      <span className="tab__mark">
+        <TabMark t={t} />
+        {live?.has(t.key) ? <span className="tab__live live" /> : null}
+      </span>
+      <span className="tab__label" dir="auto">
+        {t.label}
+      </span>
+    </>
+  );
+
+  const tab = (t: TabDef, i: number) => {
+    const on = !editing && t.key === activeKey;
     const extra = slotClass?.(t.key);
-    const className = `tab${on ? ' is-on' : ''}${t.key === scrubKey ? ' is-scrub' : ''}${t.key === liftedKey ? ' is-lifted' : ''}${extra ? ` ${extra}` : ''}`;
-    const inner = (
-      <>
-        <span className="tab__mark">
-          <TabMark t={t} />
-          {live?.has(t.key) ? <span className="tab__live live" /> : null}
-        </span>
-        <span className="tab__label" dir="auto">
-          {t.label}
-        </span>
-      </>
-    );
-    return preview ? (
+    const className = `tab${on ? ' is-on' : ''}${t.key === scrubKey ? ' is-scrub' : ''}${extra ? ` ${extra}` : ''}`;
+    if (editing) {
+      const end = i === 0 ? 'Always first' : i === tabs.length - 1 ? 'Always last' : null;
+      if (end)
+        return (
+          <span key={t.key} className={`${className} is-anchor`} data-key={t.key} aria-disabled="true" aria-description={end}>
+            {marks(t)}
+          </span>
+        );
+      if (renderTab) return <Fragment key={t.key}>{renderTab(t, { className, inner: marks(t) })}</Fragment>;
+    }
+    return preview || editing ? (
       <span key={t.key} className={className} data-key={t.key} onClick={onTab ? (e) => onTab(t, e) : undefined}>
-        {inner}
+        {marks(t)}
       </span>
     ) : (
       <a
@@ -92,24 +128,52 @@ export function TabBarView({
         draggable={false}
         onClick={onTab ? (e) => onTab(t, e) : undefined}
       >
-        {inner}
+        {marks(t)}
       </a>
     );
   };
 
+  const middle = tabs.slice(1, -1).map((t, i) => tab(t, i + 1));
+  if (gap)
+    middle.splice(
+      Math.min(Math.max(gap.at, 0), middle.length),
+      0,
+      <span key="__gap" className={`tab is-gap${gap.tab ? '' : ' is-empty'}`} data-key="__gap" aria-hidden="true">
+        {gap.tab ? (
+          marks(gap.tab)
+        ) : (
+          <span className="tab__mark">
+            <Icon name="plus" />
+          </span>
+        )}
+      </span>,
+    );
+  const first = tab(tabs[0], 0);
+  const last = tab(tabs[tabs.length - 1], tabs.length - 1);
+
   return (
-    <nav ref={navRef} className={cls} aria-label={preview ? 'Bottom bar preview' : 'Main'} style={{ '--n': tabs.length, '--i': Math.max(pill, 0) } as CSSProperties} {...navProps}>
+    <nav
+      ref={navRef}
+      className={cls}
+      aria-label={preview ? 'Bottom bar preview' : 'Main'}
+      style={{ '--n': n - (out ? 1 : 0), '--i': Math.max(pill, 0) } as CSSProperties}
+      {...navProps}
+    >
       {density !== 'dock' && pill >= 0 ? <span className="tabbar__pill" aria-hidden="true" /> : null}
       {density === 'dock' ? (
         <>
-          {tab(tabs[0])}
+          {first}
           <div className="tabbar__scroll" ref={scrollRef}>
-            {tabs.slice(1, -1).map(tab)}
+            {middle}
           </div>
-          {tab(tabs[tabs.length - 1])}
+          {last}
         </>
       ) : (
-        tabs.map(tab)
+        <>
+          {first}
+          {middle}
+          {last}
+        </>
       )}
       {children}
     </nav>
