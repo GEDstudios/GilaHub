@@ -334,3 +334,23 @@ describe('home blocks', () => {
     expect(aheadDay('2026-12-02', wed)).toBe('Wed 2 Dec');
   });
 });
+
+describe('Getting started', () => {
+  it('ticks each step off only when it really happened', async () => {
+    const { startedSteps } = await import('../../src/app/started');
+    const { setPins } = await import('../../src/app/tabs');
+    const store = await Store.load(new MemoryPersistence(), 'dev-g', ['h', 'p:guy']);
+    const hub = new Hub(store, 'guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'lemon' });
+    const list = hub.createList({ name: 'To do', kind: 'tasks' });
+    const done = () => startedSteps(hub, false).filter((s) => s.done).map((s) => s.key);
+    expect(done()).toEqual([]);
+    const id = hub.addItem(list, { title: 'Call mom' });
+    expect(done()).toEqual(['add']);
+    hub.toggle(id);
+    expect(done()).toEqual(['add', 'tick']);
+    setPins(hub, ['chores', 'shop']);
+    expect(done()).toEqual(['add', 'tick', 'bar']);
+    expect(startedSteps(hub, true).find((s) => s.key === 'notify')?.done).toBe(true);
+  });
+});

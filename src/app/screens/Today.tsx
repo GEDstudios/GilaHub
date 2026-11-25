@@ -17,6 +17,7 @@ import {
   TodayWidget,
   WeekStrips,
 } from '../components/HomeWidgets';
+import { GettingStarted } from '../components/GettingStarted';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
@@ -187,6 +188,7 @@ export function Today() {
       />
       <div className={`column home ${entering ? 'is-entering' : ''}`}>
         <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+        <GettingStarted />
         <HomeNotices />
         {slots.map((s) => block(s.key))}
         <InviteCard />

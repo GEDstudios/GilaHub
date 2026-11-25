@@ -10,7 +10,7 @@ import { useHub, useRt, useSync } from '../context';
 import { setPrefs, use24h, usePrefs, weekStart } from '../prefs';
 import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { ideasView } from '../views';
-import { back } from '../router';
+import { back, navigate } from '../router';
 import { disablePush, enablePush, isIOS, isStandalone, pushState, swContainer, testPush, type PushState, type Runtime } from '../runtime';
 import { AWAY_ON, awaySub, backupSub, needsBackup, syncAria, syncLabel, usSentence, welcomeBack } from '../settingsCopy';
 import { checkForUpdate, updateReady, useUpdateReady, type UpdateCheck } from '../update';
@@ -702,6 +702,16 @@ function About({ me, partner }: { me: Member; partner: Member | undefined }) {
       <Section title="About">
         <div className="group">
           <OptRow icon="lightbulb" title="Ideas" value={n ? `${n} open` : undefined} chev onClick={openIdeas} />
+          <OptRow
+            icon="sparkle"
+            title="Getting started"
+            sub="Five first things, on Today"
+            chev
+            onClick={() => {
+              setPrefs({ startedHidden: false });
+              navigate({ name: 'today' });
+            }}
+          />
         </div>
       </Section>
       <div className="about">

@@ -23,6 +23,8 @@ export interface Prefs {
   lastBackupAt: number | null;
   /** The floating Ideas tag (the sheet stays reachable from Settings either way). */
   ideasTag: boolean;
+  /** Today's "Getting started" card: put away (× or finished). Settings brings it back. */
+  startedHidden: boolean;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -40,6 +42,7 @@ const DEFAULTS: Prefs = {
   inviteHiddenUntil: 0,
   lastBackupAt: null,
   ideasTag: true,
+  startedHidden: false,
 };
 
 function read(): Prefs {

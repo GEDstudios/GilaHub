@@ -474,7 +474,8 @@ export function InviteCard() {
   const { openSheet, toast } = useOverlays();
   // Read once per draw; the card comes back on its own after two weeks.
   const [now] = useState(() => Date.now());
-  if (hub.partner() || prefs.inviteHiddenUntil > now) return null;
+  // While Getting started is up, its "Bring your person in" does this.
+  if (hub.partner() || prefs.inviteHiddenUntil > now || !prefs.startedHidden) return null;
   return (
     <div className="invite">
       <button type="button" className="invite__main" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
