@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import type { ItemVisibility } from '../../core/actions';
-import { addDays, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
+import { addDays, fromDateStr, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
-import { describeRule, firstDue } from '../../smart/recurrence';
+import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
 import { useHub } from '../context';
 import { use24h, usePrefs, weekStart } from '../prefs';
 import { REMIND_OPTIONS } from '../reminders';
@@ -17,16 +17,19 @@ export interface Draft {
   remind: number | null;
   assignee: Assignee;
   urgent: boolean;
-  visibility: ItemVisibility;
+  visibility: VisChoice;
+  /** For a request to the partner: I OK it before it counts as done. */
+  needsOk?: boolean;
 }
+
+/** "theirs" = Mine, but my partner's. */
+export type VisChoice = ItemVisibility | 'theirs';
 
 export type Field = 'when' | 'repeat' | 'remind' | 'who' | 'vis' | 'urgent';
 
-const VIS: Record<ItemVisibility, { label: string; icon: IconName }> = {
-  ours: { label: 'Ours', icon: 'ours' },
-  mine: { label: 'Mine', icon: 'mine' },
-  private: { label: 'Only me', icon: 'lock' },
-};
+export const visLabel = (v: VisChoice, partner: string | undefined): string =>
+  v === 'ours' ? 'Ours' : v === 'mine' ? 'Mine' : v === 'private' ? 'Only me' : `${partner ?? 'Their'}’s`;
+export const VIS_ICON: Record<VisChoice, IconName> = { ours: 'ours', mine: 'mine', theirs: 'user', private: 'lock' };
 
 export const ruleShort = (r: RepeatRule) => describeRule(r, (n) => weekdayName(n)).replace(" after it's done", '');
 
@@ -84,7 +87,7 @@ export function InlineEditor({
   value: Draft;
   onChange: (patch: Partial<Draft>) => void;
   fields: Field[];
-  allowedVis?: ItemVisibility[];
+  allowedVis?: VisChoice[];
   repeatFrom?: 'done' | 'schedule';
   readOnly?: boolean;
   prompt?: string | null;
@@ -118,8 +121,9 @@ export function InlineEditor({
     if (f === 'when') chips.push(chip('when', value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date', 'calendar', !!value.due));
     if (f === 'repeat') chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
     if (f === 'remind') chips.push(chip('remind', remindText(value.remind) ?? 'Remind me', 'bell', value.remind !== null));
-    if (f === 'who' && partner) chips.push(chip('who', whoText(hub, value.assignee), 'user', !!value.assignee));
-    if (f === 'vis' && allowedVis.length > 1) chips.push(chip('vis', VIS[value.visibility].label, VIS[value.visibility].icon, value.visibility !== allowedVis[0]));
+    if (f === 'who' && partner)
+      chips.push(chip('who', `${whoText(hub, value.assignee)}${value.needsOk && value.assignee === partner.id ? ' · needs OK' : ''}`, 'user', !!value.assignee));
+    if (f === 'vis' && allowedVis.length > 1) chips.push(chip('vis', visLabel(value.visibility, partner?.name), VIS_ICON[value.visibility], value.visibility !== allowedVis[0]));
     if (f === 'urgent')
       chips.push(
         <button
@@ -146,7 +150,8 @@ export function InlineEditor({
         <RepeatPanel
           rule={value.repeat}
           defaultFrom={repeatFrom}
-          onChange={(repeat) => onChange({ repeat, due: repeat && !value.due ? firstDue(repeat, ref) : value.due })}
+          // Calendar repeats (set days, days of the month) decide the date; "every N" keeps yours.
+          onChange={(repeat) => onChange({ repeat, due: repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due })}
         />
       ) : null}
       {open === 'remind' ? (
@@ -168,17 +173,23 @@ export function InlineEditor({
             repeating={!!value.repeat}
             onPick={(a) => {
               onChange({ assignee: a });
-              setOpen(null);
+              if (a !== partner?.id) setOpen(null);
             }}
           />
+          {partner && value.assignee === partner.id && !value.repeat ? (
+            <label className="panel__toggle">
+              <input type="checkbox" checked={!!value.needsOk} onChange={(e) => onChange({ needsOk: e.target.checked })} />
+              <span>Needs my OK when done</span>
+            </label>
+          ) : null}
         </Panel>
       ) : null}
       {open === 'vis' ? (
         <Panel>
           <Options
             value={value.visibility}
-            options={allowedVis.map((v) => ({ value: v, label: VIS[v].label, icon: VIS[v].icon }))}
-            onPick={(v) => onChange({ visibility: v as ItemVisibility })}
+            options={allowedVis.map((v) => ({ value: v, label: visLabel(v, partner?.name), icon: VIS_ICON[v] }))}
+            onPick={(v) => onChange({ visibility: v as VisChoice })}
           />
           {visHint(value.visibility, partner?.name ?? 'your partner') ? <p className="panel__hint">{visHint(value.visibility, partner?.name ?? 'your partner')}</p> : null}
         </Panel>
@@ -187,8 +198,14 @@ export function InlineEditor({
   );
 }
 
-export const visHint = (v: ItemVisibility, partner: string): string | null =>
-  v === 'mine' ? `Yours. ${partner} can see it and help.` : v === 'private' ? `Hidden from ${partner}. Encrypted.` : null;
+export const visHint = (v: VisChoice, partner: string): string | null =>
+  v === 'mine'
+    ? `Yours. ${partner} can see it and help.`
+    : v === 'theirs'
+      ? `${partner}’s. You can both see it.`
+      : v === 'private'
+        ? `Hidden from ${partner}. Encrypted.`
+        : null;
 
 export function Panel({ children }: { children: ReactNode }) {
   return <div className="panel">{children}</div>;
@@ -283,11 +300,14 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
   const ws = weekStart(prefs);
   const from = rule?.type === 'interval' ? rule.from : defaultFrom;
   const simpleKey = rule?.type === 'interval' ? SIMPLE.find((s) => s.every === rule.every && s.unit === rule.unit)?.key : undefined;
-  const [mode, setMode] = useState<'simple' | 'custom' | 'days'>(rule?.type === 'weekdays' ? 'days' : rule && !simpleKey ? 'custom' : 'simple');
-  const key = !rule ? 'never' : mode === 'days' ? 'days' : mode === 'custom' ? 'custom' : (simpleKey ?? 'custom');
+  const [mode, setMode] = useState<'simple' | 'custom' | 'days' | 'month'>(
+    rule?.type === 'weekdays' ? 'days' : rule?.type === 'monthdays' ? 'month' : rule && !simpleKey ? 'custom' : 'simple',
+  );
+  const key = !rule ? 'never' : mode === 'days' ? 'days' : mode === 'month' ? 'month' : mode === 'custom' ? 'custom' : (simpleKey ?? 'custom');
   const every = rule?.type === 'interval' ? rule.every : 3;
   const unit = rule?.type === 'interval' ? rule.unit : 'day';
   const days = rule?.type === 'weekdays' ? rule.days : [weekday(todayStr())];
+  const monthDays = rule?.type === 'monthdays' ? rule.days : [fromDateStr(todayStr()).getDate()];
   const order = [...Array(7).keys()].map((i) => (i + ws) % 7);
 
   return (
@@ -298,6 +318,7 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
           { value: 'never', label: 'Never' },
           ...SIMPLE.map((s) => ({ value: s.key, label: s.label })),
           { value: 'days', label: 'On set days' },
+          { value: 'month', label: 'Days of the month' },
           { value: 'custom', label: 'Custom' },
         ]}
         onPick={(k) => {
@@ -307,6 +328,9 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
           } else if (k === 'days') {
             setMode('days');
             onChange({ type: 'weekdays', days });
+          } else if (k === 'month') {
+            setMode('month');
+            onChange({ type: 'monthdays', days: monthDays });
           } else if (k === 'custom') {
             setMode('custom');
             onChange({ type: 'interval', every, unit, from });
@@ -352,6 +376,28 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
                 }}
               >
                 {weekdayName(d).slice(0, 2)}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+      {mode === 'month' && rule?.type === 'monthdays' ? (
+        <div className="monthdays" role="group" aria-label="Days of the month">
+          {[...Array(31).keys()].map((i) => i + 1).concat(-1).map((d) => {
+            const on = rule.days.includes(d);
+            return (
+              <button
+                key={d}
+                type="button"
+                className={`monthday ${on ? 'is-on' : ''} ${d === -1 ? 'monthday--last' : ''}`}
+                aria-pressed={on}
+                aria-label={d === -1 ? 'Last day of the month' : ordinalDay(d)}
+                onClick={() => {
+                  const next = on ? rule.days.filter((x) => x !== d) : [...rule.days, d];
+                  if (next.length) onChange({ type: 'monthdays', days: next.sort((a, b) => a - b) });
+                }}
+              >
+                {d === -1 ? 'Last' : d}
               </button>
             );
           })}

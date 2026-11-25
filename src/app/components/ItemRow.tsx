@@ -2,7 +2,8 @@ import { memo, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { diffDays, humanDate, humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
-import { useHub } from '../context';
+import { useHub, useRt } from '../context';
+import { afterTick } from '../notify';
 import { use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
@@ -61,6 +62,16 @@ export const ItemRow = memo(function ItemRow({
   const vis = hub.visibilityOf(item);
   const due = dateMode === 'full' ? dueLabel(item, ref, use24h(prefs)) : null;
   const readonly = !hub.canEdit(item);
+  const rt = useRt();
+  const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
+  const request =
+    item.submittedAt && !item.done
+      ? item.requestedBy === hub.meId
+        ? `${hub.member(item.submittedBy)?.name ?? 'They'} did it · OK?`
+        : `Waiting for ${asker?.name ?? 'their'} OK`
+      : asker && item.requestedBy !== hub.meId && !item.done
+        ? `${asker.name} asked`
+        : null;
 
   const onToggle = () => {
     if (!canTick) {
@@ -73,8 +84,13 @@ export const ItemRow = memo(function ItemRow({
       toast(next ? `Nice. Next time: ${humanDate(next, ref)}` : 'Nice.', { action: { label: 'Undo', run: undo } });
       return;
     }
-    const openSteps = !item.done ? hub.descendants(item.id).filter((d) => !d.done).length : 0;
+    const openSteps = !item.done && !item.needsOk ? hub.descendants(item.id).filter((d) => !d.done).length : 0;
     const undo = hub.toggle(item.id);
+    const msg = afterTick(rt, hub, item.id);
+    if (msg) {
+      toast(msg, { action: { label: 'Undo', run: undo } });
+      return;
+    }
     if (openSteps) {
       toast(`Done. ${openSteps} step${openSteps > 1 ? 's' : ''} still open.`, {
         action: {
@@ -93,7 +109,7 @@ export const ItemRow = memo(function ItemRow({
       ref={liRef}
       style={liStyle}
       {...dragProps}
-      className={`row row--tap ${item.done ? 'is-done' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh' : ''} ${liClass ?? ''}`}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
       <Check on={item.done} color={list?.color} onToggle={onToggle} label={item.title} />
@@ -101,7 +117,7 @@ export const ItemRow = memo(function ItemRow({
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
         </span>
-        {(showList && list) || due || item.repeat || steps.total || (vis === 'private' && list?.visibility !== 'private') ? (
+        {(showList && list) || due || request || item.repeat || steps.total || (vis === 'private' && list?.visibility !== 'private') ? (
           <span className="row__meta">
             {showList && list ? (
               <button
@@ -117,6 +133,7 @@ export const ItemRow = memo(function ItemRow({
               </button>
             ) : null}
             {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
+            {request ? <span className="meta meta--req">{request}</span> : null}
             {item.repeat ? (
               <span className="meta" title={describeRule(item.repeat, (n) => weekdayName(n))}>
                 <Icon name="repeat" />
@@ -140,7 +157,7 @@ export const ItemRow = memo(function ItemRow({
         <span className="row__trail">
           {trailing}
           {item.urgent ? <Diamond /> : null}
-          {carrier && (list?.visibility === 'shared' || carrier.id !== list?.owner) ? <PersonBullet member={carrier} size="xs" /> : null}
+          {!trailing && carrier && (list?.visibility === 'shared' || carrier.id !== list?.owner) ? <PersonBullet member={carrier} size="xs" /> : null}
         </span>
       ) : null}
     </li>

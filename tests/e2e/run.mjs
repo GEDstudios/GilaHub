@@ -82,7 +82,9 @@ const check = async (label, fn) => {
     log('✓', label);
   } catch (e) {
     failures++;
-    console.error('✗', label, '—', e.message);
+    console.error('✗', label, '—', e.message.split('\n').slice(0, 3).join(' | '));
+    await shot(guy, `FAIL-${failures}-guy`).catch(() => {});
+    await shot(hila, `FAIL-${failures}-hila`).catch(() => {});
   }
 };
 
@@ -205,6 +207,38 @@ try {
     );
     if (stored.includes('Ring for Hila')) throw new Error('private title found in Hila’s local database');
     await shot(hila, '09-todo-hila');
+  });
+
+  // ---------- Requests
+  await check('Requests: Guy asks Hila, she does it, Guy OKs it', async () => {
+    await guy.goto(`${url}/lists`);
+    await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    const add = guy.getByLabel('Add to To do');
+    await add.fill('Water the balcony plants @hila today');
+    await guy.getByRole('button', { name: /needs my ok/i }).click();
+    await add.press('Enter');
+    await hila.goto(`${url}/`);
+    const row = hila.locator('li.row', { hasText: 'Water the balcony plants' });
+    try {
+      await row.waitFor({ timeout: 8000 });
+      log('request row appeared live');
+    } catch {
+      log('request row NOT live; reloading');
+      await hila.reload();
+      await row.waitFor({ timeout: 8000 });
+      log('request row appeared after reload');
+    }
+    await row.getByText('Guy asked').waitFor({ timeout: 5000 });
+    await row.getByRole('checkbox').click();
+    await hila.getByText(/Sent to Guy for an OK/).waitFor({ timeout: 5000 });
+    await guy.goto(`${url}/`);
+    const waiting = guy.locator('li.row', { hasText: 'Water the balcony plants' });
+    await guy.getByText('Waiting for your OK').waitFor({ timeout: 15000 });
+    await shot(guy, '09b-waiting-ok');
+    await waiting.getByRole('button', { name: 'OK', exact: true }).click();
+    await hila.goto(`${url}/lists`);
+    await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await waitFor(async () => (await hila.locator('li.row:not(.is-done)', { hasText: 'Water the balcony plants' }).count()) === 0, 15000, 'confirmed on hila');
   });
 
   // ---------- Chores

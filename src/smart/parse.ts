@@ -143,6 +143,24 @@ export function parseQuickAdd(input: string, ctx: ParseContext = {}): ParseResul
     };
     const isDone = (s: string) => /after|from|אחרי/i.test(s);
 
+    // Days of the month: "every month on the 1st and 15th", "on the 10th of every month",
+    // "every 1st & 15th", "last day of the month", "כל 1 ו-15 לחודש".
+    const DAY = String.raw`(?:\d{1,2}(?:st|nd|rd|th)?|last(?:\s+day)?)`;
+    const DAY_ORD = String.raw`(?:\d{1,2}(?:st|nd|rd|th)|last\s+day)`;
+    const list = (d: string) => String.raw`${d}(?:\s*(?:,|and|&)\s*(?:the\s+)?${d})*`;
+    const monthdays = (s: string): RepeatRule | null => {
+      const days = [...s.matchAll(/(\d{1,2})|last/gi)].map((m) => (m[1] ? +m[1] : -1)).filter((n) => n === -1 || (n >= 1 && n <= 31));
+      return days.length ? { type: 'monthdays', days: [...new Set(days)].sort((a, b) => a - b) } : null;
+    };
+    const acceptDays = (m: RegExpExecArray) => {
+      const r = monthdays(m[1] ?? m[0]);
+      return r ? acceptRule(r) : null;
+    };
+    scan('repeat', rx(String.raw`(?:(?:every|each)\s+month|monthly)\s+on\s+(?:the\s+)?(${list(DAY)})`), acceptDays) ||
+      scan('repeat', rx(String.raw`(?:on\s+)?(?:the\s+)?(${list(DAY)})\s+(?:day\s+)?of\s+(?:every|each|the)\s+month`), acceptDays) ||
+      scan('repeat', rx(String.raw`(?:every|each)\s+(?:the\s+)?(${list(DAY_ORD)})`), acceptDays) ||
+      scan('repeat', rx(String.raw`כל\s+(\d{1,2}(?:\s*(?:,|ו-?)\s*\d{1,2})*)\s+(?:ל|ב)חודש`), acceptDays) ||
+      scan('repeat', rx(String.raw`(?:כל\s+)?סוף\s+(?:כל\s+)?(?:ה)?חודש`), () => acceptRule({ type: 'monthdays', days: [-1] })) ||
     scan('repeat', rx(String.raw`every\s+(${WD_EN})((?:\s*(?:,|and|&)\s*(?:${WD_EN}))*)`), (m) => {
       const days = [m[1], ...(m[2].match(new RegExp(WD_EN, 'gi')) ?? [])].map(wdEn);
       return acceptRule({ type: 'weekdays', days: [...new Set(days)].sort() });

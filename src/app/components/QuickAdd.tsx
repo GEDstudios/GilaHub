@@ -1,15 +1,15 @@
 import { useMemo, useRef, useState } from 'react';
-import type { ItemVisibility } from '../../core/actions';
 import { humanDate, today as todayStr } from '../../core/dates';
 import type { List } from '../../core/model';
 import { splitPasted } from '../../smart/normalize';
 import { parseQuickAdd, type ParseContext } from '../../smart/parse';
-import { useHub } from '../context';
+import { useHub, useRt } from '../context';
 import { dayFirst, setPrefs, use24h, usePrefs, weekStart, workdays } from '../prefs';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { ColorCard, ListBullet } from '../ui/primitives';
-import { useSummary } from './editors';
+import { useSummary, visLabel, VIS_ICON, type VisChoice } from './editors';
+import { notifyAbout } from '../notify';
 import { ListPickerSheet } from './pickers';
 
 export function useParseContext(list: List | undefined): ParseContext {
@@ -28,8 +28,7 @@ export function useParseContext(list: List | undefined): ParseContext {
   };
 }
 
-const VIS_LABEL: Record<ItemVisibility, string> = { ours: 'Ours', mine: 'Mine', private: 'Only me' };
-const VIS_ICON = { ours: 'ours', mine: 'mine', private: 'lock' } as const;
+
 
 export function QuickAdd({
   listId,
@@ -52,6 +51,7 @@ export function QuickAdd({
   composer?: boolean;
 }) {
   const hub = useHub();
+  const rt = useRt();
   const { openSheet, toast } = useOverlays();
   const [text, setText] = useState('');
   const [ignore, setIgnore] = useState<Set<string>>(new Set());
@@ -63,16 +63,27 @@ export function QuickAdd({
   const input = useRef<HTMLInputElement>(null);
   const hintText = placeholder ?? (parent ? 'Add a step' : `Add to ${list?.name ?? 'list'}`);
 
-  const allowed: ItemVisibility[] =
+  const partner = hub.partner();
+  const allowed: VisChoice[] =
     list?.visibility === 'private'
       ? ['private']
       : list?.visibility === 'visible'
         ? list.owner && list.owner !== hub.meId
-          ? ['mine', 'ours']
-          : ['mine', 'ours', 'private']
-        : ['ours', 'mine', 'private'];
-  const inherited: ItemVisibility = parent ? hub.visibilityOf(parent) : allowed[0];
-  const [vis, setVis] = useState<ItemVisibility | null>(null);
+          ? ['theirs', 'ours', 'mine']
+          : partner
+            ? ['mine', 'ours', 'theirs', 'private']
+            : ['mine', 'ours', 'private']
+        : partner
+          ? ['ours', 'mine', 'theirs', 'private']
+          : ['ours', 'mine', 'private'];
+  const parentVis = parent ? hub.visibilityOf(parent) : null;
+  const inherited: VisChoice = parent
+    ? parentVis === 'mine' && hub.ownerOf(parent) && hub.ownerOf(parent) !== hub.meId
+      ? 'theirs'
+      : parentVis!
+    : allowed[0];
+  const [vis, setVis] = useState<VisChoice | null>(null);
+  const [needsOk, setNeedsOk] = useState(false);
   const visibility = vis && allowed.includes(vis) ? vis : allowed.includes(inherited) ? inherited : allowed[0];
 
   const parsed = useMemo(() => parseQuickAdd(text, { ...ctx, ignore }), [text, ctx, ignore]);
@@ -92,8 +103,14 @@ export function QuickAdd({
       assignee: p.assignee ?? null,
       urgent: p.urgent ?? false,
       qty: p.qty ?? null,
-      visibility,
+      visibility: visibility === 'theirs' ? 'mine' : visibility,
+      owner: visibility === 'theirs' ? partner?.id : visibility === 'mine' ? hub.meId : undefined,
+      needsOk: needsOk && hub.isRequest(p.assignee),
     });
+    const made = hub.item(id);
+    if (made && made.requestedBy === hub.meId && p.assignee) {
+      notifyAbout(rt, hub, made, p.assignee, `${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
+    }
     setPrefs({ lastList: dest.id });
     onAdded?.(id);
     return id;
@@ -201,7 +218,13 @@ export function QuickAdd({
           {allowed.length > 1 ? (
             <button type="button" className="token" onClick={cycleVis} title="Who can see this">
               <Icon name={VIS_ICON[visibility]} />
-              {VIS_LABEL[visibility]}
+              {visLabel(visibility, partner?.name)}
+            </button>
+          ) : null}
+          {partner && parsed.assignee === partner.id && !parsed.repeat ? (
+            <button type="button" className={`token ${needsOk ? 'is-parsed' : ''}`} onClick={() => setNeedsOk(!needsOk)} aria-pressed={needsOk}>
+              <Icon name="check" />
+              Needs my OK
             </button>
           ) : null}
         </div>
@@ -283,7 +306,13 @@ export function QuickAdd({
           {allowed.length > 1 && text.trim() ? (
             <button type="button" className="token" onClick={cycleVis} title="Who can see this">
               <Icon name={VIS_ICON[visibility]} />
-              {VIS_LABEL[visibility]}
+              {visLabel(visibility, partner?.name)}
+            </button>
+          ) : null}
+          {partner && parsed.assignee === partner.id && !parsed.repeat ? (
+            <button type="button" className={`token ${needsOk ? 'is-parsed' : ''}`} onClick={() => setNeedsOk(!needsOk)} aria-pressed={needsOk}>
+              <Icon name="check" />
+              Needs my OK
             </button>
           ) : null}
         </div>

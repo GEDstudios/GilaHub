@@ -75,6 +75,11 @@ export type RepeatRule =
       type: 'weekdays';
       days: number[];
       every?: number;
+    }
+  | {
+      /** On days of the month: 1–31, or -1 for the last day. Always calendar-anchored. */
+      type: 'monthdays';
+      days: number[];
     };
 
 /** Who a task or chore is for. */
@@ -119,6 +124,13 @@ export interface Item {
   lastDoneBy?: string | null;
   /** Recurring: paused (seasonal). */
   paused?: boolean;
+  /** A request: who asked (the assignee is who was asked). */
+  requestedBy?: string | null;
+  /** The asker wants to OK it before it counts as done. */
+  needsOk?: boolean;
+  /** "I did it" — waiting for the asker's OK. */
+  submittedAt?: number | null;
+  submittedBy?: string | null;
   /** Shopping: the purchase log written when it was checked. */
   logId?: string | null;
   createdAt: number;

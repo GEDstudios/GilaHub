@@ -36,6 +36,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 ## 3 · House chores
 
+- **●** Repeats in plain words, including **days of the month** ("every month on the 1st and 15th", "last day of the month", "כל 1 ו-15 לחודש").
 - **●** Two repeat types in plain words: **"Every N days after it's done"** and **"On set days"**. A new chore starts fresh: it first comes due one period from now, not today.
 - **●** **Done** is always available, not only when a chore is due. Pick *Today*, *Yesterday*, or a date. An early tick on a set-days chore "counts for Thursday", and a late one collapses every missed occurrence into one, so chores never pile up.
 - **●** **Not now**: Snooze (flexible chores), Skip this one (set days), or Pause (seasonal).
@@ -86,6 +87,9 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** **Together card**: *"This week together: 23 things done."* One shared number. It never compares you.
 - **●** **♡ Thanks** on anything your partner finished.
 - **●** **"I'll take it"** on any unowned shared task.
+- **●** **Requests**: assign something to your partner (or type `@hila`) and it's a request: "Guy asked". Turn on **Needs my OK** and their tick waits for you under **Waiting for your OK** on Today (OK / Not yet); confirming credits them. Each step can notify the other phone.
+- **●** **Make it theirs**: any item can be Ours, Mine, *Hila's* or Only me. Theirs lands on their Today.
+- **●** **Project icons**: 26 line icons or any emoji, shown on the project's tile in the bottom bar and on its folder.
 - **●** Works fully offline, with honest sync status. When a new version is published, a small "A new version is ready · Refresh" note appears.
 - **●** One-tap **export** (JSON) and import. Your data is yours.
 - **●** App badge for today's items (opt-in), haptics, and desktop keyboard shortcuts. Light only, on purpose.

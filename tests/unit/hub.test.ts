@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hub, pickColor, pickColors, seedHousehold } from '../../src/core/actions';
+import { isForMe, todayView } from '../../src/app/views';
 import { LINE_COLORS } from '../../src/core/model';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
@@ -250,5 +251,64 @@ describe('Hub: backup import', () => {
     expect(new Set(Object.values(many)).size).toBe(4);
     const seen = new Set(Array.from({ length: 60 }, () => pickColor([])));
     expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('I can make something my partner\'s: theirs, on their Today, and I can still change it', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const id = guy.addItem(todo.id, { title: 'Call your mom', visibility: 'mine', owner: 'hila' });
+    sync(guy, hila);
+    const seen = hila.item(id)!;
+    expect(hila.ownerOf(seen)).toBe('hila');
+    expect(hila.visibilityOf(seen)).toBe('mine');
+    expect(guy.canSetPrivacy(guy.item(id)!)).toBe(true);
+    expect(isForMe(hila, seen)).toBe(true);
+    expect(isForMe(guy, guy.item(id)!)).toBe(false);
+  });
+
+  it('a request without an OK: the person asked ticks it and it\'s done', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const id = guy.addItem(todo.id, { title: 'Pick up the dry cleaning', assignee: 'hila' });
+    sync(guy, hila);
+    expect(hila.item(id)?.requestedBy).toBe('guy');
+    hila.toggle(id);
+    sync(guy, hila);
+    expect(guy.item(id)?.done).toBe(true);
+    expect(guy.item(id)?.doneBy).toBe('hila');
+  });
+
+  it('a request that needs my OK: their tick waits for me; I confirm or send it back', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const id = guy.addItem(todo.id, { title: 'Clean the car', assignee: 'hila', needsOk: true, due: today() });
+    sync(guy, hila);
+    hila.toggle(id);
+    sync(guy, hila);
+    let it = guy.item(id)!;
+    expect(it.done).toBe(false);
+    expect(it.submittedBy).toBe('hila');
+    expect(todayView(guy, today()).awaitingOk.map((i) => i.id)).toEqual([id]);
+    expect(todayView(hila, today()).today.some((i) => i.id === id)).toBe(false);
+    guy.sendBack(id);
+    sync(guy, hila);
+    expect(hila.item(id)?.submittedAt).toBeNull();
+    hila.toggle(id);
+    sync(guy, hila);
+    guy.confirm(id);
+    sync(guy, hila);
+    it = hila.item(id)!;
+    expect(it.done).toBe(true);
+    expect(it.doneBy).toBe('hila');
+    expect(todayView(guy, today()).awaitingOk).toHaveLength(0);
+  });
+
+  it('assigning to myself or "together" is not a request', async () => {
+    const { guy } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const id = guy.addItem(todo.id, { title: 'Plan trip', assignee: 'hila', needsOk: true });
+    guy.assign(id, 'both');
+    expect(guy.item(id)?.requestedBy).toBeNull();
+    expect(guy.item(id)?.needsOk).toBe(false);
   });
 });

@@ -54,7 +54,7 @@ function Strip({ color, num, label, onClick }: { color: LineColor; num: number; 
 
 export function Today() {
   const hub = useHub();
-  const { openSheet } = useOverlays();
+  const { openSheet, toast } = useOverlays();
   const ref = todayStr();
   const v = todayView(hub, ref);
   const chores = choresView(hub, ref);
@@ -126,6 +126,45 @@ export function Today() {
             </span>
             <Icon name="chevron-right" />
           </button>
+        ) : null}
+
+        {v.awaitingOk.length ? (
+          <Section title="Waiting for your OK" count={v.awaitingOk.length}>
+            <ul className="rows">
+              {v.awaitingOk.map((i) => (
+                <ItemRow
+                  key={i.id}
+                  item={i}
+                  showList
+                  dateMode="none"
+                  trailing={
+                    <span className="catchup" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="mini mini--ink"
+                        onClick={() => {
+                          const undo = hub.confirm(i.id);
+                          toast('Confirmed. Thanks!', { action: { label: 'Undo', run: undo } });
+                        }}
+                      >
+                        OK
+                      </button>
+                      <button
+                        type="button"
+                        className="mini"
+                        onClick={() => {
+                          const undo = hub.sendBack(i.id);
+                          toast(`Sent back to ${hub.member(i.submittedBy)?.name ?? 'them'}`, { action: { label: 'Undo', run: undo } });
+                        }}
+                      >
+                        Not yet
+                      </button>
+                    </span>
+                  }
+                />
+              ))}
+            </ul>
+          </Section>
         ) : null}
 
         <Section title="Today" id="today">

@@ -4,7 +4,7 @@ import type { Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
 import { categoryMeta, categoryOrder, type Flavor } from '../smart/categorize';
 import { itemKey } from '../smart/normalize';
-import { freshness, type Freshness } from '../smart/recurrence';
+import { freshness, periodDays, type Freshness } from '../smart/recurrence';
 import { buyAgain, purchaseStats, type BuyAgainSuggestion, type PurchaseStats } from '../smart/suggest';
 
 /** Cache a derived view per store version (and args). */
@@ -46,6 +46,8 @@ export interface TodayView {
   together: number;
   recent: Array<{ log?: LogEntry; item: Item; by: string; at: number }>;
   dueCount: number;
+  /** My requests my partner says are done — waiting for my OK. */
+  awaitingOk: Item[];
 }
 
 export const todayView = memo((hub: Hub, ref: string): TodayView => {
@@ -54,7 +56,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
     if (away && l?.kind === 'chores') return false;
-    return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.paused && i.due;
+    return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
   const today = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
@@ -108,6 +110,10 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     together,
     recent: recent.slice(0, 3),
     dueCount: today.length + earlier.length,
+    awaitingOk: hub.store
+      .all('item')
+      .filter((i) => i.submittedAt && !i.done && !i.archived && i.requestedBy === hub.meId && lists.has(i.listId))
+      .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0)),
   };
 });
 
@@ -205,7 +211,7 @@ export const choresView = memo((hub: Hub, ref: string): ChoresView => {
     if (!list || i.parentId || i.archived) continue;
     if (!i.repeat && i.done) continue;
     const fresh = freshness(i.due, ref);
-    const period = i.repeat ? Math.max(1, i.repeat.type === 'interval' ? { day: 1, week: 7, month: 30, year: 365 }[i.repeat.unit] * i.repeat.every : 7) : 7;
+    const period = i.repeat ? periodDays(i.repeat) : 7;
     const level = i.due ? Math.max(0, Math.min(1, diffDays(ref, i.due) / period)) : 1;
     rows.push({ item: i, list, fresh, level });
   }

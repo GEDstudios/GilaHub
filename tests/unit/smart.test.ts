@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addMonths } from '../../src/core/dates';
 import { itemKey, parseQuantity, splitPasted } from '../../src/smart/normalize';
 import { parseQuickAdd, type ParseContext } from '../../src/smart/parse';
-import { freshness, nextDue, shiftForAway, skipDue } from '../../src/smart/recurrence';
+import { describeRule, firstDue, freshness, nextDue, shiftForAway, skipDue } from '../../src/smart/recurrence';
 import { buyAgain, purchaseStats } from '../../src/smart/suggest';
 import type { LogEntry, RepeatRule } from '../../src/core/model';
 
@@ -184,5 +184,39 @@ describe('buy again', () => {
   it('stays quiet when the item is already on the list or not yet due', () => {
     expect(buyAgain(stats, new Set(['milk']), { now: t0 + 20 * DAY })).toEqual([]);
     expect(buyAgain(stats, new Set(), { now: t0 + 16 * DAY })).toEqual([]);
+  });
+});
+
+describe('repeat on days of the month', () => {
+  const firstAndFifteenth: RepeatRule = { type: 'monthdays', days: [1, 15] };
+  const lastDay: RepeatRule = { type: 'monthdays', days: [-1] };
+
+  it('describes itself in plain words', () => {
+    expect(describeRule(firstAndFifteenth, String)).toBe('Every month on the 1st & 15th');
+    expect(describeRule(lastDay, String)).toBe('Every month on the last day');
+    expect(describeRule({ type: 'monthdays', days: [-1, 2, 23] }, String)).toBe('Every month on the 2nd, 23rd & last day');
+  });
+
+  it('starts on the next matching day (today counts) and folds short months', () => {
+    expect(firstDue(firstAndFifteenth, '2026-11-25')).toBe('2026-12-01');
+    expect(firstDue({ type: 'monthdays', days: [25] }, '2026-11-25')).toBe('2026-11-25');
+    expect(firstDue({ type: 'monthdays', days: [31] }, '2027-02-01')).toBe('2027-02-28');
+    expect(firstDue(lastDay, '2026-11-25')).toBe('2026-11-30');
+  });
+
+  it('early counts for the coming one; late collapses missed ones', () => {
+    expect(nextDue(firstAndFifteenth, '2026-12-15', '2026-12-10')).toBe('2027-01-01');
+    expect(nextDue(firstAndFifteenth, '2026-11-01', '2026-11-25')).toBe('2026-12-01');
+    expect(skipDue(firstAndFifteenth, '2026-12-01')).toBe('2026-12-15');
+    expect(nextDue(lastDay, '2027-01-31', '2027-01-31')).toBe('2027-02-28');
+  });
+
+  it('parses English and Hebrew', () => {
+    expect(parseQuickAdd('Pay rent every month on the 1st', ctx)).toMatchObject({ title: 'Pay rent', repeat: { type: 'monthdays', days: [1] }, due: '2026-12-01' });
+    expect(parseQuickAdd('Salary on the 10th of every month', ctx).repeat).toEqual({ type: 'monthdays', days: [10] });
+    expect(parseQuickAdd('Water bill every 1st and 15th', ctx)).toMatchObject({ title: 'Water bill', repeat: { type: 'monthdays', days: [1, 15] } });
+    expect(parseQuickAdd('Card payment last day of the month', ctx).repeat).toEqual({ type: 'monthdays', days: [-1] });
+    expect(parseQuickAdd('ארנונה כל 1 ו-15 לחודש', ctx)).toMatchObject({ title: 'ארנונה', repeat: { type: 'monthdays', days: [1, 15] } });
+    expect(parseQuickAdd('Water plants every 3 days', ctx).repeat?.type).toBe('interval');
   });
 });

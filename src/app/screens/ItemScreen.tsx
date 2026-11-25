@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, useSummary, type Draft } from '../components/editors';
+import { InlineEditor, useSummary, type Draft, type VisChoice } from '../components/editors';
+import { afterTick, notifyAbout } from '../notify';
 import { ListPickerSheet, OptRow } from '../components/pickers';
 import { QuickAdd } from '../components/QuickAdd';
 import { ShopItemSheet } from '../components/ShopItemSheet';
@@ -199,10 +200,18 @@ export function ItemScreen({ id }: { id: string }) {
   const ref = todayStr();
   const logs = hub.logsFor(id).filter((l) => l.kind === 'done').slice(0, 5);
   const parentVis = ancestors.length ? hub.visibilityOf(ancestors[ancestors.length - 1]) : null;
-  const allowed =
+  const theirsList = list?.visibility === 'visible' && !!list.owner && list.owner !== hub.meId;
+  const allowed: VisChoice[] =
     list?.visibility === 'private' || parentVis === 'private'
-      ? (['private'] as const)
-      : (['ours', 'mine', 'private'] as const);
+      ? ['private']
+      : theirsList
+        ? ['theirs', 'ours', 'mine']
+        : partner
+          ? ['ours', 'mine', 'theirs', 'private']
+          : ['ours', 'mine', 'private'];
+  const visChoice: VisChoice = vis === 'mine' && hub.ownerOf(item) && hub.ownerOf(item) !== hub.meId ? 'theirs' : vis;
+  const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
+  const iAsked = item.requestedBy === hub.meId;
   const upTo = ancestors.length ? { name: 'item' as const, id: ancestors[ancestors.length - 1].id } : list ? { name: 'list' as const, id: list.id } : { name: 'today' as const };
   const steps = hub.childrenOf(id);
 
@@ -211,7 +220,11 @@ export function ItemScreen({ id }: { id: string }) {
     if (item.repeat && !item.done) {
       const undo = hub.completeRepeating(id);
       toast(`Nice. Next time: ${humanDate(hub.item(id)!.due!, ref)}`, { action: { label: 'Undo', run: undo } });
-    } else hub.toggle(id);
+    } else {
+      const undo = hub.toggle(id);
+      const msg = afterTick(rt, hub, id);
+      if (msg) toast(msg, { action: { label: 'Undo', run: undo } });
+    }
   };
 
   const draft: Draft = {
@@ -221,17 +234,27 @@ export function ItemScreen({ id }: { id: string }) {
     remind: item.remind ?? null,
     assignee: item.assignee ?? null,
     urgent: !!item.urgent,
-    visibility: vis,
+    visibility: visChoice,
+    needsOk: !!item.needsOk,
   };
 
   const change = (p: Partial<Draft>) => {
-    if ('visibility' in p && p.visibility && p.visibility !== vis) {
+    if ('visibility' in p && p.visibility && p.visibility !== visChoice) {
       if (p.visibility === 'private' && partner) toast(`This will disappear for ${partnerName}`);
-      hub.setItemVisibility(id, p.visibility);
+      if (p.visibility === 'theirs') hub.setItemVisibility(id, 'mine', partner?.id);
+      else hub.setItemVisibility(id, p.visibility, p.visibility === 'mine' ? hub.meId : undefined);
       return;
     }
     if ('assignee' in p) {
-      hub.updateItem(id, { assignee: p.assignee ?? null, turn: p.assignee === 'turns' ? (item.turn ?? hub.meId) : null });
+      hub.assign(id, p.assignee ?? null);
+      const now = hub.item(id);
+      if (now && hub.isRequest(p.assignee) && now.requestedBy === hub.meId && item.assignee !== p.assignee) {
+        notifyAbout(rt, hub, now, p.assignee as string, `${hub.me()?.name ?? 'Your partner'} asked you`, now.title);
+      }
+      return;
+    }
+    if ('needsOk' in p) {
+      hub.updateItem(id, { needsOk: !!p.needsOk });
       return;
     }
     if ('remind' in p && p.remind !== null && p.remind !== undefined) {
@@ -274,7 +297,15 @@ export function ItemScreen({ id }: { id: string }) {
             <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />
           </div>
           <p className="hero__sub">
-            {item.done ? `Done${item.doneAt ? ` ${relativeAgo(item.doneAt)}` : ''}.` : item.paused ? 'Paused.' : summarize(draft)}
+            {item.submittedAt && !item.done
+              ? iAsked
+                ? `${hub.member(item.submittedBy)?.name ?? 'They'} says it’s done. Waiting for your OK.`
+                : `Done. Waiting for ${asker?.name ?? 'their'} OK.`
+              : item.done
+                ? `Done${item.doneAt ? ` ${relativeAgo(item.doneAt)}` : ''}${item.doneBy && item.doneBy !== hub.meId ? ` by ${hub.member(item.doneBy)?.name ?? ''}` : ''}.`
+                : item.paused
+                  ? 'Paused.'
+                  : `${summarize(draft)}${asker && !iAsked ? ` ${asker.name} asked.` : ''}`}
             {item.repeat && item.lastDoneAt && !item.done
               ? ` Last done ${relativeAgo(item.lastDoneAt)}${item.lastDoneBy && item.lastDoneBy !== hub.meId ? ` by ${hub.member(item.lastDoneBy)?.name ?? ''}` : ''}.`
               : ''}
@@ -283,13 +314,40 @@ export function ItemScreen({ id }: { id: string }) {
       </Band>
 
       <div className="column">
+        {item.submittedAt && !item.done && iAsked ? (
+          <div className="tokens okbar">
+            <button
+              type="button"
+              className="token token--ink"
+              onClick={() => {
+                const undo = hub.confirm(id);
+                toast('Confirmed. Thanks!', { action: { label: 'Undo', run: undo } });
+              }}
+            >
+              <Icon name="check" /> Confirm
+            </button>
+            <button
+              type="button"
+              className="token"
+              onClick={() => {
+                const undo = hub.sendBack(id);
+                toast(`Sent back to ${hub.member(item.submittedBy)?.name ?? 'them'}`, { action: { label: 'Undo', run: undo } });
+              }}
+            >
+              Not yet
+            </button>
+          </div>
+        ) : null}
+
         {editable ? (
           <InlineEditor
             extras={item.repeat ? [{ key: 'done', label: 'Done…', icon: 'check', panel: (close) => <DonePanel id={id} close={close} /> }] : []}
             value={draft}
             onChange={change}
-            fields={hub.canSetPrivacy(item) ? ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'] : ['when', 'repeat', 'remind', 'who', 'urgent']}
-            allowedVis={[...allowed]}
+            fields={(['when', 'repeat', 'remind', 'who', 'vis', 'urgent'] as const).filter(
+              (f) => (f !== 'vis' || hub.canSetPrivacy(item)) && (f !== 'who' || vis !== 'private'),
+            )}
+            allowedVis={allowed}
             repeatFrom={list?.kind === 'chores' ? 'done' : 'schedule'}
           />
         ) : null}

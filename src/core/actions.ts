@@ -22,6 +22,10 @@ export interface NewItem {
   urgent?: boolean;
   qty?: string | null;
   visibility?: ItemVisibility;
+  /** For "Mine": whose it is (default: me, or the project's owner). Lets me make something my partner's. */
+  owner?: string | null;
+  /** For a request to the partner: they tick it, I OK it. */
+  needsOk?: boolean;
   /** Insert before this sibling (default: append). */
   before?: string | null;
 }
@@ -219,10 +223,53 @@ export class Hub {
     return !owner || owner === this.meId || this.visibilityOf(item) !== 'private';
   }
 
-  /** Who can see it is the owner's call (or anyone's, for shared things). */
+  /** Who can see it is the owner's call (or anyone's, for shared things) — and whoever made it. */
   canSetPrivacy(item: Item): boolean {
     const owner = this.ownerOf(item);
-    return !owner || owner === this.meId;
+    return !owner || owner === this.meId || item.createdBy === this.meId;
+  }
+
+  /** Is assigning this a request to my partner? */
+  isRequest(assignee: Item['assignee'] | undefined): boolean {
+    return !!assignee && assignee !== 'both' && assignee !== 'turns' && assignee !== this.meId;
+  }
+
+  /** Change who does it. Giving it to my partner makes it a request from me. */
+  assign(id: string, assignee: Item['assignee'], opts: { needsOk?: boolean } = {}): void {
+    const item = this.item(id);
+    if (!item) return;
+    const request = this.isRequest(assignee);
+    this.store.mutate('item', id, {
+      assignee: assignee ?? null,
+      turn: assignee === 'turns' ? (item.turn ?? this.meId) : null,
+      requestedBy: request ? (item.assignee === assignee && item.requestedBy ? item.requestedBy : this.meId) : null,
+      needsOk: request ? (opts.needsOk ?? item.needsOk ?? false) : false,
+      submittedAt: request ? (item.submittedAt ?? null) : null,
+      submittedBy: request ? (item.submittedBy ?? null) : null,
+    });
+  }
+
+  /** Waiting for the asker's OK? */
+  isAwaitingOk(item: Item): boolean {
+    return !!item.submittedAt && !item.done;
+  }
+
+  /** The asker approves: it's done, credited to whoever did it. */
+  confirm(id: string): Undo {
+    const item = this.item(id);
+    if (!item?.submittedAt) return () => {};
+    const prev: Partial<Item> = { done: item.done, doneAt: item.doneAt ?? null, doneBy: item.doneBy ?? null, submittedAt: item.submittedAt, submittedBy: item.submittedBy ?? null };
+    this.store.mutate('item', id, { done: true, doneAt: item.submittedAt, doneBy: item.submittedBy ?? null, submittedAt: null, submittedBy: null });
+    return () => this.store.mutate('item', id, prev);
+  }
+
+  /** "Not yet": back to the doer's list. */
+  sendBack(id: string): Undo {
+    const item = this.item(id);
+    if (!item?.submittedAt) return () => {};
+    const prev: Partial<Item> = { submittedAt: item.submittedAt, submittedBy: item.submittedBy ?? null };
+    this.store.mutate('item', id, { submittedAt: null, submittedBy: null });
+    return () => this.store.mutate('item', id, prev);
   }
 
   canTick(item: Item): boolean {
@@ -287,8 +334,18 @@ export class Hub {
       turn: input.assignee === 'turns' ? this.meId : null,
       urgent: input.urgent ?? false,
       qty: input.qty ?? null,
-      // Added to someone's "Mine" project: it's still theirs.
-      owner: vis === 'ours' ? null : vis === 'mine' && list?.visibility === 'visible' && list.owner ? list.owner : this.meId,
+      // Added to someone's "Mine" project: it's still theirs — unless I say whose it is.
+      owner:
+        vis === 'ours'
+          ? null
+          : vis === 'mine' && input.owner
+            ? input.owner
+            : vis === 'mine' && list?.visibility === 'visible' && list.owner
+              ? list.owner
+              : this.meId,
+      // Assigning it to my partner is asking them.
+      requestedBy: this.isRequest(input.assignee) ? this.meId : null,
+      needsOk: this.isRequest(input.assignee) ? !!input.needsOk : false,
       private: vis === 'private' && list?.visibility !== 'private',
       createdAt: Date.now(),
       createdBy: this.meId,
@@ -309,7 +366,7 @@ export class Hub {
     return () => this.store.mutate('item', id, prev as Partial<Item>);
   }
 
-  setItemVisibility(id: string, vis: ItemVisibility): void {
+  setItemVisibility(id: string, vis: ItemVisibility, owner?: string): void {
     const item = this.item(id);
     if (!item) return;
     this.store.batch(() => {
@@ -318,9 +375,13 @@ export class Hub {
         owner:
           vis === 'ours'
             ? null
-            : vis === 'mine' && this.list(item.listId)?.visibility === 'visible'
-              ? (this.list(item.listId)?.owner ?? this.meId)
-              : (this.ownerOf(item) ?? this.meId),
+            : vis === 'mine' && owner
+              ? owner
+              : vis === 'mine' && this.list(item.listId)?.visibility === 'visible'
+                ? (this.list(item.listId)?.owner ?? this.meId)
+                : vis === 'private'
+                  ? this.meId
+                  : (this.ownerOf(item) ?? this.meId),
       });
       this.rescope(id);
     });
@@ -336,6 +397,17 @@ export class Hub {
     const item = this.item(id);
     if (!item) return () => {};
     if (item.repeat && !item.done) return this.completeRepeating(id);
+    // Requests that need an OK: the doer's tick asks for it; the asker's tick gives it.
+    if (!item.done && item.needsOk && item.requestedBy) {
+      if (item.requestedBy === this.meId) {
+        if (item.submittedAt) return this.confirm(id);
+      } else if (item.submittedAt) {
+        return this.sendBack(id);
+      } else {
+        this.store.mutate('item', id, { submittedAt: Date.now(), submittedBy: this.meId });
+        return () => this.store.mutate('item', id, { submittedAt: null, submittedBy: null });
+      }
+    }
     const list = this.list(item.listId);
     const done = !item.done;
     const now = Date.now();

@@ -2309,3 +2309,58 @@ button.ccard:active {
 .iconpick__emoji input:focus-visible {
   outline: none;
 }
+
+.monthdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.monthday {
+  height: 36px;
+  border-radius: 10px;
+  background: var(--tile);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.monthday.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.monthday--last {
+  grid-column: span 4;
+}
+
+.mini--ink {
+  background: var(--cta);
+  color: var(--cta-text);
+  box-shadow: none;
+}
+
+.meta--req {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+/* Done, waiting for the asker's OK: a half-filled check */
+.row.is-pending .check::before {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.row.is-pending .check__tick {
+  opacity: 0.45;
+  transform: none;
+}
+
+.row.is-pending .row__title {
+  color: var(--text-2);
+}
+
+.okbar {
+  margin-top: 18px;
+}
