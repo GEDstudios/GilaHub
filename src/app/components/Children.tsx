@@ -38,8 +38,7 @@ export function Children({ listId, parentId, readonly }: { listId: string; paren
   const hub = useHub();
   const settle = useSettle(idOf);
   const all = parentId ? hub.childrenOf(parentId) : hub.children(listId, null);
-  // Low priority sinks below the rest (still in your order within each).
-  const open = [...all.filter((i) => !i.done && !i.low), ...all.filter((i) => !i.done && i.low)];
+  const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
   const rows = settle.view('open', open);
   const doneRows = settle.view('done', done);

@@ -1,10 +1,11 @@
+import { PlacePicker } from '../components/PlacePicker';
 import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
 import { useEffect, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, Options, useSummary, type Draft } from '../components/editors';
+import { InlineEditor, useSummary, type Draft } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
 import { ListPickerSheet, OptRow } from '../components/pickers';
@@ -214,7 +215,7 @@ export function ItemScreen({ id }: { id: string }) {
   const twinList = twin ? hub.list(twin.listId) : undefined;
   const alsoChip = {
     key: 'also',
-    label: twinList ? `Also in ${twinList.name}` : 'Also in…',
+    label: twin && twinList ? `Also in ${(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}` : 'Also in…',
     icon: 'link' as const,
     set: !!twinList,
     panel: (close: () => void) =>
@@ -241,25 +242,13 @@ export function ItemScreen({ id }: { id: string }) {
           </button>
         </div>
       ) : (
-        <Options
-          value={null}
-          options={hub
-            .lists()
-            .filter((l) => l.id !== item.listId)
-            .sort((a, b) => Number(b.kind === 'shopping') - Number(a.kind === 'shopping'))
-            .map((l) => ({
-              value: l.id,
-              label: (
-                <>
-                  <ListBullet list={l} size="xs" />
-                  <span dir="auto">{l.name}</span>
-                </>
-              ),
-            }))}
-          onPick={(lid) => {
-            const other = hub.alsoIn(id, lid);
+        <PlacePicker
+          itemId={id}
+          onPick={(lid, parentId) => {
+            const other = hub.alsoIn(id, lid, parentId);
             const it = other ? hub.item(other) : undefined;
-            if (it) toast(`${it.title} is in ${hub.list(lid)?.name ?? 'there'} too`);
+            const where = parentId ? hub.item(parentId)?.title : hub.list(lid)?.name;
+            if (it) toast(`${it.title} is in ${where ?? 'there'} too`);
             close();
           }}
         />
@@ -277,7 +266,6 @@ export function ItemScreen({ id }: { id: string }) {
     remind: item.remind ?? null,
     assignee: item.assignee ?? null,
     urgent: !!item.urgent,
-    low: !!item.low,
     visibility: visChoice,
     needsOk: !!item.needsOk,
   };

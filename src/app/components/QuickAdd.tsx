@@ -114,7 +114,6 @@ export function useCompose({
       remind: d.remind,
       assignee: d.assignee,
       urgent: d.urgent,
-      low: d.low,
       ...visFields(hub, d.visibility),
       needsOk: !!d.needsOk && asking && !d.repeat,
     });

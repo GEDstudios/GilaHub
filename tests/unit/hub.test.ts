@@ -513,16 +513,17 @@ describe('one thing, two places', () => {
   });
 });
 
-describe('low priority', () => {
-  it('is never urgent at the same time, and sinks below the rest on Today', async () => {
+describe('also inside a task', () => {
+  it('a twin can live as a subtask of another task, never inside itself', async () => {
     const guy = await person('guy');
     guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
-    seedHousehold(guy, ['todo']);
-    const todo = guy.lists()[0].id;
-    const low = guy.addItem(todo, { title: 'Sort photos', low: true, due: today() });
-    const mid = guy.addItem(todo, { title: 'Pay rent', due: today() });
-    const hot = guy.addItem(todo, { title: 'Call the vet', urgent: true, low: true, due: today() });
-    expect(guy.item(hot)!.low).toBe(false);
-    expect(todayView(guy, today()).today.map((i) => i.id)).toEqual([hot, mid, low]);
+    seedHousehold(guy, ['todo', 'chores']);
+    const todo = guy.lists().find((l) => l.name === 'To do')!.id;
+    const chores = guy.lists().find((l) => l.name === 'Chores')!.id;
+    const fix = guy.addItem(chores, { title: 'Fix the shelf' });
+    const buy = guy.addItem(todo, { title: 'Buy brackets' });
+    const twin = guy.alsoIn(buy, chores, fix)!;
+    expect(guy.item(twin)!.parentId).toBe(fix);
+    expect(guy.alsoIn(fix, chores, fix)).toBeNull();
   });
 });

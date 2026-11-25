@@ -20,8 +20,6 @@ export interface Draft {
   remind: number | null;
   assignee: Assignee;
   urgent: boolean;
-  /** Low priority: sinks to the bottom. */
-  low?: boolean;
   visibility: VisChoice;
   /** For a request to the partner: I OK it before it counts as done. */
   needsOk?: boolean;
@@ -382,24 +380,12 @@ export function InlineEditor({
           key="urgent"
           type="button"
           className={`echip ${value.urgent ? 'is-urgent' : ''} ${compact ? 'echip--sm' : ''}`}
-          onClick={() => onChange({ urgent: !value.urgent, low: false })}
+          onClick={() => onChange({ urgent: !value.urgent })}
           aria-pressed={value.urgent}
           disabled={readOnly}
         >
           <Icon name="urgent" className="icon--sm" />
           <span>Urgent</span>
-        </button>,
-        // Its opposite, right beside it: low priority sinks below the rest.
-        <button
-          key="low"
-          type="button"
-          className={`echip ${value.low ? 'is-low' : ''} ${compact ? 'echip--sm' : ''}`}
-          onClick={() => onChange({ low: !value.low, urgent: false })}
-          aria-pressed={!!value.low}
-          disabled={readOnly}
-        >
-          <Icon name="low" className="icon--sm" />
-          <span>Low</span>
         </button>,
       );
   }

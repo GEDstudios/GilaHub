@@ -1,0 +1,159 @@
+import { useRef, useState } from 'react';
+import type { Item, List } from '../../core/model';
+import { useHub } from '../context';
+import { haptic } from '../ui/haptics';
+import { Icon } from '../ui/Icon';
+import { ListBullet } from '../ui/primitives';
+
+/**
+ * Where else should this live? Tap a project to put it there. Long-press a project (or tap its
+ * arrow) to open it up and tap one of its tasks, or a task's subtask, to put it inside that.
+ */
+export function PlacePicker({ itemId, onPick }: { itemId: string; onPick: (listId: string, parentId: string | null) => void }) {
+  const hub = useHub();
+  const item = hub.item(itemId);
+  const [open, setOpen] = useState<Set<string>>(new Set());
+  const toggle = (k: string) => {
+    haptic('select');
+    setOpen((s) => {
+      const n = new Set(s);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
+  };
+  if (!item) return null;
+  const banned = new Set([itemId, ...hub.descendants(itemId).map((d) => d.id)]);
+  const lists = [...hub.lists()].sort((a, b) => Number(b.kind === 'shopping') - Number(a.kind === 'shopping'));
+
+  return (
+    <ul className="place" role="tree">
+      {lists.map((l) => (
+        <PlaceRow
+          key={l.id}
+          depth={0}
+          label={<ListLabel list={l} />}
+          expandable={l.kind !== 'shopping' && hub.children(l.id, null).some((i) => !i.done && !banned.has(i.id))}
+          expanded={open.has(l.id)}
+          onExpand={() => toggle(l.id)}
+          onPick={() => onPick(l.id, null)}
+          disabled={l.id === item.listId && !item.parentId}
+        >
+          {open.has(l.id) ? <Tasks list={l} parentId={null} depth={1} banned={banned} open={open} toggle={toggle} onPick={onPick} /> : null}
+        </PlaceRow>
+      ))}
+    </ul>
+  );
+}
+
+function ListLabel({ list }: { list: List }) {
+  return (
+    <>
+      <ListBullet list={list} size="xs" />
+      <span dir="auto">{list.name}</span>
+    </>
+  );
+}
+
+function Tasks({
+  list,
+  parentId,
+  depth,
+  banned,
+  open,
+  toggle,
+  onPick,
+}: {
+  list: List;
+  parentId: string | null;
+  depth: number;
+  banned: Set<string>;
+  open: Set<string>;
+  toggle: (k: string) => void;
+  onPick: (listId: string, parentId: string | null) => void;
+}) {
+  const hub = useHub();
+  const rows: Item[] = (parentId ? hub.childrenOf(parentId) : hub.children(list.id, null)).filter((i) => !i.done && !banned.has(i.id));
+  return (
+    <>
+      {rows.map((t) => (
+        <PlaceRow
+          key={t.id}
+          depth={depth}
+          label={<span dir="auto">{t.title}</span>}
+          expandable={depth < 3 && hub.childrenOf(t.id).some((c) => !c.done && !banned.has(c.id))}
+          expanded={open.has(t.id)}
+          onExpand={() => toggle(t.id)}
+          onPick={() => onPick(list.id, t.id)}
+          hint="inside"
+        >
+          {open.has(t.id) ? <Tasks list={list} parentId={t.id} depth={depth + 1} banned={banned} open={open} toggle={toggle} onPick={onPick} /> : null}
+        </PlaceRow>
+      ))}
+    </>
+  );
+}
+
+function PlaceRow({
+  depth,
+  label,
+  expandable,
+  expanded,
+  onExpand,
+  onPick,
+  disabled,
+  hint,
+  children,
+}: {
+  depth: number;
+  label: React.ReactNode;
+  expandable: boolean;
+  expanded: boolean;
+  onExpand: () => void;
+  onPick: () => void;
+  disabled?: boolean;
+  hint?: string;
+  children?: React.ReactNode;
+}) {
+  // A long press opens it up instead of picking it.
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const held = useRef(false);
+  const start = () => {
+    held.current = false;
+    if (!expandable) return;
+    timer.current = setTimeout(() => {
+      held.current = true;
+      onExpand();
+    }, 450);
+  };
+  const stop = () => clearTimeout(timer.current);
+  return (
+    <li role="treeitem" aria-expanded={expandable ? expanded : undefined}>
+      <div className="place__row" style={{ paddingInlineStart: 6 + depth * 18 }}>
+        <button
+          type="button"
+          className="place__pick"
+          disabled={disabled}
+          onPointerDown={start}
+          onPointerUp={stop}
+          onPointerLeave={stop}
+          onPointerCancel={stop}
+          onContextMenu={(e) => expandable && e.preventDefault()}
+          onClick={() => {
+            if (held.current) return;
+            onPick();
+          }}
+        >
+          {label}
+          {hint ? <span className="place__hint">{hint}</span> : null}
+        </button>
+        {expandable ? (
+          <button type="button" className={`place__open ${expanded ? 'is-open' : ''}`} aria-label={expanded ? 'Close' : 'Open'} onClick={onExpand}>
+            <Icon name="chevron-down" className="icon--sm" />
+          </button>
+        ) : null}
+      </div>
+      {children ? <ul className="place__kids">{children}</ul> : null}
+    </li>
+  );
+}

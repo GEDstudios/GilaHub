@@ -1995,7 +1995,6 @@ html.is-dragging * {
 
 /* On: the chip fills with my colour, so what's set reads at a glance (open stays ink). */
 .echip.is-set,
-.echip.is-low,
 .echip--toggle.is-on {
   background: var(--me-light, var(--lemon));
   color: var(--ink);
@@ -2003,7 +2002,6 @@ html.is-dragging * {
 }
 
 .echip.is-set .icon,
-.echip.is-low .icon,
 .echip--toggle.is-on .icon {
   color: var(--ink);
 }
@@ -2015,11 +2013,6 @@ html.is-dragging * {
 
 .echip.is-open .icon {
   color: inherit;
-}
-
-/* Low priority: its row sinks, quieter */
-.row.is-low .row__title {
-  color: var(--text-3);
 }
 
 .echip.is-urgent {
@@ -4039,4 +4032,63 @@ html:has(.sheet) .ideatag {
   .ideas__add {
     animation: none;
   }
+}
+
+/* "Also in…": projects, and (long-press or the arrow) their tasks and subtasks */
+.place,
+.place__kids {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.place__row {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.place__pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  text-align: start;
+  font-size: 15px;
+  color: var(--text);
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.place__pick:active:not(:disabled) {
+  background: var(--tile);
+}
+
+.place__pick:disabled {
+  color: var(--text-4);
+}
+
+.place__hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-4);
+}
+
+.place__open {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+  transition: transform 200ms var(--spring);
+}
+
+.place__open.is-open {
+  transform: rotate(180deg);
 }

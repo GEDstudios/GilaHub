@@ -21,7 +21,6 @@ export interface NewItem {
   repeat?: Item['repeat'];
   assignee?: Item['assignee'];
   urgent?: boolean;
-  low?: boolean;
   qty?: string | null;
   visibility?: ItemVisibility;
   /** For "Mine": whose it is (default: me, or the project's owner). Lets me make something my partner's. */
@@ -407,7 +406,6 @@ export class Hub {
       assignee: input.assignee ?? null,
       turn: input.assignee === 'turns' ? this.meId : null,
       urgent: input.urgent ?? false,
-      low: !input.urgent && !!input.low,
       urgentBy: input.urgent ? this.meId : null,
       qty: input.qty ?? null,
       // Added to someone's "Mine" project: it's still theirs — unless I say whose it is.
@@ -499,12 +497,16 @@ export class Hub {
    * Put this thing in another project as well. On a shopping list it goes in as the thing to
    * buy ("Buy a doorknob" → "doorknob"); elsewhere as itself. Returns the new (or found) id.
    */
-  alsoIn(id: string, listId: string): string | null {
+  alsoIn(id: string, listId: string, parentId: string | null = null): string | null {
     const item = this.item(id);
     const list = this.list(listId);
-    if (!item || !list || list.id === item.listId || this.linked(item)) return null;
+    if (!item || !list || this.linked(item)) return null;
+    // Not inside itself, nor next to itself in the same spot.
+    if (parentId && (parentId === id || this.descendants(id).some((d) => d.id === parentId))) return null;
+    if (!parentId && list.id === item.listId && !item.parentId) return null;
     return this.store.batch(() => {
-      const other = list.kind === 'shopping' ? this.addShopping(listId, toBuy(item.title)).id : this.addItem(listId, { title: item.title });
+      const other =
+        list.kind === 'shopping' && !parentId ? this.addShopping(listId, toBuy(item.title)).id : this.addItem(listId, { title: item.title, parentId });
       this.store.mutate('item', other, { linkId: id });
       this.store.mutate('item', id, { linkId: other });
       return other;

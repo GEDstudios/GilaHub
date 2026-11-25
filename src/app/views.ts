@@ -24,9 +24,8 @@ function memo<A extends unknown[], R>(fn: (hub: Hub, ...args: A) => R): (hub: Hu
   };
 }
 
-/** Urgent first, low priority last, then by time and our order. */
-const rank = (i: Item) => (i.urgent ? 0 : i.low ? 2 : 1);
-const byUrgentThenTime = (a: Item, b: Item) => rank(a) - rank(b) || (a.dueTime ?? '99').localeCompare(b.dueTime ?? '99') || byOrder(a, b);
+const byUrgentThenTime = (a: Item, b: Item) =>
+  Number(!!b.urgent) - Number(!!a.urgent) || (a.dueTime ?? '99').localeCompare(b.dueTime ?? '99') || byOrder(a, b);
 
 /** Is this mine to do (or ours)? Partner's own things stay out of my Today, unless they asked me. */
 export function isForMe(hub: Hub, item: Item): boolean {

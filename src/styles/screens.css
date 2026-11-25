@@ -999,6 +999,20 @@ button.projcard:active {
   min-width: 0;
 }
 
+.composer__stepinput {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.composer__stepinput:focus-visible {
+  outline: none;
+}
+
 .composer__stepdot {
   width: 16px;
   height: 16px;

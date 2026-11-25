@@ -153,6 +153,12 @@ function Composer({
     onDone();
   };
 
+  /** Change the subtasks in place. Ones that came from the words ("Pack: a, b") move into the list, and the words keep only the task. */
+  const editSteps = (next: string[]) => {
+    if (words.steps.length) setText(words.head);
+    setOwn(next);
+  };
+
   const addStep = () => {
     const t = stepText.trim();
     if (!t) return;
@@ -288,19 +294,19 @@ function Composer({
           {steps.length ? (
             <ul className="composer__steplist">
               {steps.map((t, i) => (
-                <li key={`${i}-${t}`} className="composer__step">
+                <li key={i} className="composer__step">
                   <span className="composer__stepdot" aria-hidden="true" />
-                  <span dir="auto">{t}</span>
-                  {i >= words.steps.length ? (
-                    <button
-                      type="button"
-                      className="composer__stepx"
-                      aria-label={`Remove ${t}`}
-                      onClick={() => setOwn((s) => s.filter((_, j) => j !== i - words.steps.length))}
-                    >
-                      <Icon name="x" className="icon--xs" />
-                    </button>
-                  ) : null}
+                  <input
+                    className="composer__stepinput"
+                    value={t}
+                    dir="auto"
+                    onChange={(e) => editSteps(steps.map((x, j) => (j === i ? e.target.value : x)))}
+                    onBlur={() => !t.trim() && editSteps(steps.filter((_, j) => j !== i))}
+                    aria-label={`Subtask ${i + 1}`}
+                  />
+                  <button type="button" className="composer__stepx" aria-label={`Remove ${t}`} onClick={() => editSteps(steps.filter((_, j) => j !== i))}>
+                    <Icon name="x" className="icon--xs" />
+                  </button>
                 </li>
               ))}
             </ul>
