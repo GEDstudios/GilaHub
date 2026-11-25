@@ -459,8 +459,6 @@
 
 .row__title {
   display: block;
-  /* Hebrew stays right-to-left but lines up with its English neighbours. */
-  text-align: match-parent;
   font-size: var(--fs-row);
   line-height: 1.28;
   font-weight: 560;
@@ -1753,4 +1751,30 @@ textarea.input {
   border-radius: 5px;
   background: rgb(255 255 255 / 0.12);
   color: var(--band-ink-2);
+}
+
+/* Mixed Hebrew/English content: each string keeps its own direction (dir="auto"),
+   but lines up with its neighbours on the interface's side. */
+.row__title,
+.band__title,
+.bandtitle,
+.suggest__text,
+.optrow__text,
+.panel__hint,
+.titleinput,
+.input,
+.addbar input {
+  text-align: left;
+}
+
+:root[dir='rtl'] .row__title,
+:root[dir='rtl'] .band__title,
+:root[dir='rtl'] .bandtitle,
+:root[dir='rtl'] .suggest__text,
+:root[dir='rtl'] .optrow__text,
+:root[dir='rtl'] .panel__hint,
+:root[dir='rtl'] .titleinput,
+:root[dir='rtl'] .input,
+:root[dir='rtl'] .addbar input {
+  text-align: right;
 }

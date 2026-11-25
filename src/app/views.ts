@@ -50,8 +50,10 @@ export interface TodayView {
 
 export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const lists = new Map(hub.lists().map((l) => [l.id, l]));
+  const away = hub.isAway();
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
+    if (away && l?.kind === 'chores') return false;
     return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.paused && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));

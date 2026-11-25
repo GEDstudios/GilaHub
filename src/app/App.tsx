@@ -171,7 +171,8 @@ function Duties() {
     const reminders = new ReminderSync(rt);
     const local = new LocalReminders(hub, (r) => {
       toast(`⏰ ${r.note.title}`);
-      if ('Notification' in window && Notification.permission === 'granted') {
+      // With a relay, push already delivers the system notification.
+      if (!rt.relay && 'Notification' in window && Notification.permission === 'granted') {
         void navigator.serviceWorker?.getRegistration().then((reg) => reg?.showNotification(r.note.title, { body: r.note.body, tag: r.note.tag, data: { url: r.note.url } }));
       }
     });

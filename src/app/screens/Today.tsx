@@ -54,7 +54,8 @@ export function Today() {
     <>
       <Band
         title="Today"
-        sub={`${greeting()}${me ? `, ${me.name}` : ''} · ${date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        crumbs={<p className="band__greet">{`${greeting()}${me ? `, ${me.name}` : ''}`}</p>}
+        sub={date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
         actions={
           <>
             <button type="button" className="iconbtn" onClick={() => navigate({ name: 'search' })} aria-label="Search">

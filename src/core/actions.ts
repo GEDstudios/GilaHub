@@ -630,6 +630,41 @@ export class Hub {
       .sort((a, b) => b.at - a.at);
   }
 
+  // ---------- backup import ----------
+
+  /**
+   * Import a JSON backup without overwriting anything, sealing every entity in the
+   * scope its privacy implies (an "Only me" item must never be re-shared by an import).
+   */
+  importBackup(data: Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>): number {
+    let n = 0;
+    const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member', row: { id: string } & Record<string, unknown>, scope: Scope) => {
+      if (!row?.id || this.store.record(t, row.id)) return;
+      const { id, ...fields } = row;
+      this.store.init(t, id, scope);
+      this.store.mutate(t, id, fields as never);
+      n++;
+    };
+    this.store.batch(() => {
+      for (const m of data.member ?? []) put('member', m, 'h');
+      for (const l of data.list ?? []) {
+        const vis = (l.visibility as Visibility) ?? 'shared';
+        put('list', l, vis === 'private' ? `p:${(l.owner as string) ?? this.meId}` : 'h');
+      }
+      // Parents before children so inherited privacy resolves.
+      const items = [...(data.item ?? [])].sort((x, y) => Number(!!x.parentId) - Number(!!y.parentId));
+      for (const it of items) put('item', it, this.scopeForItem({ ...(it as unknown as Item) }));
+      for (const l of data.log ?? []) {
+        const item = this.item(l.itemId as string);
+        put('log', l, item ? this.store.scopeOf('item', item.id) : 'h');
+      }
+      for (const m of data.memory ?? []) put('memory', m, m.id.startsWith('p:') ? `p:${this.meId}` : 'h');
+      for (const st of data.store ?? []) put('store', st, 'h');
+      for (const st of data.settings ?? []) put('settings', st, 'h');
+    });
+    return n;
+  }
+
   // ---------- search ----------
 
   search(query: string, limit = 40): Item[] {

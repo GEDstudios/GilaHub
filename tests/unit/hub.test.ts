@@ -171,3 +171,28 @@ describe('Hub: chores', () => {
     expect(guy.logsFor(id)[0].thankedBy).toBe('hila');
   });
 });
+
+describe('Hub: backup import', () => {
+  it('re-imports private items under the personal key, never shared', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const secret = guy.addItem(todo.id, { title: 'Proposal plan', visibility: 'private' });
+    const step = guy.addItem(todo.id, { title: 'Call her parents', parentId: secret });
+    sync(guy, hila);
+    const backup = Object.fromEntries((['member', 'list', 'item', 'log', 'memory', 'store', 'settings'] as const).map((t) => [t, guy.store.all(t)]));
+
+    // Guy restores the backup on a brand-new phone (same member and keys).
+    const phone = await person('guy');
+    const n = phone.importBackup(JSON.parse(JSON.stringify(backup)));
+    expect(n).toBeGreaterThan(5);
+    expect(phone.store.scopeOf('item', secret)).toBe('p:guy');
+    expect(phone.store.scopeOf('item', step)).toBe('p:guy');
+
+    // Even if the restored phone's ops reached Hila, she can't read them.
+    const fresh = await person('hila');
+    sync(phone, fresh);
+    expect(fresh.item(secret)).toBeUndefined();
+    expect(fresh.item(step)).toBeUndefined();
+    expect(fresh.lists().some((l) => l.name === 'To do')).toBe(true);
+  });
+});

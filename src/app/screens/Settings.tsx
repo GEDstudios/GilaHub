@@ -89,18 +89,8 @@ export function Settings() {
     try {
       const json = JSON.parse(await file.text()) as { app?: string; data?: Record<string, Array<{ id: string } & Record<string, unknown>>> };
       if (json.app !== 'gila-hub' || !json.data) throw new Error('not a backup');
-      let n = 0;
-      rt.store.batch(() => {
-        for (const [t, rows] of Object.entries(json.data!)) {
-          for (const row of rows) {
-            if (rt.store.get(t as never, row.id)) continue;
-            const { id, ...fields } = row;
-            rt.store.mutate(t as never, id, fields as never);
-            n++;
-          }
-        }
-      });
-      toast(`Imported ${n} things`);
+      const n = hub.importBackup(json.data);
+      toast(n ? `Imported ${n} things` : 'Nothing new in that backup');
     } catch {
       toast('That file isn’t a Gila Hub backup.');
     }

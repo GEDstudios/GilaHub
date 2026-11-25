@@ -57,6 +57,7 @@ export function QuickAdd({
   const parent = hub.item(parentId);
   const ctx = useParseContext(list);
   const input = useRef<HTMLInputElement>(null);
+  const hintText = placeholder ?? (parent ? 'Add a step' : `Add to ${list?.name ?? 'list'}`);
 
   const allowed: ItemVisibility[] =
     list?.visibility === 'private' ? ['private'] : list?.visibility === 'visible' ? ['mine', 'private'] : ['ours', 'mine', 'private'];
@@ -130,8 +131,8 @@ export function QuickAdd({
           dir="auto"
           onChange={(e) => setText(e.target.value)}
           onPaste={onPaste}
-          placeholder={placeholder ?? (parent ? 'Add a step' : `Add to ${list?.name ?? 'list'}`)}
-          aria-label={placeholder ?? 'Add an item'}
+          placeholder={hintText}
+          aria-label={hintText}
           enterKeyHint="done"
           autoFocus={autoFocus}
           data-autofocus={autoFocus ? '' : undefined}
