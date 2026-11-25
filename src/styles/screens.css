@@ -1312,6 +1312,13 @@ button.projcard:active {
   background: rgb(10 10 4 / 0.1);
 }
 
+/* A list's dot keeps its rim and gets a white ring, so a lemon list still reads on lemon. */
+.aisle--urgent .dot {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--c) 50%, var(--ink)),
+    0 0 0 2px var(--card);
+}
+
 .aisle__cap {
   display: flex;
   align-items: center;

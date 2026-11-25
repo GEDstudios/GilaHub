@@ -563,6 +563,28 @@ export class Hub {
     this.store.mutate('item', id, { order: keyBetween(prev, next) });
   }
 
+  /**
+   * Reorder within a run of rows that aren't one list's siblings (a shopping aisle mixing two
+   * lists): `seq` is the run as it now reads, with `id` dropped in its place. Each list numbers
+   * its own keys, so neighbours can tie; then the rows from the drop down get fresh keys until
+   * the keys climb again, so the run sorts exactly as dropped. Usually that's just `id`.
+   */
+  reorderIn(seq: readonly string[], id: string): void {
+    const at = seq.indexOf(id);
+    if (at < 0) return;
+    const orders = seq.map((x) => this.item(x)?.order ?? null);
+    let last = orders[at - 1] ?? null;
+    this.store.batch(() => {
+      for (let j = at; j < seq.length; j++) {
+        const own = orders[j];
+        if (j > at && own !== null && (last === null || own > last)) break;
+        const up = orders.slice(j + 1).find((o) => o !== null && (last === null || o > last)) ?? null;
+        last = keyBetween(last, up);
+        this.store.mutate('item', seq[j], { order: last });
+      }
+    });
+  }
+
   delete(id: string): Undo {
     const ids = [id, ...this.descendants(id).map((d) => d.id)];
     this.store.batch(() => {
@@ -671,6 +693,8 @@ export class Hub {
         qty: qty ?? null,
         urgent: extra.urgent ?? false,
         urgentBy: extra.urgent ? this.meId : null,
+        addedBy: this.meId,
+        addedAt: Date.now(),
         order: keyBetween(this.children(listId, null).at(-1)?.order ?? null, null),
       });
       return { kind: 'revived', id: existing.id, listId };
@@ -938,8 +962,10 @@ const PERSON_FIELDS = [
   'doneBy',
   'lastDoneBy',
   'urgentBy',
+  'addedBy',
   'thankedBy',
   'resolvedBy',
+  'reopenedBy',
   'editedBy',
   'awayBy',
 ] as const;

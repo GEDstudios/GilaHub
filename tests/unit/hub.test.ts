@@ -369,6 +369,35 @@ describe('Shopping: urgent', () => {
     expect(urgent()).toEqual([apples, cream, milk, shampoo, batteries]);
   });
 
+  it('an aisle mixing two lists puts a dropped row exactly where it was dropped', async () => {
+    const guy = await person('guy');
+    seedHousehold(guy, ['groceries']);
+    const g = listNamed(guy, 'Groceries').id;
+    const m = guy.createList({ name: 'Market', kind: 'shopping', flavor: 'grocery' });
+    // Each list numbers its own keys from the start, so the two lists tie row for row.
+    for (const t of ['milk', 'yogurt', 'cottage']) guy.addShopping(g, t);
+    for (const t of ['butter', 'cream cheese', 'kefir']) guy.addShopping(m, t);
+    const dairy = () => shoppingView(guy, 'all', {}).groups.find((x) => x.category === 'dairy')!.items.map((i) => i.id);
+    const before = dairy();
+    expect(new Set(before.map((id) => guy.item(id)!.order)).size).toBe(3);
+    // Every row into every slot reads back as dropped, one drop after another.
+    for (const id of before) {
+      for (let to = 0; to < before.length; to++) {
+        const seq = dairy().filter((x) => x !== id);
+        seq.splice(to, 0, id);
+        guy.reorderIn(seq, id);
+        expect(dairy()).toEqual(seq);
+      }
+    }
+    // With no ties, it's one write: just the row that moved.
+    const seq = dairy();
+    const [first] = seq.splice(0, 1);
+    seq.push(first);
+    const others = seq.slice(0, -1).map((id) => guy.item(id)!.order);
+    guy.reorderIn(seq, first);
+    expect(seq.slice(0, -1).map((id) => guy.item(id)!.order)).toEqual(others);
+  });
+
   it('remembers who turned urgent on', async () => {
     const { guy, hila } = await couple();
     const g = listNamed(guy, 'Groceries').id;

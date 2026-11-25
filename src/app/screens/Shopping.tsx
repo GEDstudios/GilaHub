@@ -105,7 +105,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const partner = hub.partner();
   const addRef = useRef<AddRowHandle>(null);
   const shopAdd = useShopAdd();
-  const seen = useRef<{ open: Set<string>; urgent: Set<string> } | null>(null);
+  const seen = useRef<{ open: Set<string>; urgent: Set<string>; cart: Set<string>; added: Map<string, number> } | null>(null);
 
   useWakeLock(mode);
   // In the store the cart starts open; outside it, folded.
@@ -145,24 +145,49 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     return () => rt.sync?.setPresence(null);
   }, [mode, rt, partner, hub]);
 
-  // Live: highlight what the partner adds, or marks urgent, while we look at the list.
+  // Live: highlight what the partner adds (or brings back), or marks urgent, while we look at the list.
   const ids = useMemo(
-    () => ({ open: new Set(v.groups.flatMap((g) => g.items).map((i) => i.id)), urgent: new Set(v.urgent.map((i) => i.id)) }),
+    () => ({
+      open: new Set(v.groups.flatMap((g) => g.items).map((i) => i.id)),
+      urgent: new Set(v.urgent.map((i) => i.id)),
+      cart: new Set(v.inCart.map((i) => i.id)),
+    }),
     [v],
   );
   useEffect(() => {
     const prev = seen.current;
-    seen.current = ids;
+    // When each shopping item was last put on a list, whatever the filter shows: an Undo, an
+    // untick or a wider filter then never reads as news, while the partner's add or re-add does.
+    const shop = new Set(hub.shoppingLists().map((l) => l.id));
+    const added = new Map<string, number>();
+    for (const i of hub.store.all('item')) if (shop.has(i.listId) && !i.parentId) added.set(i.id, i.addedAt ?? i.createdAt);
+    seen.current = { ...ids, added };
     if (!prev) return;
-    const fresh = [...ids.open].filter((id) => !prev.open.has(id) && hub.item(id)?.createdBy !== hub.meId);
-    const urged = [...ids.urgent].filter((id) => !prev.urgent.has(id) && prev.open.has(id) && hub.item(id)?.urgentBy !== hub.meId);
+    const byOther = (id: string) => {
+      const i = hub.item(id);
+      return !!i && (i.addedBy ?? i.createdBy) !== hub.meId;
+    };
+    const fresh = [...ids.open]
+      .filter((id) => prev.added.get(id) !== added.get(id) && byOther(id))
+      // Urgent news first: it's the one the shopper most needs to hear.
+      .sort((a, b) => Number(!!hub.item(b)?.urgent) - Number(!!hub.item(a)?.urgent));
+    const urged = [...ids.urgent].filter(
+      (id) => !fresh.includes(id) && !prev.urgent.has(id) && prev.open.has(id) && hub.item(id)?.urgentBy !== hub.meId,
+    );
     if (!fresh.length && !urged.length) return;
     setFlash(new Set([...fresh, ...urged]));
-    if (mode) {
-      const [first, rest, verb] = fresh.length ? [fresh[0], fresh.length - 1, 'added'] : [urged[0], urged.length - 1, 'marked'];
-      const item = hub.item(first);
-      const who = hub.member(fresh.length ? item?.createdBy : item?.urgentBy) ?? hub.partner();
-      if (who && item) toast(`${who.name} ${verb} ${item.title}${fresh.length ? '' : ' urgent'}${rest > 0 ? ` +${rest}` : ''}`);
+    const item = hub.item(fresh[0] ?? urged[0]);
+    if (mode && item) {
+      const rest = (fresh.length || urged.length) - 1;
+      const more = rest > 0 ? ` +${rest}` : '';
+      const who = hub.member(fresh.length ? (item.addedBy ?? item.createdBy) : item.urgentBy) ?? hub.partner();
+      // Back out of the cart: say why the cart just got smaller.
+      const what = !fresh.length
+        ? `marked ${item.title} urgent`
+        : prev.cart.has(item.id)
+          ? `wants another ${item.title}`
+          : `added ${item.title}`;
+      if (who) toast(`${who.name} ${what}${fresh.length && item.urgent ? ' · urgent' : ''}${more}`);
     }
     const t = setTimeout(() => setFlash(new Set()), 2200);
     return () => clearTimeout(t);
@@ -366,13 +391,26 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             {v.urgent.length || v.groups.length ? (
               <ShopList
                 groups={[
-                  ...(v.urgent.length ? [{ key: 'urgent', label: null, items: v.urgent }] : []),
-                  ...v.groups.map((g) => ({ key: g.key, label: g.label, items: g.items, icon: aisleIcon(g.flavor, g.category), emoji: g.emoji })),
+                  ...(v.urgent.length ? [{ key: 'urgent', label: null, items: v.urgent, showList: many }] : []),
+                  ...v.groups.map((g) => {
+                    // A list's dot only where it tells you something: on rows where an aisle mixes
+                    // lists, or once on the head when two lists share this aisle's flavor.
+                    const one = new Set(g.items.map((i) => i.listId)).size === 1;
+                    const twins = lists.filter((l) => hub.flavorOf(l) === g.flavor).length > 1;
+                    return {
+                      key: g.key,
+                      label: g.label,
+                      items: g.items,
+                      icon: aisleIcon(g.flavor, g.category),
+                      emoji: g.emoji,
+                      showList: many && !one,
+                      dot: many && one && twins ? hub.list(g.items[0].listId) : undefined,
+                    };
+                  }),
                 ]}
                 onTick={tick}
                 onOpen={openItem}
                 flash={flash}
-                showList={many}
                 draggable={!mode}
                 settle={settle}
               />
@@ -463,6 +501,10 @@ interface ShopGroup {
   /** null = the Urgent group */
   label: string | null;
   items: Row[];
+  /** Rows show their list's dot (the card mixes lists). */
+  showList: boolean;
+  /** The one list this card holds, when its name alone doesn't say which. */
+  dot?: List;
   /** The aisle's glyph; aisles without one keep their emoji. */
   icon?: IconName;
   emoji?: string;
@@ -479,7 +521,6 @@ function ShopList({
   onTick,
   onOpen,
   flash,
-  showList,
   draggable,
   settle,
 }: {
@@ -487,7 +528,6 @@ function ShopList({
   onTick: (i: Item) => void;
   onOpen: (i: Item) => void;
   flash: Set<string>;
-  showList: boolean;
   draggable: boolean;
   settle: Settle<Item>;
 }) {
@@ -500,14 +540,11 @@ function ShopList({
   });
   last.current = live;
   /**
-   * Order within one aisle. Order keys compare across lists, and an aisle is sorted by them, so
-   * the visible neighbours place the row exactly where it was dropped, even when the aisle mixes
-   * two lists. The Urgent card isn't arranged: it reads in walking order (views.ts).
+   * Order within one aisle, which is sorted by order key. An aisle can mix two lists whose keys
+   * tie, so the aisle as dropped is what gets its keys (views.ts). The Urgent card isn't
+   * arranged: it reads in walking order.
    */
-  const onMove = (next: string[], id: string) => {
-    const at = next.indexOf(id);
-    hub.reorder(id, next[at - 1] ?? null, next[at + 1] ?? null);
-  };
+  const onMove = (next: string[], id: string) => hub.reorderIn(next, id);
   return (
     <>
       {groups.map((g) => {
@@ -525,6 +562,7 @@ function ShopList({
                 ) : null}
                 {g.label}
                 <span className="num">{g.items.length}</span>
+                {g.dot ? <ListBullet list={g.dot} size="xs" /> : null}
               </h2>
             ) : null}
             <Sortable
@@ -537,7 +575,7 @@ function ShopList({
                 const item = g.items.find((i) => i.id === id);
                 return item ? (
                   <ul className="rows">
-                    <ShopRow item={item} onTick={onTick} onOpen={onOpen} showList={showList} inUrgent={!g.label} />
+                    <ShopRow item={item} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} />
                   </ul>
               ) : null;
             }}
@@ -552,11 +590,11 @@ function ShopList({
               )}
               {shown.map(({ row: i, settling }) =>
                 settling ? (
-                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={showList} inUrgent={!g.label} settling />
+                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} settling />
                 ) : draggable && g.label ? (
-                  <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
+                  <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
                 ) : (
-                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={showList} inUrgent={!g.label} />
+                  <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
                 ),
               )}
             </ul>
@@ -601,6 +639,8 @@ export function ShopRow({
   const vis = visTagFor(hub, item);
   const note = item.notes?.slice(0, 60);
   const mine = useFresh(item.id);
+  // Once it's in the cart, the urgency is dealt with.
+  const tagged = item.urgent && !item.done && !inUrgent;
   return (
     <li
       ref={liRef}
@@ -628,9 +668,9 @@ export function ShopRow({
           </span>
         ) : null}
       </div>
-      {showList || (item.urgent && !inUrgent) ? (
+      {showList || tagged ? (
         <span className="row__trail">
-          {item.urgent && !inUrgent ? <UrgentTag /> : null}
+          {tagged ? <UrgentTag /> : null}
           {showList ? <ListBullet list={list} size="xs" /> : null}
         </span>
       ) : null}

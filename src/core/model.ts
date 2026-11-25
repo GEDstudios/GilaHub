@@ -126,6 +126,9 @@ export interface Item {
   urgent?: boolean;
   /** Who last turned urgent on (the other one's Shopping flashes it). */
   urgentBy?: string | null;
+  /** Shopping: who brought it back onto the list, and when (a re-added staple; a first add is createdBy/createdAt). */
+  addedBy?: string | null;
+  addedAt?: number | null;
   /** Shopping: quantity text like "2", "500g", "1 ק"ג". */
   qty?: string | null;
   /** Shopping: aisle category id (overrides automatic). */
