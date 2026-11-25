@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [out = resolve(root, 'gila-hub-preview.html'), ...viteArgs] = process.argv.slice(2);
 const dist = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), 'gila-preview-'));
-execFileSync('npx', ['vite', 'build', '--base', './', '--outDir', dist, '--emptyOutDir', ...viteArgs], { cwd: root, stdio: 'inherit' });
+execFileSync('npx', ['vite', 'build', '--base', './', '--outDir', dist, '--emptyOutDir', ...viteArgs], { cwd: root, stdio: 'inherit', env: { ...process.env, GILA_ONE_FILE: '1' } });
 
 const assets = join(dist, 'assets');
 const files = readdirSync(assets);

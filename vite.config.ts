@@ -50,7 +50,8 @@ export default defineConfig({
     sourcemap: false,
     assetsInlineLimit: 0,
     // Keep /*! … */ and @license notices (React, the Phosphor-derived glyphs) in the shipped bundle.
-    rolldownOptions: { output: { comments: { legal: true } } },
+    // The one-file preview (scripts/build-preview.mjs) needs the icon library in the one script.
+    rolldownOptions: { output: { comments: { legal: true }, ...(process.env.GILA_ONE_FILE ? { inlineDynamicImports: true } : {}) } },
   },
   server: {
     port: 5173,

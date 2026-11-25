@@ -4142,7 +4142,8 @@ html.is-searching .fab,
 html.is-editing .fab,
 html:has(.home--editing) .fab,
 html:has(.aislearr) .fab,
-html:has(.shopmode) .fab {
+html:has(.shopmode) .fab,
+html:has(.iconlib) .fab {
   opacity: 0;
   pointer-events: none;
   transform: rotate(-7deg) scale(0.8);
@@ -4218,4 +4219,82 @@ html:has(.shopmode) .fab {
   margin: 2px 0 0 36px;
   color: var(--text-3);
   font-size: 14px;
+}
+
+/* ============================================================ Icon library (the picker) */
+.iconlib {
+  display: grid;
+  gap: 10px;
+}
+
+.iconlib__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: var(--tile);
+  color: var(--text-2);
+}
+
+.iconlib__search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.iconlib__clear {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--text-2);
+}
+
+/* The groups scroll sideways, one line. */
+.iconlib__groups {
+  display: flex;
+  gap: 6px;
+  margin: 0 -2px;
+  padding: 0 2px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.iconlib__groups::-webkit-scrollbar {
+  display: none;
+}
+
+.iconlib__groups .token {
+  flex: none;
+  height: 32px;
+}
+
+.iconlib__groups .token.is-on {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+}
+
+.iconlib__grid {
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.iconlib__note {
+  grid-column: 1 / -1;
+  margin: 6px 2px;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+.iconlib__more {
+  justify-self: center;
 }

@@ -68,7 +68,7 @@ function FlavorAisles({ flavor, name, counts }: { flavor: Flavor; name: string |
       <div className="composer__stepadd aislearr__new">
         {/* Its icon first: tap to pick one as you name it. */}
         <button type="button" className="aislearr__markbtn aislearr__newmark" aria-label="Icon for the new category" aria-expanded={picking} onClick={() => setPicking(!picking)}>
-          {icon?.startsWith('i:') ? <Icon name={icon.slice(2) as IconName} /> : icon ? <span aria-hidden="true">{icon}</span> : <Icon name="tag" />}
+          {icon?.startsWith('i:') ? <Icon name={icon.slice(2) as IconName} /> : icon?.startsWith('x:') ? <Icon name={icon as IconName} /> : icon ? <span aria-hidden="true">{icon}</span> : <Icon name="tag" />}
         </button>
         <input
           value={fresh}

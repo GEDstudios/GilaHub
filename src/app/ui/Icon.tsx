@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react';
-import { GLYPHS, type IconName } from './icons.gen';
+import { GLYPHS, type IconName as GlyphName } from './icons.gen';
+import { useLibrary } from './library';
 
-export type { IconName };
+/** One of ours, or "x:<name>" from the library (ui/library.ts, loaded when first wanted). */
+export type IconName = GlyphName | `x:${string}`;
 
 /** Glyphs whose light always says whose (or is always on), whatever the state. */
-const FIXED_LIGHT: Partial<Record<IconName, string>> = {
+const FIXED_LIGHT: Partial<Record<GlyphName, string>> = {
   mine: 'var(--me-light)',
   theirs: 'var(--them)',
   'heart-fill': 'var(--pink)',
@@ -17,11 +19,37 @@ const FIXED_LIGHT: Partial<Record<IconName, string>> = {
  * on color. Controls (plus, x, chevrons…) are line only. Glyphs come from icons.gen.ts.
  */
 export function Icon({ name, className, style, title, lit }: { name: IconName; className?: string; style?: CSSProperties; title?: string; lit?: boolean }) {
-  const [light, line] = GLYPHS[name];
-  const fixed = FIXED_LIGHT[name];
+  if (name.startsWith('x:')) return <LibIcon name={name.slice(2)} className={className} style={style} title={title} lit={lit} />;
+  const n = name as GlyphName;
+  return <GlyphSvg glyph={GLYPHS[n]} fixed={FIXED_LIGHT[n]} className={className} style={style} title={title} lit={lit} />;
+}
+
+/** A library glyph by its Phosphor name; an empty icon-sized box until the library lands. */
+function LibIcon({ name, ...rest }: { name: string; className?: string; style?: CSSProperties; title?: string; lit?: boolean }) {
+  const lib = useLibrary();
+  return <GlyphSvg glyph={lib?.LIBRARY[name]} {...rest} />;
+}
+
+/** Any [light, line] glyph drawn the Gila Duo way (Icon's, or one from the library). */
+export function GlyphSvg({
+  glyph,
+  fixed,
+  className,
+  style,
+  title,
+  lit,
+}: {
+  glyph: readonly [string | null, string] | undefined;
+  fixed?: string;
+  className?: string;
+  style?: CSSProperties;
+  title?: string;
+  lit?: boolean;
+}) {
+  const [light, line] = glyph ?? [null, ''];
   return (
     <svg
-      className={`icon${light ? '' : ' icon--control'}${lit ? ' is-lit' : ''}${className ? ` ${className}` : ''}`}
+      className={`icon${light || !glyph ? '' : ' icon--control'}${lit ? ' is-lit' : ''}${className ? ` ${className}` : ''}`}
       style={fixed ? ({ '--light-fixed': fixed, ...style } as CSSProperties) : style}
       viewBox="0 0 256 256"
       focusable="false"
@@ -30,7 +58,7 @@ export function Icon({ name, className, style, title, lit }: { name: IconName; c
     >
       {title ? <title>{title}</title> : null}
       {light ? <path className="icon__light" d={light} /> : null}
-      <path className="icon__line" d={line} />
+      {line ? <path className="icon__line" d={line} /> : null}
     </svg>
   );
 }

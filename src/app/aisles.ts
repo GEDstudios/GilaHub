@@ -45,6 +45,7 @@ export const aisleIcon = (flavor: Flavor, category: string): IconName | undefine
 export function categoryMark(hub: Hub, flavor: Flavor, category: string): { icon?: IconName; emoji: string } {
   const meta = hub.aisleMeta(flavor, category);
   if (meta.icon?.startsWith('i:')) return { icon: meta.icon.slice(2) as IconName, emoji: meta.emoji };
+  if (meta.icon?.startsWith('x:')) return { icon: meta.icon as IconName, emoji: meta.emoji };
   if (meta.icon) return { emoji: meta.icon };
   // Our own categories wear a tag until we pick something else.
   return { icon: aisleIcon(flavor, category) ?? (meta.custom ? 'tag' : undefined), emoji: meta.emoji };

@@ -35,7 +35,7 @@ describe('project icons', () => {
   it('offers 33 distinct icons that all exist (the last, the folder, is "No icon")', () => {
     expect(PROJECT_ICONS).toHaveLength(33);
     expect(new Set(PROJECT_ICONS).size).toBe(33);
-    for (const n of PROJECT_ICONS) expect(GLYPHS[n], n).toBeDefined();
+    for (const n of PROJECT_ICONS) expect(GLYPHS[n as keyof typeof GLYPHS], n).toBeDefined();
   });
 
   it('still reads every icon stored before', () => {
@@ -109,5 +109,25 @@ describe('new project icons', () => {
     expect(new Set(icons.slice(1)).size).toBe(6);
     for (const i of icons) expect(parseGlyph(i)?.kind).toBe('icon');
     expect(a.hub.list('lp')?.icon).toBe('i:folder');
+  });
+});
+
+describe('the icon library', () => {
+  it('finds icons by name and tag, name hits first, and narrows by group', async () => {
+    const { searchLibrary } = await import('../../src/app/ui/library');
+    const lib = await import('../../src/app/ui/iconLibrary.gen');
+    expect(lib.LIBRARY_INFO.length).toBeGreaterThan(1000);
+    for (const [name] of lib.LIBRARY_INFO) expect(lib.LIBRARY[name], name).toBeDefined();
+    expect(searchLibrary(lib, 'dog', null)[0]).toBe('dog');
+    expect(searchLibrary(lib, 'tooth', null)).toContain('tooth');
+    expect(searchLibrary(lib, 'zzzz', null)).toEqual([]);
+    const nature = searchLibrary(lib, '', 'nature');
+    expect(nature.length).toBeGreaterThan(20);
+    expect(nature.every((n) => lib.LIBRARY_INFO.find((x) => x[0] === n)?.[1] === 'nature')).toBe(true);
+  });
+
+  it('keeps a library icon as "x:<name>"', () => {
+    expect(parseGlyph('x:dog')).toEqual({ kind: 'icon', name: 'x:dog' });
+    expect(parseGlyph('x:')).toBeNull();
   });
 });

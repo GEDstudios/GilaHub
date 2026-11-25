@@ -55,6 +55,8 @@ export function parseGlyph(icon: string | undefined | null): Glyph {
     const name = v.slice(2) as IconName;
     return PROJECT_ICONS.includes(name) ? { kind: 'icon', name } : null;
   }
+  // From the library: the Icon draws it as "x:<name>".
+  if (v.startsWith('x:')) return v.length > 2 ? { kind: 'icon', name: v as IconName } : null;
   return { kind: 'emoji', text: v };
 }
 
