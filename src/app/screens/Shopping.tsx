@@ -10,7 +10,8 @@ import { notifyMembers } from '../runtime';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { Avatar, Band, Check, Disclosure, Empty, IconButton, ListBullet, NewButton, Seg } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton, Seg } from '../ui/primitives';
+import { haptic } from '../ui/haptics';
 import { UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
 import { useSettle, type Settle } from '../ui/useSettle';
@@ -43,13 +44,6 @@ function useFloatHeight(ref: RefObject<HTMLDivElement | null>, on: boolean) {
       root.style.removeProperty('--float-h');
     };
   }, [ref, on]);
-}
-
-/** The shopbar says what just went in the cart, with Undo, instead of a toast. */
-interface CartNote {
-  text: string;
-  n: number;
-  undo: () => void;
 }
 
 function useWakeLock(on: boolean) {
@@ -89,8 +83,6 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const v = shoppingView(hub, filter, prefs.dismissed);
   const [mode, setMode] = useState(false);
   const [flash, setFlash] = useState<Set<string>>(new Set());
-  const [cartOpen, setCartOpen] = useState(false);
-  const [note, setNote] = useState<CartNote | null>(null);
   const bar = useRef<HTMLDivElement>(null);
   const settle = useSettle<Item>(itemId);
   const partnerShopping = usePartnerShopping();
@@ -104,16 +96,6 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   } | null>(null);
 
   useWakeLock(mode);
-  // In the store the cart starts open; outside it, folded.
-  useEffect(() => {
-    setCartOpen(mode);
-    setNote(null);
-  }, [mode]);
-  useEffect(() => {
-    if (!note) return;
-    const t = setTimeout(() => setNote(null), 2600);
-    return () => clearTimeout(t);
-  }, [note]);
 
   // Presence: tell the other phone we're in the store (and, once in a while, push them).
   useEffect(() => {
@@ -207,21 +189,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const tick = (i: Item) => {
     // The row strikes and folds where it is, then shows up in the cart.
     if (!i.done) settle.hold(i.id);
-    const undo = hub.toggle(i.id);
-    if (i.done) return;
-    // The shopbar says it (with Undo) instead of a toast: one floating thing above the bar.
-    setNote((prev) =>
-      prev
-        ? {
-            text: `${prev.n + 1} in the cart`,
-            n: prev.n + 1,
-            undo: () => {
-              undo();
-              prev.undo();
-            },
-          }
-        : { text: `${i.title} is in the cart`, n: 1, undo },
-    );
+    // It drops into the cart card at the top; a tap on it there takes it back out.
+    hub.toggle(i.id);
   };
 
   const openItem = (i: Item) => openSheet((close) => <ShopItemSheet id={i.id} onClose={close} />);
@@ -230,7 +199,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     const n = v.inCart.length;
     const undo = hub.finishTrip(v.lists.map((l) => l.id));
     setMode(false);
-    toast(n ? `Trip done · ${n} item${n > 1 ? 's' : ''} filed` : 'Trip done', {
+    haptic('success');
+    toast(n ? `Paid for · ${n} item${n > 1 ? 's' : ''} into Buy again` : 'Trip done', {
       action: { label: 'Undo', run: undo },
     });
   };
@@ -253,7 +223,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const many = filter === 'all' && lists.length > 1;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
   const shopper = partnerShopping ? hub.member(partnerShopping.member) : undefined;
-  const floating = v.openCount > 0 || mode || !!note;
+  const floating = v.openCount > 0 && !mode;
   // Just ticked: it joins the cart once it has settled in its aisle.
   const cart = settle.view('cart', v.inCart);
   useFloatHeight(bar, floating);
@@ -314,6 +284,10 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               </button>
             ))}
           </div>
+        ) : null}
+
+        {cart.length ? (
+          <CartCard items={cart.map(({ row }) => row)} left={v.openCount} onOut={tick} onFinish={finish} store={mode} />
         ) : null}
 
         {shopper && !mode ? (
@@ -391,79 +365,14 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             />
           ) : null}
 
-          {cart.length ? (
-            <Disclosure
-              title={
-                <>
-                  <Icon name="cart" className="icon--sm" /> In the cart
-                </>
-              }
-              count={cart.length}
-              open={cartOpen}
-              onToggle={setCartOpen}
-              // One Finish: the shopbar's in the store, this one otherwise.
-              after={
-                mode ? null : (
-                  <button type="button" className="btn btn--quiet btn--sm finish" onClick={finish}>
-                    <Icon name="check" className="icon--sm" /> Finish trip
-                  </button>
-                )
-              }
-            >
-              <ul className="rows">
-                {cart.map(({ row: i }) => (
-                  <ShopRow key={i.id} item={i} onTick={tick} onOpen={openItem} showList={many} />
-                ))}
-              </ul>
-            </Disclosure>
-          ) : null}
         </>
       </div>
 
       {floating ? (
         <div className="shopbar" ref={bar}>
-          {mode ? (
-            <div className="shopbar__inner">
-              <span className={`shopbar__text num ${note ? 'is-note' : ''}`} key={note?.n ?? 0} dir="auto" aria-live="polite">
-                {note ? note.text : `${v.openCount} left · ${v.inCart.length} in the cart`}
-              </span>
-              {note ? (
-                <button
-                  type="button"
-                  className="shopbar__undo"
-                  onClick={() => {
-                    note.undo();
-                    setNote(null);
-                  }}
-                >
-                  Undo
-                </button>
-              ) : null}
-              <button type="button" className="btn btn--sm" onClick={finish}>
-                Finish
-              </button>
-            </div>
-          ) : note ? (
-            <div className="shopbar__inner shopbar__inner--note">
-              <span className="shopbar__text is-note" key={note.n} dir="auto" aria-live="polite">
-                {note.text}
-              </span>
-              <button
-                type="button"
-                className="shopbar__undo"
-                onClick={() => {
-                  note.undo();
-                  setNote(null);
-                }}
-              >
-                Undo
-              </button>
-            </div>
-          ) : (
-            <button type="button" className="btn shopbar__start" onClick={() => setMode(true)}>
-              <Icon name="cart" className="icon--sm" /> Start shopping
-            </button>
-          )}
+          <button type="button" className="btn shopbar__start" onClick={() => setMode(true)}>
+            <Icon name="cart" className="icon--sm" /> Start shopping
+          </button>
         </div>
       ) : null}
     </div>
@@ -649,5 +558,61 @@ export function ShopRow({
         </span>
       ) : null}
     </li>
+  );
+}
+
+/**
+ * The cart: what you picked up this trip, as itself. It fills as you tick (each thing drops
+ * in), the bar under it shows how much of the trip is done, a tap takes a thing back out to
+ * its aisle, and Pay empties it into Buy again. No words needed.
+ */
+function CartCard({
+  items,
+  left,
+  onOut,
+  onFinish,
+  store,
+}: {
+  items: Array<Item & { emoji?: string }>;
+  left: number;
+  onOut: (i: Item) => void;
+  onFinish: () => void;
+  store: boolean;
+}) {
+  const [paying, setPaying] = useState(false);
+  const total = items.length + left;
+  const pct = total ? Math.round((items.length / total) * 100) : 100;
+  const pay = () => {
+    if (paying) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return onFinish();
+    setPaying(true);
+    setTimeout(onFinish, 460);
+  };
+  return (
+    <section className={`cartcard ${paying ? 'is-paying' : ''} ${left === 0 ? 'is-full' : ''}`} aria-label={`In the cart: ${items.length} of ${total}`}>
+      <div className="cartcard__head">
+        <span className="cartcard__basket" key={items.length}>
+          <Icon name="basket" lit />
+          <span className="cartcard__n num">{items.length}</span>
+        </span>
+        <span className="cartcard__bar" aria-hidden="true">
+          <span style={{ width: `${pct}%` }} />
+        </span>
+        <span className="cartcard__of num">
+          {items.length}/{total}
+        </span>
+      </div>
+      <div className="cartcard__items">
+        {[...items].reverse().map((i) => (
+          <button key={i.id} type="button" className="cartchip" onClick={() => onOut(i)} aria-label={`Take ${i.title} out of the cart`}>
+            {i.emoji ? <span className="cartchip__e">{i.emoji}</span> : null}
+            <span dir="auto">{i.title}</span>
+          </button>
+        ))}
+      </div>
+      <button type="button" className={`btn btn--sm cartcard__pay ${store || left === 0 ? '' : 'btn--quiet'}`} onClick={pay}>
+        <Icon name="check" className="icon--sm" /> Pay
+      </button>
+    </section>
   );
 }

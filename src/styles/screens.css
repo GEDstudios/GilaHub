@@ -860,56 +860,9 @@ button.projcard:active {
   box-shadow: var(--lift-2);
 }
 
-.shopbar__inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 5px 5px 5px 20px;
-  border-radius: 999px;
-  background: var(--cta);
-  color: var(--cta-text);
-  box-shadow: var(--lift-2);
-}
-
 /* Outside the store a tick swaps Start shopping for this note, the same size, for a moment */
-.shopbar__inner--note {
-  height: 50px;
-  padding-right: 22px;
-  gap: 20px;
-}
-
 /* Light on ink: the Urgent card stays the screen's one lemon moment */
-.shopbar__inner .btn {
-  background: var(--bg);
-  color: var(--ink);
-}
-
-.shopbar__text {
-  font-size: 14.5px;
-}
-
 /* What just went in the cart, for a moment */
-.shopbar__text.is-note {
-  max-width: 46vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  animation: toast-in 240ms var(--spring) both;
-}
-
-.shopbar__undo {
-  height: 36px;
-  margin: 0 -6px;
-  padding: 0 6px;
-  font-size: 14.5px;
-  font-weight: 600;
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: rgb(250 250 248 / 0.4);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 4px;
-}
-
 @media (min-width: 960px) {
   .shopbar {
     left: var(--sidebar-w);
@@ -1054,6 +1007,197 @@ html.is-searching :is(.tabbar:not(.tabbar--preview), .shopbar, .ideatag) {
   .searchlayer__veil,
   .searchlayer__top,
   .searchlayer__card {
+    animation: none;
+  }
+}
+
+/* ============================================================ The cart (Shopping)
+ * What you picked up this trip, shown as itself: a white card that fills as you tick, a bar
+ * that shows how far along the trip is, things you can tap back out, and Pay to empty it.
+ */
+
+.cartcard {
+  margin: 4px 0 18px;
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--r-l);
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'head pay'
+    'items items';
+  align-items: center;
+  gap: 10px 12px;
+  animation: row-in 240ms var(--ease) both;
+}
+
+.cartcard__head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cartcard__basket {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  /* Each new thing in the cart: a small bounce */
+  animation: cart-bump 360ms var(--spring) both;
+}
+
+.cartcard__basket .icon {
+  --s: 22;
+}
+
+@keyframes cart-bump {
+  30% {
+    transform: translateY(2px) scale(1.08, 0.94);
+  }
+}
+
+.cartcard__n {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--cta);
+  color: var(--cta-text);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.cartcard__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tile);
+  overflow: hidden;
+}
+
+.cartcard__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--me-light, var(--lemon));
+  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.08);
+  transition: width 420ms var(--spring);
+}
+
+.cartcard__of {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.cartcard__pay {
+  grid-area: pay;
+}
+
+.cartcard__items {
+  grid-area: items;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -12px 0 -14px;
+  padding: 2px 12px 2px 14px;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+
+.cartcard__items::-webkit-scrollbar {
+  display: none;
+}
+
+.cartchip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--tile);
+  font-size: 14px;
+  color: var(--text-2);
+  /* Dropped in: falls a little and lands */
+  animation: cart-drop 380ms var(--spring) both;
+}
+
+.cartchip:active {
+  transform: scale(0.95);
+}
+
+.cartchip__e {
+  font-size: 15px;
+  line-height: 1;
+}
+
+@keyframes cart-drop {
+  from {
+    transform: translateY(-16px) scale(0.86);
+    opacity: 0;
+  }
+}
+
+/* Everything's in: the bar is full and Pay is the thing to do */
+.cartcard.is-full .cartcard__bar > span {
+  background: var(--mint, var(--lemon));
+}
+
+/* Pay: the things leave the cart together, and the card folds away */
+.cartcard.is-paying .cartchip {
+  animation: cart-out 380ms var(--ease) forwards;
+}
+
+.cartcard.is-paying .cartchip:nth-child(2) {
+  animation-delay: 30ms;
+}
+
+.cartcard.is-paying .cartchip:nth-child(3) {
+  animation-delay: 60ms;
+}
+
+.cartcard.is-paying .cartchip:nth-child(n + 4) {
+  animation-delay: 90ms;
+}
+
+.cartcard.is-paying {
+  animation: cart-fold 420ms 120ms var(--ease) forwards;
+}
+
+@keyframes cart-out {
+  to {
+    transform: translateY(14px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes cart-fold {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartcard,
+  .cartcard__basket,
+  .cartchip,
+  .cartcard.is-paying,
+  .cartcard.is-paying .cartchip {
     animation: none;
   }
 }
