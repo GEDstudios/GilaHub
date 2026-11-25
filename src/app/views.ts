@@ -2,7 +2,7 @@ import type { Hub } from '../core/actions';
 import { addDays, diffDays, fromDateStr, today as todayStr } from '../core/dates';
 import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
-import { categoryMeta, categoryOrder, type Flavor } from '../smart/categorize';
+import type { Flavor } from '../smart/categorize';
 import { itemKey } from '../smart/normalize';
 import { freshness, periodDays, type Freshness } from '../smart/recurrence';
 import { buyAgain, purchaseStats, type BuyAgainSuggestion, type PurchaseStats } from '../smart/suggest';
@@ -213,13 +213,14 @@ export const shoppingView = memo((hub: Hub, filter: string, dismissed: Record<st
     const key = `${flavor}:${category}`;
     let g = groups.get(key);
     if (!g) {
-      const meta = categoryMeta(flavor, category);
-      g = { key, flavor, category, label: meta.en, emoji: meta.e, items: [] };
+      const meta = hub.aisleMeta(flavor, category);
+      g = { key, flavor, category, label: meta.name, emoji: meta.emoji, items: [] };
       groups.set(key, g);
     }
     g.items.push({ ...i, emoji });
   }
-  const rank = (g: AisleGroup) => (g.flavor === 'grocery' ? 0 : 100) + categoryOrder(g.flavor).indexOf(g.category);
+  const orders = { grocery: hub.aisleOrder('grocery'), home: hub.aisleOrder('home') };
+  const rank = (g: AisleGroup) => (g.flavor === 'grocery' ? 0 : 1000) + orders[g.flavor].indexOf(g.category);
   const sorted = [...groups.values()].sort((a, b) => rank(a) - rank(b));
   // Where each item sits on the walk through the store: its aisle, then its place in it.
   const walk = new Map<string, number>();

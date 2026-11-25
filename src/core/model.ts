@@ -182,6 +182,16 @@ export interface Settings {
   /** Away mode: chore clocks are frozen since this date. */
   awaySince?: string | null;
   awayBy?: string | null;
+  /** Our aisles, in walking order, with our names and our own aisles (unset = the defaults). */
+  groceryAisles?: AisleConf[];
+  homeAisles?: AisleConf[];
+}
+
+/** One aisle as we arranged it: a built-in category id or our own ("c:…"), maybe renamed. */
+export interface AisleConf {
+  id: string;
+  name?: string;
+  emoji?: string;
 }
 
 /** Learned category for a normalized item name — shared by both partners. */

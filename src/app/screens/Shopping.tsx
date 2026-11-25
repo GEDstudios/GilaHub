@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react';
 import type { Item, List } from '../../core/model';
 import { cadenceLabel } from '../../smart/suggest';
+import { AisleArrange } from '../components/AisleArrange';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useShopAdd } from '../components/shopAdd';
 import { ShopItemSheet } from '../components/ShopItemSheet';
@@ -83,6 +84,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const filter = scoped ? scoped.id : allLists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
   const v = shoppingView(hub, filter, prefs.dismissed);
   const [mode, setMode] = useState(false);
+  const [arranging, setArranging] = useState(false);
   const [flash, setFlash] = useState<Set<string>>(new Set());
   const bar = useRef<HTMLDivElement>(null);
   const settle = useSettle<Item>(itemId);
@@ -224,7 +226,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const many = filter === 'all' && lists.length > 1;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
   const shopper = partnerShopping ? hub.member(partnerShopping.member) : undefined;
-  const floating = v.openCount > 0 && !mode;
+  const floating = v.openCount > 0 && !mode && !arranging;
   // Just ticked: it joins the cart once it has settled in its aisle.
   const cart = settle.view('cart', v.inCart);
   useFloatHeight(bar, floating);
@@ -330,7 +332,13 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             </div>
           ) : null}
 
-          {v.urgent.length || v.groups.length ? (
+          {arranging ? (
+            <AisleArrange
+              flavors={[...new Map(lists.map((l) => [hub.flavorOf(l), l.name])).entries()].map(([flavor, name]) => ({ flavor, name }))}
+              counts={new Map(v.groups.map((g) => [g.key, g.items.length]))}
+              onDone={() => setArranging(false)}
+            />
+          ) : v.urgent.length || v.groups.length ? (
             <ShopList
               groups={[
                 ...(v.urgent.length
@@ -367,6 +375,14 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             />
           ) : null}
 
+          {!mode && !arranging && lists.length ? (
+            <div className="homeedit">
+              <button type="button" className="textbtn" onClick={() => setArranging(true)}>
+                <Icon name="layout" />
+                Arrange aisles
+              </button>
+            </div>
+          ) : null}
         </>
       </div>
 

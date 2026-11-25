@@ -95,3 +95,29 @@ describe('spices aisle', () => {
     expect(categorize('rosemary', 'grocery', none).category).toBe('produce');
   });
 });
+
+describe('our aisles', () => {
+  it('renames, reorders, adds and removes aisles, and items follow', async () => {
+    const { Hub } = await import('../../src/core/actions');
+    const { Store } = await import('../../src/core/store');
+    const { MemoryPersistence } = await import('../../src/core/db');
+    const store = await Store.load(new MemoryPersistence(), 'dev-a', ['h', 'p:g']);
+    const hub = new Hub(store, 'g');
+    const list = hub.createList({ name: 'Groceries', kind: 'shopping' });
+    expect(hub.aisleOrder('grocery')[0]).toBe('produce');
+    hub.renameAisle('grocery', 'produce', 'Greens');
+    expect(hub.aisleMeta('grocery', 'produce').name).toBe('Greens');
+    const order = hub.aisleOrder('grocery');
+    hub.arrangeAisles('grocery', [order[1], order[0], ...order.slice(2)]);
+    expect(hub.aisleOrder('grocery').slice(0, 2)).toEqual([order[1], order[0]]);
+    expect(hub.aisleMeta('grocery', 'produce').name).toBe('Greens');
+    const mine = hub.addAisle('grocery', 'Party')!;
+    expect(hub.aisleOrder('grocery').at(-1)).toBe(mine);
+    const id = hub.addItem(list, { title: 'Balloons' });
+    hub.setCategory(id, mine);
+    expect(hub.categoryFor(hub.item(id)!).category).toBe(mine);
+    hub.removeAisle('grocery', mine);
+    expect(hub.aisleOrder('grocery')).not.toContain(mine);
+    expect(hub.categoryFor(hub.item(id)!).category).not.toBe(mine);
+  });
+});

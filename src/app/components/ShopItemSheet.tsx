@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { categoryMeta, categoryOrder } from '../../smart/categorize';
 import { aisleIcon } from '../aisles';
 import { useHub } from '../context';
 import { Icon } from '../ui/Icon';
@@ -28,7 +27,8 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
   const list = hub.list(item.listId);
   const flavor = hub.flavorOf(list);
   const { category } = hub.categoryFor(item);
-  const meta = categoryMeta(flavor, category);
+  const am = hub.aisleMeta(flavor, category);
+  const meta = { en: am.name, e: am.emoji };
   const editable = hub.canEdit(item);
   const vis = itemVisChoice(hub, item);
   const partner = hub.partner();
@@ -85,10 +85,10 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
                 hub.setCategory(id, c);
                 setOpen(null);
               }}
-              options={categoryOrder(flavor).map((c) => {
-                const m = categoryMeta(flavor, c);
+              options={hub.aisleOrder(flavor).map((c) => {
+                const m = hub.aisleMeta(flavor, c);
                 const i = aisleIcon(flavor, c);
-                return { value: c, label: i ? m.en : `${m.e} ${m.en}`, icon: i };
+                return { value: c, label: i ? m.name : `${m.emoji} ${m.name}`, icon: i };
               })}
             />
           </Panel>

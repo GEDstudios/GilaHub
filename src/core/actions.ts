@@ -1,9 +1,9 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type Idea, type Item, type Moment, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { LINE_COLORS, type AisleConf, type Idea, type Item, type Moment, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
-import { categorize, routeFlavor, type Flavor } from '../smart/categorize';
+import { categorize, categoryMeta, categoryOrder, routeFlavor, type Flavor } from '../smart/categorize';
 import { fold, itemKey, parseQuantity } from '../smart/normalize';
 import { suggestIcon } from './projectIcons';
 import { firstDue, isFlexible, nextDue, shiftForAway, skipDue } from '../smart/recurrence';
@@ -792,6 +792,79 @@ export class Hub {
 
   settings() {
     return this.store.get('settings', 'house');
+  }
+
+  // ---------- aisles (shopping categories, ours to name and order) ----------
+
+  private aisleConf(flavor: Flavor): AisleConf[] {
+    const s = this.settings();
+    const raw = flavor === 'grocery' ? s?.groceryAisles : s?.homeAisles;
+    return Array.isArray(raw) ? raw.filter((a) => a && typeof a.id === 'string') : [];
+  }
+
+  /** The aisles in our walking order: ours as arranged, then any built-in ones not placed yet. */
+  aisleOrder(flavor: Flavor): string[] {
+    const conf = this.aisleConf(flavor).map((a) => a.id);
+    const seen = new Set(conf);
+    return [...conf, ...categoryOrder(flavor).filter((c) => !seen.has(c))];
+  }
+
+  /** An aisle's name and emoji: ours if we renamed it or made it, else the built-in one. */
+  aisleMeta(flavor: Flavor, category: string): { name: string; emoji: string; custom: boolean } {
+    const mine = this.aisleConf(flavor).find((a) => a.id === category);
+    const builtIn = !category.startsWith('c:');
+    const meta = categoryMeta(flavor, builtIn ? category : 'other');
+    return { name: mine?.name || (builtIn ? meta.en : 'Aisle'), emoji: mine?.emoji || (builtIn ? meta.e : '🏷️'), custom: !builtIn };
+  }
+
+  private saveAisles(flavor: Flavor, conf: AisleConf[]): void {
+    this.store.mutate('settings', 'house', flavor === 'grocery' ? { groceryAisles: conf } : { homeAisles: conf });
+  }
+
+  /** Our whole order (ids as they now read), keeping names. */
+  arrangeAisles(flavor: Flavor, ids: string[]): void {
+    const byId = new Map(this.aisleConf(flavor).map((a) => [a.id, a]));
+    this.saveAisles(
+      flavor,
+      ids.map((id) => byId.get(id) ?? { id }),
+    );
+  }
+
+  renameAisle(flavor: Flavor, id: string, name: string): void {
+    const order = this.aisleOrder(flavor);
+    const byId = new Map(this.aisleConf(flavor).map((a) => [a.id, a]));
+    const t = name.trim();
+    this.saveAisles(
+      flavor,
+      order.map((x) => {
+        const a = { ...(byId.get(x) ?? { id: x }) };
+        if (x === id) a.name = t || undefined;
+        return a;
+      }),
+    );
+  }
+
+  /** A new aisle of our own, at the end of the walk. Returns its id. */
+  addAisle(flavor: Flavor, name: string): string | null {
+    const t = name.trim();
+    if (!t) return null;
+    const id = `c:${newId(10)}`;
+    const byId = new Map(this.aisleConf(flavor).map((a) => [a.id, a]));
+    this.saveAisles(flavor, [...this.aisleOrder(flavor).map((x) => byId.get(x) ?? { id: x }), { id, name: t }]);
+    return id;
+  }
+
+  /** Take away one of our own aisles; what was in it goes back to being sorted by itself. */
+  removeAisle(flavor: Flavor, id: string): void {
+    if (!id.startsWith('c:')) return;
+    this.store.batch(() => {
+      for (const i of this.store.all('item')) if (i.category === id) this.store.mutate('item', i.id, { category: null });
+      for (const m of this.store.all('memory')) if (m.category === id) this.store.mutate('memory', m.id, { category: 'other' });
+      this.saveAisles(
+        flavor,
+        this.aisleConf(flavor).filter((a) => a.id !== id),
+      );
+    });
   }
 
   isAway(): boolean {

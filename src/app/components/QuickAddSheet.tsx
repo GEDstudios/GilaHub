@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Item } from '../../core/model';
-import { categoryMeta, suggestFromCatalog } from '../../smart/categorize';
+import { suggestFromCatalog } from '../../smart/categorize';
 import { splitPasted } from '../../smart/normalize';
 import { composerPlaceholder, splitSteps, type AddMode } from '../compose';
 import { useHub } from '../context';
@@ -171,9 +171,9 @@ function Composer({
 
   let sub: string;
   if (shopping) {
-    const aisle = title && dest ? categoryMeta(hub.flavorOf(dest), hub.categoryFor({ title, listId: dest.id } as Item).category) : null;
+    const aisle = title && dest ? hub.aisleMeta(hub.flavorOf(dest), hub.categoryFor({ title, listId: dest.id } as Item).category) : null;
     const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
-    sub = aisle ? [aisle.en, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
+    sub = aisle ? [aisle.name, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
   } else if (c.parent) {
     sub = `A subtask of ${c.parent.title}`;
   } else {
