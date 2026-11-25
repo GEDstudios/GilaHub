@@ -21,6 +21,7 @@ export interface NewItem {
   repeat?: Item['repeat'];
   assignee?: Item['assignee'];
   urgent?: boolean;
+  low?: boolean;
   qty?: string | null;
   visibility?: ItemVisibility;
   /** For "Mine": whose it is (default: me, or the project's owner). Lets me make something my partner's. */
@@ -406,6 +407,7 @@ export class Hub {
       assignee: input.assignee ?? null,
       turn: input.assignee === 'turns' ? this.meId : null,
       urgent: input.urgent ?? false,
+      low: !input.urgent && !!input.low,
       urgentBy: input.urgent ? this.meId : null,
       qty: input.qty ?? null,
       // Added to someone's "Mine" project: it's still theirs — unless I say whose it is.

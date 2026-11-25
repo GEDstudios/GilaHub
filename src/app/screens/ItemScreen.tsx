@@ -277,6 +277,7 @@ export function ItemScreen({ id }: { id: string }) {
     remind: item.remind ?? null,
     assignee: item.assignee ?? null,
     urgent: !!item.urgent,
+    low: !!item.low,
     visibility: visChoice,
     needsOk: !!item.needsOk,
   };

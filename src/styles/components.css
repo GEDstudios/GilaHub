@@ -2010,6 +2010,17 @@ html.is-dragging * {
   color: inherit;
 }
 
+/* Low priority: quieter, and its row sinks */
+.echip.is-low {
+  background: var(--card);
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1.5px var(--tile-2);
+}
+
+.row.is-low .row__title {
+  color: var(--text-3);
+}
+
 .echip.is-urgent {
   background: var(--lemon);
   color: var(--ink);

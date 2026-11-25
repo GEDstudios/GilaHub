@@ -90,7 +90,7 @@ export const ItemRow = memo(function ItemRow({
       {...dragProps}
       data-settle={item.id}
       data-id={item.id}
-      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh row--flash' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.low && !item.done ? 'is-low' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh row--flash' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
       <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />
