@@ -3,9 +3,15 @@ import type { LineColor } from '../core/model';
 import type { Route } from './router';
 import type { IconName } from './ui/Icon';
 
-/** Between Today and Projects you choose up to three: Shopping, Chores, or any project. */
-export const MAX_PINS = 3;
+/**
+ * Between Today and Projects you pin as many as you like: Shopping, Chores, Search or any
+ * project. Past 5 tabs the bar goes icons-only, past 7 it docks and scrolls (barDensity), and
+ * holding it lets you slide to pick. 24 is a sanity cap, not a design limit.
+ */
+export const MAX_PINS = 24;
 export const DEFAULT_PINS = ['shop', 'chores'];
+/** Tabs that still fit with their labels. */
+export const COMFY_TABS = 5;
 
 export interface TabDef {
   key: string;
@@ -17,33 +23,57 @@ export interface TabDef {
   glyph?: string;
 }
 
+/**
+ * How the bar lays out n tabs (Today and Projects included):
+ *   comfy  up to 5: icon and label
+ *   snug   6–7: icons only, the active tab shows its label
+ *   dock   8 or more: Today and Projects stay put around a scrolling middle
+ */
+export type BarDensity = 'comfy' | 'snug' | 'dock';
+
+export function barDensity(n: number): BarDensity {
+  if (n <= COMFY_TABS) return 'comfy';
+  return n <= 7 ? 'snug' : 'dock';
+}
+
 export function pinOptions(hub: Hub): TabDef[] {
   return [
     { key: 'shop', label: 'Shopping', path: '/shop', icon: 'basket' },
     { key: 'chores', label: 'Chores', path: '/chores', icon: 'sparkle' },
+    { key: 'search', label: 'Search', path: '/search', icon: 'search' },
     ...hub.lists().map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
 }
 
+/** Known keys only, each once, in order, at most MAX_PINS (pure, for tests). */
+export function cleanPins(raw: readonly string[], valid: ReadonlySet<string>): string[] {
+  const seen = new Set<string>();
+  for (const k of raw) {
+    if (seen.size >= MAX_PINS) break;
+    if (valid.has(k)) seen.add(k);
+  }
+  return [...seen];
+}
+
+const validKeys = (hub: Hub) => new Set(pinOptions(hub).map((t) => t.key));
+
 export function pinsOf(hub: Hub): string[] {
-  const raw = hub.me()?.tabs ?? DEFAULT_PINS;
-  const valid = new Set(pinOptions(hub).map((t) => t.key));
-  return raw.filter((k) => valid.has(k)).slice(0, MAX_PINS);
+  return cleanPins(hub.me()?.tabs ?? DEFAULT_PINS, validKeys(hub));
 }
 
 export function setPins(hub: Hub, pins: string[]): void {
-  hub.upsertMember(hub.meId, { tabs: pins.slice(0, MAX_PINS) });
+  hub.upsertMember(hub.meId, { tabs: cleanPins(pins, validKeys(hub)) });
 }
 
+/** Pin or unpin; returns whether it is pinned now. New pins go last, just before Projects. */
 export function togglePin(hub: Hub, key: string): boolean {
   const pins = pinsOf(hub);
   if (pins.includes(key)) {
     setPins(hub, pins.filter((k) => k !== key));
     return false;
   }
-  if (pins.length >= MAX_PINS) return false;
   setPins(hub, [...pins, key]);
-  return true;
+  return pinsOf(hub).includes(key);
 }
 
 /** The whole bar: Today, your pins, Projects. */
@@ -74,6 +104,8 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
       return 'shop';
     case 'chores':
       return 'chores';
+    case 'search':
+      return 'search';
     case 'lists':
       return 'projects';
     case 'list':

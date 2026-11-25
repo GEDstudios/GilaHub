@@ -36,7 +36,7 @@ Hebrew falls back to Heebo (UI) and Frank Ruhl Libre (display). Every user strin
 | **Panel** | Opens under the whole chip row, full width: white, radius 22, soft shadow, with 36 px option pills (the chosen one is black) and at most one quiet line of explanation. |
 | **Row tags** | 22 px word pills in a row's meta (`ui/tags.tsx`): lemon **Urgent** with its lightning (in the trail); **whose** only when it differs from the project: an ink "Only me" with a lock, "Mine" in my soft color, "Hila's" in hers, "Ours" in gray inside a Mine project; **who asked whom** in the other person's soft color with Tasky's cursor ("Hila asked", "Asked Hila", "Hila did it · OK?"). The row's avatar is the doer, never the owner. |
 | **Strips** | Overlapping bands (−16 px) with a big serif number and a small label. |
-| **Tab bar** | A floating white bar, 4 tabs, no central button. On desktop, a light sidebar with a black "New" pill. |
+| **Tab bar** | A floating white bar ([`TabBarView`](../src/app/components/TabBarView.tsx)): Today, your pins, Projects, no central button and no limit. A soft gray pill marks the active tab. Up to 5 tabs show icon and label; 6–7 show icons only and the active one rises to show its name; 8 or more dock: Today and Projects stay put around a middle that scrolls sideways, fades at its edges and keeps the active tab centered. Hidden on Settings, which previews it. On desktop, a light sidebar with a black "New" pill lists the same tabs. |
 | **Sheets** | Bottom sheets with radius 30 and a serif title. They're used for "New", project settings and pickers. Never a sheet on a sheet: a choice inside a sheet opens as an inline panel. |
 
 ### Adding
@@ -98,9 +98,10 @@ Every icon is an **ink line** and a solid **light** behind it, drawn from Phosph
 
 - **Drag to reorder** is one component, [`ui/Sortable.tsx`](../src/app/ui/Sortable.tsx), for rows, steps, aisles, folders and the Settings arrangers. A long-press (220 ms) lifts a row on a phone; a grip starts after 3 px. The lifted copy floats above everything at 1.035×, leans 1.5° and tilts up to ±3° with the finger's speed, with a deep shadow (`--lift-3`). Folders keep their own tilt and add 3°. The spot it left is a dashed slot; neighbours slide over 260 ms with a little overshoot, and the drop settles in 320 ms. A shopping row stays in its aisle: pull it out and the aisle shakes no.
 - **Ticking** ([`ui/useSettle.ts`](../src/app/ui/useSettle.ts)): the ring pops, the tick draws itself, a line strikes the title, and the row folds away after about half a second. The data changes at once; only the row waits.
+- **Hold and slide** ([`TabBar.tsx`](../src/app/components/TabBar.tsx)): hold the bar still for 240 ms and slide. The tab under the finger lights up, swells with its neighbours (`--d`) and is named in a black bubble; letting go goes there, lifting the finger 72 px above the bar cancels. Near a dock edge the middle scrolls by itself. A tap is still instant and a quick swipe still scrolls the dock. The first time the bar holds 6 or more, it says so once: "Hold and slide to pick".
 - **Haptics** ([`ui/haptics.ts`](../src/app/ui/haptics.ts)): `haptic('select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn')`, off with the device's Haptics switch in Settings.
-- With reduced motion there is no tilt, scale or overshoot; the shadow and the slot stay.
+- With reduced motion there is no tilt, scale or overshoot; the shadow and the slot stay. The bar's pill doesn't slide and nothing swells while scrubbing.
 
 ## Accessibility
 
-Ink on every palette color passes WCAG AA, and so does every text gray (4.5:1 or more on the canvas and on tiles). The lightest gray is kept for placeholders and decoration. Color dots carry a darker rim of their own hue so lemon still shows on gray. Visible focus rings, 44 px minimum touch targets on checks, and desktop shortcuts (`N`, `/`, `1–4`).
+Ink on every palette color passes WCAG AA, and so does every text gray (4.5:1 or more on the canvas and on tiles). The lightest gray is kept for placeholders and decoration. Color dots carry a darker rim of their own hue so lemon still shows on gray. Visible focus rings, 44 px minimum touch targets on checks, and desktop shortcuts (`N`, `/`, `1–9` for the tabs).

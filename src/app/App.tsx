@@ -5,7 +5,8 @@ import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
 import { QuickAddSheet } from './components/QuickAddSheet';
-import { RuntimeProvider, useHub, usePartnerShopping, useRt } from './context';
+import { TabBar } from './components/TabBar';
+import { RuntimeProvider, useHub, useRt } from './context';
 import { usePrefs } from './prefs';
 import { LocalReminders, ReminderSync } from './reminders';
 import { navigate, useRoute } from './router';
@@ -23,7 +24,7 @@ import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
 import { lightVar, Logo } from './ui/primitives';
 import { ProjectMark } from './ui/ProjectMark';
-import { activeTabKey, tabsOf, type TabDef } from './tabs';
+import { activeTabKey, tabsOf } from './tabs';
 import { openCount, todayRef, todayView } from './views';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
@@ -32,40 +33,6 @@ type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | 
 function useAdd() {
   const { openSheet } = useOverlays();
   return () => runAdd(() => openSheet((close) => <QuickAddSheet onClose={close} />));
-}
-
-function TabIcon({ t }: { t: TabDef }) {
-  return t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} />;
-}
-
-function TabBar() {
-  const route = useRoute();
-  const hub = useHub();
-  const shopping = usePartnerShopping();
-  const tabs = tabsOf(hub);
-  const on = activeTabKey(hub, route);
-  return (
-    <nav className="tabbar" aria-label="Main" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
-      {tabs.map((t) => (
-        <a
-          key={t.key}
-          href={t.path}
-          className={`tab ${on === t.key ? 'is-on' : ''}`}
-          aria-current={on === t.key ? 'page' : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            navigate(t.path);
-          }}
-        >
-          <TabIcon t={t} />
-          <span className="tab__label" dir="auto">
-            {t.label}
-          </span>
-          {t.key === 'shop' && shopping ? <span className="tab__live live" /> : null}
-        </a>
-      ))}
-    </nav>
-  );
 }
 
 function Sidebar() {
@@ -93,14 +60,16 @@ function Sidebar() {
             <span className="navitem__label" dir="auto">
               {t.label}
             </span>
-            {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : null}
+            {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : t.key === 'search' ? <span className="navitem__count kbd">/</span> : null}
           </button>
         ))}
-        <button type="button" className={`navitem ${route.name === 'search' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'search' })}>
-          <Icon name="search" />
-          <span className="navitem__label">Search</span>
-          <span className="navitem__count kbd">/</span>
-        </button>
+        {tabs.some((t) => t.key === 'search') ? null : (
+          <button type="button" className={`navitem ${route.name === 'search' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'search' })}>
+            <Icon name="search" />
+            <span className="navitem__label">Search</span>
+            <span className="navitem__count kbd">/</span>
+          </button>
+        )}
       </nav>
       <div className="sidebar__label">Projects</div>
       <nav className="sidebar__nav">
@@ -255,13 +224,15 @@ function Duties() {
 }
 
 function Shell() {
+  // Settings arranges the bar and shows its own preview, so the floating one steps aside there.
+  const route = useRoute();
   return (
     <div className="app">
       <Sidebar />
       <main className="main">
         <Screen />
       </main>
-      <TabBar />
+      {route.name === 'settings' ? null : <TabBar />}
       <Duties />
     </div>
   );

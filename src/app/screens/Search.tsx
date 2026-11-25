@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { ItemRow } from '../components/ItemRow';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
+import { pinsOf } from '../tabs';
 import { Icon } from '../ui/Icon';
 import { Band, Empty, ListBullet } from '../ui/primitives';
+import { SyncBadge } from './Today';
 import { fold } from '../../smart/normalize';
 
 export function Search() {
@@ -13,7 +15,8 @@ export function Search() {
   const lists = q.trim() ? hub.lists().filter((l) => fold(l.name).includes(fold(q))) : [];
   return (
     <>
-      <Band title="Search" onBack={() => back({ name: 'today' })} />
+      {/* Pinned to the bar, Search is a tab like the others: your avatar on top, no way back. */}
+      {pinsOf(hub).includes('search') ? <Band top={<SyncBadge />} title="Search" /> : <Band title="Search" onBack={() => back({ name: 'today' })} />}
       <div className="column">
         <div className="searchbar">
           <Icon name="search" className="icon--sm" />

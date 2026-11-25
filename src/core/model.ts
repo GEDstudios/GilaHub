@@ -23,7 +23,7 @@ export interface Member {
   createdAt: number;
   /** Wants a push when the partner starts shopping (default on). */
   shopAlerts?: boolean;
-  /** My bottom bar, between Today and Projects: 'shop', 'chores' or 'l:<listId>'. */
+  /** My bottom bar, between Today and Projects, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
   tabs?: string[];
 }
 

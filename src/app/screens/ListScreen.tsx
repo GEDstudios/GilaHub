@@ -10,7 +10,7 @@ import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Empty, IconButton, lineVars, NewButton, Switch } from '../ui/primitives';
-import { MAX_PINS, pinsOf, togglePin } from '../tabs';
+import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { openCount } from '../views';
 import { Chores } from './Chores';
@@ -67,7 +67,9 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
               on={pinned}
               label="Show in bottom bar"
               onChange={() => {
-                if (!togglePin(hub, `l:${listId}`) && !pinned) toast(`The bar has room for ${MAX_PINS}. Remove one in Settings.`);
+                const before = pinsOf(hub);
+                const now = togglePin(hub, `l:${listId}`);
+                toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
               }}
             />
           }

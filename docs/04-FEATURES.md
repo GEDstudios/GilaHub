@@ -6,7 +6,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 - **●** Onboarding is two light steps: your name and color, then the projects you want (four starters, or start empty). No account, no email, no tour.
 - **●** A new item is a circle and a title. Details stay out of sight until the item is opened.
-- **●** A bottom bar you arrange: **Today**, then up to three of your choice (Shopping, Chores, or any project), then **Projects**. Change it in Settings, or with "Show in bottom bar" on any project. It follows you across your own devices.
+- **●** A bottom bar you arrange: **Today**, then as many as you like (Shopping, Chores, Search or any project), then **Projects**. Change it in Settings, or with "Show in bottom bar" on any project. When it gets crowded it goes icons-only, then scrolls; hold it and slide to pick a tab. It follows you across your own devices.
 - **●** Two ways to add, the same on every screen: the add row in each list, and **New** (the black "+" at the top right, or `N` on desktop), which opens a sheet pointed at where you are.
 - **●** Today links straight to what's due: tap a project tag or a project name to open it.
 - **●** Quick add shows what it understood as chips. Tap a chip to undo it. **New** shows a live color card that says, in one sentence, what you're adding.
