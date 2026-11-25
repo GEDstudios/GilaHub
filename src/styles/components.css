@@ -2056,6 +2056,17 @@ html.is-dragging * {
   border-color: transparent;
 }
 
+/* An on/off chip (In the bar): on is solid ink with a check, off is a dashed "Add to…" */
+.echip--toggle.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+  animation: pop 240ms var(--spring) both;
+}
+
+.echip--toggle.is-on .icon {
+  color: inherit;
+}
+
 /* A chip's panel opens below the whole chip row, full width */
 .inline__chips > .panel {
   order: 1;

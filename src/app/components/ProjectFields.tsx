@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { LineColor, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
 import { useHub } from '../context';
 import { LIST_VIS, visHint, visLabel, VIS_ICON } from '../privacy';
+import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
 import { parseGlyph, showsGlyph } from '../ui/ProjectMark';
 import { lineVars } from '../ui/primitives';
@@ -124,9 +125,18 @@ export function ProjectFields({
             ) : null}
           </>
         ) : null}
-        <button type="button" className={`echip ${value.pinned ? 'is-set' : ''}`} aria-pressed={value.pinned} onClick={() => onChange({ pinned: !value.pinned })}>
-          <Icon name="pin" className="icon--sm" />
-          <span>In bar</span>
+        {/* Off: a dashed "Add to bar". On: a solid "In the bar" with a check, so it reads at a glance. */}
+        <button
+          type="button"
+          className={`echip echip--toggle ${value.pinned ? 'is-on' : 'echip--ghost'}`}
+          aria-pressed={value.pinned}
+          onClick={() => {
+            haptic(value.pinned ? 'select' : 'tick');
+            onChange({ pinned: !value.pinned });
+          }}
+        >
+          <Icon name={value.pinned ? 'check' : 'plus'} className="icon--sm" />
+          <span>{value.pinned ? 'In the bar' : 'Add to bar'}</span>
         </button>
       </div>
     </div>
