@@ -63,7 +63,8 @@ describe('Hub: household & privacy', () => {
     const seen = hila.item(id)!;
     expect(seen.title).toBe('Supper: lentil soup');
     expect(hila.canEdit(seen)).toBe(true);
-    expect(hila.canSetPrivacy(seen)).toBe(false);
+    // Either of us can make a shared thing ours, mine or theirs again; Only me stays the owner's alone.
+    expect(hila.canSetPrivacy(seen)).toBe(true);
     expect(guy.canEdit(guy.item(id)!)).toBe(true);
     expect(guy.canSetPrivacy(guy.item(id)!)).toBe(true);
   });
