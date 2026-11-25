@@ -86,8 +86,8 @@ export function ProjectFields({
                       value={value.flavor ?? 'grocery'}
                       onPick={(f) => onChange({ flavor: f })}
                       options={[
-                        { value: 'grocery', label: 'By aisle' },
-                        { value: 'home', label: 'By department' },
+                        { value: 'grocery', label: 'Grocery categories' },
+                        { value: 'home', label: 'Home categories' },
                       ]}
                     />
                   </div>

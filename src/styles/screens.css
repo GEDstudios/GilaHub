@@ -1075,6 +1075,29 @@ button.projcard:active {
   padding: 0 6px 0 14px;
 }
 
+.aislearr__row.is-picking {
+  flex-wrap: wrap;
+}
+
+.aislearr__markbtn {
+  width: 40px;
+  height: 40px;
+  margin-left: -8px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.aislearr__markbtn:active,
+.aislearr__row.is-picking .aislearr__markbtn {
+  background: var(--tile);
+}
+
+.aislearr__pick {
+  flex: 0 0 100%;
+  padding: 4px 4px 12px 0;
+}
+
 .aislearr__mark {
   width: 24px;
   display: grid;

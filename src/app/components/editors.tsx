@@ -398,7 +398,7 @@ export function InlineEditor({
           aria-pressed={!!value.low}
           disabled={readOnly}
         >
-          <Icon name="chevron-down" className="icon--sm" />
+          <Icon name="low" className="icon--sm" />
           <span>Low</span>
         </button>,
       );

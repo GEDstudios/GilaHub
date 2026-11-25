@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import type { Flavor } from '../../smart/categorize';
-import { aisleIcon } from '../aisles';
+import { categoryMark } from '../aisles';
+import { IconPicker } from './IconPicker';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
@@ -8,9 +9,10 @@ import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 
 /**
- * Arrange aisles, on Shopping itself: the aisles in your walk through the store, as rows you
- * drag into order; tap a name to rename it; add aisles of your own at the end (and take them
- * away again with ×). Each change saves at once and shows for both of you.
+ * Arrange categories, on Shopping itself: the categories in your walk through the store, as
+ * rows you drag into order; tap a name to rename it, tap its icon to pick another; add
+ * categories of your own at the end (and take them away again with ×). Each change saves at
+ * once and shows for both of you.
  */
 export function AisleArrange({ flavors, counts, onDone }: { flavors: Array<{ flavor: Flavor; name: string }>; counts: Map<string, number>; onDone: () => void }) {
   return (
@@ -71,8 +73,8 @@ function FlavorAisles({ flavor, name, counts }: { flavor: Flavor; name: string |
               add();
             }
           }}
-          placeholder="New aisle"
-          aria-label={`New aisle${name ? ` in ${name}` : ''}`}
+          placeholder="New category"
+          aria-label={`New category${name ? ` in ${name}` : ''}`}
         />
         {fresh.trim() ? (
           <button type="button" className="btn btn--sm composer__stepgo" onMouseDown={(e) => e.preventDefault()} onClick={add}>
@@ -86,8 +88,8 @@ function FlavorAisles({ flavor, name, counts }: { flavor: Flavor; name: string |
 
 function Mark({ flavor, id }: { flavor: Flavor; id: string }) {
   const hub = useHub();
-  const icon = aisleIcon(flavor, id);
-  return <span className="aislearr__mark">{icon ? <Icon name={icon} /> : <span aria-hidden="true">{hub.aisleMeta(flavor, id).emoji}</span>}</span>;
+  const m = categoryMark(hub, flavor, id);
+  return <span className="aislearr__mark">{m.icon ? <Icon name={m.icon} /> : <span aria-hidden="true">{m.emoji}</span>}</span>;
 }
 
 function AisleRow({ flavor, id, n, onRemove }: { flavor: Flavor; id: string; n: number; onRemove: () => void }) {
@@ -95,13 +97,16 @@ function AisleRow({ flavor, id, n, onRemove }: { flavor: Flavor; id: string; n: 
   const s = useSortableItem(id);
   const meta = hub.aisleMeta(flavor, id);
   const [name, setName] = useState(meta.name);
+  const [picking, setPicking] = useState(false);
   const save = () => {
     if (name.trim() && name.trim() !== meta.name) hub.renameAisle(flavor, id, name);
     else setName(meta.name);
   };
   return (
-    <li ref={s.ref} style={s.style as CSSProperties} className={`row aislearr__row ${s.className}`} {...s.props}>
-      <Mark flavor={flavor} id={id} />
+    <li ref={s.ref} style={s.style as CSSProperties} className={`row aislearr__row ${picking ? 'is-picking' : ''} ${s.className}`} {...s.props}>
+      <button type="button" className="aislearr__markbtn" aria-label={`Icon for ${meta.name}`} aria-expanded={picking} onClick={() => setPicking(!picking)}>
+        <Mark flavor={flavor} id={id} />
+      </button>
       <input
         className="aislearr__name"
         value={name}
@@ -120,6 +125,18 @@ function AisleRow({ flavor, id, n, onRemove }: { flavor: Flavor; id: string; n: 
       <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="homecard__grip" aria-label={`Move ${meta.name}`}>
         <Icon name="grip" />
       </button>
+      {picking ? (
+        <div className="aislearr__pick">
+          <IconPicker
+            value={meta.icon}
+            color="lemon"
+            onChange={(icon) => {
+              hub.setAisleIcon(flavor, id, icon);
+              setPicking(false);
+            }}
+          />
+        </div>
+      ) : null}
     </li>
   );
 }

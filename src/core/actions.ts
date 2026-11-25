@@ -877,11 +877,20 @@ export class Hub {
   }
 
   /** An aisle's name and emoji: ours if we renamed it or made it, else the built-in one. */
-  aisleMeta(flavor: Flavor, category: string): { name: string; emoji: string; custom: boolean } {
+  aisleMeta(flavor: Flavor, category: string): { name: string; emoji: string; icon?: string; custom: boolean } {
     const mine = this.aisleConf(flavor).find((a) => a.id === category);
     const builtIn = !category.startsWith('c:');
     const meta = categoryMeta(flavor, builtIn ? category : 'other');
-    return { name: mine?.name || (builtIn ? meta.en : 'Aisle'), emoji: mine?.emoji || (builtIn ? meta.e : '🏷️'), custom: !builtIn };
+    return { name: mine?.name || (builtIn ? meta.en : 'Category'), emoji: mine?.emoji || (builtIn ? meta.e : '🏷️'), icon: mine?.icon, custom: !builtIn };
+  }
+
+  /** Our icon for a category: "i:<glyph>" or an emoji. */
+  setAisleIcon(flavor: Flavor, id: string, icon: string): void {
+    const byId = new Map(this.aisleConf(flavor).map((a) => [a.id, a]));
+    this.saveAisles(
+      flavor,
+      this.aisleOrder(flavor).map((x) => (x === id ? { ...(byId.get(x) ?? { id: x }), icon } : (byId.get(x) ?? { id: x }))),
+    );
   }
 
   private saveAisles(flavor: Flavor, conf: AisleConf[]): void {

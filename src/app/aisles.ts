@@ -1,3 +1,4 @@
+import type { Hub } from '../core/actions';
 import type { Flavor } from '../smart/categorize';
 import type { IconName } from './ui/Icon';
 
@@ -36,3 +37,14 @@ const HOME: Partial<Record<string, IconName>> = {
 
 /** An aisle's glyph; only learned or custom categories (no glyph) keep their emoji. */
 export const aisleIcon = (flavor: Flavor, category: string): IconName | undefined => (flavor === 'grocery' ? GROCERY : HOME)[category];
+
+/**
+ * How a category is drawn: our picked icon ("i:<glyph>" or an emoji) first, then the built-in
+ * glyph, then its emoji.
+ */
+export function categoryMark(hub: Hub, flavor: Flavor, category: string): { icon?: IconName; emoji: string } {
+  const meta = hub.aisleMeta(flavor, category);
+  if (meta.icon?.startsWith('i:')) return { icon: meta.icon.slice(2) as IconName, emoji: meta.emoji };
+  if (meta.icon) return { emoji: meta.icon };
+  return { icon: aisleIcon(flavor, category), emoji: meta.emoji };
+}

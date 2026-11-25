@@ -199,6 +199,8 @@ export interface AisleConf {
   id: string;
   name?: string;
   emoji?: string;
+  /** Our pick of icon: "i:<glyph>" or an emoji (as projects have). */
+  icon?: string;
 }
 
 /** Learned category for a normalized item name — shared by both partners. */

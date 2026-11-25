@@ -25,7 +25,7 @@ import { heroVis, ProjectChips, ProjectHero, ProjectMenuButton } from './ListScr
 import { NewProjectSheet } from './Lists';
 import { SyncBadge } from '../components/SyncBadge';
 import { shoppingView } from '../views';
-import { aisleIcon } from '../aisles';
+import { categoryMark } from '../aisles';
 
 type Row = Item & { emoji: string };
 
@@ -361,8 +361,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
                     key: g.key,
                     label: g.label,
                     items: g.items,
-                    icon: aisleIcon(g.flavor, g.category),
-                    emoji: g.emoji,
+                    icon: categoryMark(hub, g.flavor, g.category).icon,
+                    emoji: categoryMark(hub, g.flavor, g.category).emoji,
                     showList: many && !one,
                     dot: many && one && twins ? hub.list(g.items[0].listId) : undefined,
                   };
@@ -380,7 +380,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             <div className="homeedit">
               <button type="button" className="textbtn" onClick={() => setArranging(true)}>
                 <Icon name="layout" />
-                Arrange aisles
+                Arrange categories
               </button>
             </div>
           ) : null}

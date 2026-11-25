@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { aisleIcon } from '../aisles';
+import { categoryMark } from '../aisles';
 import { useHub } from '../context';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
@@ -35,7 +35,8 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
   const lists = hub.shoppingLists();
   const qtyNum = item.qty && /^\d+$/.test(item.qty) ? +item.qty : null;
   const toggle = (k: Exclude<Open, null>) => setOpen(open === k ? null : k);
-  const icon = aisleIcon(flavor, category);
+  const mark = categoryMark(hub, flavor, category);
+  const icon = mark.icon;
 
   const commitTitle = () => {
     const t = title.trim();
@@ -71,7 +72,7 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
         <EChip
           label={meta.en}
           icon={icon}
-          lead={icon ? undefined : <span aria-hidden="true">{meta.e}</span>}
+          lead={icon ? undefined : <span aria-hidden="true">{mark.emoji}</span>}
           set
           open={open === 'aisle'}
           onToggle={() => toggle('aisle')}
@@ -87,8 +88,8 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
               }}
               options={hub.aisleOrder(flavor).map((c) => {
                 const m = hub.aisleMeta(flavor, c);
-                const i = aisleIcon(flavor, c);
-                return { value: c, label: i ? m.name : `${m.emoji} ${m.name}`, icon: i };
+                const k = categoryMark(hub, flavor, c);
+                return { value: c, label: k.icon ? m.name : `${k.emoji} ${m.name}`, icon: k.icon };
               })}
             />
           </Panel>
