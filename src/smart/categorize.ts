@@ -13,6 +13,7 @@ export const GROCERY_ORDER: GroceryCategory[] = [
   'meat',
   'deli',
   'pantry',
+  'spices',
   'snacks',
   'frozen',
   'drinks',

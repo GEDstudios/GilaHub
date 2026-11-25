@@ -50,7 +50,7 @@ const MAP = {
   suitcase: ['suitcase-rolling', 'duo'],
   // grocery aisles
   carrot: ['carrot', 'duo'], bread: ['bread', 'duo'], cheese: ['cheese', 'duo'], fish: ['fish', 'duo'],
-  bowl: ['bowl-food', 'duo'], jar: ['jar-label', 'duo'], cookie: ['cookie', 'duo'], snowflake: ['snowflake', 'duo'],
+  bowl: ['bowl-food', 'duo'], jar: ['jar-label', 'duo'], pepper: ['pepper', 'duo'], cookie: ['cookie', 'duo'], snowflake: ['snowflake', 'duo'],
   drink: ['pint-glass', 'duo'], spray: ['spray-bottle', 'duo'], soap: ['hand-soap', 'duo'],
   // home departments
   bath: ['bathtub', 'duo'], bed: ['bed', 'duo'], armchair: ['armchair', 'duo'], package: ['package', 'duo'],
