@@ -152,10 +152,10 @@ export class Household extends DurableObject<Env> {
     }
 
     if (action === 'notify' && req.method === 'POST') {
-      const body = (await req.json()) as { members: string[]; payload: string; topic?: string };
+      const body = (await req.json()) as { members: string[]; payload: string; topic?: string; dev?: string };
       if (!body.payload || body.payload.length > 3000) return json({ error: 'bad payload' }, 400);
-      const sent = await this.pushTo(body.members, body.payload, { urgency: 'high', ttl: 3600, topic: body.topic });
-      return json({ ok: true, sent });
+      const r = await this.pushTo(body.members, body.payload, { urgency: 'high', ttl: 3600, topic: body.topic, dev: body.dev });
+      return json({ ok: true, ...r });
     }
 
     if (action === 'invite' && req.method === 'POST') {
@@ -304,18 +304,30 @@ export class Household extends DurableObject<Env> {
 
   // ---------- push & reminders ----------
 
-  private async pushTo(members: string[], payload: string, opts: { urgency?: 'normal' | 'high'; ttl?: number; topic?: string } = {}): Promise<number> {
+  private async pushTo(
+    members: string[],
+    payload: string,
+    opts: { urgency?: 'normal' | 'high'; ttl?: number; topic?: string; dev?: string } = {},
+  ): Promise<{ sent: number; tried: number; statuses: number[] }> {
     const subs = this.sql.exec<{ dev: string; member: string; sub: string }>('SELECT dev, member, sub FROM subs').toArray();
     const keys = await this.vapidKeys();
     const subject = this.kv('origin') ?? 'mailto:relay@gila-hub.invalid';
     let sent = 0;
+    let tried = 0;
+    const statuses: number[] = [];
     for (const s of subs) {
       if (!members.includes(s.member)) continue;
+      if (opts.dev && s.dev !== opts.dev) continue;
+      tried++;
       const res = await sendPush(JSON.parse(s.sub) as PushSub, payload, keys, subject, opts);
       if (res.gone) this.sql.exec('DELETE FROM subs WHERE dev = ?', s.dev);
       if (res.ok) sent++;
+      else {
+        statuses.push(res.status);
+        console.warn(`push refused: status ${res.status} host ${new URL((JSON.parse(s.sub) as PushSub).endpoint).host} ${res.reason ?? ''}`);
+      }
     }
-    return sent;
+    return { sent, tried, statuses };
   }
 
   private async scheduleAlarm(): Promise<void> {
