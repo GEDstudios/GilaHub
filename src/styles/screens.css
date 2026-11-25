@@ -1173,6 +1173,44 @@ span.aislearr__name {
   margin-bottom: 14px;
 }
 
+/* First thing on Shopping: one wide switch, all lists or one */
+.filter--top {
+  margin: -6px 0 18px;
+}
+
+.filter--top .seg {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Each choice gets its share of the width; a long name is cut, never scrolled */
+.filter--top .seg__btn {
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 5px;
+  padding: 0 8px;
+  justify-content: center;
+}
+
+/* "Both" needs only its word; the lists share the rest */
+.filter--top .seg__btn:first-child {
+  flex: 0 0 auto;
+  padding: 0 12px;
+}
+
+.filter--top .seg__btn > span[dir] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter__n {
+  margin-left: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
 .buyagain {
   margin-top: 20px;
 }

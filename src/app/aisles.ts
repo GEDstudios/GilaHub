@@ -46,5 +46,6 @@ export function categoryMark(hub: Hub, flavor: Flavor, category: string): { icon
   const meta = hub.aisleMeta(flavor, category);
   if (meta.icon?.startsWith('i:')) return { icon: meta.icon.slice(2) as IconName, emoji: meta.emoji };
   if (meta.icon) return { emoji: meta.icon };
-  return { icon: aisleIcon(flavor, category), emoji: meta.emoji };
+  // Our own categories wear a tag until we pick something else.
+  return { icon: aisleIcon(flavor, category) ?? (meta.custom ? 'tag' : undefined), emoji: meta.emoji };
 }

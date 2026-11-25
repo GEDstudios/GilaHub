@@ -12,7 +12,7 @@ import { notifyMembers } from '../runtime';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton } from '../ui/primitives';
+import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton, Seg } from '../ui/primitives';
 import { haptic } from '../ui/haptics';
 import { UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
@@ -79,22 +79,13 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
   const allLists = hub.shoppingLists();
-  // The Shopping tab shows the lists you pick (one, some or all of them). With just one picked
-  // it is that project, and looks like it.
-  const wanted = prefs.shopFilter === 'all' ? [] : prefs.shopFilter.split(',');
-  const picked = listId ? allLists.filter((l) => l.id === listId) : allLists.filter((l) => wanted.includes(l.id));
-  const shown = picked.length ? picked : listId ? [] : allLists;
-  const scoped = listId ? hub.list(listId) : shown.length === 1 ? shown[0] : undefined;
-  const lists = scoped ? [scoped] : shown;
-  const filter = lists.length === allLists.length && !listId ? 'all' : lists.map((l) => l.id).join(',');
-  /** Tap a list's chip: show it too, or not (never none). */
-  const togglePick = (id: string) => {
-    const on = new Set(lists.map((l) => l.id));
-    if (on.has(id)) on.delete(id);
-    else on.add(id);
-    if (!on.size) return;
-    setPrefs({ shopFilter: on.size === allLists.length ? 'all' : [...on].join(',') });
-  };
+  // A project page (or the only shopping list) is that project. The Shopping tab shows all the
+  // lists together, or one of them: picked at the very top.
+  const scoped = listId ? hub.list(listId) : allLists.length === 1 ? allLists[0] : undefined;
+  const pick = scoped ? scoped.id : allLists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
+  const lists = scoped ? [scoped] : pick === 'all' ? allLists : allLists.filter((l) => l.id === pick);
+  const filter = pick;
+  const openIn = (id: string) => hub.store.all('item').filter((i) => i.listId === id && !i.done && !i.archived && !i.parentId).length;
   const v = shoppingView(hub, filter, prefs.dismissed);
   const [mode, setMode] = useState(false);
   const [arranging, setArranging] = useState(false);
@@ -261,6 +252,20 @@ export function Shopping({ listId }: { listId?: string } = {}) {
         />
       )}
       <div className="column">
+        {/* Which list, first thing on the page: all of them together, or one, each with its count. */}
+        {!scoped && allLists.length > 1 ? (
+          <div className="filter filter--top">
+            <Seg
+              label="Which list"
+              value={pick}
+              onChange={(val) => setPrefs({ shopFilter: val })}
+              options={[
+                { value: 'all', label: <FilterLabel name={allLists.length > 2 ? 'All' : 'Both'} n={allLists.reduce((a, l) => a + openIn(l.id), 0)} /> },
+                ...allLists.map((l) => ({ value: l.id, label: <FilterLabel list={l} name={l.name} n={openIn(l.id)} /> })),
+              ]}
+            />
+          </div>
+        ) : null}
         {scoped && !mode ? <ProjectChips list={scoped} /> : null}
         {!allLists.length ? (
           <Empty title="No shopping lists yet">
@@ -272,19 +277,6 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               ))}
             </div>
           </Empty>
-        ) : null}
-        {!listId && allLists.length > 1 && !mode ? (
-          <div className="tokens filter" role="group" aria-label="Which lists">
-            {allLists.map((l) => {
-              const on = lists.some((x) => x.id === l.id);
-              return (
-                <button key={l.id} type="button" className={`echip ${on ? 'is-set' : ''}`} aria-pressed={on} onClick={() => togglePick(l.id)}>
-                  <ListBullet list={l} size="xs" />
-                  <span dir="auto">{l.name}</span>
-                </button>
-              );
-            })}
-          </div>
         ) : null}
 
         {allLists.length && empty && v.buyAgain.length ? (
@@ -642,5 +634,16 @@ function CartCard({
         <Icon name="check" className="icon--sm" /> Pay
       </button>
     </section>
+  );
+}
+
+/** A filter choice: the list's dot, its name and how many are on it. */
+function FilterLabel({ list, name, n }: { list?: List; name: string; n: number }) {
+  return (
+    <>
+      {list ? <ListBullet list={list} size="xs" /> : null}
+      <span dir="auto">{name}</span>
+      {n ? <span className="filter__n num">{n}</span> : null}
+    </>
   );
 }
