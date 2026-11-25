@@ -334,7 +334,7 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
     setTesting(true);
     const r = await testPush(rt);
     setTesting(false);
-    if (r.kind === 'sent') toast('Sent. If nothing arrives, check Focus and Gila Hub’s notification settings.');
+    if (r.kind === 'sent') toast('Sent. If nothing arrives, check Do Not Disturb and Gila Hub’s notification settings.');
     else if (r.kind === 'not-registered') toast('This phone isn’t signed up yet. Turn notifications off and on, then try again.');
     else if (r.kind === 'refused') toast(`The phone’s push service turned it away (${r.status || 'no answer'}). Turn notifications off and on, then try again.`);
     else toast('Couldn’t reach your hub. Check the connection and try again.');
