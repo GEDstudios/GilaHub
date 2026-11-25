@@ -713,7 +713,6 @@ function About({ me, partner }: { me: Member; partner: Member | undefined }) {
           </span>{' '}
           means joy
         </p>
-        <p className="about__credit">Icons: Phosphor (MIT)</p>
       </div>
     </>
   );

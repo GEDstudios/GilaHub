@@ -3592,7 +3592,7 @@ html:has(.sheet) .ideatag {
 }
 
 .ideas__compose .addrow__plus {
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .ideas__compose textarea {

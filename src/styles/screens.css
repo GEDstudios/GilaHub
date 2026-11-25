@@ -1660,11 +1660,6 @@ button.projcard:active {
   color: var(--text-3);
 }
 
-.about .about__credit {
-  font-size: 12px;
-  color: var(--text-3);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .is-nudge,
   .mecard.is-wobble,
