@@ -61,7 +61,7 @@ export function useSummary() {
     }
     const r = remindText(d.remind);
     if (r) parts.push(`reminder ${r.toLowerCase()}`);
-    if (!parts.length) return opts.listName ? `In ${opts.listName}. No date, whenever suits.` : 'No date. Whenever suits.';
+    if (!parts.length) return opts.listName ? `In ${opts.listName}` : 'No date';
     const s = parts.join(', ');
     return `${s[0].toUpperCase()}${s.slice(1)}.`;
   };
@@ -78,7 +78,7 @@ export function InlineEditor({
   allowedVis = ['ours', 'mine', 'private'],
   repeatFrom = 'schedule',
   readOnly,
-  prompt = 'Want to change something?',
+  prompt = null,
 }: {
   value: Draft;
   onChange: (patch: Partial<Draft>) => void;
@@ -155,7 +155,6 @@ export function InlineEditor({
               setOpen(null);
             }}
           />
-          <p className="panel__hint">{value.dueTime ? 'Counted from the time it’s due.' : 'Without a time, it comes at 9:00 on the day.'}</p>
         </Panel>
       ) : null}
       {open === 'who' ? (
@@ -177,19 +176,15 @@ export function InlineEditor({
             options={allowedVis.map((v) => ({ value: v, label: VIS[v].label, icon: VIS[v].icon }))}
             onPick={(v) => onChange({ visibility: v as ItemVisibility })}
           />
-          <p className="panel__hint">{visHint(value.visibility, partner?.name ?? 'your partner')}</p>
+          {visHint(value.visibility, partner?.name ?? 'your partner') ? <p className="panel__hint">{visHint(value.visibility, partner?.name ?? 'your partner')}</p> : null}
         </Panel>
       ) : null}
     </div>
   );
 }
 
-export const visHint = (v: ItemVisibility, partner: string) =>
-  v === 'ours'
-    ? 'You both see it and can change it.'
-    : v === 'mine'
-      ? `${partner} can see it. Only you change it.`
-      : `${partner} can’t see it at all. It’s encrypted with your personal key.`;
+export const visHint = (v: ItemVisibility, partner: string): string | null =>
+  v === 'mine' ? `Yours. ${partner} can see it and help.` : v === 'private' ? `Hidden from ${partner}. Encrypted.` : null;
 
 export function Panel({ children }: { children: ReactNode }) {
   return <div className="panel">{children}</div>;
@@ -361,13 +356,8 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
       {rule?.type === 'interval' ? (
         <label className="panel__toggle">
           <input type="checkbox" checked={rule.from === 'done'} onChange={(e) => onChange({ ...rule, from: e.target.checked ? 'done' : 'schedule' })} />
-          <span>
-            Count from when it’s done
-            <small>{rule.from === 'done' ? 'Done early or late, the clock restarts that day.' : 'Stays on the calendar. Missed ones never pile up.'}</small>
-          </span>
+          <span>Count from when it’s done</span>
         </label>
-      ) : rule?.type === 'weekdays' ? (
-        <p className="panel__hint">Doing it early counts for the next one. Missed ones collapse into one.</p>
       ) : null}
     </Panel>
   );

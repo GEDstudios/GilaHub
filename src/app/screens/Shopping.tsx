@@ -16,6 +16,7 @@ import { back } from '../router';
 import { useAddAction } from '../addAction';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
 import { ProjectHero, ProjectMenuButton } from './ListScreen';
+import { SyncBadge } from './Today';
 import { shoppingView } from '../views';
 
 type Row = Item & { emoji: string };
@@ -203,6 +204,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
         </Band>
       ) : (
         <Band
+          top={<SyncBadge />}
           title={mode ? 'Shopping now' : 'Shopping'}
           sub={sub}
           actions={
@@ -216,7 +218,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
       )}
       <div className="column">
         {!allLists.length ? (
-          <Empty title="No shopping lists yet" text="Make one for groceries, one for the house, or both.">
+          <Empty title="No shopping lists yet">
             <div className="tokens tokens--center">
               {PROJECT_TEMPLATES.filter((t) => t.kind === 'shopping').map((t) => (
                 <button key={t.key} type="button" className="token token--ink" onClick={() => createFromTemplate(hub, t)}>
@@ -250,7 +252,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
                 if (!e.target.value) setOverride(null);
               }}
               onPaste={onPaste}
-              placeholder={filter === 'all' ? 'Add or find… milk, נורות, 2 eggs' : `Add to ${hub.list(filter)?.name}…`}
+              placeholder={filter === 'all' ? 'Add or find an item' : `Add to ${hub.list(filter)?.name}`}
               aria-label="Add or find an item"
               enterKeyHint="done"
               autoComplete="off"
@@ -272,7 +274,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           <div className="notice">
             <Avatar member={shopper} size="sm" />
             <span className="notice__text">
-              <strong>{shopper.name} is in the store.</strong> Anything you add shows up on their phone right away.
+              <strong>{shopper.name} is in the store.</strong> What you add shows up for them.
             </span>
           </div>
         ) : null}
@@ -316,7 +318,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             ) : null}
 
             {allLists.length && !v.openCount && !v.inCart.length ? (
-              <Empty title="All bought." text="Type above to add. Paste a list from WhatsApp and it sorts itself into aisles." />
+              <Empty title="All bought" />
             ) : null}
 
             {v.urgent.length ? (
@@ -368,7 +370,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
                   </ul>
                 ) : null}
                 <button type="button" className="textbtn finish" onClick={finish}>
-                  <Icon name="check" className="icon--sm" /> Finish trip and clear the cart
+                  <Icon name="check" className="icon--sm" /> Finish trip
                 </button>
               </Section>
             ) : null}

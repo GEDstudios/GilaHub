@@ -17,7 +17,7 @@ export function Search() {
       <div className="column">
         <div className="searchbar">
           <Icon name="search" className="icon--sm" />
-          <input autoFocus value={q} dir="auto" onChange={(e) => setQ(e.target.value)} placeholder="Everything you can see…" aria-label="Search" enterKeyHint="search" />
+          <input autoFocus value={q} dir="auto" onChange={(e) => setQ(e.target.value)} placeholder="Search everything" aria-label="Search" enterKeyHint="search" />
           {q ? (
             <button type="button" className="searchbar__clear" onClick={() => setQ('')} aria-label="Clear">
               <Icon name="x" className="icon--sm" />
@@ -46,7 +46,7 @@ export function Search() {
             <ItemRow key={i.id} item={i} showList />
           ))}
         </ul>
-        {q.trim() && !results.length && !lists.length ? <Empty title="Nothing matches" text="Search looks through every project you can see, in Hebrew and English." /> : null}
+        {q.trim() && !results.length && !lists.length ? <Empty title="Nothing matches" /> : null}
       </div>
     </>
   );

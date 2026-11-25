@@ -11,6 +11,7 @@ import { useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, IconButton, lineVars, Section } from '../ui/primitives';
 import { choresView, type ChoreRow } from '../views';
 import { ProjectHero, ProjectMenuButton } from './ListScreen';
+import { SyncBadge } from './Today';
 
 const WORD = { fresh: 'Fresh', soon: 'Soon', today: 'Today', whenever: 'When you can' } as const;
 
@@ -48,9 +49,6 @@ function ChoreItem({ row }: { row: ChoreRow }) {
         </span>
         <span className="row__meta">
           <span className="meta">{meta.join(' · ')}</span>
-        </span>
-        <span className="fresh" aria-hidden="true">
-          <span className="fresh__bar" style={{ width: `${Math.max(4, row.level * 100)}%` }} />
         </span>
       </div>
       <span className="row__trail">
@@ -157,7 +155,7 @@ export function Chores({ listId }: { listId?: string } = {}) {
     hub.setAway(!away);
     toast(away ? 'Welcome back. The chores waited for you.' : 'Have a good trip. Chore clocks are paused.');
   };
-  const sub = away ? 'Away · every clock is paused' : v.now.length ? `${v.now.length} ready when you are` : total ? 'Everything’s fresh' : 'Things that keep coming back';
+  const sub = away ? 'Away · clocks paused' : v.now.length ? `${v.now.length} ready` : total ? 'All fresh' : undefined;
   const awayBtn = <IconButton icon="plane" label={away ? 'We’re back' : 'We’re away'} onClick={toggleAway} pressed={away} />;
 
   const group = (title: string, rows: ChoreRow[]) =>
@@ -184,23 +182,22 @@ export function Chores({ listId }: { listId?: string } = {}) {
             </>
           }
         >
-          <ProjectHero list={scoped} sub={sub} />
+          <ProjectHero list={scoped} sub={sub ?? 'Empty'} />
         </Band>
       ) : (
-        <Band title="Chores" sub={sub} actions={awayBtn} />
+        <Band top={<SyncBadge />} title="Chores" sub={sub} actions={awayBtn} />
       )}
       <div className="column">
         {away ? (
           <button type="button" className="notice" onClick={toggleAway}>
             <Icon name="plane" />
             <span className="notice__text">
-              <strong>You’re away.</strong> Nothing goes stale while you travel. Tap when you’re home.
+              <strong>Away mode is on.</strong> Tap when you’re home.
             </span>
           </button>
         ) : null}
 
         {group('Today', v.now)}
-        {!v.now.length && total ? <p className="hint">Nothing needs doing today. Ticking something early just resets its clock.</p> : null}
         {group('Soon', v.soon)}
         {group('Fresh', v.fresh)}
         {group('Paused', v.paused)}

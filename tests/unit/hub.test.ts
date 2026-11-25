@@ -53,15 +53,17 @@ describe('Hub: household & privacy', () => {
     expect(hila.item(secret)).toBeUndefined();
   });
 
-  it('"Mine" items are visible but read-only for the partner', async () => {
+  it('"Mine" items: the partner sees and can help, but privacy stays the owner\'s call', async () => {
     const { guy, hila } = await couple();
     const list = listNamed(guy, "Guy's things");
     const id = guy.addItem(list.id, { title: 'Supper: lentil soup' });
     sync(guy, hila);
     const seen = hila.item(id)!;
     expect(seen.title).toBe('Supper: lentil soup');
-    expect(hila.canEdit(seen)).toBe(false);
+    expect(hila.canEdit(seen)).toBe(true);
+    expect(hila.canSetPrivacy(seen)).toBe(false);
     expect(guy.canEdit(guy.item(id)!)).toBe(true);
+    expect(guy.canSetPrivacy(guy.item(id)!)).toBe(true);
   });
 
   it('per-item privacy inside a shared list (gift surprise)', async () => {

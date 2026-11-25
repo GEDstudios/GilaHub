@@ -38,7 +38,6 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
           {list?.name} · {meta.en}
         </span>
       </div>
-      {!editable ? <p className="hint">This is {hub.member(hub.ownerOf(item))?.name}’s. You can still tick it off.</p> : null}
 
       <div className="choose">
         <span className="choose__label">How many</span>
@@ -85,7 +84,7 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
         </div>
       ) : null}
 
-      {editable ? (
+      {editable && hub.canSetPrivacy(item) ? (
         <div className="choose">
           <span className="choose__label">Who it’s for</span>
           <Options
@@ -100,7 +99,7 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
               icon: v === 'ours' ? ('ours' as const) : v === 'mine' ? ('mine' as const) : ('lock' as const),
             }))}
           />
-          <p className="panel__hint">{vis === 'mine' ? 'Marked as yours. Anyone can still buy it.' : visHint(vis, partnerName)}</p>
+          {vis === 'private' ? <p className="panel__hint">{visHint(vis, partnerName)}</p> : null}
         </div>
       ) : null}
 
@@ -108,7 +107,7 @@ export function ShopItemSheet({ id, onClose }: { id: string; onClose: () => void
         className="notes"
         dir="auto"
         rows={2}
-        placeholder="Add a note: brand, size, “the blue one”…"
+        placeholder="Add a note…"
         value={notes}
         readOnly={!editable}
         onChange={(e) => setNotes(e.target.value)}

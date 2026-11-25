@@ -6,7 +6,9 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 - **●** Onboarding is two light steps: your name and color, then the projects you want (four starters, or start empty). No account, no email, no tour.
 - **●** A new item is a circle and a title. Details stay out of sight until the item is opened.
-- **●** Four tabs: **Today · Shopping · Chores · Projects**. Adding happens inline, in a row at the end of each list. `N` opens the **New** composer on desktop.
+- **●** A bottom bar you arrange: **Today**, then up to three of your choice (Shopping, Chores, or any project), then **Projects**. Change it in Settings, or with "Show in bottom bar" on any project. It follows you across your own devices.
+- **●** Adding happens inline, in a row at the end of each list. `N` opens the **New** composer on desktop.
+- **●** Today links straight to what's due: tap a project tag or a project name to open it.
 - **●** Quick add shows what it understood as chips. Tap a chip to undo it. **New** shows a live color card that says, in one sentence, what you're adding.
 - **●** Inline controls: under every item, *Date · Repeat · Remind me · Who · Ours · Urgent* chips open their options in place. No forms.
 - **●** No red, no badge spam, no streaks. Late items say "since Tue".
@@ -55,7 +57,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 
 - **●** Items nest without limit. Opening an item drills into its own screen with a breadcrumb, so you never wade through deep indentation.
 - **●** Progress like "3/5" on parents. Completing a parent asks whether to complete its steps too.
-- **●** Unlimited projects, each with one of six colors and a type (Tasks · Shopping · Chores).
+- **●** Unlimited projects, each with one of six colors (a new project gets one nobody's using) and a type (Tasks · Shopping · Chores). They sit like folders, each with a slight tilt.
 - **●** Drag to reorder items and lists. Move items between lists. Duplicate, archive, delete — all with undo.
 - **●** **Uncheck all** for reusable checklists (packing, trips).
 - **●** New project: a live color card you name in place, plus a few starters (Groceries, Home shopping, Chores, To do, Next trip, Gift ideas).
@@ -66,7 +68,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 | Level | Who sees it | Who can change it | How it's protected |
 |---|---|---|---|
 | **Ours** | Both | Both | Household key (E2E) |
-| **Mine** | Both | Only me. My partner sees it read-only, except in shopping lists, where anyone can tick it off | Household key (E2E) |
+| **Mine** | Both | Both. It's mine, and my partner can see it and help. Only I can change who sees it, or delete the project | Household key (E2E) |
 | **Only me** | Only me. My partner can't tell it exists | Only me | **Personal key, which never leaves my devices** |
 
 - **●** Set on a list (it becomes the default for its items) and override on any single item. A surprise gift can hide inside the shared grocery list.

@@ -23,6 +23,8 @@ export interface Member {
   createdAt: number;
   /** Wants a push when the partner starts shopping (default on). */
   shopAlerts?: boolean;
+  /** My bottom bar, between Today and Projects: 'shop', 'chores' or 'l:<listId>'. */
+  tabs?: string[];
 }
 
 export type ListKind = 'tasks' | 'shopping' | 'chores';

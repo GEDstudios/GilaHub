@@ -8,7 +8,7 @@ import { QuickAddSheet } from './components/QuickAddSheet';
 import { RuntimeProvider, useHub, usePartnerShopping, useRt } from './context';
 import { usePrefs } from './prefs';
 import { LocalReminders, ReminderSync } from './reminders';
-import { navigate, useRoute, type Route } from './router';
+import { navigate, useRoute } from './router';
 import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime } from './runtime';
 import { Chores } from './screens/Chores';
 import { ItemScreen } from './screens/ItemScreen';
@@ -19,56 +19,47 @@ import { Search } from './screens/Search';
 import { Settings } from './screens/Settings';
 import { Shopping } from './screens/Shopping';
 import { SyncDot, Today } from './screens/Today';
-import { Icon, type IconName } from './ui/Icon';
+import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
-import { ListBullet, Logo } from './ui/primitives';
+import { lineVars, ListBullet, Logo } from './ui/primitives';
+import { activeTabKey, tabsOf, type TabDef } from './tabs';
 import { openCount, todayRef, todayView } from './views';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
-
-const TABS: Array<{ route: Route['name']; label: string; icon: IconName; path: string }> = [
-  { route: 'today', label: 'Today', icon: 'sun', path: '/' },
-  { route: 'shop', label: 'Shopping', icon: 'bag', path: '/shop' },
-  { route: 'chores', label: 'Chores', icon: 'sparkle', path: '/chores' },
-  { route: 'lists', label: 'Projects', icon: 'lines', path: '/lists' },
-];
-
-function activeTab(r: Route, rt: Runtime): Route['name'] {
-  if (r.name === 'list') return rt.hub.list(r.id)?.kind === 'chores' ? 'chores' : 'lists';
-  if (r.name === 'item') {
-    const kind = rt.hub.list(rt.hub.item(r.id)?.listId)?.kind;
-    return kind === 'chores' ? 'chores' : kind === 'shopping' ? 'shop' : 'lists';
-  }
-  return r.name;
-}
 
 function useAdd() {
   const { openSheet } = useOverlays();
   return () => runAdd(() => openSheet((close) => <QuickAddSheet onClose={close} />));
 }
 
+function TabIcon({ t }: { t: TabDef }) {
+  return t.icon ? <Icon name={t.icon} /> : <span className="tab__swatch" style={lineVars(t.color)} />;
+}
+
 function TabBar() {
   const route = useRoute();
-  const rt = useRt();
-  useHub();
+  const hub = useHub();
   const shopping = usePartnerShopping();
-  const on = activeTab(route, rt);
+  const tabs = tabsOf(hub);
+  const on = activeTabKey(hub, route);
   return (
-    <nav className="tabbar" aria-label="Main">
-      {TABS.map((t) => (
+    <nav className="tabbar" aria-label="Main" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+      {tabs.map((t) => (
         <a
-          key={t.route}
+          key={t.key}
           href={t.path}
-          className={`tab ${on === t.route ? 'is-on' : ''}`}
-          aria-current={on === t.route ? 'page' : undefined}
+          className={`tab ${on === t.key ? 'is-on' : ''}`}
+          aria-current={on === t.key ? 'page' : undefined}
           onClick={(e) => {
             e.preventDefault();
             navigate(t.path);
           }}
         >
-          <Icon name={t.icon} />
-          <span>{t.label}</span>
-          {t.route === 'shop' && shopping ? <span className="tab__live live" /> : null}
+          <TabIcon t={t} />
+          <span className="tab__label" dir="auto">
+            {t.label}
+          </span>
+          {t.key === 'shop' && shopping ? <span className="tab__live live" /> : null}
         </a>
       ))}
     </nav>
@@ -77,32 +68,35 @@ function TabBar() {
 
 function Sidebar() {
   const route = useRoute();
-  const rt = useRt();
   const hub = useHub();
-  const on = activeTab(route, rt);
   const add = useAdd();
+  const tabs = tabsOf(hub);
+  const on = activeTabKey(hub, route);
   const v = todayView(hub, todayRef());
-  const counts: Partial<Record<Route['name'], number>> = { today: v.dueCount, shop: v.shopping.count };
+  const counts: Record<string, number> = { today: v.dueCount, shop: v.shopping.count };
   return (
     <aside className="sidebar" aria-label="Navigation">
       <div className="sidebar__brand">
-        <Logo size={30} />
+        <Logo size={28} />
       </div>
       <button type="button" className="sidebar__new" onClick={add}>
         <Icon name="plus" className="icon--sm" /> New
         <span className="kbd">N</span>
       </button>
       <nav className="sidebar__nav">
-        {TABS.map((t) => (
-          <button key={t.route} type="button" className={`navitem ${on === t.route ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
-            <Icon name={t.icon} />
-            {t.label}
-            {counts[t.route] ? <span className="navitem__count">{counts[t.route]}</span> : null}
+        {tabs.map((t) => (
+          <button key={t.key} type="button" className={`navitem ${on === t.key ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
+            {t.icon ? <Icon name={t.icon} /> : <ListBullet list={{ name: t.label, color: t.color! }} size="md" />}
+            <span className="navitem__label" dir="auto">
+              {t.label}
+            </span>
+            {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : null}
           </button>
         ))}
         <button type="button" className={`navitem ${route.name === 'search' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'search' })}>
           <Icon name="search" />
-          Search <span className="navitem__count kbd">/</span>
+          <span className="navitem__label">Search</span>
+          <span className="navitem__count kbd">/</span>
         </button>
       </nav>
       <div className="sidebar__label">Projects</div>
@@ -114,8 +108,8 @@ function Sidebar() {
             className={`navitem ${route.name === 'list' && route.id === l.id ? 'is-on' : ''}`}
             onClick={() => navigate({ name: 'list', id: l.id })}
           >
-            <ListBullet list={l} size="sm" />
-            <span dir="auto" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <ListBullet list={l} size="md" />
+            <span className="navitem__label" dir="auto">
               {l.name}
             </span>
             {l.visibility === 'private' ? <Icon name="lock" className="icon--sm" /> : null}
@@ -126,7 +120,7 @@ function Sidebar() {
       <div className="sidebar__foot">
         <button type="button" className={`navitem ${route.name === 'settings' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'settings' })}>
           <Icon name="gear" />
-          Settings
+          <span className="navitem__label">Settings</span>
           <SyncDot />
         </button>
       </div>
@@ -234,11 +228,14 @@ function Duties() {
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
         openSheet((close) => <QuickAddSheet onClose={close} />);
-      } else if (['1', '2', '3', '4'].includes(e.key)) navigate(TABS[+e.key - 1].path);
+      } else if (/^[1-5]$/.test(e.key)) {
+        const t = tabsOf(hub)[+e.key - 1];
+        if (t) navigate(t.path);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [openSheet]);
+  }, [openSheet, hub]);
 
   return null;
 }

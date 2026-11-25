@@ -105,7 +105,6 @@ export function AisleSheet({ onClose, flavor, value, onPick }: { onClose: () => 
           );
         })}
       </div>
-      <p className="hint">We’ll remember this for next time, on both phones.</p>
     </Sheet>
   );
 }

@@ -5,7 +5,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 20px 20px 20px 22px;
+  min-height: 96px;
+  padding: 18px 18px 18px 22px;
   border-radius: 26px;
   background: var(--tile);
 }
@@ -15,12 +16,6 @@
   font-size: 19px;
   line-height: 1.3;
   letter-spacing: -0.01em;
-}
-
-.summary__date {
-  font-size: 13.5px;
-  color: var(--text-3);
-  text-align: right;
 }
 
 .notice {
@@ -119,8 +114,8 @@
   align-items: center;
   gap: 14px;
   width: 100%;
-  margin-top: 34px;
-  padding: 16px;
+  margin-top: 36px;
+  padding: 14px 16px;
   border-radius: 22px;
   border: 1.5px dashed var(--tile-2);
   text-align: start;
@@ -170,8 +165,55 @@
 .projgrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 6px;
+  gap: 26px 14px;
+  padding-top: 12px;
+}
+
+/* Projects sit like folders: a little tab, a slight tilt, and they straighten when you touch them. */
+.projcard {
+  --tilt: 0deg;
+  min-height: 140px;
+  border-top-left-radius: 8px;
+  transform: rotate(var(--tilt));
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.4) inset,
+    0 1px 2px rgb(10 10 4 / 0.06),
+    0 8px 20px -8px rgb(10 10 4 / 0.18);
+  transition:
+    transform 260ms var(--spring),
+    box-shadow 200ms var(--ease);
+}
+
+.projcard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -11px;
+  width: 46%;
+  height: 22px;
+  border-radius: 10px 14px 0 0;
+  background: var(--c);
+  clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+}
+
+@media (hover: hover) {
+  .projcard:hover {
+    transform: rotate(0deg) translateY(-3px);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.4) inset,
+      0 2px 4px rgb(10 10 4 / 0.06),
+      0 16px 30px -10px rgb(10 10 4 / 0.24);
+  }
+}
+
+button.projcard:active {
+  transform: rotate(0deg) scale(0.97);
+}
+
+.projcard .ccard__top,
+.projcard .ccard__sub {
+  position: relative;
+  z-index: 1;
 }
 
 @media (min-width: 600px) {
@@ -181,7 +223,7 @@
 }
 
 .projcard--new {
-  min-height: 148px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -226,7 +268,11 @@
 /* ============================================================ Item */
 
 .doneas {
-  margin-top: 22px;
+  margin-top: 20px;
+}
+
+.steps-add {
+  margin-top: 14px;
 }
 
 .takeit {
@@ -711,12 +757,8 @@
 
 .onboard__preview {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 30px;
-  padding-left: 14px;
-  font-size: 14px;
-  color: var(--text-3);
+  margin-top: 34px;
+  padding-left: 16px;
 }
 
 .onboard__cta {
@@ -782,28 +824,17 @@
 }
 
 .pick__swatch {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 12px;
   background: var(--c);
 }
 
-.pick__text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .pick__name {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.pick__blurb {
-  font-size: 13.5px;
-  color: var(--text-2);
+  flex: 1;
+  font-size: 16.5px;
+  font-weight: 500;
 }
 
 .pick__check {
@@ -889,7 +920,7 @@
 
 .welcome__sub {
   max-width: 28ch;
-  margin: 58px auto 0;
+  margin: 56px auto 0;
   font-size: 16px;
   line-height: 1.5;
   color: var(--text-2);
@@ -937,4 +968,57 @@
 
 .onboard__link {
   height: 44px;
+}
+
+/* ============================================================ Bottom bar editor */
+
+.bar .optrow__icon {
+  color: var(--text-2);
+}
+
+.bar .optrow--fixed .optrow__text {
+  color: var(--text-3);
+}
+
+.bar__mark {
+  width: 20px;
+  display: grid;
+  place-items: center;
+}
+
+.bar__btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.bar__btn:hover {
+  background: var(--tile-2);
+  color: var(--text);
+}
+
+.bar__btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.bar .tokens {
+  margin-top: 12px;
+}
+
+.token:disabled {
+  opacity: 0.4;
+}
+
+.projcard--new {
+  transform: none;
+  box-shadow: none;
+}
+
+.projcard--new::before,
+.projcard--new::after {
+  display: none;
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PROJECT_TEMPLATES } from '../../core/actions';
-import type { LineColor, List, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
+import { LINE_COLORS, type LineColor, type List, type ListKind, type ShoppingFlavor, type Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { Options } from '../components/editors';
 import { Swatches } from '../components/pickers';
@@ -8,7 +8,8 @@ import { useHub } from '../context';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, lineVars } from '../ui/primitives';
+import { Band, IconButton, lineVars } from '../ui/primitives';
+import { SyncBadge } from './Today';
 import { openCount } from '../views';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
@@ -21,11 +22,10 @@ export function visLabel(hub: ReturnType<typeof useHub>, l: Pick<List, 'visibili
 
 export function NewProjectSheet({ onClose, initial }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }> }) {
   const hub = useHub();
-  const partner = hub.partner();
   const [name, setName] = useState('');
   const [kind, setKind] = useState<ListKind>(initial?.kind ?? 'tasks');
   const [flavor, setFlavor] = useState<ShoppingFlavor>('grocery');
-  const [color, setColor] = useState<LineColor>('sky');
+  const [color, setColor] = useState<LineColor>(() => randomColor(hub.lists().map((l) => l.color)));
   const [visibility, setVisibility] = useState<Visibility>(initial?.visibility ?? 'shared');
   const taken = new Set(hub.lists().map((l) => l.name.toLowerCase()));
   const starts = PROJECT_TEMPLATES.filter((t) => !taken.has(t.name.toLowerCase())).slice(0, 4);
@@ -37,12 +37,6 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
     navigate({ name: 'list', id });
   };
 
-  const who =
-    visibility === 'shared'
-      ? 'You both see and change it.'
-      : visibility === 'visible'
-        ? `${partner?.name ?? 'Your partner'} can see it. Only you change it.`
-        : `${partner?.name ?? 'Your partner'} can’t see it exists.`;
 
   return (
     <Sheet onClose={onClose} title="New project">
@@ -55,14 +49,12 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
         <div className="ccard ccard--lg ccard--edit" style={lineVars(color)}>
           <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
           <span className="ccard__sub">
-            {KIND[kind]}
-            {kind === 'shopping' ? (flavor === 'grocery' ? ', sorted by aisle' : ', sorted by department') : ''}. {who}
+            {KIND[kind]} · {visibility === 'shared' ? 'Ours' : visibility === 'visible' ? 'Mine' : 'Only me'}
           </span>
         </div>
 
         {!name && starts.length ? (
           <>
-            <p className="inline__prompt">Or start from</p>
             <div className="tokens">
               {starts.map((t) => (
                 <button
@@ -134,11 +126,30 @@ export function NewProjectSheet({ onClose, initial }: { onClose: () => void; ini
   );
 }
 
+/** A new project gets a color nobody uses yet, picked at random. */
+export function randomColor(used: LineColor[]): LineColor {
+  const free = LINE_COLORS.filter((c) => !used.includes(c));
+  const pool = free.length ? free : LINE_COLORS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** A small, stable tilt per project, so the cards sit like real folders. */
+export function tilt(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return [-2.2, -1.4, -0.6, 0.8, 1.5, 2.3][Math.abs(h) % 6];
+}
+
 function ProjectCard({ list }: { list: List }) {
   const hub = useHub();
   const n = openCount(hub, list.id);
   return (
-    <button type="button" className="ccard ccard--md projcard" style={lineVars(list.color)} onClick={() => navigate({ name: 'list', id: list.id })}>
+    <button
+      type="button"
+      className="ccard ccard--md projcard"
+      style={{ ...lineVars(list.color), ['--tilt' as string]: `${tilt(list.id)}deg` }}
+      onClick={() => navigate({ name: 'list', id: list.id })}
+    >
       <span className="ccard__top">
         <span className="ccard__title projcard__name" dir="auto">
           {list.name}
@@ -169,7 +180,7 @@ export function Lists() {
 
   return (
     <>
-      <Band title="Projects" sub={lists.length ? `${lists.length} on the go` : 'Start your first one'} />
+      <Band top={<SyncBadge />} actions={<IconButton icon="plus" label="New project" onClick={newProject} />} title="Projects" />
       <div className="column">
         <div className="projgrid">
           {lists.map((l) => (

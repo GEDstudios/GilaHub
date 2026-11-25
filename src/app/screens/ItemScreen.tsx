@@ -217,17 +217,15 @@ export function ItemScreen({ id }: { id: string }) {
       </Band>
 
       <div className="column">
-        {!editable ? <p className="hint">This is {hub.member(hub.ownerOf(item))?.name}’s. You can see it; only they change it.</p> : null}
-
         {item.repeat && editable ? (
           <div className="doneas">
-            <p className="inline__prompt">
-              {item.paused
-                ? 'Paused. It won’t come due until you resume it.'
-                : item.lastDoneAt
-                  ? `Last done ${relativeAgo(item.lastDoneAt)} by ${item.lastDoneBy === hub.meId ? 'you' : (hub.member(item.lastDoneBy)?.name ?? 'someone')}.`
-                  : 'Mark it done any time. The clock restarts from there.'}
-            </p>
+            {item.paused || item.lastDoneAt ? (
+              <p className="inline__prompt">
+                {item.paused
+                  ? 'Paused'
+                  : `Last done ${relativeAgo(item.lastDoneAt!)} by ${item.lastDoneBy === hub.meId ? 'you' : (hub.member(item.lastDoneBy)?.name ?? 'someone')}`}
+              </p>
+            ) : null}
             <div className="tokens">
               <button type="button" className="token token--ink" onClick={onToggle}>
                 <Icon name="check" /> Done today
@@ -276,7 +274,7 @@ export function ItemScreen({ id }: { id: string }) {
           <InlineEditor
             value={draft}
             onChange={change}
-            fields={['when', 'repeat', 'remind', 'who', 'vis', 'urgent']}
+            fields={hub.canSetPrivacy(item) ? ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'] : ['when', 'repeat', 'remind', 'who', 'urgent']}
             allowedVis={[...allowed]}
             repeatFrom={list?.kind === 'chores' ? 'done' : 'schedule'}
           />
@@ -299,10 +297,16 @@ export function ItemScreen({ id }: { id: string }) {
           aria-label="Notes"
         />
 
-        <Section title="Steps" count={steps.length}>
-          <Children listId={item.listId} parentId={id} freshId={freshId} readonly={!editable} />
-          {editable ? <QuickAdd listId={item.listId} parentId={id} onAdded={setFreshId} placeholder="Add a step" /> : null}
-        </Section>
+        {steps.length ? (
+          <Section title="Steps" count={steps.length}>
+            <Children listId={item.listId} parentId={id} freshId={freshId} readonly={!editable} />
+            {editable ? <QuickAdd listId={item.listId} parentId={id} onAdded={setFreshId} placeholder="Add a step" /> : null}
+          </Section>
+        ) : editable ? (
+          <div className="steps-add">
+            <QuickAdd listId={item.listId} parentId={id} onAdded={setFreshId} placeholder="Add a step" />
+          </div>
+        ) : null}
 
         {logs.length ? (
           <Section title="History">

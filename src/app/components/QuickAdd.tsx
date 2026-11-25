@@ -64,7 +64,13 @@ export function QuickAdd({
   const hintText = placeholder ?? (parent ? 'Add a step' : `Add to ${list?.name ?? 'list'}`);
 
   const allowed: ItemVisibility[] =
-    list?.visibility === 'private' ? ['private'] : list?.visibility === 'visible' ? ['mine', 'private'] : ['ours', 'mine', 'private'];
+    list?.visibility === 'private'
+      ? ['private']
+      : list?.visibility === 'visible'
+        ? list.owner && list.owner !== hub.meId
+          ? ['mine']
+          : ['mine', 'private']
+        : ['ours', 'mine', 'private'];
   const inherited: ItemVisibility = parent ? hub.visibilityOf(parent) : allowed[0];
   const [vis, setVis] = useState<ItemVisibility | null>(null);
   const visibility = vis && allowed.includes(vis) ? vis : allowed.includes(inherited) ? inherited : allowed[0];
@@ -155,7 +161,6 @@ export function QuickAdd({
           badge={parsed.repeat ? <Icon name="repeat" className="icon--sm" /> : parsed.urgent ? '!' : undefined}
           sub={summarize({ due, dueTime: parsed.dueTime ?? null, repeat: parsed.repeat ?? null, assignee: parsed.assignee ?? null }, { listName: dest?.name })}
         />
-        <p className="inline__prompt">Want to change something?</p>
         <div className="tokens">
           {allowListChange && dest ? (
             <button

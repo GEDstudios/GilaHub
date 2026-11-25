@@ -94,7 +94,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             sorted.
             <NameTag name="Hila" color="lemon" flip style={{ position: 'absolute', right: -14, bottom: -40 }} />
           </h1>
-          <p className="welcome__sub">Groceries, chores and plans for the two of you. Free, private and yours.</p>
+          <p className="welcome__sub">Groceries, chores and plans, for two.</p>
         </div>
         <div className="onboard__bottom">
           <button type="button" className="go" onClick={() => setStep('name')}>
@@ -155,17 +155,13 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
           <IconButton icon="arrow-back" label="Back" onClick={() => setStep('name')} />
           <p className="onboard__step">2 of 2</p>
           <h1 className="onboard__q">What do you want to keep track of?</h1>
-          <p className="onboard__lede">Pick a few to start. You can add your own projects any time.</p>
           <div className="picks">
             {STARTERS.map((t) => {
               const on = picked.includes(t.key);
               return (
                 <button key={t.key} type="button" className={`pick ${on ? 'is-on' : ''}`} style={lineVars(t.color)} onClick={() => toggle(t.key)} aria-pressed={on}>
                   <span className="pick__swatch" />
-                  <span className="pick__text">
-                    <span className="pick__name">{t.name}</span>
-                    <span className="pick__blurb">{t.blurb}</span>
-                  </span>
+                  <span className="pick__name">{t.name}</span>
                   <span className="pick__check">{on ? <Icon name="check" className="icon--sm" /> : null}</span>
                 </button>
               );
@@ -213,7 +209,6 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
           </div>
           <div className="onboard__preview">
             <NameTag name={name.trim() || 'You'} color={color} />
-            <span>This is you, everywhere in the app.</span>
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
           <button type="submit" className="btn btn--block onboard__cta" disabled={!name.trim() || busy}>

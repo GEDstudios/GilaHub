@@ -104,10 +104,17 @@ export const ItemRow = memo(function ItemRow({
         {(showList && list) || due || item.repeat || steps.total || (vis === 'private' && list?.visibility !== 'private') ? (
           <span className="row__meta">
             {showList && list ? (
-              <span className="meta">
+              <button
+                type="button"
+                className="meta meta--link"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate({ name: 'list', id: list.id });
+                }}
+              >
                 <ListBullet list={list} size="xs" />
                 <span dir="auto">{list.name}</span>
-              </span>
+              </button>
             ) : null}
             {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
             {item.repeat ? (

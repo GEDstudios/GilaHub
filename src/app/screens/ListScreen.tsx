@@ -8,7 +8,8 @@ import { QuickAdd } from '../components/QuickAdd';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Empty, IconButton, lineVars } from '../ui/primitives';
+import { Band, Empty, IconButton, lineVars, Switch } from '../ui/primitives';
+import { MAX_PINS, pinsOf, togglePin } from '../tabs';
 import { openCount } from '../views';
 import { Chores } from './Chores';
 import { visLabel } from './Lists';
@@ -20,6 +21,7 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   const list = hub.list(listId);
   const [name, setName] = useState(list?.name ?? '');
   if (!list) return null;
+  const pinned = pinsOf(hub).includes(`l:${listId}`);
   const mineToChange = !list.owner || list.owner === hub.meId;
   const partner = hub.partner()?.name ?? 'your partner';
   const save = () => {
@@ -53,6 +55,19 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
         </div>
       ) : null}
       <div className="group" style={{ marginTop: 24 }}>
+        <OptRow
+          icon="pin"
+          title="Show in bottom bar"
+          trail={
+            <Switch
+              on={pinned}
+              label="Show in bottom bar"
+              onChange={() => {
+                if (!togglePin(hub, `l:${listId}`) && !pinned) toast(`The bar has room for ${MAX_PINS}. Remove one in Settings.`);
+              }}
+            />
+          }
+        />
         {list.kind === 'tasks' ? (
           <OptRow
             icon="refresh"
@@ -137,8 +152,6 @@ function TaskProject({ id }: { id: string }) {
     );
   }
 
-  const owner = hub.member(list.owner);
-  const readonly = !!list.owner && list.owner !== hub.meId;
   const n = openCount(hub, id);
   const all = hub.children(id, null);
   const done = all.filter((i) => i.done).length;
@@ -152,21 +165,15 @@ function TaskProject({ id }: { id: string }) {
           stat={pct !== null && done ? `${pct}%` : undefined}
           sub={
             <>
-              {n ? `${n} open` : all.length ? 'All done. Nice.' : 'Nothing here yet'}
+              {n ? `${n} open` : all.length ? 'All done' : 'Empty'}
               {` · ${visLabel(hub, list)}`}
             </>
           }
         />
       </Band>
       <div className="column">
-        {readonly ? (
-          <p className="hint">
-            This is {owner?.name}’s project. You can see it; only {owner?.name} changes it.
-          </p>
-        ) : null}
-        <Children listId={id} parentId={null} freshId={freshId} readonly={readonly} />
-        {!readonly ? <QuickAdd listId={id} onAdded={setFreshId} /> : null}
-        {!all.length && !readonly ? <p className="hint">Add the first thing. Anything can hold steps, as deep as you need.</p> : null}
+        <Children listId={id} parentId={null} freshId={freshId} />
+        <QuickAdd listId={id} onAdded={setFreshId} />
       </div>
     </>
   );

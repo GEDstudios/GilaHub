@@ -10,7 +10,7 @@ import { getPrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Avatar, Band, IconButton, lineVars, Section, Tag } from '../ui/primitives';
+import { Avatar, Band, IconButton, lineVars, Section } from '../ui/primitives';
 import { choresView, todayView } from '../views';
 
 function greeting(): string {
@@ -104,21 +104,19 @@ export function Today() {
           {dueProjects.length ? (
             <span className="tags">
               {dueProjects.map((l) => (
-                <Tag key={l.id} color={l.color}>
+                <button key={l.id} type="button" className="tag tag--link" style={lineVars(l.color)} onClick={() => navigate({ name: 'list', id: l.id })}>
                   <span dir="auto">{l.name}</span>
-                </Tag>
+                </button>
               ))}
             </span>
-          ) : (
-            <span className="summary__date">{fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
-          )}
+          ) : null}
         </div>
 
         {shopper ? (
           <button type="button" className="notice" onClick={() => navigate({ name: 'shop' })}>
             <Avatar member={shopper} size="sm" />
             <span className="notice__text">
-              <strong>{shopper.name} is shopping now.</strong> Need anything? Add it and it lands on their list.
+              <strong>{shopper.name} is shopping now.</strong> Need anything?
             </span>
             <Icon name="chevron-right" />
           </button>
@@ -173,9 +171,7 @@ export function Today() {
                   />
                 ))}
               </ul>
-            ) : (
-              <p className="hint">No rush. They wait here until you’re ready.</p>
-            )}
+            ) : null}
           </Section>
         ) : null}
 
@@ -245,7 +241,6 @@ export function Today() {
             </span>
             <span className="invite__text">
               <strong>Bring your person in</strong>
-              <span>Share a code and your projects sync, privately.</span>
             </span>
             <Icon name="chevron-right" />
           </button>

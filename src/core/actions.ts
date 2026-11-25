@@ -207,8 +207,17 @@ export class Hub {
     return null;
   }
 
-  /** Partner's "Mine" items are read-only, except ticking things off in shopping lists. */
+  /**
+   * "Mine" belongs to one of us, but both can see it and help with it.
+   * Only "Only me" things are closed — and the partner never receives those.
+   */
   canEdit(item: Item): boolean {
+    const owner = this.ownerOf(item);
+    return !owner || owner === this.meId || this.visibilityOf(item) !== 'private';
+  }
+
+  /** Who can see it is the owner's call (or anyone's, for shared things). */
+  canSetPrivacy(item: Item): boolean {
     const owner = this.ownerOf(item);
     return !owner || owner === this.meId;
   }
@@ -275,7 +284,8 @@ export class Hub {
       turn: input.assignee === 'turns' ? this.meId : null,
       urgent: input.urgent ?? false,
       qty: input.qty ?? null,
-      owner: vis === 'ours' ? null : this.meId,
+      // Added to someone's "Mine" project: it's still theirs.
+      owner: vis === 'ours' ? null : vis === 'mine' && list?.visibility === 'visible' && list.owner ? list.owner : this.meId,
       private: vis === 'private' && list?.visibility !== 'private',
       createdAt: Date.now(),
       createdBy: this.meId,

@@ -80,7 +80,7 @@ export function PairSheet({ kind, onClose }: { kind: 'partner' | 'device'; onClo
       {code ? (
         <div className="pairqr">
           <QR text={link} />
-          <span>Or scan it with the other phone’s camera.</span>
+          <span>Or scan it</span>
         </div>
       ) : null}
       <div className="sheet__actions">
@@ -104,9 +104,6 @@ export function PairSheet({ kind, onClose }: { kind: 'partner' | 'device'; onClo
           </button>
         )}
       </div>
-      <p className="hint">
-        The code unlocks an encrypted invite. Your hub never sees your keys{kind === 'partner' ? '. Your “Only me” items stay yours.' : '.'}
-      </p>
     </Sheet>
   );
 }

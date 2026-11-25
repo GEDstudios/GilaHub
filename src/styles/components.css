@@ -57,11 +57,7 @@
   width: 100%;
   max-width: calc(var(--column) + var(--gutter) * 2);
   margin: 0 auto;
-  padding: calc(var(--safe-top) + 14px) var(--gutter) 6px;
-}
-
-.band:not(:has(.band__top)) {
-  padding-top: calc(var(--safe-top) + 80px);
+  padding: calc(var(--safe-top) + 12px) var(--gutter) 24px;
 }
 
 .band__top {
@@ -69,7 +65,7 @@
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  margin-bottom: 22px;
+  margin-bottom: 26px;
 }
 
 .band__actions {
@@ -88,9 +84,9 @@
 }
 
 .band__sub {
-  margin: 8px 0 0;
-  font-size: 15.5px;
-  color: var(--text-2);
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--text-3);
 }
 
 .band .hero {
@@ -98,7 +94,7 @@
 }
 
 .band:has(.hero) {
-  padding-bottom: 26px;
+  padding-bottom: 24px;
 }
 
 .miniband {
@@ -444,6 +440,21 @@
   margin-left: -9px;
 }
 
+.tag--link {
+  position: relative;
+  transition: transform 160ms var(--spring);
+}
+
+.tag--link:hover,
+.tag--link:focus-visible {
+  z-index: 1;
+  transform: translateY(-2px);
+}
+
+.tag--link:active {
+  transform: scale(0.95);
+}
+
 .nametag {
   position: relative;
   display: inline-flex;
@@ -556,8 +567,9 @@ button.ccard:active {
 }
 
 .ccard + .inline__prompt,
-.ccard + .choose {
-  margin-top: 20px;
+.ccard + .choose,
+.ccard + .tokens {
+  margin-top: 16px;
 }
 
 .ccard__input {
@@ -772,6 +784,19 @@ button.ccard:active {
   color: var(--text-2);
 }
 
+.meta--link {
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: inherit;
+  color: inherit;
+}
+
+.meta--link:hover {
+  color: var(--text);
+  background: rgb(10 10 4 / 0.05);
+}
+
 .row__trail {
   display: flex;
   align-items: center;
@@ -931,7 +956,12 @@ button.ccard:active {
 /* ============================================================ Sections */
 
 .section {
-  margin-top: 34px;
+  margin-top: 36px;
+}
+
+.column > .section:first-child,
+.column > .summary + .section {
+  margin-top: 28px;
 }
 
 .section__head {
@@ -939,7 +969,8 @@ button.ccard:active {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 2px 12px;
+  min-height: 24px;
+  margin: 0 4px 10px;
 }
 
 .section__title {
@@ -947,9 +978,10 @@ button.ccard:active {
   align-items: center;
   gap: 7px;
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
+  color: var(--text-2);
 }
 
 .section__count {
@@ -1153,7 +1185,7 @@ button.ccard:active {
 }
 
 .inline {
-  margin-top: 22px;
+  margin-top: 20px;
 }
 
 .inline__prompt {
@@ -1812,6 +1844,36 @@ button.ccard:active {
   transition: transform 220ms var(--spring);
 }
 
+.tab__label {
+  max-width: 100%;
+  padding: 0 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tab__swatch {
+  width: 19px;
+  height: 22px;
+  margin: 0 2px;
+  border-radius: 5px;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.08);
+  transform: rotate(-6deg);
+  opacity: 0.75;
+  transition:
+    transform 220ms var(--spring),
+    opacity 160ms var(--ease);
+}
+
+.tab.is-on .tab__swatch {
+  opacity: 1;
+  transform: rotate(-6deg) scale(1.06);
+  box-shadow:
+    inset 0 0 0 1.5px var(--ink),
+    0 2px 6px rgb(10 10 4 / 0.12);
+}
+
 .tab:active .icon {
   transform: scale(0.9);
 }
@@ -1915,7 +1977,14 @@ button.ccard:active {
 }
 
 .navitem .dot {
-  margin: 0 5px;
+  margin: 0 3px;
+}
+
+.navitem__label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .navitem__count {

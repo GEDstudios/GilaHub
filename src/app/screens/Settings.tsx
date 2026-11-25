@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { relativeAgo } from '../../core/dates';
+import { BarEditor } from '../components/BarEditor';
 import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
 import { useHub, useRt, useSync } from '../context';
@@ -128,11 +129,11 @@ export function Settings() {
         <Section title="Together">
           <div className="group">
             {partner ? (
-              <OptRow lead={<Avatar member={partner} size="sm" />} title={partner.name} sub="Connected · end-to-end encrypted" />
+              <OptRow lead={<Avatar member={partner} size="sm" />} title={partner.name} sub="Connected" />
             ) : (
-              <OptRow icon="link" title="Invite your person" sub="Share a one-time code" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)} />
+              <OptRow icon="link" title="Invite your person" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)} />
             )}
-            <OptRow icon="device" title="Add another device" sub="Your Mac, tablet or work laptop" onClick={() => openSheet((close) => <PairSheet kind="device" onClose={close} />)} />
+            <OptRow icon="device" title="Add another device" onClick={() => openSheet((close) => <PairSheet kind="device" onClose={close} />)} />
             <OptRow
               icon="refresh"
               title="Sync"
@@ -144,6 +145,10 @@ export function Settings() {
               }}
             />
           </div>
+        </Section>
+
+        <Section title="Bottom bar">
+          <BarEditor />
         </Section>
 
         <Section title="Notifications">
@@ -169,25 +174,24 @@ export function Settings() {
             <OptRow
               icon="cart"
               title={partner ? `When ${partner.name} starts shopping` : 'When my partner starts shopping'}
-              sub="So you can add what you need"
               trail={<Switch on={me.shopAlerts !== false} onChange={(on) => hub.upsertMember(me.id, { shopAlerts: on })} label="Shopping alerts" />}
             />
-            <OptRow icon="sun" title="App badge" sub="Today’s count on the icon" trail={<Switch on={prefs.badge} onChange={(on) => setPrefs({ badge: on })} label="App badge" />} />
+            <OptRow icon="sun" title="App badge" trail={<Switch on={prefs.badge} onChange={(on) => setPrefs({ badge: on })} label="App badge" />} />
           </div>
           {push === 'install' && isIOS() && !isStandalone() ? <p className="hint">On iPhone: tap Share, then Add to Home Screen, and open Gila Hub from there.</p> : null}
         </Section>
 
         <Section title="Home">
           <div className="group">
-            <OptRow icon="plane" title="Away mode" sub="Pause every chore clock while you travel" trail={<Switch on={hub.isAway()} onChange={(on) => hub.setAway(on)} label="Away mode" />} />
+            <OptRow icon="plane" title="Away mode" trail={<Switch on={hub.isAway()} onChange={(on) => hub.setAway(on)} label="Away mode" />} />
           </div>
         </Section>
 
         <Section title="Your data">
           <div className="group">
-            <OptRow icon="download" title="Export a backup" sub="Everything you can see, as JSON" onClick={() => exportData(rt)} />
-            <OptRow icon="upload" title="Import a backup" sub="Adds anything missing, never overwrites" onClick={() => fileRef.current?.click()} />
-            <OptRow icon="trash" title="Reset this device" sub="Other devices keep everything" onClick={() => openSheet((close) => <LeaveSheet onClose={close} />)} />
+            <OptRow icon="download" title="Export a backup" onClick={() => exportData(rt)} />
+            <OptRow icon="upload" title="Import a backup" onClick={() => fileRef.current?.click()} />
+            <OptRow icon="trash" title="Reset this device" onClick={() => openSheet((close) => <LeaveSheet onClose={close} />)} />
           </div>
           <input ref={fileRef} type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && void importData(e.target.files[0])} />
         </Section>
@@ -195,7 +199,6 @@ export function Settings() {
         <div className="about">
           <Logo size={34} />
           <p>Life together, sorted.</p>
-          <p className="hint">Free, private, yours. No accounts, no ads, no tracking. Everything is end-to-end encrypted.</p>
         </div>
       </div>
     </>

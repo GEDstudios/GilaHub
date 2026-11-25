@@ -7,6 +7,7 @@ export type IconName =
   | 'chevron-right'
   | 'chevron-left'
   | 'chevron-down'
+  | 'chevron-up'
   | 'arrow'
   | 'arrow-back'
   | 'search'
@@ -49,15 +50,18 @@ export type IconName =
   | 'link'
   | 'eye'
   | 'moon'
-  | 'hand';
+  | 'hand'
+  | 'pin';
 
 const P: Record<IconName, ReactNode> = {
+  pin: <path d="M9 4h6l-1 6 3 3H7l3-3-1-6zM12 13v7" />,
   plus: <path d="M12 5v14M5 12h14" />,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
   'chevron-right': <path d="M9.5 5.5L16 12l-6.5 6.5" />,
   'chevron-left': <path d="M14.5 5.5L8 12l6.5 6.5" />,
   'chevron-down': <path d="M5.5 9.5L12 16l6.5-6.5" />,
+  'chevron-up': <path d="M5.5 14.5L12 8l6.5 6.5" />,
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   'arrow-back': <path d="M19 12H5M11 6l-6 6 6 6" />,
   search: (
