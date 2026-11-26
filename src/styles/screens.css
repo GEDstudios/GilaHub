@@ -2876,3 +2876,9 @@ html.is-dragging .bartray {
 .daycard ~ .lens {
   margin-top: 18px;
 }
+
+.cartcard__hint {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-3);
+}

@@ -977,10 +977,11 @@ export class Hub {
     this.updateItem(id, { qty: String(n + 1) });
   }
 
-  /** Clear the tray: what was just done here is filed away (Again? remembers it). */
-  clearDone(listIds: string[]): Undo {
+  /** Clear: what was done here (or just these) is filed away (Again? remembers it). */
+  clearDone(listIds: string[], only?: string[]): Undo {
     const ids = new Set(listIds);
-    const done = this.store.all('item').filter((i) => ids.has(i.listId) && i.done && !i.archived && !i.parentId);
+    const pick = only ? new Set(only) : null;
+    const done = this.store.all('item').filter((i) => ids.has(i.listId) && i.done && !i.archived && !i.parentId && (!pick || pick.has(i.id)));
     this.store.batch(() => {
       for (const i of done) this.store.mutate('item', i.id, { archived: true });
     });

@@ -192,15 +192,21 @@ try {
     if (n !== 1) throw new Error(`expected 1 milk row, found ${n}`);
   });
 
-  await check('Hila ticks milk; Guy sees it in the cart', async () => {
+  await check('Hila presses Start: milk goes into Ongoing; Guy sees it done', async () => {
+    // Without Start, a tick is just done: no tray.
+    if (await hila.locator('.cartcard').count()) throw new Error('a tray before Start');
+    await hila.getByRole('button', { name: 'Start', exact: true }).click();
+    await hila.locator('.cartcard', { hasText: 'Ongoing' }).waitFor({ timeout: 3000 });
     await hila.locator('li.row', { hasText: 'milk' }).getByRole('checkbox').click();
+    await hila.locator('.cartcard .cartchip', { hasText: 'milk' }).waitFor({ timeout: 3000 });
     await shot(hila, '07-shop-hila');
     await guy.goto(`${url}/shop`);
     try {
-      await waitFor(async () => (await guy.locator('.cartcard', { hasText: 'Just done' }).count()) > 0, 15000, 'tray on guy');
+      await waitFor(async () => (await guy.locator('li.row', { hasText: /^milk/ }).count()) === 0, 15000, 'milk done on guy');
     } finally {
       await shot(guy, '07b-shop-guy');
     }
+    await hila.getByRole('button', { name: 'Pause', exact: true }).click();
   });
 
   // ---------- Privacy

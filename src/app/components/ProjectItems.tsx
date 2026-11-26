@@ -227,22 +227,22 @@ export function ProjectItems({
 }
 
 /**
- * Just done: what was ticked here and not cleared yet, as itself. It fills as you tick (each
- * thing drops in), the bar shows how much of this round is done, a tap puts a thing back, and
- * Clear files them away (Again? remembers). The same in every project; after 12h it clears itself.
+ * Ongoing: while I'm on a project (Start), what I tick there drops in here, as itself. The bar
+ * shows how much of this round is done, a tap puts a thing back, and Clear files them away
+ * (Again? remembers) and ends the round. The same in every project.
  */
 export function DoneTray({ items, left, onOut, onClear, strong }: { items: Item[]; left: number; onOut: (i: Item) => void; onClear: () => void; strong: boolean }) {
   const hub = useHub();
   const total = items.length + left;
   const pct = total ? Math.round((items.length / total) * 100) : 100;
   return (
-    <section className={`cartcard ${left === 0 ? 'is-full' : ''}`} aria-label={`Just done: ${items.length} of ${total}`}>
+    <section className={`cartcard ${left === 0 ? 'is-full' : ''}`} aria-label={`Ongoing: ${items.length} of ${total}`}>
       <div className="cartcard__head">
         <span className="cartcard__basket" key={items.length}>
           <Icon name="check" />
           <span className="cartcard__n num">{items.length}</span>
         </span>
-        <span className="cartcard__title">Just done</span>
+        <span className="cartcard__title">Ongoing</span>
         <span className="cartcard__bar" aria-hidden="true">
           <span style={{ width: `${pct}%` }} />
         </span>
@@ -251,6 +251,7 @@ export function DoneTray({ items, left, onOut, onClear, strong }: { items: Item[
         </span>
       </div>
       <div className="cartcard__items">
+        {items.length ? null : <p className="cartcard__hint">Tick things as you go: they gather here.</p>}
         {items.map((i) => {
           const e = hub.emojiOf(i);
           return (

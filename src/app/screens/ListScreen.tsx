@@ -366,7 +366,9 @@ function ProjectPage({ id }: { id: string }) {
   const view = hub.viewOf(list);
   const v = projectView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(`l:${id}`);
-  const [focus, setFocus] = useState(false);
+  // Start: when this round began (null: not on it). Only then do ticks gather in Ongoing.
+  const [since, setSince] = useState<number | null>(null);
+  const focus = since !== null;
   useOnIt(focus, id, list?.name ?? '');
   const flash = usePartnerNews(v.open, focus);
   const partnerHere = usePartnerHere();
@@ -390,8 +392,11 @@ function ProjectPage({ id }: { id: string }) {
   const lists = new Set(v.open.map((i) => i.listId));
   const parent = hub.parentOf(id);
   const n = v.open.length;
-  const total = n + v.tray.length;
-  const pct = total && v.tray.length ? Math.round((v.tray.length / total) * 100) : null;
+  // Ongoing: what was ticked here since Start, not cleared yet. Everything else done is just Done.
+  const ongoing = since !== null ? v.tray.filter((i) => (i.doneAt ?? 0) >= since) : [];
+  const done = [...v.tray.filter((i) => !ongoing.includes(i)), ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
+  const total = n + ongoing.length;
+  const pct = total && ongoing.length ? Math.round((ongoing.length / total) * 100) : null;
   const shopper = partnerHere && partnerHere.listId === id ? hub.member(partnerHere.member) : undefined;
 
   const again = (name: string) => {
@@ -399,19 +404,25 @@ function ProjectPage({ id }: { id: string }) {
     markFresh(res.id);
     playSound('add');
   };
+  /** Pause: the round ends; what was ticked in it is simply done. */
+  const stop = () => setSince(null);
+  /** Clear: what's ongoing is filed away (Again? remembers it), and the round ends. */
   const clear = () => {
-    const k = v.tray.length;
-    const undo = hub.clearDone(v.lists.map((l) => l.id));
-    setFocus(false);
+    const k = ongoing.length;
+    const undo = hub.clearDone(
+      v.lists.map((l) => l.id),
+      ongoing.map((i) => i.id),
+    );
+    stop();
     haptic('success');
-    toast(`Cleared ${k}`, { action: { label: 'Undo', run: undo } });
+    toast(k ? `Cleared ${k}` : 'Done for now', { action: { label: 'Undo', run: undo } });
   };
 
   return (
     <div className={`projpage ${focus ? 'is-onit' : ''}`}>
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
-        actions={<ProjectActions listId={id} label={label} onNew={openNew} focus={n || focus ? { on: focus, toggle: () => setFocus(!focus) } : undefined} />}
+        actions={<ProjectActions listId={id} label={label} onNew={openNew} focus={n || focus ? { on: focus, toggle: () => (focus ? stop() : setSince(Date.now())) } : undefined} />}
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} />}
       >
@@ -450,7 +461,7 @@ function ProjectPage({ id }: { id: string }) {
           </div>
         ) : null}
 
-        {v.tray.length ? <DoneTray items={v.tray} left={n} onOut={(i) => hub.toggle(i.id)} onClear={clear} strong={focus} /> : null}
+        {focus ? <DoneTray items={ongoing} left={n} onOut={(i) => hub.toggle(i.id)} onClear={clear} strong /> : null}
 
         <ProjectItems
           groups={groups}
@@ -464,10 +475,10 @@ function ProjectPage({ id }: { id: string }) {
 
         {!focus ? <SubProjects list={list} /> : null}
 
-        {!focus && v.cleared.length ? (
-          <Disclosure title="Done" count={v.cleared.length}>
+        {!focus && done.length ? (
+          <Disclosure title="Done" count={done.length}>
             <ul className="rows">
-              {v.cleared.map((i) => (
+              {done.slice(0, 40).map((i) => (
                 <ItemRow key={i.id} item={i} showList={lists.size > 1} />
               ))}
             </ul>
