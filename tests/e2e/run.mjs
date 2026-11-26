@@ -299,10 +299,11 @@ try {
     await guy.getByText(/fresh again/).waitFor({ timeout: 5000 });
   });
 
-  await check('Projects: create a new one from a template', async () => {
+  await check('Projects: create a new one (no suggestions, just its name)', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard--new').first().click();
-    await guy.getByRole('button', { name: /next trip/i }).click();
+    if (await guy.locator('.sheet .tokens .token').count()) throw new Error('New project still suggests projects');
+    await guy.locator('.sheet .ccard__input').fill('Next trip');
     await guy.getByRole('button', { name: /create project/i }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
     await shot(guy, '12-project');

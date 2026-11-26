@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { PROJECT_TEMPLATES, type Hub } from '../../core/actions';
+import type { Hub } from '../../core/actions';
 import { suggestIcon } from '../../core/projectIcons';
 import type { List, ListKind, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
@@ -25,7 +25,7 @@ import { CollectedNotes } from '../components/Notes';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
 
-/** A name on a card of its color, a few ideas to start from, then the same chips as a project's page. */
+/** A name on a card of its color, then the same chips as a project's page. */
 export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }>; parentId?: string }) {
   const hub = useHub();
   const parent = hub.list(parentId);
@@ -42,8 +42,6 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
   const kind = look.kind ?? 'tasks';
   const [picking, setPicking] = useState(false);
   const icon = look.icon ?? suggestIcon(name, kind, look.flavor, hub.lists().at(-1)?.icon, hub.iconsInUse());
-  const taken = new Set(hub.lists().map((l) => l.name.toLowerCase()));
-  const starts = PROJECT_TEMPLATES.filter((t) => !taken.has(t.name.toLowerCase())).slice(0, 4);
 
   const create = () => {
     if (!name.trim()) return;
@@ -88,24 +86,6 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
           </div>
         ) : null}
 
-        {!name && starts.length ? (
-          <div className="tokens">
-            {starts.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                className="token"
-                onClick={() => {
-                  setName(t.name);
-                  setLook((l) => ({ ...l, kind: t.kind, flavor: t.flavor ?? l.flavor, visibility: t.visibility ?? l.visibility, icon: t.icon }));
-                }}
-              >
-                <Icon name="plus" />
-                {t.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis withKind noIcon />
 
