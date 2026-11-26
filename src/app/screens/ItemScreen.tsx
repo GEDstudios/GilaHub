@@ -23,7 +23,7 @@ import { isQuick, setQuick } from '../quick';
 import { movedTo } from '../components/TemplateAsk';
 import { usePrefs } from '../prefs';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
-import { Icon } from '../ui/Icon';
+import { Icon, type IconName } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Empty, IconButton, lineVars, ListBullet, NewButton, Section } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
@@ -146,14 +146,17 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
   );
 }
 
-/** A small − n + inside a sentence. `off` (− from the lowest): "never". */
-function MiniStep({ value, label, onChange, canOff }: { value: number | null; label: string; onChange: (n: number | null) => void; canOff?: boolean }) {
+/** A small − n + with an icon in front (the icon says what the number is for). */
+function MiniStep({ icon, value, label, onChange, canOff, tone }: { icon: IconName; value: number | null; label: string; onChange: (n: number | null) => void; canOff?: boolean; tone?: string }) {
   return (
-    <span className="ministep">
+    <span className={`ministep ${value === null ? 'is-off' : ''} ${tone ?? ''}`} title={label}>
+      <Icon name={icon} className="ministep__icon" />
       <button type="button" aria-label={`${label}: one less`} disabled={value === null || (!canOff && value <= 0)} onClick={() => onChange(value === null ? null : value <= 0 ? null : value - 1)}>
         −
       </button>
-      <span className="ministep__n num">{value === null ? 'never' : value}</span>
+      <span className="ministep__n num" aria-label={label}>
+        {value === null ? '–' : `≤${value}`}
+      </span>
       <button type="button" aria-label={`${label}: one more`} onClick={() => onChange(value === null ? 0 : value + 1)}>
         +
       </button>
@@ -162,58 +165,36 @@ function MiniStep({ value, label, onChange, canOff }: { value: number | null; la
 }
 
 /**
- * Stock: how many are in, big, then two plain sentences that say what happens: "When it's down
- * to 1, put it on Shopping" and "When it's down to 0, make it urgent". Every number is its own
- * − / +, the place opens the tree. Buying its entry counts it back up.
+ * Stock, shown not told: how many are in (big, − / +), then two small steps, a cart (at this many
+ * it goes on the list, whose name sits beside it) and a bolt (at this many it's urgent). × stops.
+ * Opening it starts counting.
  */
 function StockPanel({ id }: { id: string }) {
   const hub = useHub();
   const { toast, openSheet } = useOverlays();
-  const [start, setStart] = useState(2);
   const item = hub.item(id);
-  if (!item) return null;
-  const on = item.stock != null;
+  const on = item?.stock != null;
   const set = (patch: Parameters<typeof hub.setStock>[1]) => {
     const before = hub.item(id)?.stockLink ?? null;
     hub.setStock(id, patch);
     const now = hub.item(id);
     if (now?.stockLink && now.stockLink !== before) {
       const at = hub.stockPlace(now);
-      toast(`Running low: ${at.parentId ? `under “${hub.item(at.parentId)?.title ?? ''}”` : `on ${hub.list(at.listId)?.name ?? 'the list'}`}`);
+      toast(`On ${at.parentId ? `“${hub.item(at.parentId)?.title ?? ''}”` : (hub.list(at.listId)?.name ?? 'the list')}`);
     }
   };
-  const n = on ? (item.stock ?? 0) : start;
-  const big = (
-    <div className="stockbig">
-      <button type="button" className="stockbig__btn" aria-label="One less in stock" disabled={n <= 0} onClick={() => (on ? set({ stock: n - 1 }) : setStart(Math.max(0, n - 1)))}>
-        <Icon name="minus" />
-      </button>
-      <span className="stockbig__n">
-        <span className="num">{n}</span>
-        <span className="stockbig__label">in stock</span>
-      </span>
-      <button type="button" className="stockbig__btn" aria-label="One more in stock" onClick={() => (on ? set({ stock: n + 1 }) : setStart(n + 1))}>
-        <Icon name="plus" />
-      </button>
-    </div>
-  );
-  if (!on)
-    return (
-      <Panel>
-        {big}
-        <button type="button" className="btn btn--block stock__start" onClick={() => set({ stock: start, stockAddAt: 1, stockUrgentAt: 0 })}>
-          <Icon name="package" className="icon--sm" />
-          Count it
-        </button>
-        <p className="stock__hint">It goes on the shopping list by itself when it runs low.</p>
-      </Panel>
-    );
-  // Where it goes when low: any folder, or under any task, picked in the tree.
+  // Opening it is starting it.
+  useEffect(() => {
+    if (item && item.stock == null) hub.setStock(id, { stock: 2, stockAddAt: 1, stockUrgentAt: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  if (!item || !on) return null;
+  const n = item.stock ?? 0;
   const place = hub.stockPlace(item);
-  const placeName = place.parentId ? `“${hub.item(place.parentId)?.title ?? ''}”` : (hub.list(place.listId)?.name ?? 'the list');
+  const placeName = place.parentId ? (hub.item(place.parentId)?.title ?? '') : (hub.list(place.listId)?.name ?? '');
   const pickPlace = () =>
     openSheet((close) => (
-      <Sheet onClose={close} title="When it runs low, it goes on…">
+      <Sheet onClose={close} title="Goes on">
         <PlacePicker
           itemId={id}
           initialOpen={[...hub.listPath(place.listId).map((l) => l.id), place.listId]}
@@ -225,37 +206,34 @@ function StockPanel({ id }: { id: string }) {
         />
       </Sheet>
     ));
+  const low = hub.stockLow(item);
+  const out = item.stockUrgentAt != null && n <= item.stockUrgentAt;
   return (
     <Panel>
-      {big}
-      <p className="stocksay">
-        <Icon name="cart" className="icon--sm" />
-        <span>
-          When it’s down to <MiniStep value={item.stockAddAt ?? 1} label="Goes on the list at" onChange={(v) => set({ stockAddAt: v ?? 0 })} />, put it on{' '}
-          <button type="button" className="stocksay__place" onClick={pickPlace} dir="auto">
+      <div className="stockp">
+        <button type="button" className="stockp__x" aria-label="Stop counting" title="Stop counting" onClick={() => set({ stock: null })}>
+          <Icon name="x" className="icon--xs" />
+        </button>
+        <div className={`stockbig ${out ? 'is-out' : low ? 'is-low' : ''}`}>
+          <button type="button" className="stockbig__btn" aria-label="One less" disabled={n <= 0} onClick={() => set({ stock: n - 1 })}>
+            <Icon name="minus" />
+          </button>
+          <span className="stockbig__n num" aria-label={`${n} in stock`}>
+            {n}
+          </span>
+          <button type="button" className="stockbig__btn" aria-label="One more" onClick={() => set({ stock: n + 1 })}>
+            <Icon name="plus" />
+          </button>
+        </div>
+        <div className="stockp__levels">
+          <MiniStep icon="cart" label="On the list at" value={item.stockAddAt ?? 1} onChange={(v) => set({ stockAddAt: v ?? 0 })} />
+          <button type="button" className="stockp__place" onClick={pickPlace} title="Where it goes" dir="auto">
             {placeName}
             <Icon name="chevron-down" className="icon--xs" />
           </button>
-        </span>
-      </p>
-      <p className="stocksay">
-        <Icon name="urgent" className="icon--sm" />
-        {item.stockUrgentAt == null ? (
-          <span>
-            Never urgent{' '}
-            <button type="button" className="stocksay__place" onClick={() => set({ stockUrgentAt: 0 })}>
-              Set a level
-            </button>
-          </span>
-        ) : (
-          <span>
-            When it’s down to <MiniStep value={item.stockUrgentAt} label="Urgent at" canOff onChange={(v) => set({ stockUrgentAt: v })} />, make it urgent
-          </span>
-        )}
-      </p>
-      <button type="button" className="textbtn stockoff" onClick={() => set({ stock: null })}>
-        Stop counting
-      </button>
+          <MiniStep icon="urgent" label="Urgent at" value={item.stockUrgentAt ?? null} canOff onChange={(v) => set({ stockUrgentAt: v })} tone="ministep--urgent" />
+        </div>
+      </div>
     </Panel>
   );
 }

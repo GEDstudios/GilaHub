@@ -1,6 +1,6 @@
 import { useDragOut } from '../ui/dragOut';
 import { movedTo } from './TemplateAsk';
-import { memo, useCallback, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { diffDays, humanDate, humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
@@ -105,6 +105,9 @@ export const ItemRow = memo(function ItemRow({
     tick(item);
   };
 
+  // A counted thing that's on the shopping list now (it says where; the count says the rest).
+  const stockLinked = item.stock != null && item.stockLink ? hub.item(item.stockLink) : undefined;
+  const stockOn = stockLinked && !stockLinked.done && !stockLinked.archived ? stockLinked : undefined;
   const twin = hub.linked(item);
   const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
 
@@ -203,7 +206,7 @@ export const ItemRow = memo(function ItemRow({
           {item.title || 'Untitled'}
           {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
-        {(showList && list) || item.stock != null || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
+        {(showList && list) || stockOn || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} /> : null}
             {showList && list && !listLink ? (
@@ -225,11 +228,10 @@ export const ItemRow = memo(function ItemRow({
               </button>
             ) : null}
             {req ? <ReqTag state={req} /> : null}
-            {item.stock != null ? (
-              <span className={`meta meta--stock ${item.stockUrgentAt != null && item.stock <= item.stockUrgentAt ? 'is-out' : hub.stockLow(item) ? 'is-low' : ''}`}>
-                <Icon name="package" />
-                {item.stock === 0 ? 'None left' : 'In stock'}
-                {item.stockLink && hub.item(item.stockLink) && !hub.item(item.stockLink)!.done ? ` · on ${hub.list(hub.item(item.stockLink)!.listId)?.name ?? 'the list'}` : ''}
+            {stockOn ? (
+              <span className="meta meta--stock is-low">
+                <Icon name="cart" />
+                <span dir="auto">{hub.list(stockOn.listId)?.name}</span>
               </span>
             ) : null}
             {vis ? <VisTag item={item} /> : null}
@@ -284,30 +286,67 @@ export const ItemRow = memo(function ItemRow({
 });
 
 /**
- * Where a task's tick would be, something we count shows how many are in: tap it when one is
- * used (it goes on the list by itself when it runs low). Never "done", so never cleared away.
+ * Where a task's tick would be, something we count shows how many are in. Tap it: it opens into
+ * − n + right there (used some, or filled back up), and closes by itself after a moment.
  */
 export function StockCount({ item, readonly }: { item: Item; readonly?: boolean }) {
   const hub = useHub();
   const { toast } = useOverlays();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLSpanElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linger = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setOpen(false), 3500);
+  };
+  useEffect(() => {
+    if (!open) return;
+    linger();
+    const away = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', away, true);
+    return () => {
+      document.removeEventListener('pointerdown', away, true);
+      if (timer.current) clearTimeout(timer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   const n = item.stock ?? 0;
   const out = item.stockUrgentAt != null && n <= item.stockUrgentAt;
   const low = hub.stockLow(item);
+  const tone = out ? 'is-out' : low ? 'is-low' : '';
+  const set = (next: number) => {
+    const before = item.stockLink ?? null;
+    hub.setStock(item.id, { stock: next });
+    haptic('select');
+    linger();
+    const now = hub.item(item.id);
+    if (now?.stockLink && now.stockLink !== before) toast(`${item.title}: on ${hub.list(hub.item(now.stockLink)?.listId)?.name ?? 'the list'}`, { ms: 2000 });
+  };
+  if (open && !readonly)
+    return (
+      <span ref={box} className={`stockcount stockcount--open ${tone}`} onClick={(e) => e.stopPropagation()}>
+        <button type="button" aria-label={`${item.title}: one less`} disabled={n <= 0} onClick={() => set(n - 1)}>
+          −
+        </button>
+        <span className="num">{n}</span>
+        <button type="button" aria-label={`${item.title}: one more`} onClick={() => set(n + 1)}>
+          +
+        </button>
+      </span>
+    );
   return (
     <button
       type="button"
-      className={`stockcount num ${out ? 'is-out' : low ? 'is-low' : ''}`}
-      aria-label={`${item.title}: ${n} in stock. Used one`}
-      title="Used one"
-      disabled={readonly || n === 0}
+      className={`stockcount num ${tone}`}
+      aria-label={`${item.title}: ${n} in stock`}
+      title={`${n} in stock`}
+      disabled={readonly}
       onClick={(e) => {
         e.stopPropagation();
         haptic('select');
-        const before = item.stockLink ?? null;
-        const undo = hub.useOne(item.id);
-        const now = hub.item(item.id);
-        const added = now?.stockLink && now.stockLink !== before;
-        toast(added ? `${item.title}: ${now?.stock} left, on ${hub.list(hub.item(now!.stockLink)?.listId)?.name ?? 'the list'}` : `${item.title}: ${now?.stock ?? 0} left`, { ms: 2400, action: { label: 'Undo', run: undo } });
+        setOpen(true);
       }}
     >
       {n}

@@ -9031,18 +9031,41 @@ section.aisle.is-settling-in > .rows {
   color: var(--text);
 }
 
-/* ============================================================ Stock, on a task: the count, then what happens, in words */
+/* ============================================================ Stock, on a task: the count big, two small levels */
+.stockp {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  padding: 4px 0 2px;
+}
+
+.stockp__x {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.stockp__x:hover {
+  background: var(--tile);
+  color: var(--text);
+}
+
 .stockbig {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 22px;
-  padding: 6px 0 14px;
+  gap: 18px;
 }
 
 .stockbig__btn {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -9065,67 +9088,50 @@ section.aisle.is-settling-in > .rows {
 }
 
 .stockbig__n {
-  display: grid;
-  justify-items: center;
-  min-width: 84px;
-}
-
-.stockbig__n .num {
+  min-width: 64px;
+  text-align: center;
   font-family: var(--serif);
-  font-size: 44px;
+  font-size: 48px;
   line-height: 1;
   color: var(--ink);
+  transition: color 160ms var(--ease);
 }
 
-.stockbig__label {
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--text-3);
+.stockbig.is-low .stockbig__n {
+  color: #9a6a00;
 }
 
-.stocksay {
+.stockbig.is-out .stockbig__n {
+  color: var(--danger);
+}
+
+.stockp__levels {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 12px 2px;
-  border-top: 1px solid var(--line);
-  font-size: 15px;
-  line-height: 2;
-  color: var(--text-2);
-}
-
-.stocksay > .icon {
-  flex: none;
-  color: var(--text-3);
-}
-
-.stocksay__place {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 1px 9px;
-  border-radius: 999px;
-  background: var(--tile);
-  font: inherit;
-  font-weight: 600;
-  line-height: 1.7;
-  color: var(--ink);
+  justify-content: center;
+  gap: 8px;
 }
 
 .ministep {
   display: inline-flex;
   align-items: center;
-  vertical-align: middle;
-  height: 30px;
-  margin: 0 2px;
+  height: 34px;
+  padding-inline-start: 10px;
   border-radius: 999px;
   background: var(--tile);
+  color: var(--ink);
+}
+
+.ministep__icon {
+  --s: 15;
+  margin-inline-end: 2px;
+  color: var(--text-2);
 }
 
 .ministep button {
   width: 28px;
-  height: 30px;
+  height: 34px;
   font-size: 16px;
   line-height: 1;
   color: var(--ink);
@@ -9136,25 +9142,77 @@ section.aisle.is-settling-in > .rows {
 }
 
 .ministep__n {
-  min-width: 22px;
+  min-width: 26px;
   text-align: center;
+  font-size: 14px;
   font-weight: 700;
+}
+
+.ministep.is-off .ministep__n {
+  color: var(--text-4);
+}
+
+.ministep--urgent:not(.is-off) {
+  background: var(--lemon);
+}
+
+.ministep--urgent:not(.is-off) .ministep__icon {
   color: var(--ink);
 }
 
-.stock__start {
-  margin-top: 4px;
+.stockp__place {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 150px;
+  height: 34px;
+  margin-inline-start: -4px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.stock__hint {
-  margin: 10px 0 0;
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-3);
+.stockp__place:hover {
+  background: var(--tile);
+  color: var(--text);
 }
 
 /* A subtask pulled out to the left of its task: the task shows where it lands (right after it) */
 .aisle li.row.is-droptarget:has(.row--nested.is-lifted-out) {
   box-shadow: inset 0 -3px 0 var(--ink);
   background: transparent;
+}
+
+/* A row's count, opened: − n + right where it is */
+.stockcount--open {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  gap: 0;
+  height: 32px;
+  border-radius: 999px;
+  animation: fade-in 120ms var(--ease) both;
+}
+
+.stockcount--open button {
+  width: 30px;
+  height: 32px;
+  font-size: 17px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.stockcount--open button:disabled {
+  opacity: 0.3;
+}
+
+.stockcount--open .num {
+  min-width: 18px;
+  text-align: center;
 }
