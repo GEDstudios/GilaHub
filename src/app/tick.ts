@@ -27,7 +27,7 @@ export function ticksAway(hub: Hub, item: Item): boolean {
 /**
  * The one tick: every row, the chores list and the item page say the same thing after it.
  * Repeating → "Laundry is fresh again…"; a request waiting for an OK → "Sent to X for an OK";
- * taking that back → "Taken back"; open subtasks → "Done. n subtasks open" with Finish them and See them; otherwise
+ * taking that back → "Taken back"; open subtasks → "Done · n subtasks still open" with Finish them and See them; otherwise
  * "Done", folding into "3 done". All with Undo.
  */
 export function useTick(): (item: Item) => void {
@@ -50,7 +50,7 @@ export function useTick(): (item: Item) => void {
     const msg = afterTick(rt, hub, item.id);
     if (msg) say(msg);
     else if (openSteps)
-      say(`Done. ${openSteps} subtask${openSteps > 1 ? 's' : ''} open`, {
+      say(`Done · ${openSteps} subtask${openSteps > 1 ? 's' : ''} still open`, {
         action: [
           { label: 'Undo', run: () => undo() },
           {

@@ -228,27 +228,32 @@ function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: 
     <div
       ref={el}
       key={t.bump}
-      className={`toast ${t.leaving && !gone ? 'is-leaving' : ''} ${t.bump ? 'is-bumped' : ''}`}
+      className={`toast ${t.actions.length > 1 ? 'toast--stack' : ''} ${t.leaving && !gone ? 'is-leaving' : ''} ${t.bump ? 'is-bumped' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <span dir="auto">{t.message}</span>
-      {t.actions.map((a) => (
-        <button
-          key={a.label}
-          type="button"
-          className="toast__action"
-          onClick={() => {
-            if (gone) return;
-            a.run();
-            onDismiss(true);
-          }}
-        >
-          {a.label}
-        </button>
-      ))}
+      <span className="toast__text" dir="auto">
+        {t.message}
+      </span>
+      {/* Several choices: the words on their own line, the buttons in an even row under them. */}
+      <span className="toast__actions">
+        {t.actions.map((a) => (
+          <button
+            key={a.label}
+            type="button"
+            className={`toast__action ${a.label === 'Undo' ? 'toast__action--undo' : ''}`}
+            onClick={() => {
+              if (gone) return;
+              a.run();
+              onDismiss(true);
+            }}
+          >
+            {a.label}
+          </button>
+        ))}
+      </span>
     </div>
   );
 }

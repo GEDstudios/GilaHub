@@ -3489,6 +3489,55 @@ html.is-dragging * {
   white-space: nowrap;
 }
 
+.toast__actions {
+  display: contents;
+}
+
+/* Several choices (Undo, Finish them, See them): a rounded card, the words first, then the row. */
+.toast.toast--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(100%, 420px);
+  padding: 14px 10px 10px;
+  border-radius: 24px;
+}
+
+.toast--stack .toast__text {
+  padding: 0 8px;
+  font-weight: 600;
+}
+
+.toast--stack .toast__actions {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  gap: 6px;
+}
+
+.toast--stack .toast__action,
+.toast--stack .toast__action + .toast__action {
+  margin: 0;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.12);
+  color: var(--cta-text);
+  box-shadow: none;
+}
+
+/* The way forward is the bright one; Undo steps back, quietly. */
+.toast--stack .toast__action:not(.toast__action--undo):first-of-type,
+.toast--stack .toast__action--undo + .toast__action {
+  background: var(--lemon);
+  color: var(--ink);
+}
+
+.toast--stack .toast__action--undo {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.24);
+}
+
 /* A second button stays quiet: one lemon Undo per toast. */
 .toast__action + .toast__action {
   margin-left: -8px;
