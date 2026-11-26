@@ -56,11 +56,12 @@ function useAdd() {
 function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
-      // The lemon tick circle, its outline trimmed open where the check reaches out.
+      // The tick circle in brand green: its outline open at the top right, the check's tip
+      // passing out through the middle of the gap; outline and check of near-equal weight.
       <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
-        <circle cx="20" cy="20.5" r="15" fill="var(--lemon)" />
-        <circle cx="20" cy="20.5" r="15" fill="none" stroke="#0a0a04" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="72 22.25" transform="rotate(-20 20 20.5)" />
-        <path d="M12.5 21l5 5L31.5 11.5" fill="none" stroke="#0a0a04" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="18.5" cy="21.5" r="14.5" fill="var(--mint)" />
+        <circle cx="18.5" cy="21.5" r="14.5" fill="none" stroke="#0a0a04" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="74.91 16.20" transform="rotate(-13.0 18.5 21.5)" />
+        <path d="M10.7 21.1L16.3 26.7L30.5 9.5" fill="none" stroke="#0a0a04" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   if (kind === 'buy')
