@@ -610,6 +610,25 @@ try {
     await hila.locator('.stuck').waitFor({ timeout: 3000 });
   });
 
+  await check('Notes stay out of the way while Today is being edited', async () => {
+    await guy.goto(`${url}/`);
+    await guy.locator('.notebtn').click();
+    await guy.getByRole('textbox', { name: 'Your note' }).fill('Dinner at 8? 🍝');
+    await guy.getByRole('button', { name: 'Stick it' }).click();
+    await hila.goto(`${url}/`);
+    const note = hila.locator('.stuck', { hasText: 'Dinner at 8' });
+    await note.waitFor({ timeout: 15000 });
+    await hila.getByRole('button', { name: 'Edit Today' }).click();
+    await hila.getByRole('heading', { name: 'Edit Today', level: 1 }).waitFor();
+    if (await note.isVisible()) throw new Error('the note shows while editing Today');
+    if (await hila.locator('.notebtn').isVisible()) throw new Error('the note button shows while editing Today');
+    await hila.keyboard.press('Escape');
+    await hila.getByRole('heading', { name: 'Edit Today', level: 1 }).waitFor({ state: 'detached', timeout: 3000 });
+    await note.waitFor({ state: 'visible', timeout: 3000 });
+    await note.locator('.sticky__check').click();
+    await note.waitFor({ state: 'detached', timeout: 3000 });
+  });
+
   await check('Today: Waiting on you can show only what’s urgent, the rest a tap away', async () => {
     await hila.goto(`${url}/`);
     const asks = hila.locator('#home-asks');

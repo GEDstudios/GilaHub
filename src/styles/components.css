@@ -4700,9 +4700,14 @@ html:has(.iconlib) .fab {
 }
 
 html:has(.sheet) .stickyboard,
-html.is-searching .stickyboard,
-html.is-editing .stickyboard {
+html.is-searching .stickyboard {
   visibility: hidden;
+}
+
+/* Arranging a screen (Today, the bar, the categories) is no time for notes: they wait for the regular view. */
+html.is-editing :is(.stickyboard, .notebtn),
+html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
+  display: none;
 }
 
 /* ============================================================ Pictures on ideas, drawn on */
