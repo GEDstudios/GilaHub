@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { shortAgo } from '../../core/dates';
-import type { LineColor, Note } from '../../core/model';
+import type { Note } from '../../core/model';
 import { NOTE_MAX, NOTE_MIN } from '../../core/actions';
 import { useHub, useRt } from '../context';
 import { href, navigate, useRoute, type Route } from '../router';
@@ -8,7 +8,7 @@ import { notifyMembers } from '../runtime';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { SketchSheet, useShotPicker } from './Sketch';
+import { NoteEditor, NoteFace, PAPER, type NoteLook, type PhotoAt, type PhotoBorder, type PhotoShape, type Stroke } from './NoteFace';
 import { lineVars } from '../ui/primitives';
 
 /**
@@ -16,8 +16,6 @@ import { lineVars } from '../ui/primitives';
  * on Shopping). It sits stuck to that screen, taped on and a little crooked, until the one it's
  * for reads it and peels it off. The little paper by the Ideas tag leaves a new one here.
  */
-
-const COLORS: LineColor[] = ['lemon', 'pink', 'sky', 'mint', 'lilac'];
 
 /** Where a note can be stuck: every screen but Settings. */
 export function placeOf(route: Route): string | null {
@@ -52,66 +50,24 @@ const tiltOf = (id: string) => {
   return [-5, -3, 3, 5, -4, 4][Math.abs(h) % 6];
 };
 
-/** Words that fill the paper: as big as they fit, smaller when there are more of them. */
-function FitText({ text, max, min = 11, className = 'sticky__text' }: { text: string; max: number; min?: number; className?: string }) {
-  const el = useRef<HTMLSpanElement>(null);
-  useLayoutEffect(() => {
-    const n = el.current;
-    if (!n) return;
-    const fit = () => {
-      let size = max;
-      n.style.fontSize = `${size}px`;
-      while (size > min && (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1)) {
-        size -= 1;
-        n.style.fontSize = `${size}px`;
-      }
-    };
-    fit();
-    // Again once the handwriting font is in, and whenever the paper changes size.
-    void document.fonts?.ready.then(fit);
-    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
-    ro?.observe(n.parentElement ?? n);
-    return () => ro?.disconnect();
-  }, [text, max, min]);
-  return (
-    <span ref={el} className={`${className} is-fit`} dir="auto">
-      {text}
-    </span>
-  );
-}
-
-/** A note's photo (drawn on, maybe): a tap draws on it again; × takes it off. */
-function NotePhoto({ src, onChange }: { src: string; onChange?: (jpeg: string | null) => void }) {
-  const { openSheet } = useOverlays();
-  return (
-    <span className="sticky__photo">
-      {onChange ? (
-        <>
-          <button type="button" className="sticky__photobtn" aria-label="Draw on the photo" onClick={() => openSheet((close) => <SketchSheet src={src} onDone={onChange} onClose={close} />)}>
-            <img src={src} alt="" />
-          </button>
-          <button type="button" className="sticky__unphoto" aria-label="Take the photo off" onClick={() => onChange(null)}>
-            <Icon name="x" className="icon--xs" />
-          </button>
-        </>
-      ) : (
-        <img src={src} alt="" draggable={false} />
-      )}
-    </span>
-  );
-}
-
-/** On a note being written: a photo to add (then draw on). */
-function PhotoAdd({ onPick }: { onPick: (jpeg: string) => void }): ReactNode {
-  const picker = useShotPicker(onPick);
-  return (
-    <>
-      <button type="button" className="sticky__addphoto" aria-label="Add a photo to draw on" title="Add a photo" onClick={picker.pick}>
-        <Icon name="image" className="icon--sm" />
-      </button>
-      {picker.input}
-    </>
-  );
+/** A note as NoteFace draws it, signed `by`. */
+export function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): NoteLook {
+  let ink: Stroke[] = [];
+  try {
+    ink = n.ink ? (JSON.parse(n.ink) as Stroke[]) : [];
+  } catch {
+    /* unreadable ink: none */
+  }
+  return {
+    text: n.text,
+    color: n.color,
+    by,
+    photo: hub.shotOf('note', n.id),
+    shape: (n.photoShape as PhotoShape) || 'squircle',
+    border: (n.photoBorder as PhotoBorder) || 'white',
+    at: (n.photoAt as PhotoAt) || 'top',
+    ink,
+  };
 }
 
 // ---------------------------------------------------------------- leaving one
@@ -147,65 +103,35 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
   const rt = useRt();
   const { toast } = useOverlays();
   const partner = hub.partner();
-  const [text, setText] = useState('');
-  const [color, setColor] = useState<LineColor>('lemon');
-  const [shot, setShot] = useState<string | null>(null);
+  const [look, setLook] = useState<NoteLook>({ text: '', color: 'lemon', by: `— ${hub.me()?.name ?? ''}`, photo: null, shape: 'squircle', border: 'white', at: 'top', ink: [] });
+  const set = (p: Partial<NoteLook>) => setLook((l) => ({ ...l, ...p }));
   const where = placeName(hub, place);
+  const ready = !!look.text.trim() || !!look.photo || look.ink.length > 0;
   const stick = () => {
-    const id = hub.addNote(place, text.trim() || (shot ? '📷' : ''), color);
+    const id = hub.addNote(place, look.text.trim() || (look.photo ? '📷' : look.ink.length ? '✏️' : ''), look.color);
     if (!id) return;
-    if (shot) hub.setShot('note', id, shot);
+    if (look.photo) hub.setShot('note', id, look.photo);
+    hub.editNote(id, { photoShape: look.shape, photoBorder: look.border, photoAt: look.at, ink: look.ink.length ? JSON.stringify(look.ink) : null });
     haptic('tick');
     onClose();
-    toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.peelNote(id) } });
-    if (partner) void notifyMembers(rt, [partner.id], { title: `📝 ${hub.me()?.name ?? 'Your person'} left you a note`, body: text.trim(), url: href(routeOf(place)), tag: `note-${id}` });
+    toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.deleteNote(id) } });
+    if (partner) void notifyMembers(rt, [partner.id], { title: `📝 ${hub.me()?.name ?? 'Your person'} left you a note`, body: look.text.trim() || (look.photo ? '📷 A photo' : '✏️ A drawing'), url: href(routeOf(place)), tag: `note-${id}` });
   };
   return (
     <Sheet onClose={onClose} title={`A note for ${partner?.name ?? 'your person'}`}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          stick();
-        }}
-      >
-        <p className="note__where">
-          It stays on <strong dir="auto">{where}</strong> till {partner?.name ?? 'they'} peels it off
-        </p>
-        <div className="sticky sticky--big" style={{ ...lineVars(color), '--tilt': '-2deg' } as CSSProperties}>
-          {shot ? <NotePhoto src={shot} onChange={setShot} /> : <PhotoAdd onPick={setShot} />}
-          <textarea
-            className="sticky__write"
-            dir="auto"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Don’t forget the milk 💛"
-            aria-label="Your note"
-            rows={4}
-            maxLength={240}
-            data-autofocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) stick();
-            }}
-          />
-          <span className="sticky__by">— {hub.me()?.name}</span>
-        </div>
-        <div className="note__colors" role="radiogroup" aria-label="Paper">
-          {COLORS.map((c) => (
-            <button key={c} type="button" role="radio" aria-checked={c === color} aria-label={c} className={`note__swatch ${c === color ? 'is-on' : ''}`} style={lineVars(c)} onClick={() => setColor(c)} />
-          ))}
-        </div>
-        <button type="submit" className="btn btn--block" disabled={!text.trim() && !shot}>
-          Stick it
-        </button>
-      </form>
+      <p className="note__where">
+        It stays on <strong dir="auto">{where}</strong> till {partner?.name ?? 'they'} peels it off
+      </p>
+      <NoteEditor look={look} set={set} onText={(text) => set({ text })} autoFocus />
+      <button type="button" className="btn btn--block noteedit__go" disabled={!ready} onClick={stick}>
+        Stick it
+      </button>
     </Sheet>
   );
 }
 
 // ---------------------------------------------------------------- finding one
 
-/** How wide a note is on the page (px); the layer works out where that leaves it. */
-const NOTE_W = 124;
 
 /**
  * The notes stuck on this screen. Each sits where it was left (both of us see the same spot),
@@ -255,11 +181,10 @@ function StuckNote({
   const { openSheet, toast } = useOverlays();
   const el = useRef<HTMLDivElement>(null);
   const mine = note.by === hub.meId;
-  const photo = hub.shotOf('note', note.id);
   const width = () => board.current?.getBoundingClientRect().width || 360;
   // Where it is: where it was left, else up by the top corner, fanned by age.
   const home = (): Place => ({
-    x: note.x ?? Math.max(0, (width() - NOTE_W - 16 - index * 14) / width()),
+    x: note.x ?? Math.max(0, (width() - PAPER - 16 - index * 14) / width()),
     y: note.y ?? 62 + index * 22,
     rot: note.rot ?? tiltOf(note.id),
     scale: note.scale ?? 1,
@@ -332,12 +257,16 @@ function StuckNote({
       t.moved = true;
       const a = Math.atan2(e.clientY - t.cy, e.clientX - t.cx);
       const d = Math.hypot(e.clientX - t.cx, e.clientY - t.cy);
+      // Mostly nearer/further: sizing; mostly round: turning.
+      const turn = Math.abs(a - t.a0) * t.d0;
+      document.documentElement.dataset.twist = Math.abs(d - t.d0) > turn ? 'scale' : 'rotate';
       show(keep({ ...t.start, rot: t.start.rot + ((a - t.a0) * 180) / Math.PI, scale: t.start.scale * (d / t.d0) }));
     };
     const up = (e: PointerEvent) => {
       const t = twist;
       if (!t) return;
       twist = null;
+      delete document.documentElement.dataset.twist;
       e.stopPropagation();
       // Nothing under it gets this click.
       const eat = (c: Event) => {
@@ -352,10 +281,15 @@ function StuckNote({
     document.addEventListener('pointerdown', down, opts);
     document.addEventListener('pointermove', move, opts);
     document.addEventListener('pointerup', up, opts);
+    // The cursor says it: anywhere on the screen turns it (or sizes it, mid-drag).
+    const root = document.documentElement;
+    root.classList.add('note-lifted');
     return () => {
       document.removeEventListener('pointerdown', down, opts);
       document.removeEventListener('pointermove', move, opts);
       document.removeEventListener('pointerup', up, opts);
+      root.classList.remove('note-lifted');
+      delete root.dataset.twist;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lifted]);
@@ -477,7 +411,8 @@ function StuckNote({
         g.current.mode = 'finger';
         followFingers(start, g.current.sx, g.current.sy);
       } else g.current.mode = 'mouse';
-    }, 380);
+      // A finger picks it up a touch sooner than the mouse.
+    }, finger ? 300 : 380);
   };
 
   const move = (e: React.PointerEvent) => {
@@ -552,11 +487,7 @@ function StuckNote({
       onPointerCancel={cancel}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <span className={`sticky ${photo ? 'has-photo' : ''}`} style={lineVars(note.color)}>
-        {photo ? <NotePhoto src={photo} /> : null}
-        <FitText text={note.text === '📷' && photo ? '' : note.text} max={photo ? 15 : 22} min={8} />
-        <span className="sticky__by">{mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `— ${hub.member(note.by)?.name ?? ''}`}</span>
-      </span>
+      <NoteFace look={lookOf(hub, note, mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `— ${hub.member(note.by)?.name ?? ''}`)} />
       <button
         type="button"
         className="sticky__check"
@@ -601,12 +532,8 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
               {mine ? (
                 <MyNote note={n} peeling={peeling === n.id} />
               ) : (
-                <div className={`sticky sticky--big ${peeling === n.id ? 'is-peeling' : ''}`} style={{ ...lineVars(n.color), '--tilt': `${tiltOf(n.id) / 2}deg` } as CSSProperties}>
-                  {hub.shotOf('note', n.id) ? <NotePhoto src={hub.shotOf('note', n.id)!} /> : null}
-                  <FitText text={n.text === '📷' && hub.shotOf('note', n.id) ? '' : n.text} max={30} min={14} />
-                  <span className="sticky__by">
-                    — {from?.name ?? ''} · {shortAgo(n.createdAt)}
-                  </span>
+                <div className={`noteedit__stage ${peeling === n.id ? 'is-peeling' : ''}`}>
+                  <NoteFace look={lookOf(hub, n, `— ${from?.name ?? ''} · ${shortAgo(n.createdAt)}`)} scale={2.3} tilt={tiltOf(n.id) / 2} />
                 </div>
               )}
               <button type="button" className="btn btn--block" onClick={() => peel(n)}>
@@ -627,48 +554,29 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
   );
 }
 
-/** My own note, opened: its words and paper change right on it (saved as I leave the field). */
+/** My own note, opened: changed right on it, exactly as it shows (words saved as I leave them). */
 function MyNote({ note, peeling }: { note: Note; peeling: boolean }) {
   const hub = useHub();
-  const [text, setText] = useState(note.text === '📷' ? '' : note.text);
-  const photo = hub.shotOf('note', note.id);
+  const [text, setText] = useState(note.text === '📷' || note.text === '✏️' ? '' : note.text);
   const latest = useRef(text);
   latest.current = text;
   // Closing the sheet mid-sentence still keeps it.
   useEffect(() => () => hub.editNote(note.id, { text: latest.current }), [hub, note.id]);
+  const look = { ...lookOf(hub, note, `For ${hub.member(note.to)?.name ?? 'them'} · ${shortAgo(note.createdAt)}`), text };
+  const set = (p: Partial<NoteLook>) => {
+    if (p.photo !== undefined) hub.setShot('note', note.id, p.photo);
+    hub.editNote(note.id, {
+      color: p.color,
+      photoShape: p.shape,
+      photoBorder: p.border,
+      photoAt: p.at,
+      ink: p.ink === undefined ? undefined : p.ink.length ? JSON.stringify(p.ink) : null,
+    });
+  };
   return (
-    <>
-      <div className={`sticky sticky--big ${peeling ? 'is-peeling' : ''}`} style={{ ...lineVars(note.color), '--tilt': `${tiltOf(note.id) / 2}deg` } as CSSProperties}>
-        {photo ? <NotePhoto src={photo} onChange={(j) => hub.setShot('note', note.id, j)} /> : <PhotoAdd onPick={(j) => hub.setShot('note', note.id, j)} />}
-        <textarea
-          className="sticky__write"
-          dir="auto"
-          value={text}
-          maxLength={240}
-          rows={4}
-          aria-label="Your note"
-          onChange={(e) => setText(e.target.value)}
-          onBlur={() => hub.editNote(note.id, { text })}
-        />
-        <span className="sticky__by">
-          For {hub.member(note.to)?.name ?? 'them'} · {shortAgo(note.createdAt)}
-        </span>
-      </div>
-      <div className="note__colors" role="radiogroup" aria-label="Paper">
-        {COLORS.map((c) => (
-          <button
-            key={c}
-            type="button"
-            role="radio"
-            aria-checked={c === note.color}
-            aria-label={c}
-            className={`note__swatch ${c === note.color ? 'is-on' : ''}`}
-            style={lineVars(c)}
-            onClick={() => hub.editNote(note.id, { color: c })}
-          />
-        ))}
-      </div>
-    </>
+    <div className={peeling ? 'is-peeling' : ''}>
+      <NoteEditor look={look} set={set} onText={setText} onTextDone={() => hub.editNote(note.id, { text })} />
+    </div>
   );
 }
 
@@ -725,16 +633,8 @@ export function CollectedNotes() {
           </p>
         )}
         {notes.map((n) => (
-          <button
-            key={n.id}
-            type="button"
-            className="sticky sticky--mini"
-            style={{ ...lineVars(n.color), '--tilt': `${tiltOf(n.id) * 0.8}deg` } as CSSProperties}
-            onClick={() => openSheet((close) => <CollectedSheet id={n.id} onClose={close} />)}
-          >
-            {hub.shotOf('note', n.id) ? <NotePhoto src={hub.shotOf('note', n.id)!} /> : null}
-            <FitText text={n.text === '📷' && hub.shotOf('note', n.id) ? '' : n.text} max={hub.shotOf('note', n.id) ? 12 : 17} min={9} />
-            <span className="sticky__by">— {hub.member(n.by)?.name ?? ''}</span>
+          <button key={n.id} type="button" className="pinboard__note" aria-label={n.text} onClick={() => openSheet((close) => <CollectedSheet id={n.id} onClose={close} />)}>
+            <NoteFace look={lookOf(hub, n, `— ${hub.member(n.by)?.name ?? ''}`)} scale={0.8} tilt={tiltOf(n.id) * 0.8} />
           </button>
         ))}
       </div>
@@ -750,12 +650,8 @@ function CollectedSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const day = new Date(n.createdAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
   return (
     <Sheet onClose={onClose} title="A note">
-      <div className="sticky sticky--big" style={{ ...lineVars(n.color), '--tilt': `${tiltOf(n.id) / 2}deg` } as CSSProperties}>
-        {hub.shotOf('note', n.id) ? <NotePhoto src={hub.shotOf('note', n.id)!} /> : null}
-        <FitText text={n.text === '📷' && hub.shotOf('note', n.id) ? '' : n.text} max={30} min={14} />
-        <span className="sticky__by">
-          — {hub.member(n.by)?.name ?? ''} · on <span dir="auto">{placeName(hub, n.place)}</span> · {day}
-        </span>
+      <div className="noteedit__stage">
+        <NoteFace look={lookOf(hub, n, `— ${hub.member(n.by)?.name ?? ''} · ${placeName(hub, n.place)} · ${day}`)} scale={2.3} tilt={tiltOf(n.id) / 2} />
       </div>
       <div className="shotview__actions">
         <button

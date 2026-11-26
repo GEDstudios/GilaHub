@@ -41,7 +41,7 @@ const MAP = {
   request: ['hand-waving', 'duo'], 'user-plus': ['user-plus', 'duo'], badge: ['notification', 'duo'],
   lightbulb: ['lightbulb', 'duo'], image: ['image', 'duo'], scribble: ['scribble-loop', 'duo'],
   // cursors (a computer's mouse): drawn in my colour, ui/cursors.ts
-  'cursor-arrow': ['cursor', 'duo'], 'hand-pointing': ['hand-pointing', 'duo'], 'hand-grabbing': ['hand-grabbing', 'duo'],
+  'cursor-arrow': ['cursor', 'duo'], 'hand-pointing': ['hand-pointing', 'duo'], 'hand-grabbing': ['hand-grabbing', 'duo'], 'cursor-rotate': ['arrow-clockwise', 'duo'], 'cursor-scale': ['arrows-out-simple', 'duo'],
   // projects
   home: ['house', 'duo'], gift: ['gift', 'duo'], book: ['book-open', 'duo'], car: ['car', 'duo'],
   paw: ['paw-print', 'duo'], wallet: ['wallet', 'duo'], film: ['film-slate', 'duo'], utensils: ['fork-knife', 'duo'],

@@ -289,6 +289,12 @@ export interface Note {
   rot?: number | null;
   /** Its size, times the usual (NOTE_MIN to NOTE_MAX). */
   scale?: number | null;
+  /** How its photo sits: cut to a shape, in a border, at a place (NoteFace). */
+  photoShape?: string | null;
+  photoBorder?: string | null;
+  photoAt?: string | null;
+  /** Drawn on the note itself: strokes as JSON [{c, w, p: "x,y x,y"}] on its 124-point paper. */
+  ink?: string | null;
   /** A photo on it (drawn on), in parts like an idea's picture (Hub.setShot). */
   shotN?: number | null;
   shotV?: string | null;

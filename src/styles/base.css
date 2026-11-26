@@ -130,3 +130,21 @@ textarea::placeholder {
     cursor: var(--cur-grabbing, grabbing) !important;
   }
 }
+
+/* A note in hand (mouse): anywhere turns it, the note itself moves it */
+@media (hover: hover) and (pointer: fine) {
+  html.note-lifted,
+  html.note-lifted * {
+    cursor: var(--cur-rotate, alias) !important;
+  }
+
+  html.note-lifted[data-twist='scale'],
+  html.note-lifted[data-twist='scale'] * {
+    cursor: var(--cur-scale, nwse-resize) !important;
+  }
+
+  html.note-lifted .stuck.is-lifted,
+  html.note-lifted .stuck.is-lifted * {
+    cursor: var(--cur-grab, grab) !important;
+  }
+}

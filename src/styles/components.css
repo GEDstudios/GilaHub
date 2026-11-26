@@ -5631,3 +5631,329 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
 .stuck .sticky.has-photo .sticky__by {
   display: none;
 }
+
+/* ============================================================ The note, one design everywhere (NoteFace) */
+/* A 124-point square of paper, scaled into place: on a screen 1×, in its sheet 2.3×, on the board 0.8× */
+.nf-wrap {
+  --tilt: 0deg;
+  position: relative;
+  display: inline-block;
+  flex: none;
+  transform: rotate(var(--tilt));
+}
+
+.sticky.nf {
+  --tilt: 0deg;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 124px;
+  height: 124px;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 14px 11px 8px;
+  gap: 4px;
+  justify-content: flex-start;
+  transform-origin: 0 0;
+}
+
+.nf__text {
+  position: relative;
+  z-index: 1;
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  -webkit-line-clamp: unset;
+  font-family: var(--serif);
+  font-style: italic;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+textarea.nf__write {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  resize: none;
+  outline: none;
+}
+
+.nf__write::placeholder {
+  color: rgb(10 10 4 / 0.35);
+}
+
+.nf .sticky__by {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  font-size: 8.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The photo: cut to its shape, in its border, with a little shadow that follows the shape */
+.nf__photo {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex: none;
+  filter: drop-shadow(0 1px 1.2px rgb(10 10 4 / 0.28));
+}
+
+.nf__frame {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+}
+
+.nf__frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.nf__photo:not(.nf__photo--square) .nf__frame {
+  width: auto;
+  aspect-ratio: 1;
+}
+
+.nf__photo--top,
+.nf__photo--bottom {
+  height: 50px;
+}
+
+.nf__photo--top {
+  margin-top: -4px;
+}
+
+/* Behind the words: the photo fills the paper (with a margin of paper), the words over it */
+.nf__photo--behind {
+  position: absolute;
+  inset: 7px;
+  z-index: 0;
+}
+
+.nf--at-behind .nf__text,
+.nf--at-behind .sticky__by {
+  text-shadow:
+    0 0 3px var(--c),
+    0 0 6px var(--c),
+    0 0 1px #fff;
+}
+
+/* On the corner: stuck on, half off the paper, crooked */
+.nf__photo--corner {
+  position: absolute;
+  z-index: 2;
+  top: -12px;
+  right: -16px;
+  width: 54px;
+  height: 54px;
+  transform: rotate(9deg);
+}
+
+.nf--at-corner .nf__text {
+  padding-right: 34px;
+}
+
+/* A strip of tape for a border */
+.nf__photo.has-tape::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 24px;
+  height: 8px;
+  transform: translateX(-50%) rotate(-4deg);
+  background: rgb(255 255 255 / 0.6);
+  box-shadow: 0 0 0 0.3px rgb(10 10 4 / 0.1);
+}
+
+/* What's drawn on the note, and drawing on it */
+.nf__ink {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.nf__draw {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* On a screen: the stuck note is the face itself */
+.stuck > .nf-wrap {
+  display: block;
+}
+
+.is-peeling .nf-wrap,
+.noteedit__stage.is-peeling .nf-wrap {
+  transition:
+    transform 380ms var(--ease),
+    opacity 380ms var(--ease);
+  transform-origin: 0% 0%;
+  transform: rotate(-18deg) translate(-30px, -60px) scale(0.85);
+  opacity: 0;
+}
+
+/* The editor: the note, big and as it'll be; three tabs under it */
+.noteedit__stage {
+  display: flex;
+  justify-content: center;
+  padding: 18px 0 14px;
+}
+
+.noteedit__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--tile);
+}
+
+.noteedit__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  border-radius: 12px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.noteedit__tab.is-on {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgb(10 10 4 / 0.12);
+}
+
+.noteedit__panel {
+  display: grid;
+  gap: 12px;
+  min-height: 56px;
+  padding: 14px 2px 4px;
+}
+
+.noteedit__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.noteedit__label {
+  flex: none;
+  width: 52px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.noteedit__choices {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.noteedit__row .note__colors,
+.noteedit__choices .note__swatch {
+  margin: 0;
+}
+
+.noteedit__shape {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--tile);
+}
+
+.noteedit__shape.is-on {
+  background: var(--cta);
+}
+
+.noteedit__shapeswatch {
+  width: 22px;
+  height: 22px;
+  background: var(--text-2);
+}
+
+.noteedit__shape.is-on .noteedit__shapeswatch {
+  background: var(--me-light, var(--lemon));
+}
+
+.option--sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13.5px;
+}
+
+.noteedit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding-left: 64px;
+}
+
+.noteedit__actions .textbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+}
+
+.noteedit__addphoto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 52px;
+  border-radius: 16px;
+  border: 1.5px dashed var(--tile-2);
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.noteedit__grow {
+  flex: 1;
+}
+
+.noteedit__hint {
+  margin: -4px 0 0 64px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.noteedit__go {
+  margin-top: 10px;
+}
+
+/* On the board */
+.pinboard__note {
+  display: grid;
+  place-items: center;
+  padding: 4px 0;
+}

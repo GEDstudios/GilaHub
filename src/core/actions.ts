@@ -1135,13 +1135,14 @@ export class Hub {
     return this.store.create('note', { text: t, by: this.meId, to: this.partner()?.id ?? null, place, color, createdAt: Date.now() });
   }
 
-  /** Change my own note's words or paper (only the one who left it). */
-  editNote(id: string, fields: { text?: string; color?: LineColor }): void {
+  /** Change my own note: its words, paper, how its photo sits, what's drawn on it (only the one who left it). */
+  editNote(id: string, fields: { text?: string; color?: LineColor; photoShape?: string; photoBorder?: string; photoAt?: string; ink?: string | null }): void {
     const n = this.store.get('note', id);
     if (!n || n.by !== this.meId) return;
-    const patch: { text?: string; color?: LineColor } = {};
+    const patch: Partial<Note> = {};
     if (fields.text !== undefined && fields.text.trim() && fields.text.trim() !== n.text) patch.text = fields.text.trim();
     if (fields.color && fields.color !== n.color) patch.color = fields.color;
+    for (const k of ['photoShape', 'photoBorder', 'photoAt', 'ink'] as const) if (fields[k] !== undefined && fields[k] !== n[k]) patch[k] = fields[k];
     if (Object.keys(patch).length) this.store.mutate('note', id, patch);
   }
 
