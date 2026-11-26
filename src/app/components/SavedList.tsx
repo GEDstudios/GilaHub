@@ -116,7 +116,7 @@ export function SavedListSheet({ id, onClose }: { id?: string; onClose: () => vo
   };
   return (
     <Sheet onClose={onClose} title={id ? 'Filtered list' : 'A filtered list on Today'}>
-      <input className="field savedlist__name" dir="auto" value={name} placeholder={autoName(hub, q)} onChange={(e) => setName(e.target.value)} aria-label="Its name" />
+      <input className="field savedlist__name" dir="auto" value={name} placeholder="List name" onChange={(e) => setName(e.target.value)} aria-label="List name" />
 
       <div className="group savedlist__rows">
         <button type="button" className={`whenrow__btn savedlist__row ${part === 'folder' ? 'is-open' : ''}`} onClick={() => setPart(part === 'folder' ? null : 'folder')}>

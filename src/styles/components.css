@@ -9016,3 +9016,125 @@ section.aisle.is-settling-in > .rows {
   font-variant-numeric: tabular-nums;
   color: var(--text);
 }
+
+/* ============================================================ Stock, on a task: the count, then what happens, in words */
+.stockbig {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 6px 0 14px;
+}
+
+.stockbig__btn {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--ink);
+  transition: transform 140ms var(--spring), background 140ms var(--ease);
+}
+
+.stockbig__btn .icon {
+  --s: 20;
+}
+
+.stockbig__btn:active:not(:disabled) {
+  transform: scale(0.9);
+  background: var(--tile-2);
+}
+
+.stockbig__btn:disabled {
+  opacity: 0.35;
+}
+
+.stockbig__n {
+  display: grid;
+  justify-items: center;
+  min-width: 84px;
+}
+
+.stockbig__n .num {
+  font-family: var(--serif);
+  font-size: 44px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.stockbig__label {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.stocksay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 2px;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 2;
+  color: var(--text-2);
+}
+
+.stocksay > .icon {
+  flex: none;
+  color: var(--text-3);
+}
+
+.stocksay__place {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--tile);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.ministep {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  height: 30px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: var(--tile);
+}
+
+.ministep button {
+  width: 28px;
+  height: 30px;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.ministep button:disabled {
+  opacity: 0.3;
+}
+
+.ministep__n {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.stock__start {
+  margin-top: 4px;
+}
+
+.stock__hint {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
