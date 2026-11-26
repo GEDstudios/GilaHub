@@ -43,11 +43,10 @@ const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, 
 
 function FolderTools({ list }: { list: List }) {
   const hub = useHub();
-  const { toast, openSheet } = useOverlays();
+  const { openSheet } = useOverlays();
   const listId = list.id;
   const addPhoto = useAddPhoto(`list:${listId}`);
   const photoN = hub.photosOf(`list:${listId}`).length;
-  const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === projectKey(listId));
   const shows = hub.shownIn(listId);
   const tpl = hasTemplate(list);
   return (
@@ -58,20 +57,6 @@ function FolderTools({ list }: { list: List }) {
       fields={[]}
       extras={[
         { key: 'photo', label: photoN ? `Photos ${photoN}` : 'Photo', icon: 'image', set: photoN > 0, toggle: () => void addPhoto() },
-        {
-          key: 'today',
-          label: 'On Today',
-          icon: 'home',
-          set: onHome,
-          toggle: () => {
-            haptic('select');
-            if (onHome) {
-              hideHome(hub, projectKey(listId));
-              toast('Off your Today', { action: { label: 'Undo', run: () => showHome(hub, projectKey(listId)) } });
-            } else if (showHome(hub, projectKey(listId))) toast('Its open tasks show on your Today', { action: { label: 'Undo', run: () => hideHome(hub, projectKey(listId)) } });
-            else toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
-          },
-        },
         { key: 'tpl', label: tpl ? 'Template' : 'Task template', icon: 'layout', set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
         {
           key: 'shows',
@@ -538,10 +523,37 @@ export function ListScreen({ id }: { id: string }) {
   return <ProjectPage id={id} />;
 }
 
+/** A folder on my Today, as a task's star: filled while its open tasks show there. */
+function TodayStar({ listId }: { listId: string }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === projectKey(listId));
+  return (
+    <button
+      type="button"
+      className={`iconbtn starbtn ${onHome ? 'is-on' : ''}`}
+      aria-pressed={onHome}
+      aria-label={onHome ? 'On your Today' : 'Put it on your Today'}
+      title={onHome ? 'On your Today' : 'Put it on your Today'}
+      onClick={() => {
+        haptic('select');
+        if (onHome) {
+          hideHome(hub, projectKey(listId));
+          toast('Off your Today', { action: { label: 'Undo', run: () => showHome(hub, projectKey(listId)) } });
+        } else if (showHome(hub, projectKey(listId))) toast('On your Today', { action: { label: 'Undo', run: () => hideHome(hub, projectKey(listId)) } });
+        else toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
+      }}
+    >
+      <Icon name="star" lit={onHome} />
+    </button>
+  );
+}
+
 /** The folder's header buttons: search it, its "…" and its New. */
 export function ProjectActions({ listId, label, onNew }: { listId: string; label: string; onNew: () => void }) {
   return (
     <>
+      <TodayStar listId={listId} />
       <IconButton icon="search" label="Search this folder" onClick={() => openSearch(listId)} />
       <ProjectMenuButton listId={listId} />
       <NewButton label={label} onClick={onNew} />

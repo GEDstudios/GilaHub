@@ -554,6 +554,8 @@ export function WhenCard({
   const [part, setPart] = useState<'time' | 'repeat' | 'notify' | 'again' | null>(null);
   const flip = (p: 'time' | 'repeat' | 'notify' | 'again') => setPart(part === p ? null : p);
   const mouse = useMouse();
+  // Typing the time in its row (a computer): what it was, to put back on Esc.
+  const [timeEdit, setTimeEdit] = useState<{ was: string | null } | null>(null);
 
   const setDay = (due: string | null) => onChange(due ? { due, ...withNotification(value, due) } : { due: null, dueTime: null, remind: null, nag: null });
   const setTime = (dueTime: string | null) => onChange(dueTime ? { dueTime, due: value.due ?? ref, ...withNotification(value, value.due ?? ref) } : { dueTime: null });
@@ -601,23 +603,38 @@ export function WhenCard({
             </div>
           </div>
         ) : (
-        <WhenRow
-          icon="clock"
-          title="Time"
-          value={value.dueTime ? humanTime(value.dueTime, h24) : 'Any time'}
-          on={!!value.dueTime}
-          open={part === 'time'}
-          onOpen={() => flip('time')}
-          trail={
-            value.dueTime ? (
-              <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => (setTime(null), setPart(null))}>
-                <Icon name="x" className="icon--xs" />
-              </button>
-            ) : undefined
-          }
-        >
-          <TimePicker value={value.dueTime} h24={h24} onChange={setTime} onDone={() => setPart(null)} />
-        </WhenRow>
+          // A computer: the time is typed right in its row (hour : minute), like any other field.
+          <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
+            <div className="whenrow__line">
+              <span className="whenrow__btn whenrow__btn--static">
+                <Icon name="clock" className="icon--sm" lit={!!value.dueTime} />
+                <span className="whenrow__title">Time</span>
+              </span>
+              {timeEdit ? (
+                <TimePicker
+                  compact
+                  autoFocus
+                  value={value.dueTime}
+                  h24={h24}
+                  onChange={setTime}
+                  onDone={() => setTimeEdit(null)}
+                  onCancel={() => {
+                    setTime(timeEdit.was);
+                    setTimeEdit(null);
+                  }}
+                />
+              ) : (
+                <button type="button" className="whenrow__valuebtn" onClick={() => setTimeEdit({ was: value.dueTime ?? null })}>
+                  {value.dueTime ? humanTime(value.dueTime, h24) : 'Any time'}
+                </button>
+              )}
+              {value.dueTime && !timeEdit ? (
+                <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
+                  <Icon name="x" className="icon--xs" />
+                </button>
+              ) : null}
+            </div>
+          </div>
         )}
         {repeat ? (
           <WhenRow icon="repeat" title="Repeat" value={value.repeat ? ruleShort(value.repeat) : 'Never'} on={!!value.repeat} open={part === 'repeat'} onOpen={() => flip('repeat')}>
@@ -783,7 +800,24 @@ export function parseTime(text: string): string | null {
  * 12-hour clock, then Cancel or OK (Enter is OK). Two digits in the hour move on to the minutes.
  * `compact`: just the boxes, kept as soon as it reads as a time (Settings, a template).
  */
-export function TimePicker({ value, h24, onChange, onDone, compact }: { value: string | null; h24: boolean; onChange: (t: string) => void; onDone?: () => void; compact?: boolean }) {
+export function TimePicker({
+  value,
+  h24,
+  onChange,
+  onDone,
+  onCancel,
+  compact,
+  autoFocus,
+}: {
+  value: string | null;
+  h24: boolean;
+  onChange: (t: string) => void;
+  onDone?: () => void;
+  /** Esc: put back what it was. */
+  onCancel?: () => void;
+  compact?: boolean;
+  autoFocus?: boolean;
+}) {
   const start = value ?? nextHour();
   const [H, M] = start.split(':').map(Number);
   const [pm, setPm] = useState(H >= 12);
@@ -808,8 +842,9 @@ export function TimePicker({ value, h24, onChange, onDone, compact }: { value: s
     keep(hh, v);
   };
   useEffect(() => {
-    if (!compact) hourBox.current?.focus();
-  }, [compact]);
+    if (!compact || autoFocus) hourBox.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   /** What the boxes say, as "HH:MM" (null while they don't make a time). */
   const read = (h = hh, m = mm, p = pm): string | null => {
     const hn = Number(h);
@@ -858,12 +893,16 @@ export function TimePicker({ value, h24, onChange, onDone, compact }: { value: s
       step(which, e.key === 'ArrowUp' ? 1 : -1);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (compact) (e.target as HTMLInputElement).blur();
-      else ok();
-    } else if (e.key === 'Escape' && !compact) {
+      if (compact) {
+        keep();
+        onDone?.();
+        (e.target as HTMLInputElement).blur();
+      } else ok();
+    } else if (e.key === 'Escape' && (onCancel || !compact)) {
       e.preventDefault();
       e.stopPropagation();
-      onDone?.();
+      if (onCancel) onCancel();
+      else onDone?.();
     } else if (which === 'm' && e.key === 'Backspace' && mm === '') {
       hourBox.current?.focus();
     }
@@ -937,7 +976,18 @@ export function TimePicker({ value, h24, onChange, onDone, compact }: { value: s
       )}
     </div>
   );
-  if (compact) return <div className="tentry tentry--compact">{boxes}</div>;
+  if (compact)
+    return (
+      <div
+        className="tentry tentry--compact"
+        // Leaving it (a click elsewhere, Tab out): done.
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onDone?.();
+        }}
+      >
+        {boxes}
+      </div>
+    );
   const valid = !!read();
   return (
     <div className="tentry">

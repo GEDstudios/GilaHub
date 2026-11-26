@@ -165,6 +165,8 @@ export interface Item {
   qty?: string | null;
   /** Kept stocked: how many are in now (unset: not kept stocked). */
   stock?: number | null;
+  /** How many we like to have (the list asks for what's missing up to this). */
+  stockFull?: number | null;
   /** At or under this many, it goes on a list to get more (unset: 1). */
   stockAddAt?: number | null;
   /** At or under this many, that entry is urgent (unset: never). */

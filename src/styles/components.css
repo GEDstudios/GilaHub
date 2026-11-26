@@ -8259,54 +8259,93 @@ textarea.nf__write {
   gap: 14px;
 }
 
-/* In a row (Settings, a template): just the boxes, small */
+/* In a row (the Time row on a computer, Settings, a template): hour : minute, the app's own field look */
 .tentry--compact {
   padding: 0;
 }
 
 .tentry__row--compact {
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .tentry__row--compact .tentry__box {
-  width: 40px;
-  height: 34px;
+  width: 38px;
+  height: 32px;
   border-radius: 10px;
+  background: var(--tile);
+  box-shadow: none;
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--line);
+  font-variant-numeric: tabular-nums;
 }
 
 .tentry__row--compact .tentry__box:focus {
+  background: var(--card);
   box-shadow: inset 0 0 0 1.5px var(--ink);
 }
 
 .tentry__row--compact .tentry__colon {
-  height: 34px;
+  height: 32px;
+  padding: 0 1px;
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
+  color: var(--text-2);
 }
 
+/* AM / PM: the app's two-part switch, small */
 .tentry__row--compact .tentry__ampm {
-  height: 34px;
-  grid-template-rows: none;
-  grid-template-columns: 1fr 1fr;
-  margin-inline-start: 4px;
-  border-radius: 10px;
+  display: inline-flex;
+  height: 32px;
+  margin-inline-start: 6px;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--tile);
+  box-shadow: none;
 }
 
 .tentry__row--compact .tentry__ampm button {
-  width: 36px;
+  width: auto;
+  padding: 0 8px;
+  border-radius: 999px;
   font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-3);
 }
 
 .tentry__row--compact .tentry__ampm button + button {
-  border-top: 0;
-  border-inline-start: 1.5px solid var(--line);
+  border: 0;
+}
+
+.tentry__row--compact .tentry__ampm button.is-on {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(10 10 4 / 0.12);
+}
+
+/* The Time row on a computer: its value is the button that opens the boxes */
+.whenrow__btn--static {
+  cursor: default;
+}
+
+.whenrow__valuebtn {
+  flex: none;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.whenrow.is-set .whenrow__valuebtn {
+  color: var(--text);
+}
+
+.whenrow__valuebtn:hover {
+  background: var(--tile);
 }
 
 /* ============================================================ Shortcuts */
@@ -9031,19 +9070,158 @@ section.aisle.is-settling-in > .rows {
   color: var(--text);
 }
 
-/* ============================================================ Stock, on a task: the count big, two small levels */
-.stockp {
-  position: relative;
+/* ============================================================ Stock, on a task: Have · Want · Buy at, a bar, a quiet line */
+.stockcols {
   display: grid;
-  gap: 14px;
-  justify-items: center;
-  padding: 4px 0 2px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.stockp__x {
+.stockcol {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.stockcol__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.stockcol__step {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--tile);
+}
+
+.stockcol__step button {
+  width: 32px;
+  height: 38px;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.stockcol__step button:disabled {
+  opacity: 0.28;
+}
+
+.stockcol__n {
+  min-width: 22px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.stockcol.is-low .stockcol__n {
+  color: #9a6a00;
+}
+
+.stockcol.is-out .stockcol__n {
+  color: var(--danger);
+}
+
+/* Have, of want, with a notch where it gets bought */
+.stockbar {
+  position: relative;
+  height: 6px;
+  margin: 16px 6px 4px;
+  border-radius: 999px;
+  background: var(--tile);
+}
+
+.stockbar__fill {
   position: absolute;
-  top: -4px;
-  inset-inline-end: -4px;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: inherit;
+  background: var(--mint, #3fbf7f);
+  transition: width 240ms var(--ease), background 200ms var(--ease);
+}
+
+.stockbar.is-low .stockbar__fill {
+  background: #f0b429;
+}
+
+.stockbar.is-out .stockbar__fill {
+  background: var(--danger);
+}
+
+.stockbar__notch {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+  transition: left 240ms var(--ease);
+}
+
+.stockfoot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.stockfoot__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--tile);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.stockfoot__chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
+}
+
+.stockfoot__urgent {
+  padding: 0 4px 0 10px;
+}
+
+.stockfoot__urgent button {
+  width: 22px;
+  height: 30px;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.stockfoot__urgent button:disabled {
+  opacity: 0.28;
+}
+
+.stockfoot__urgent .num {
+  min-width: 18px;
+  text-align: center;
+  color: var(--ink);
+}
+
+.stockfoot__urgent:not(.is-off) {
+  background: var(--lemon);
+}
+
+.stockfoot__urgent.is-off .num {
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.stockfoot__stop {
+  margin-inline-start: auto;
   width: 30px;
   height: 30px;
   display: grid;
@@ -9052,132 +9230,7 @@ section.aisle.is-settling-in > .rows {
   color: var(--text-3);
 }
 
-.stockp__x:hover {
-  background: var(--tile);
-  color: var(--text);
-}
-
-.stockbig {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.stockbig__btn {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--tile);
-  color: var(--ink);
-  transition: transform 140ms var(--spring), background 140ms var(--ease);
-}
-
-.stockbig__btn .icon {
-  --s: 20;
-}
-
-.stockbig__btn:active:not(:disabled) {
-  transform: scale(0.9);
-  background: var(--tile-2);
-}
-
-.stockbig__btn:disabled {
-  opacity: 0.35;
-}
-
-.stockbig__n {
-  min-width: 64px;
-  text-align: center;
-  font-family: var(--serif);
-  font-size: 48px;
-  line-height: 1;
-  color: var(--ink);
-  transition: color 160ms var(--ease);
-}
-
-.stockbig.is-low .stockbig__n {
-  color: #9a6a00;
-}
-
-.stockbig.is-out .stockbig__n {
-  color: var(--danger);
-}
-
-.stockp__levels {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.ministep {
-  display: inline-flex;
-  align-items: center;
-  height: 34px;
-  padding-inline-start: 10px;
-  border-radius: 999px;
-  background: var(--tile);
-  color: var(--ink);
-}
-
-.ministep__icon {
-  --s: 15;
-  margin-inline-end: 2px;
-  color: var(--text-2);
-}
-
-.ministep button {
-  width: 28px;
-  height: 34px;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--ink);
-}
-
-.ministep button:disabled {
-  opacity: 0.3;
-}
-
-.ministep__n {
-  min-width: 26px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.ministep.is-off .ministep__n {
-  color: var(--text-4);
-}
-
-.ministep--urgent:not(.is-off) {
-  background: var(--lemon);
-}
-
-.ministep--urgent:not(.is-off) .ministep__icon {
-  color: var(--ink);
-}
-
-.stockp__place {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  max-width: 150px;
-  height: 34px;
-  margin-inline-start: -4px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text-2);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.stockp__place:hover {
+.stockfoot__stop:hover {
   background: var(--tile);
   color: var(--text);
 }

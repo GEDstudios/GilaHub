@@ -123,13 +123,15 @@ export const ItemRow = memo(function ItemRow({
     if (el) haptic('select');
     lit.current = el;
   };
-  const outTarget = (p: { x: number; y: number }): { el: HTMLElement | null; listId: string; parentId: string | null; before?: string | null } | null => {
-    // Beside its own task: out to the left (past its edge) takes it out, right after that task;
-    // anywhere else beside it is a slip of the hand, and nothing changes.
+  const outTarget = (p: { x: number; y: number }, from: { x: number; y: number }): { el: HTMLElement | null; listId: string; parentId: string | null; before?: string | null } | null => {
+    // Beside its own task: pulled out to either edge of the list (or past it) takes it out, right
+    // after that task; the middle is a slip of the hand, and nothing changes. The edge is generous:
+    // on a phone the list nearly fills the screen.
     const own = item.parentId ? document.querySelector<HTMLElement>(`li.row:not(.row--nested)[data-id="${item.parentId}"]`) : null;
     const box = own?.getBoundingClientRect();
     if (box && p.y >= box.top && p.y <= box.bottom) {
-      if (p.x >= box.left) return null;
+      const edge = Math.min(48, box.width * 0.14);
+      if ((p.x > box.left + edge && p.x < box.right - edge) || Math.abs(p.x - from.x) < 40) return null;
       const parent = hub.item(item.parentId);
       if (!parent) return null;
       const sisters = parent.parentId ? hub.childrenOf(parent.parentId) : hub.children(parent.listId, null);
@@ -155,10 +157,10 @@ export const ItemRow = memo(function ItemRow({
   const outRef = useDragOut<HTMLLIElement>({
     label: item.title,
     enabled: !!nested && !!item.parentId && !readonly && !item.done,
-    aim: (p) => light(p ? (outTarget(p)?.el ?? null) : null),
-    drop: (p) => {
+    aim: (p, from) => light(p ? (outTarget(p, from)?.el ?? null) : null),
+    drop: (p, from) => {
       light(null);
-      const t = outTarget(p);
+      const t = outTarget(p, from);
       if (!t) return;
       const was = { listId: item.listId, parentId: item.parentId ?? null };
       hub.move(item.id, { listId: t.listId, parentId: t.parentId, before: t.before ?? undefined });

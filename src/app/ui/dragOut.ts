@@ -12,7 +12,7 @@ export interface Point {
  * looks like any task (a full row) and follows the hand; `aim` lights what's under it; letting go calls `drop`.
  * The press never reaches what holds it (the task row it's under has a drag of its own).
  */
-export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled: boolean; aim: (p: Point | null) => void; drop: (p: Point) => void }) {
+export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled: boolean; aim: (p: Point | null, from: Point) => void; drop: (p: Point, from: Point) => void }) {
   const ref = useRef<T | null>(null);
   const latest = useRef(opts);
   latest.current = opts;
@@ -20,6 +20,8 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
     const el = ref.current;
     if (!el || !opts.enabled) return;
     let start: (Point & { id: number; touch: boolean }) | null = null;
+    // Where the hand first took it (kept after the drag ends, for the last aim).
+    let origin: Point = { x: 0, y: 0 };
     let dragging = false;
     let hold: ReturnType<typeof setTimeout> | null = null;
     let chip: HTMLElement | null = null;
@@ -54,7 +56,7 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
     };
     const move = (p: Point) => {
       if (chip) chip.style.transform = `translate(${p.x - grab.x}px, ${p.y - grab.y}px)`;
-      latest.current.aim(p);
+      latest.current.aim(p, origin);
     };
     const end = () => {
       if (hold) clearTimeout(hold);
@@ -63,7 +65,7 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
       chip?.remove();
       chip = null;
       el.classList.remove('is-lifted-out');
-      if (dragging) latest.current.aim(null);
+      if (dragging) latest.current.aim(null, origin);
       dragging = false;
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
@@ -89,7 +91,7 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
       if (dragging) {
         swallow = true;
         setTimeout(() => (swallow = false), 350);
-        latest.current.drop({ x: e.clientX, y: e.clientY });
+        latest.current.drop({ x: e.clientX, y: e.clientY }, origin);
       }
       end();
     };
@@ -98,6 +100,7 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
       // Not the task row's own drag (it would lift the whole task).
       e.stopPropagation();
       start = { x: e.clientX, y: e.clientY, id: e.pointerId, touch: e.pointerType === 'touch' };
+      origin = { x: e.clientX, y: e.clientY };
       if (start.touch) hold = setTimeout(() => start && lift({ x: start.x, y: start.y }), 380);
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);

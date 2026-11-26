@@ -779,7 +779,7 @@ export class Hub {
    * itself: low → on the list (urgent when very low); stocked again by hand → off the list, if it
    * put it there. Returns the undo.
    */
-  setStock(id: string, patch: Partial<Pick<Item, 'stock' | 'stockAddAt' | 'stockUrgentAt' | 'stockTo' | 'stockUnder'>>): Undo {
+  setStock(id: string, patch: Partial<Pick<Item, 'stock' | 'stockFull' | 'stockAddAt' | 'stockUrgentAt' | 'stockTo' | 'stockUnder'>>): Undo {
     return this.stockChange(id, () => {
       const f: Partial<Item> = { ...patch };
       if (typeof f.stock === 'number') f.stock = Math.max(0, Math.round(f.stock));
@@ -796,9 +796,9 @@ export class Hub {
   private stockChange(id: string, fn: () => void): Undo {
     const before = this.item(id);
     if (!before) return () => {};
-    const keep = { stock: before.stock ?? null, stockAddAt: before.stockAddAt ?? null, stockUrgentAt: before.stockUrgentAt ?? null, stockTo: before.stockTo ?? null, stockUnder: before.stockUnder ?? null, stockLink: before.stockLink ?? null, stockMade: !!before.stockMade };
+    const keep = { stock: before.stock ?? null, stockFull: before.stockFull ?? null, stockAddAt: before.stockAddAt ?? null, stockUrgentAt: before.stockUrgentAt ?? null, stockTo: before.stockTo ?? null, stockUnder: before.stockUnder ?? null, stockLink: before.stockLink ?? null, stockMade: !!before.stockMade };
     const link = before.stockLink ? this.item(before.stockLink) : undefined;
-    const linkWas = link ? { urgent: !!link.urgent, deleted: false } : null;
+    const linkWas = link ? { urgent: !!link.urgent, qty: link.qty ?? null, deleted: false } : null;
     let made: string | null = null;
     this.store.batch(() => {
       fn();
@@ -821,9 +821,14 @@ export class Hub {
     if (it.stock == null) return null;
     const low = it.stock <= (it.stockAddAt ?? 1);
     const urgent = it.stockUrgentAt != null && it.stock <= it.stockUrgentAt;
+    // What's missing, up to how many we like to have (none set: just "get more").
+    const missing = it.stockFull != null && it.stockFull > it.stock ? String(it.stockFull - it.stock) : null;
     if (low) {
       if (open) {
-        if (!!open.urgent !== urgent) this.store.mutate('item', open.id, { urgent });
+        const f: Partial<Item> = {};
+        if (!!open.urgent !== urgent) f.urgent = urgent;
+        if (it.stockMade && (open.qty ?? null) !== missing) f.qty = missing;
+        if (Object.keys(f).length) this.store.mutate('item', open.id, f);
         return null;
       }
       const place = this.stockPlace(it);
@@ -831,8 +836,8 @@ export class Hub {
       if (place.parentId) {
         // Under a task: one there by that name already will do.
         const there = this.childrenOf(place.parentId).find((c) => !c.done && !c.archived && c.title.trim().toLowerCase() === it.title.trim().toLowerCase());
-        res = there ? { kind: 'exists', id: there.id, listId: place.listId } : { kind: 'added', id: this.addItem(place.listId, { title: it.title, urgent, parentId: place.parentId }), listId: place.listId };
-      } else res = this.add(place.listId, { title: it.title, urgent });
+        res = there ? { kind: 'exists', id: there.id, listId: place.listId } : { kind: 'added', id: this.addItem(place.listId, { title: it.title, urgent, qty: missing, parentId: place.parentId }), listId: place.listId };
+      } else res = this.add(place.listId, { title: it.title, urgent, qty: missing });
       if (res.kind === 'exists' && urgent) this.store.mutate('item', res.id, { urgent: true });
       this.store.mutate('item', id, { stockLink: res.id, stockMade: res.kind !== 'exists' });
       return res.kind === 'exists' ? null : res.id;

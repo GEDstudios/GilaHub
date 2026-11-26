@@ -23,7 +23,7 @@ import { isQuick, setQuick } from '../quick';
 import { movedTo } from '../components/TemplateAsk';
 import { usePrefs } from '../prefs';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
-import { Icon, type IconName } from '../ui/Icon';
+import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Empty, IconButton, lineVars, ListBullet, NewButton, Section } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
@@ -146,27 +146,27 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
   );
 }
 
-/** A small − n + with an icon in front (the icon says what the number is for). */
-function MiniStep({ icon, value, label, onChange, canOff, tone }: { icon: IconName; value: number | null; label: string; onChange: (n: number | null) => void; canOff?: boolean; tone?: string }) {
+/** One column of the stock panel: a word over − n +. */
+function StockCol({ label, value, min = 0, max, onChange, tone }: { label: string; value: number; min?: number; max?: number; onChange: (n: number) => void; tone?: string }) {
   return (
-    <span className={`ministep ${value === null ? 'is-off' : ''} ${tone ?? ''}`} title={label}>
-      <Icon name={icon} className="ministep__icon" />
-      <button type="button" aria-label={`${label}: one less`} disabled={value === null || (!canOff && value <= 0)} onClick={() => onChange(value === null ? null : value <= 0 ? null : value - 1)}>
-        −
-      </button>
-      <span className="ministep__n num" aria-label={label}>
-        {value === null ? '–' : `≤${value}`}
+    <div className={`stockcol ${tone ?? ''}`}>
+      <span className="stockcol__label">{label}</span>
+      <span className="stockcol__step">
+        <button type="button" aria-label={`${label}: one less`} disabled={value <= min} onClick={() => onChange(value - 1)}>
+          −
+        </button>
+        <span className="stockcol__n num">{value}</span>
+        <button type="button" aria-label={`${label}: one more`} disabled={max != null && value >= max} onClick={() => onChange(value + 1)}>
+          +
+        </button>
       </span>
-      <button type="button" aria-label={`${label}: one more`} onClick={() => onChange(value === null ? 0 : value + 1)}>
-        +
-      </button>
-    </span>
+    </div>
   );
 }
 
 /**
- * Stock, shown not told: how many are in (big, − / +), then two small steps, a cart (at this many
- * it goes on the list, whose name sits beside it) and a bolt (at this many it's urgent). × stops.
+ * Stock on a task: Have · Want · Buy at, each − n +; under them a thin bar (have of want, a notch
+ * where it gets bought). One quiet line under that: where it goes, when it's urgent, stop.
  * Opening it starts counting.
  */
 function StockPanel({ id }: { id: string }) {
@@ -185,11 +185,16 @@ function StockPanel({ id }: { id: string }) {
   };
   // Opening it is starting it.
   useEffect(() => {
-    if (item && item.stock == null) hub.setStock(id, { stock: 2, stockAddAt: 1, stockUrgentAt: 0 });
+    if (item && item.stock == null) hub.setStock(id, { stock: 2, stockFull: 4, stockAddAt: 1, stockUrgentAt: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   if (!item || !on) return null;
-  const n = item.stock ?? 0;
+  const have = item.stock ?? 0;
+  const want = item.stockFull ?? Math.max(have, (item.stockAddAt ?? 1) + 1);
+  const at = item.stockAddAt ?? 1;
+  const urgentAt = item.stockUrgentAt ?? null;
+  const low = have <= at;
+  const out = urgentAt != null && have <= urgentAt;
   const place = hub.stockPlace(item);
   const placeName = place.parentId ? (hub.item(place.parentId)?.title ?? '') : (hub.list(place.listId)?.name ?? '');
   const pickPlace = () =>
@@ -206,33 +211,36 @@ function StockPanel({ id }: { id: string }) {
         />
       </Sheet>
     ));
-  const low = hub.stockLow(item);
-  const out = item.stockUrgentAt != null && n <= item.stockUrgentAt;
+  const pct = (n: number) => `${Math.max(0, Math.min(100, (n / Math.max(1, want)) * 100))}%`;
   return (
     <Panel>
-      <div className="stockp">
-        <button type="button" className="stockp__x" aria-label="Stop counting" title="Stop counting" onClick={() => set({ stock: null })}>
+      <div className="stockcols">
+        <StockCol label="Have" value={have} onChange={(n) => set({ stock: n })} tone={out ? 'is-out' : low ? 'is-low' : ''} />
+        <StockCol label="Want" value={want} min={Math.max(1, at + 1)} onChange={(n) => set({ stockFull: n })} />
+        <StockCol label="Buy at" value={at} max={want - 1} onChange={(n) => set({ stockAddAt: Math.min(n, want - 1) })} />
+      </div>
+      <div className={`stockbar ${out ? 'is-out' : low ? 'is-low' : ''}`} role="img" aria-label={`${have} of ${want}; bought at ${at}`}>
+        <span className="stockbar__fill" style={{ width: pct(have) }} />
+        <span className="stockbar__notch" style={{ left: pct(at) }} />
+      </div>
+      <div className="stockfoot">
+        <button type="button" className="stockfoot__chip" onClick={pickPlace} title="Where it goes when it's low">
+          <Icon name="cart" className="icon--xs" />
+          <span dir="auto">{placeName}</span>
+        </button>
+        <span className={`stockfoot__chip stockfoot__urgent ${urgentAt == null ? 'is-off' : ''}`} title="Urgent at">
+          <Icon name="urgent" className="icon--xs" />
+          <button type="button" aria-label="Urgent at: one less" disabled={urgentAt == null} onClick={() => set({ stockUrgentAt: urgentAt == null || urgentAt <= 0 ? null : urgentAt - 1 })}>
+            −
+          </button>
+          <span className="num">{urgentAt == null ? 'off' : urgentAt}</span>
+          <button type="button" aria-label="Urgent at: one more" disabled={urgentAt != null && urgentAt >= at} onClick={() => set({ stockUrgentAt: urgentAt == null ? 0 : urgentAt + 1 })}>
+            +
+          </button>
+        </span>
+        <button type="button" className="stockfoot__stop" onClick={() => set({ stock: null })} aria-label="Stop counting" title="Stop counting">
           <Icon name="x" className="icon--xs" />
         </button>
-        <div className={`stockbig ${out ? 'is-out' : low ? 'is-low' : ''}`}>
-          <button type="button" className="stockbig__btn" aria-label="One less" disabled={n <= 0} onClick={() => set({ stock: n - 1 })}>
-            <Icon name="minus" />
-          </button>
-          <span className="stockbig__n num" aria-label={`${n} in stock`}>
-            {n}
-          </span>
-          <button type="button" className="stockbig__btn" aria-label="One more" onClick={() => set({ stock: n + 1 })}>
-            <Icon name="plus" />
-          </button>
-        </div>
-        <div className="stockp__levels">
-          <MiniStep icon="cart" label="On the list at" value={item.stockAddAt ?? 1} onChange={(v) => set({ stockAddAt: v ?? 0 })} />
-          <button type="button" className="stockp__place" onClick={pickPlace} title="Where it goes" dir="auto">
-            {placeName}
-            <Icon name="chevron-down" className="icon--xs" />
-          </button>
-          <MiniStep icon="urgent" label="Urgent at" value={item.stockUrgentAt ?? null} canOff onChange={(v) => set({ stockUrgentAt: v })} tone="ministep--urgent" />
-        </div>
       </div>
     </Panel>
   );
@@ -481,24 +489,6 @@ export function ItemScreen({ id }: { id: string }) {
     set: tags.length > 0,
     panel: () => <TagPicker value={tags} onChange={(next) => hub.setTags(id, next)} suggested={[...suggest.auto, ...suggest.more]} />,
   };
-  const qtyNum = item.qty && /^\d+$/.test(item.qty) ? +item.qty : null;
-  const qtyChip = {
-    key: 'qty',
-    label: item.qty ? (qtyNum ? `×${qtyNum}` : item.qty) : 'How many',
-    icon: 'cart' as const,
-    set: !!item.qty,
-    panel: () => (
-      <span className="stepper">
-        <button type="button" aria-label="Less" disabled={!qtyNum || qtyNum <= 1} onClick={() => hub.updateItem(id, { qty: qtyNum && qtyNum > 2 ? String(qtyNum - 1) : null })}>
-          −
-        </button>
-        <input className="num" value={item.qty ?? ''} placeholder="1" onChange={(e) => hub.updateItem(id, { qty: e.target.value || null })} aria-label="Quantity" />
-        <button type="button" aria-label="More" onClick={() => hub.bump(id)}>
-          +
-        </button>
-      </span>
-    ),
-  };
 
   const onToggle = () => {
     if (hub.canTick(item)) tick(item);
@@ -657,7 +647,6 @@ export function ItemScreen({ id }: { id: string }) {
                     },
                   ]
                 : []),
-              qtyChip,
               ...(!item.parentId
                 ? [
                     {

@@ -358,3 +358,21 @@ describe('A filtered list on Today', () => {
     void getPrefs;
   });
 });
+
+describe('Stock with how many we like to have', () => {
+  it('asks the list for what is missing, and buying it fills back up', async () => {
+    const guy = await person('guy');
+    const shop = guy.createList({ name: 'Shopping' });
+    guy.store.mutate('list', shop, { shopRoot: true });
+    const pantry = guy.createList({ name: 'Pantry' });
+    const eggs = guy.addItem(pantry, { title: 'Eggs' });
+    guy.setStock(eggs, { stock: 6, stockFull: 6, stockAddAt: 2 });
+    guy.setStock(eggs, { stock: 2 });
+    const entry = () => guy.children(shop, null).find((i) => i.title === 'Eggs' && !i.done);
+    expect(entry()?.qty).toBe('4');
+    guy.useOne(eggs);
+    expect(entry()?.qty).toBe('5');
+    guy.toggle(entry()!.id);
+    expect(guy.item(eggs)?.stock).toBe(6);
+  });
+});

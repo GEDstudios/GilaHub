@@ -40,10 +40,10 @@ export function StockScreen() {
     if (!title) return;
     const listId = homeFolder();
     const id = hub.addItem(listId, { title });
-    hub.setStock(id, { stock: 1, stockAddAt: 1 });
+    hub.setStock(id, { stock: 2, stockFull: 4, stockAddAt: 1, stockUrgentAt: 0 });
     setName('');
     haptic('tick');
-    toast(`${title}: counting, 1 in stock`, { ms: 1800 });
+    toast(`${title}: 2 of 4`, { ms: 1800 });
   };
   const pickHome = () =>
     openSheet((close) => (
@@ -163,9 +163,9 @@ function StockRow({ item, showList }: { item: Item; showList?: boolean }) {
             <span className="meta meta--stock is-low">
               <Icon name="cart" /> On {onList.name}
             </span>
-          ) : (
-            <span className="meta">Goes on the list at {item.stockAddAt ?? 1}</span>
-          )}
+          ) : item.stockFull != null ? (
+            <span className="meta">of {item.stockFull}</span>
+          ) : null}
         </span>
       </div>
       <span className="stepper stockrow__step" onClick={(e) => e.stopPropagation()}>
