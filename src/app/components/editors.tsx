@@ -3,6 +3,7 @@ import { addMonths, daysInMonth, fromDateStr, humanDate, humanTime, today as tod
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
 import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
 import { useHub } from '../context';
+import { sheetOpened } from '../router';
 import { use24h, usePrefs, weekStart } from '../prefs';
 import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { withNotification } from '../compose';
@@ -338,6 +339,13 @@ export function InlineEditor({
   const [open, setOpen] = useState<string | null>(null);
   const ref = todayStr();
   const toggle = (f: string) => setOpen(open === f ? null : f);
+  // An open panel is a step back: the phone's Back closes just the panel (what was picked in it
+  // stays), not the screen or sheet under it.
+  useEffect(() => {
+    if (!open) return;
+    const step = sheetOpened(() => setOpen(null));
+    return () => step.closed();
+  }, [open]);
   const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f)) => (
     <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} disabled={readOnly} compact={compact} />
   );

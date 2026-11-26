@@ -80,6 +80,8 @@ export interface List {
   order: string;
   /** A line or two about it, under its name. */
   description?: string | null;
+  /** Other folders whose tasks show here too (one way: theirs show here, ours don't show there). */
+  shows?: string[] | null;
   /** My own private To-Do (one per person, made for them; Hub.ensurePersonalFolder). */
   personal?: boolean;
   /** The project it sits inside (a folder in a folder). Unset, or one I can't see: top level. */

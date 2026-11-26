@@ -1,5 +1,5 @@
 import { useWide } from '../ui/useWide';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Lens, useFilter } from '../components/Filter';
 import { flushSync } from 'react-dom';
 import { fromDateStr, today as todayStr } from '../../core/dates';
@@ -15,7 +15,8 @@ import { listIdOf, visibleHome } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Band, IconButton, NewButton, Seg } from '../ui/primitives';
+import { Band, IconButton, lightVar, NewButton } from '../ui/primitives';
+import { haptic } from '../ui/haptics';
 import { setPrefs, usePrefs } from '../prefs';
 import { itemVisChoice } from '../privacy';
 import { SettleContext, useSettle } from '../ui/useSettle';
@@ -66,8 +67,9 @@ export function Today() {
   const filter = useFilter('today');
   const prefs = usePrefs();
   const partner = hub.partner();
+  const me = hub.me();
   // All · Mine · Ours: my own things (Mine, Private) or the house's (Ours, and my person's).
-  const scope = partner ? prefs.todayScope : 'all';
+  const scope = partner && prefs.todayScope === 'mine' ? 'mine' : 'all';
   const isMine = (i: Item) => {
     const c = itemVisChoice(hub, i);
     return c === 'mine' || c === 'private';
@@ -75,24 +77,27 @@ export function Today() {
   const inScope = (i: Item) => scope === 'all' || (scope === 'mine' ? isMine(i) : !isMine(i));
   const all = todayView(hub, ref);
   const v = filter.active || scope !== 'all' ? filterToday(all, (i) => inScope(i) && (!filter.active || filter.test(i))) : all;
-  const scopeSwitch = partner ? (
-    <div className="homescope">
-      <Seg
-        label="Show on Today"
-        value={scope}
-        onChange={(next) => setPrefs({ todayScope: next })}
-        options={[
-          { value: 'all', label: 'All' },
-          { value: 'mine', label: 'Mine' },
-          { value: 'ours', label: 'Ours' },
-        ]}
-      />
-    </div>
+  // One tag beside search: Ours (everything) ↔ Mine (just my own: Mine and Private).
+  const mineOnly = scope === 'mine';
+  const scopeTag = partner ? (
+    <button
+      type="button"
+      className={`scopetag ${mineOnly ? 'is-mine' : ''}`}
+      style={{ '--me': lightVar(me?.color ?? 'lemon'), '--them': lightVar(partner.color) } as CSSProperties}
+      aria-pressed={mineOnly}
+      aria-label={mineOnly ? 'Showing only mine. Show ours too' : 'Showing everything. Show only mine'}
+      onClick={() => {
+        haptic('select');
+        setPrefs({ todayScope: mineOnly ? 'all' : 'mine' });
+      }}
+    >
+      <Icon name={mineOnly ? 'mine' : 'ours'} className="icon--sm" />
+      {mineOnly ? 'Mine' : 'Ours'}
+    </button>
   ) : null;
   // The lens looks over everything on the page, once each.
   const onPage = [...new Map([...all.today, ...all.earlier, ...all.upcoming.flatMap((g) => g.items), ...all.asked, ...all.outgoing, ...all.awaitingOk, ...all.waitingTheirOk].map((i) => [i.id, i])).values()];
   const lens = <Lens filter={filter} items={onPage} />;
-  const me = hub.me();
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
   const [editing, setEditing] = useState(false);
@@ -105,7 +110,8 @@ export function Today() {
     return () => clearTimeout(t);
   }, [entering]);
 
-  const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={ref} />);
+  // New from Today has no date of its own: the words (or the chip) give it one.
+  const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} />);
   useAddAction(openNew);
 
   const edit = (on: boolean) =>
@@ -183,6 +189,7 @@ export function Today() {
         top={<SyncBadge />}
         actions={
           <>
+            {scopeTag}
             <IconButton icon="search" label="Search" onClick={() => openSearch()} />
             <NewButton onClick={openNew} />
           </>
@@ -197,7 +204,6 @@ export function Today() {
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
           <div className="home__cols">
             <div className="home__main">
-              {scopeSwitch}
               <DayCard v={v} day={ref} />
               <HomeNotices />
               {lens}
@@ -213,7 +219,6 @@ export function Today() {
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
-          {scopeSwitch}
           <DayCard v={v} day={ref} />
           <HomeNotices />
           {lens}

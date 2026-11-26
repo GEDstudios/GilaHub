@@ -79,8 +79,16 @@ export function sheetOpened(close: () => void): { closed: () => void } {
   };
 }
 
+/**
+ * Leaving by Back: for a moment after the phone's Back, a field being written cancels instead of
+ * saving as it loses focus (AutoTitle), the way Back means "never mind".
+ */
+let backAt = 0;
+export const leavingByBack = (): boolean => Date.now() - backAt < 600;
+
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', () => {
+    backAt = Date.now();
     // A sheet's own step, taken back out after it closed: nothing else moves.
     if (unwinding > 0) {
       unwinding--;

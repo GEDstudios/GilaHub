@@ -4,6 +4,7 @@ import { useHub } from '../context';
 import { navigate, useRoute } from '../router';
 import { clearRecentSearches, closeSearch, recentSearches, rememberSearch, searchEverywhere, useSearchOpen, useSearchScope } from '../search';
 import { Icon } from '../ui/Icon';
+import { lockScroll } from '../ui/overlays';
 import { ListBullet } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
 
@@ -33,15 +34,14 @@ function Layer() {
 
   useEffect(() => {
     input.current?.focus({ preventScroll: true });
-    const prev = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
+    const unlock = lockScroll();
     document.documentElement.classList.add('is-searching');
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeSearch();
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.documentElement.style.overflow = prev;
+      unlock();
       document.documentElement.classList.remove('is-searching');
       window.removeEventListener('keydown', onKey);
     };

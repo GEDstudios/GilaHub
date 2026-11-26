@@ -3091,16 +3091,27 @@ html.is-dragging .bartray {
   }
 }
 
-/* Today: All · Mine · Ours, at the top. */
-.homescope {
-  display: flex;
-  margin: 2px 0 14px;
+/* Today: one tag beside search. Ours (everything, our two colours) ↔ Mine (just mine, my colour). */
+.scopetag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 13px 0 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  background: linear-gradient(100deg, var(--me) 0 50%, var(--them) 50% 100%);
+  box-shadow: 0 0 0 1.5px var(--ink) inset;
+  align-self: center;
+  transition: transform 220ms var(--spring);
 }
 
-.homescope .seg {
-  width: 100%;
+.scopetag.is-mine {
+  background: var(--me);
 }
 
-.homescope .seg > button {
-  flex: 1;
+.scopetag:active {
+  transform: scale(0.94);
 }

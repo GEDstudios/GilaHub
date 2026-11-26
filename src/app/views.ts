@@ -202,7 +202,9 @@ export function shopTree(hub: Hub, id: string): List[] {
  * the tray of things just done; Again?.
  */
 export const projectView = memo((hub: Hub, listId: string, inside: boolean, view: string, dismissed: Record<string, number>): ProjectView => {
-  const lists = inside ? shopTree(hub, listId) : shopTree(hub, listId).slice(0, 1);
+  const own = inside ? shopTree(hub, listId) : shopTree(hub, listId).slice(0, 1);
+  // Folders it shows too (one way): their tasks are here, each in its own group.
+  const lists = [...own, ...hub.shownIn(listId).filter((l) => !own.some((o) => o.id === l.id))];
   const ids = new Set(lists.map((l) => l.id));
   const items = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
   const open = items.filter((i) => !i.done && !i.archived);

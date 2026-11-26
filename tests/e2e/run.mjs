@@ -389,6 +389,22 @@ try {
     await guy.locator('li.row', { hasText: 'Return the library books' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
   });
 
+  await check('New from Today: no date, starts in my private To-Do; asking Hila with the chip takes it to a shared folder', async () => {
+    await guy.goto(`${url}/`);
+    await plus(guy);
+    await guy.locator('.composer__input').fill('Water the herbs');
+    const dest = () => guy.locator('.sheet .echip').first().innerText().then((t) => t.trim());
+    if ((await dest()) !== 'To-Do') throw new Error(`new from Today starts in ${await dest()}`);
+    if (await guy.locator('.sheet .echip', { hasText: /^Today/ }).count()) throw new Error('new from Today has a date by itself');
+    await guy.locator('.sheet .echip', { hasText: /Ask|Who/ }).first().click();
+    await guy.locator('.sheet .panel button', { hasText: 'Ask Hila' }).first().click();
+    await waitFor(async () => (await dest()) !== 'To-Do', 3000, 'the ask leaves the private To-Do');
+    await shot(guy, '13b-today-ask-chip');
+    await guy.getByRole('button', { name: 'Add', exact: true }).click();
+    await hila.goto(`${url}/`);
+    await hila.locator('.wcard[data-card="asks"]', { hasText: 'Water the herbs' }).waitFor({ timeout: 15000 });
+  });
+
   // ---------- Today, arranged
   await check('Today: Guy hides "Coming up" and moves "This week" up; it sticks after a reload', async () => {
     await guy.goto(`${url}/`);

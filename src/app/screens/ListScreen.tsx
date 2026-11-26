@@ -17,7 +17,7 @@ import { useHub, usePartnerHere, useRt } from '../context';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewButton } from '../ui/primitives';
+import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewButton, Switch } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
 import { setPrefs, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
@@ -63,6 +63,15 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
             }}
           />
         <OptRow
+          icon="link"
+          title="Show tasks from…"
+          sub={hub.shownIn(listId).length ? hub.shownIn(listId).map((l) => l.name).join(', ') : 'Another folder’s tasks, here too'}
+          onClick={() => {
+            onClose();
+            openSheet((close) => <ShowsSheet listId={listId} onClose={close} />);
+          }}
+        />
+        <OptRow
           icon="move"
           title={hub.parentOf(listId) ? 'Move to…' : 'Put inside…'}
           onClick={() => {
@@ -98,6 +107,36 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   );
 }
 
+/**
+ * Which other folders' tasks show in this one too. One way: picking Work here puts Work's tasks
+ * on this page; this folder's tasks don't go to Work.
+ */
+function ShowsSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
+  const hub = useHub();
+  const list = hub.list(listId);
+  if (!list) return null;
+  const on = new Set(list.shows ?? []);
+  const inside = new Set(hub.nestedLists(listId).map((l) => l.id));
+  const offered = hub.lists().filter((l) => l.id !== listId && !inside.has(l.id));
+  return (
+    <Sheet onClose={onClose} title={`Show in ${list.name}`}>
+      <p className="sheet__lede">Their tasks show here too, each folder in its own group. {list.name}’s own tasks stay where they are.</p>
+      <div className="group">
+        {offered.map((l) => (
+          <OptRow
+            key={l.id}
+            icon={undefined}
+            lead={<ListBullet list={l} size="sm" />}
+            title={l.name}
+            sub={hub.parentOf(l.id) ? `In ${hub.parentOf(l.id)!.name}` : undefined}
+            trail={<Switch on={on.has(l.id)} label={`Show ${l.name}’s tasks in ${list.name}`} onChange={(v) => hub.setShows(listId, l.id, v)} />}
+          />
+        ))}
+      </div>
+    </Sheet>
+  );
+}
+
 /** Where a project sits: the top of Projects, or inside another (never inside its own insides). */
 function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
@@ -106,12 +145,23 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
   if (!list) return null;
   const here = hub.parentOf(listId)?.id ?? null;
   const inside = new Set(hub.nestedLists(listId).map((l) => l.id));
-  const tree: Array<{ l: List; depth: number }> = [];
+  // Folders inside folders fold into their parent: open from the start, only the way down to
+  // where it sits now.
+  const [open, setOpen] = useState<Set<string>>(() => new Set(here ? [...hub.listPath(here).map((l) => l.id), here] : []));
+  const flip = (id: string) =>
+    setOpen((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const tree: Array<{ l: List; depth: number; subs: number }> = [];
   const walk = (ls: List[], depth: number) => {
     for (const l of ls) {
       if (l.id === listId || inside.has(l.id)) continue;
-      tree.push({ l, depth });
-      walk(hub.subLists(l.id), depth + 1);
+      const subs = hub.subLists(l.id).filter((x) => x.id !== listId && !inside.has(x.id));
+      tree.push({ l, depth, subs: subs.length });
+      if (open.has(l.id)) walk(subs, depth + 1);
     }
   };
   walk(hub.topLists(), 0);
@@ -136,7 +186,7 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
             </button>
           </div>
         </li>
-        {tree.map(({ l, depth }) => (
+        {tree.map(({ l, depth, subs }) => (
           <li key={l.id}>
             <div className="place__row" style={{ paddingInlineStart: 6 + (depth + 1) * 18 }}>
               <button type="button" className="place__pick" aria-current={here === l.id || undefined} disabled={here === l.id} onClick={() => go(l.id)}>
@@ -144,6 +194,11 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
                 <span dir="auto">{l.name}</span>
                 {here === l.id ? <span className="place__hint">here now</span> : null}
               </button>
+              {subs ? (
+                <button type="button" className={`place__open ${open.has(l.id) ? 'is-open' : ''}`} aria-label={open.has(l.id) ? 'Fold' : 'Unfold'} aria-expanded={open.has(l.id)} onClick={() => flip(l.id)}>
+                  <Icon name="chevron-down" className="icon--sm" />
+                </button>
+              ) : null}
             </div>
           </li>
         ))}
@@ -419,7 +474,7 @@ function ProjectPage({ id }: { id: string }) {
         <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
       </Band>
       <div className="column">
-        <Lens filter={filter} items={v.open} lists={inside ? v.lists : undefined}>
+        <Lens filter={filter} items={v.open} lists={v.lists.length > 1 ? v.lists : undefined}>
           <ViewToggle listId={id} />
         </Lens>
 

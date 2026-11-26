@@ -145,6 +145,24 @@ export class Hub {
     return id;
   }
 
+  /**
+   * Show another folder's tasks in this one too (or stop). One way: `from`'s tasks appear here;
+   * this folder's don't appear there. Not itself, nor a folder inside this one (those show anyway).
+   */
+  setShows(id: string, from: string, on: boolean): Undo {
+    const l = this.list(id);
+    if (!l || id === from || this.nestedLists(id).some((x) => x.id === from)) return () => {};
+    const was = l.shows ?? [];
+    const next = on ? [...new Set([...was, from])] : was.filter((x) => x !== from);
+    this.store.mutate('list', id, { shows: next });
+    return () => this.store.mutate('list', id, { shows: was });
+  }
+
+  /** The folders whose tasks show in this one (the ones I can see). */
+  shownIn(id: string): List[] {
+    return (this.list(id)?.shows ?? []).map((x) => this.list(x)).filter((x): x is List => !!x && x.id !== id);
+  }
+
   /** My private To-Do's id: the same on all my devices, so two of them never make two. */
   personalFolderId(): string {
     return `todo${this.meId}`;

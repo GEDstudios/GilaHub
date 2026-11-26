@@ -4,6 +4,25 @@ import { Icon } from './Icon';
 import { currentPath, sheetOpened } from '../router';
 import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastAction } from './motion';
 
+/**
+ * The page under a sheet (or search) doesn't scroll. Counted, so sheets that open over one
+ * another, or close out of order, never leave the page stuck: it scrolls again once the last
+ * one goes. Returns its own release (safe to call twice).
+ */
+let scrollLocks = 0;
+export function lockScroll(): () => void {
+  if (typeof document === 'undefined') return () => {};
+  scrollLocks++;
+  document.documentElement.style.overflow = 'hidden';
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    scrollLocks = Math.max(0, scrollLocks - 1);
+    if (!scrollLocks) document.documentElement.style.overflow = '';
+  };
+}
+
 // ---------------------------------------------------------------- sheets
 
 type SheetRender = (close: () => void) => ReactNode;
@@ -406,8 +425,7 @@ export function Sheet({
 
   // Once per sheet (not per render: typing in it must not move the focus back to the top).
   useEffect(() => {
-    const prev = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = 'hidden';
+    const unlock = lockScroll();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close.current();
     };
@@ -417,7 +435,7 @@ export function Sheet({
       if (first && window.matchMedia('(pointer: fine)').matches) first.focus();
     }, 60);
     return () => {
-      document.documentElement.style.overflow = prev;
+      unlock();
       window.removeEventListener('keydown', onKey);
       clearTimeout(t);
     };

@@ -4402,10 +4402,10 @@ html:has(.iconlib) .fab {
 
 .pinboard {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(98px, 118px));
+  grid-template-columns: repeat(auto-fill, minmax(92px, 108px));
   justify-content: space-evenly;
-  gap: 22px 14px;
-  padding: 18px 14px 20px;
+  gap: 8px 2px;
+  padding: 26px 16px 30px;
   border-radius: 22px;
   background:
     radial-gradient(rgb(10 10 4 / 0.05) 1px, transparent 1.4px) 0 0 / 10px 10px,
@@ -5815,10 +5815,72 @@ textarea.nf__write {
 }
 
 /* On the board */
+/* Kept notes, tossed on the board: off the grid, turned, overlapping, each pinned or taped. */
 .pinboard__note {
+  position: relative;
+  z-index: var(--z, 1);
   display: grid;
   place-items: center;
   padding: 4px 0;
+  translate: var(--dx, 0) var(--dy, 0);
+  transition:
+    transform 280ms var(--spring),
+    translate 280ms var(--spring);
+  animation: pin-drop 560ms var(--spring) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 45ms);
+}
+
+@keyframes pin-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-26px) rotate(-8deg) scale(1.08);
+  }
+}
+
+/* A pushpin in one of our colours… */
+.pinboard__note--pin::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  z-index: 3;
+  width: 13px;
+  height: 13px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--pin, var(--pink));
+  box-shadow:
+    0 0 0 1.5px var(--ink),
+    1px 3px 3px rgb(10 10 4 / 0.35);
+}
+
+/* …or a strip of tape (the note's own tape hides under it). */
+.pinboard__note--tape .sticky::before {
+  width: 46px;
+  transform: translateX(-50%) rotate(-6deg);
+}
+
+.pinboard__note--pin .sticky::before {
+  display: none;
+}
+
+/* Touched: it comes off the board a little, to the top. */
+@media (hover: hover) {
+  .pinboard__note:hover {
+    z-index: 20;
+    transform: scale(1.06) rotate(-2deg);
+  }
+}
+
+.pinboard__note:active {
+  z-index: 20;
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinboard__note {
+    animation: none;
+  }
 }
 
 /* ============================================================ The note, simpler: a photo is a sticker on it */
@@ -7254,13 +7316,16 @@ textarea.nf__write {
   bottom: 16px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
+/* All three on one line down the edge: the same box, centred on the same axis. */
 .hero__rail .cardicon {
-  margin: 0 -4px -4px 0;
+  width: 36px;
+  height: 36px;
+  margin: 0;
 }
 
 .herobtn {

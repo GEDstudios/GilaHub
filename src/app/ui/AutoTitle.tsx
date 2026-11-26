@@ -1,3 +1,4 @@
+import { leavingByBack } from '../router';
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -56,7 +57,9 @@ export function AutoTitle({
       }}
       onBlur={() => {
         const t = v.trim();
-        if ((t || optional) && t !== value) onSave(t);
+        // Left by Back: never mind (it goes back to what it was).
+        if (leavingByBack()) setV(value);
+        else if ((t || optional) && t !== value) onSave(t);
         else setV(value);
       }}
     />

@@ -70,7 +70,8 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
   const item = hub.item(id);
   const [to, setTo] = useState<{ listId: string; parentId: string | null } | null>(null);
   if (!item) return null;
-  const path = [item.listId, ...hub.ancestors(item).map((a) => a.id)];
+  // Opened from the start: the folders down to where it is, then its tasks.
+  const path = [...hub.listPath(item.listId).map((l) => l.id), item.listId, ...hub.ancestors(item).map((a) => a.id)];
   const fromName = from ? (hub.list(from)?.name ?? hub.item(from)?.title) : null;
   const name = (p: { listId: string; parentId: string | null }) => {
     const l = hub.list(p.listId)?.name ?? '';
@@ -244,7 +245,8 @@ export function ItemScreen({ id }: { id: string }) {
     .filter((l) => l.kind === 'done')
     .slice(0, 5);
   // My partner's thing can be theirs, ours or mine again, but hiding it from them isn't mine to do.
-  const allowed = allowedVis(hub, list, ancestors.at(-1)).filter((v) => v !== 'private' || itemVisChoice(hub, item) !== 'theirs');
+  // Every choice, whatever it is now: a task set to Hila's can be made Private (mine) straight away.
+  const allowed = allowedVis(hub, list, ancestors.at(-1));
   const visChoice = itemVisChoice(hub, item);
   const asker = item.requestedBy ? hub.member(item.requestedBy) : undefined;
   const iAsked = item.requestedBy === hub.meId;

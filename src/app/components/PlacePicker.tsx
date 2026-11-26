@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { Item, List } from '../../core/model';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
@@ -39,25 +39,39 @@ export function PlacePicker({
   };
   if (!item) return null;
   const banned = new Set([itemId, ...hub.descendants(itemId).map((d) => d.id)]);
-  const lists = [...hub.lists()].filter((l) => !filter || filter(l));
+  const offered = (l: List) => !filter || filter(l);
+  // Folders inside folders fold into their parent: the top ones show; a chevron opens one up
+  // (its folders, then its tasks).
+  const subsOf = (id: string) => hub.subLists(id).filter((x) => offered(x) || hub.nestedLists(x.id).some(offered));
+  const folder = (l: List, depth: number): ReactNode => {
+    const subs = subsOf(l.id);
+    const tasks = offered(l) && hub.children(l.id, null).some((i) => !i.done && !i.archived && !banned.has(i.id));
+    return (
+      <PlaceRow
+        key={l.id}
+        depth={depth}
+        label={<ListLabel list={l} />}
+        expandable={subs.length > 0 || tasks}
+        expanded={open.has(l.id)}
+        onExpand={() => toggle(l.id)}
+        onPick={() => onPick(l.id, null)}
+        disabled={!offered(l) || (l.id === item.listId && !item.parentId)}
+        hint={here && l.id === item.listId && !item.parentId ? 'here now' : undefined}
+      >
+        {open.has(l.id) ? (
+          <>
+            {subs.map((x) => folder(x, depth + 1))}
+            {tasks ? <Tasks list={l} parentId={null} depth={depth + 1} banned={banned} open={open} toggle={toggle} onPick={onPick} current={here ? item.parentId : undefined} /> : null}
+          </>
+        ) : null}
+      </PlaceRow>
+    );
+  };
+  const tops = hub.topLists().filter((l) => offered(l) || hub.nestedLists(l.id).some(offered));
 
   return (
     <ul className="place" role="tree">
-      {lists.map((l) => (
-        <PlaceRow
-          key={l.id}
-          depth={0}
-          label={<ListLabel list={l} />}
-          expandable={hub.children(l.id, null).some((i) => !i.done && !i.archived && !banned.has(i.id))}
-          expanded={open.has(l.id)}
-          onExpand={() => toggle(l.id)}
-          onPick={() => onPick(l.id, null)}
-          disabled={l.id === item.listId && !item.parentId}
-          hint={here && l.id === item.listId && !item.parentId ? 'here now' : undefined}
-        >
-          {open.has(l.id) ? <Tasks list={l} parentId={null} depth={1} banned={banned} open={open} toggle={toggle} onPick={onPick} current={here ? item.parentId : undefined} /> : null}
-        </PlaceRow>
-      ))}
+      {tops.map((l) => folder(l, 0))}
     </ul>
   );
 }

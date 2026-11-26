@@ -74,8 +74,12 @@ export function useCompose({
   const home = (target ? hub.list(target) : undefined) ?? hub.list(listId);
   // Asking my person can't live in a Private folder: unless I picked one, it goes to a shared one
   // (the last I added to, else To do).
-  const partner = hub.partner();
-  const asking = !!partner && (hub.isRequest(over.assignee) || new RegExp(`(^|\\s)@${partner.name.split(' ')[0]}`, 'iu').test(text));
+  const ctx = useParseContext(home);
+  const parse = (raw: string) => parseQuickAdd(raw, { ...ctx, ignore });
+  const parsed = useMemo(() => parseQuickAdd(text, { ...ctx, ignore }), [text, ctx, ignore]);
+  // Asking my person (the Ask chip, or "@Hila" in the words) can't live in a Private folder:
+  // unless I picked one, it goes to a shared one (the last I added to, else To do).
+  const asking = hub.isRequest(over.assignee !== undefined ? over.assignee : parsed.assignee);
   const sharedHome = () => {
     const shared = hub.lists().filter((l) => l.visibility !== 'private');
     const last = getPrefs().lastList;
@@ -84,9 +88,6 @@ export function useCompose({
   const base = asking && home?.visibility === 'private' && !target ? (sharedHome() ?? home) : home;
   const parentPick = place ? place.parentId : parentId;
   const parent = hub.item(parentPick);
-  const ctx = useParseContext(base);
-  const parse = (raw: string) => parseQuickAdd(raw, { ...ctx, ignore });
-  const parsed = useMemo(() => parseQuickAdd(text, { ...ctx, ignore }), [text, ctx, ignore]);
   const routed = (p: ParseResult) => (route && !target && base && !parent && p.title.trim() ? hub.list(hub.placeFor(p.title, base.id)) : undefined);
   const destOf = (p: ParseResult) => (p.listId && !parent ? hub.list(p.listId) : undefined) ?? routed(p) ?? base;
   const dest = destOf(parsed);
