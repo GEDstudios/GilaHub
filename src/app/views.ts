@@ -2,7 +2,6 @@ import type { Hub } from '../core/actions';
 import { addDays, fromDateStr, today as todayStr } from '../core/dates';
 import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
-import type { Flavor } from '../smart/categorize';
 import { itemKey } from '../smart/normalize';
 import { buyAgain, purchaseStats, type BuyAgainSuggestion, type PurchaseStats } from '../smart/suggest';
 
@@ -43,7 +42,7 @@ export interface TodayView {
   earlier: Item[];
   upcoming: Array<{ date: string; items: Item[] }>;
   /** What's on the shopping lists: `preview` is the first 4, urgent first, then newest. */
-  shopping: { count: number; urgent: number; lists: List[]; preview: Item[] };
+  shopping: { count: number; urgent: number; lists: List[]; preview: Item[]; all: Item[] };
   together: number;
   recent: Array<{ log?: LogEntry; item: Item; by: string; at: number }>;
   dueCount: number;
@@ -65,7 +64,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const lists = new Map(hub.lists().map((l) => [l.id, l]));
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
-    return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
+    return l && !hub.isShop(l) && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
   const todayAll = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
@@ -75,7 +74,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const items = hub.store.all('item');
   const live = (i: Item) => {
     const l = lists.get(i.listId);
-    return !!l && !i.done && !i.archived && !i.repeat && l.kind !== 'shopping';
+    return !!l && !i.done && !i.archived && !i.repeat && !hub.isShop(l);
   };
   const asked = partnerId
     ? items
@@ -122,7 +121,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
 
   const weekAgo = Date.now() - 7 * 86_400_000;
   const logs = hub.store.all('log');
-  const doneTasks = hub.store.all('item').filter((i) => i.done && i.doneAt && i.doneAt > weekAgo && lists.get(i.listId)?.kind !== 'shopping');
+  const doneTasks = hub.store.all('item').filter((i) => i.done && i.doneAt && i.doneAt > weekAgo && !hub.isShop(lists.get(i.listId)));
   const together = logs.filter((l) => l.at > weekAgo).length + doneTasks.length;
 
   const partner = hub.partner();
@@ -146,6 +145,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
       count: shopOpen.length,
       urgent: shopOpen.filter((i) => i.urgent).length,
       preview: shopOpen.slice(0, 4),
+      all: shopOpen,
       lists: shopLists.filter((l) => shopOpen.some((i) => i.listId === l.id)),
     },
     together,
@@ -168,7 +168,7 @@ function doneOn(hub: Hub, day: string): number {
   const within = (t: number | null | undefined) => !!t && t >= from && t < to;
   let n = 0;
   for (const i of hub.store.all('item')) {
-    if (i.done && i.doneBy === hub.meId && within(i.doneAt) && hub.list(i.listId)?.kind !== 'shopping') n++;
+    if (i.done && i.doneBy === hub.meId && within(i.doneAt) && !hub.isShop(i.listId)) n++;
   }
   for (const l of hub.store.all('log')) if (l.kind === 'done' && l.by === hub.meId && within(l.at)) n++;
   return n;
@@ -176,16 +176,18 @@ function doneOn(hub: Hub, day: string): number {
 
 // ---------------------------------------------------------------- Shopping
 
+/** One aisle: the things whose first tag (in our order) is this one; `tag` null holds the untagged. */
 export interface AisleGroup {
   key: string;
-  flavor: Flavor;
-  category: string;
+  tag: string | null;
   label: string;
-  emoji: string;
+  /** The tag's icon ("i:…", "x:…" or an emoji). */
+  icon: string | null;
   items: Array<Item & { emoji: string }>;
 }
 
 export interface ShoppingView {
+  /** The shopping lists shown (the base and what's inside it, or the one picked). */
   lists: List[];
   urgent: Array<Item & { emoji: string }>;
   groups: AisleGroup[];
@@ -195,32 +197,37 @@ export interface ShoppingView {
   buyAgain: BuyAgainSuggestion[];
 }
 
-export const shoppingView = memo((hub: Hub, filter: string, dismissed: Record<string, number>): ShoppingView => {
-  const all = hub.shoppingLists();
-  // 'all', or the ids of the lists to show, comma-separated.
-  const wanted = new Set(filter.split(','));
-  const lists = filter === 'all' ? all : all.filter((l) => wanted.has(l.id));
+/** A shopping list and everything inside it. */
+export function shopTree(hub: Hub, id: string): List[] {
+  const l = hub.list(id);
+  return l ? [l, ...hub.nestedLists(id)] : [];
+}
+
+/**
+ * Shopping, from `base` (the Shopping project, or a list in it): the lists `filter` picks
+ * ('all', or one list inside, with what's inside that), their open things grouped into aisles
+ * by tag in our walking order, then the untagged; the cart; and Buy again.
+ */
+export const shoppingView = memo((hub: Hub, base: string, filter: string, dismissed: Record<string, number>): ShoppingView => {
+  const lists = filter !== 'all' && hub.list(filter) ? shopTree(hub, filter) : shopTree(hub, base);
   const ids = new Set(lists.map((l) => l.id));
   const items = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
-  const withEmoji = (i: Item) => ({ ...i, emoji: hub.categoryFor(i).emoji });
+  const withEmoji = (i: Item) => ({ ...i, emoji: hub.emojiOf(i) });
   const open = items.filter((i) => !i.done && !i.archived);
+  const rank = new Map(hub.tags().map((t, n) => [t.id, n]));
   const groups = new Map<string, AisleGroup>();
   for (const i of open) {
-    const list = hub.list(i.listId);
-    const flavor = hub.flavorOf(list);
-    const { category, emoji } = hub.categoryFor(i);
-    const key = `${flavor}:${category}`;
+    const tag = hub.tagsOf(i).sort((a, b) => (rank.get(a) ?? 1e9) - (rank.get(b) ?? 1e9))[0] ?? null;
+    const key = tag ?? 'none';
     let g = groups.get(key);
     if (!g) {
-      const meta = hub.aisleMeta(flavor, category);
-      g = { key, flavor, category, label: meta.name, emoji: meta.emoji, items: [] };
+      const t = hub.tag(tag);
+      g = { key, tag, label: t?.name ?? 'Other', icon: t ? (t.icon ?? null) : 'i:cart', items: [] };
       groups.set(key, g);
     }
-    g.items.push({ ...i, emoji });
+    g.items.push(withEmoji(i));
   }
-  const orders = { grocery: hub.aisleOrder('grocery'), home: hub.aisleOrder('home') };
-  const rank = (g: AisleGroup) => (g.flavor === 'grocery' ? 0 : 1000) + orders[g.flavor].indexOf(g.category);
-  const sorted = [...groups.values()].sort((a, b) => rank(a) - rank(b));
+  const sorted = [...groups.values()].sort((a, b) => (a.tag ? (rank.get(a.tag) ?? 1e9) : 2e9) - (b.tag ? (rank.get(b.tag) ?? 1e9) : 2e9));
   // Where each item sits on the walk through the store: its aisle, then its place in it.
   const walk = new Map<string, number>();
   sorted.forEach((g, at) => {
@@ -303,12 +310,12 @@ export function openCount(hub: Hub, listId: string): number {
 }
 
 /**
- * A project's count and its words, the way its own tab counts: a chores project says how many
- * are ready ("2 ready", "All fresh"), anything else what's open ("4 open").
+ * A folder's count and its words: what's open in it and in the projects inside it ("4 open"),
+ * so Shopping counts what's on its lists.
  */
 export function projectCount(hub: Hub, list: List): { n: number; text: string } {
-  const n = openCount(hub, list.id);
-  return { n, text: n ? `${n} open` : 'All clear' };
+  const n = [list, ...hub.nestedLists(list.id)].reduce((sum, l) => sum + openCount(hub, l.id), 0);
+  return { n, text: n ? `${n} ${hub.isShop(list) ? 'to buy' : 'open'}` : 'All clear' };
 }
 
 export function stepProgress(hub: Hub, id: string): { done: number; total: number } {

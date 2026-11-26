@@ -1,5 +1,6 @@
 import { useWide } from '../ui/useWide';
 import { useEffect, useState } from 'react';
+import { FilterBar, FilterButton, useFilter } from '../components/Filter';
 import { flushSync } from 'react-dom';
 import type { Hub } from '../../core/actions';
 import { fromDateStr, today as todayStr } from '../../core/dates';
@@ -60,6 +61,23 @@ function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<stri
   }
 }
 
+/** Today with a filter on: only what passes, everywhere on the page (the counts follow). */
+function filterToday(v: TodayView, keep: (i: Item) => boolean): TodayView {
+  const shopping = v.shopping.all.filter(keep);
+  return {
+    ...v,
+    today: v.today.filter(keep),
+    earlier: v.earlier.filter(keep),
+    upcoming: v.upcoming.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length),
+    asked: v.asked.filter(keep),
+    outgoing: v.outgoing.filter(keep),
+    awaitingOk: v.awaitingOk.filter(keep),
+    waitingTheirOk: v.waitingTheirOk.filter(keep),
+    recent: v.recent.filter((r) => keep(r.item)),
+    shopping: { ...v.shopping, all: shopping, preview: shopping.slice(0, 4), count: shopping.length, urgent: shopping.filter((i) => i.urgent).length },
+  };
+}
+
 /** Cross-fade between the page and its editor, where the browser can. */
 function swap(fn: () => void) {
   const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
@@ -74,7 +92,8 @@ export function Today() {
   const hub = useHub();
   const { openSheet } = useOverlays();
   const ref = todayStr();
-  const v = todayView(hub, ref);
+  const filter = useFilter('today');
+  const v = filter.active ? filterToday(todayView(hub, ref), (i) => filter.test(i)) : todayView(hub, ref);
   const me = hub.me();
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
@@ -118,7 +137,7 @@ export function Today() {
 
   const block = (key: string) => {
     const listId = listIdOf(key);
-    if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} />;
+    if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} show={filter.active ? (i) => filter.test(i, true) : undefined} />;
     switch (key) {
       case 'asks':
         return <AsksWidget key={key} v={v} settle={settle} />;
@@ -174,6 +193,7 @@ export function Today() {
         actions={
           <>
             <IconButton icon="search" label="Search" onClick={() => openSearch()} />
+            <FilterButton filter={filter} />
             <NewButton onClick={openNew} />
           </>
         }
@@ -187,6 +207,7 @@ export function Today() {
         // shopping, the invite) in a narrower one beside it.
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
           <div className="home__lead">
+            <FilterBar filter={filter} />
             <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
             <HomeNotices />
           </div>
@@ -212,6 +233,7 @@ export function Today() {
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
+          <FilterBar filter={filter} />
           <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
           <HomeNotices />
           {slots.map((s) => block(s.key))}

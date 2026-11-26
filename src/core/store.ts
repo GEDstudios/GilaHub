@@ -3,7 +3,7 @@ import type { Commit, EntityRecord, Op, OutboxEntry, Persistence } from './db';
 import { newId } from './ids';
 import type { Scope, Table, TableTypes } from './model';
 
-const TABLES: Table[] = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment', 'note'];
+const TABLES: Table[] = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment', 'note', 'tag'];
 
 type Views = { [T in Table]: Map<string, TableTypes[T]> };
 type Listener = () => void;

@@ -5,7 +5,7 @@
  * Lists hold items; items nest infinitely through `parentId`.
  */
 
-export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea' | 'moment' | 'note';
+export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea' | 'moment' | 'note' | 'tag';
 
 /** Encryption scope: 'h' = household key (both partners), 'p:<memberId>' = personal key. */
 export type Scope = 'h' | `p:${string}`;
@@ -40,7 +40,11 @@ export interface HomeSlot {
   on: boolean;
 }
 
-/** What a project holds. (Chores used to be a kind of their own; they're plain projects now.) */
+/**
+ * What a project holds. Every project is 'tasks' now: chores and then shopping lists used to be
+ * kinds of their own. A shopping list is any project inside the Shopping project (List.shopRoot),
+ * and 'shopping' is only read from older data (Hub.uniformProjects moves it).
+ */
 export type ListKind = 'tasks' | 'shopping';
 
 /**
@@ -56,8 +60,10 @@ export interface List {
   id: string;
   name: string;
   kind: ListKind;
-  /** For shopping lists: which catalog/aisles to use. */
+  /** A shopping list's leaning (groceries or things for the home): where "Add" sends a thing and which catalog it's read against. */
   flavor?: ShoppingFlavor;
+  /** The Shopping project: it and every project inside it are shopping lists (aisles, a cart, Buy again). */
+  shopRoot?: boolean;
   color: LineColor;
   /** Optional emoji; otherwise the bullet shows the first letter of the name. */
   icon?: string;
@@ -136,7 +142,9 @@ export interface Item {
   addedAt?: number | null;
   /** Shopping: quantity text like "2", "500g", "1 ק"ג". */
   qty?: string | null;
-  /** Shopping: aisle category id (overrides automatic). */
+  /** Its tags (Tag ids), in no particular order. Unset: never tagged (a thing to buy is then read for its aisle). */
+  tags?: string[] | null;
+  /** Older data: a thing to buy's aisle category id. Read only, as a tag (Hub.tagsOf). */
   category?: string | null;
   /** Shopping: preferred store id. */
   storeId?: string | null;
@@ -309,6 +317,22 @@ export interface Note {
   deleted?: boolean;
 }
 
+/**
+ * A tag, shared by both of us: any task can wear any tags, and every screen filters by them.
+ * Built-in ones carry the catalog's aisles ("g:dairy", "h:kitchen"); our own are "c:…". Their
+ * order is the walk through the store (Shopping groups things by their first tag in it).
+ */
+export interface Tag {
+  id: string;
+  name: string;
+  /** "i:<glyph>", "x:<glyph>" or an emoji; none: a plain tag. */
+  icon?: string | null;
+  order: string;
+  createdAt: number;
+  createdBy: string;
+  deleted?: boolean;
+}
+
 export interface TableTypes {
   member: Member;
   list: List;
@@ -320,4 +344,5 @@ export interface TableTypes {
   idea: Idea;
   moment: Moment;
   note: Note;
+  tag: Tag;
 }

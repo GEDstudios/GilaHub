@@ -6,6 +6,7 @@ import type { LineColor, Member } from '../../core/model';
 import { useOpenIdeas } from '../components/Ideas';
 import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
+import { TagManager } from '../components/Tags';
 import { useHub, useRt, useSync } from '../context';
 import { setPrefs, use24h, usePrefs, weekStart } from '../prefs';
 import { ideasView } from '../views';
@@ -31,7 +32,7 @@ const wide = () => typeof matchMedia === 'function' && matchMedia('(min-width: 9
 const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 function exportData(rt: Runtime) {
-  const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment'] as const;
+  const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment', 'tag'] as const;
   const data: Record<string, unknown[]> = {};
   for (const t of tables) data[t] = rt.store.all(t);
   // `me`: whose backup it is, so restoring it on a new device makes those things mine again.
@@ -697,6 +698,29 @@ function About({ me, partner }: { me: Member; partner: Member | undefined }) {
   );
 }
 
+// ---------------------------------------------------------------- tags
+
+/** Our tags: how many, and the way into them (the same sheet as from any tag picker). */
+function TagsSection() {
+  const hub = useHub();
+  const { openSheet } = useOverlays();
+  const tags = hub.tags();
+  return (
+    <Section title="Tags">
+      <div className="group">
+        <OptRow
+          icon="tag"
+          title="Your tags"
+          sub={tags.length ? tags.slice(0, 4).map((t) => t.name).join(', ') + (tags.length > 4 ? '…' : '') : 'Make some, then filter any screen by them'}
+          value={tags.length || undefined}
+          chev
+          onClick={() => openSheet((close) => <TagManager onClose={close} />)}
+        />
+      </div>
+    </Section>
+  );
+}
+
 // ---------------------------------------------------------------- the page
 
 export function Settings() {
@@ -712,6 +736,7 @@ export function Settings() {
         <MeCard me={me} partner={partner} />
 
         <Notifications me={me} partner={partner} />
+        <TagsSection />
         <ThisDevice />
         <YourData />
         <About me={me} partner={partner} />

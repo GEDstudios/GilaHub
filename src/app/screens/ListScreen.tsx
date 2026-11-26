@@ -2,7 +2,8 @@ import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { useWide } from '../ui/useWide';
 import { openSearch } from '../search';
 import { useState, type ReactNode } from 'react';
-import type { List } from '../../core/model';
+import type { Item, List } from '../../core/model';
+import { FilterBar, FilterButton, useFilter, type FilterState } from '../components/Filter';
 import { useAddAction } from '../addAction';
 import { Children } from '../components/Children';
 import { OptRow } from '../components/pickers';
@@ -34,7 +35,7 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   return (
     <Sheet onClose={onClose} title={list.name}>
       <div className="group">
-        {list.kind === 'tasks' ? (
+        {!hub.isShop(list) ? (
           <OptRow
             icon="refresh"
             title="Uncheck all"
@@ -190,8 +191,8 @@ export const heroVis = (hub: ReturnType<typeof useHub>, list: List): string => (
 export function ProjectChips({ list }: { list: List }) {
   const hub = useHub();
   const { toast } = useOverlays();
-  // The one Shopping project is its tab: in the bar when that tab is.
-  const tab = list.kind === 'shopping' ? 'shop' : null;
+  // The Shopping project is its tab: in the bar when that tab is.
+  const tab = list.shopRoot ? 'shop' : null;
   const covered = !!tab && coveredByTab(hub, list.id, pinsOf(hub));
   const pinned = covered || pinsOf(hub).includes(`l:${list.id}`);
   const partner = hub.partner();
@@ -215,15 +216,16 @@ export function ProjectChips({ list }: { list: List }) {
 export function ListScreen({ id }: { id: string }) {
   const hub = useHub();
   const list = hub.list(id);
-  if (list?.kind === 'shopping') return <Shopping listId={id} />;
+  if (hub.isShop(list)) return <Shopping listId={id} />;
   return <TaskProject id={id} />;
 }
 
 /** The project's "…" and its New, for the header. */
-export function ProjectActions({ listId, label, onNew, menu = true }: { listId: string; label: string; onNew: () => void; menu?: boolean }) {
+export function ProjectActions({ listId, label, onNew, menu = true, filter }: { listId: string; label: string; onNew: () => void; menu?: boolean; filter?: FilterState }) {
   return (
     <>
       <IconButton icon="search" label="Search this project" onClick={() => openSearch(listId)} />
+      {filter ? <FilterButton filter={filter} /> : null}
       {menu ? <ProjectMenuButton listId={listId} /> : null}
       <NewButton label={label} onClick={onNew} />
     </>
@@ -240,6 +242,8 @@ function TaskProject({ id }: { id: string }) {
   const [showAll, setShowAll] = useShowAll(id);
   const wide = useWide();
   const prefs = usePrefs();
+  const filter = useFilter(`l:${id}`);
+  const show = filter.active ? (i: Item) => filter.test(i, true) : undefined;
 
   if (!list) {
     return (
@@ -263,7 +267,7 @@ function TaskProject({ id }: { id: string }) {
     <div className="projpage">
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
-        actions={<ProjectActions listId={id} label={label} onNew={openNew} />}
+        actions={<ProjectActions listId={id} label={label} onNew={openNew} filter={filter} />}
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} />}
       >
@@ -294,9 +298,10 @@ function TaskProject({ id }: { id: string }) {
             />
           </div>
         ) : null}
+        <FilterBar filter={filter} />
         <ViewToggle which="taskView" />
-        <Children listId={id} parentId={null} cards={prefs.taskView === 'cards'} />
-        {everything ? <AllInside lists={nested} /> : <SubProjects list={list} />}
+        <Children listId={id} parentId={null} cards={prefs.taskView === 'cards'} show={show} />
+        {everything ? <AllInside lists={nested} show={show} /> : <SubProjects list={list} />}
       </div>
     </div>
   );
@@ -313,7 +318,7 @@ function FilterCount({ text, n }: { text: string; n: number }) {
 
 
 /** Every project inside, its tasks under its own name, as if you opened each in turn. */
-function AllInside({ lists }: { lists: List[] }) {
+function AllInside({ lists, show }: { lists: List[]; show?: (i: Item) => boolean }) {
   const hub = useHub();
   return (
     <>
@@ -331,7 +336,7 @@ function AllInside({ lists }: { lists: List[] }) {
             </span>
             <Icon name="chevron-right" className="icon--xs" />
           </button>
-          {hub.children(l.id, null).length ? <Children listId={l.id} parentId={null} /> : <p className="inside__none">Nothing here yet</p>}
+          {hub.children(l.id, null).length ? <Children listId={l.id} parentId={null} show={show} /> : <p className="inside__none">Nothing here yet</p>}
         </section>
       ))}
     </>

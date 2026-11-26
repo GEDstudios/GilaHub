@@ -2,7 +2,7 @@ import { GrowField } from '../ui/AutoTitle';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Hub } from '../../core/actions';
 import { suggestIcon } from '../../core/projectIcons';
-import type { List, ListKind, Visibility } from '../../core/model';
+import type { List, Visibility } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { barTarget, getAim, setAim, setArranging, useBarEdit } from '../barEdit';
 import { BarToken, BarTokenLifted, TabChip } from '../components/BarEdit';
@@ -24,29 +24,26 @@ import { coveredByTab, MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin }
 import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
 
-const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping' };
-
 /** A name on a card of its color, then the same chips as a project's page. */
-export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }>; parentId?: string }) {
+export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () => void; initial?: Partial<{ visibility: Visibility }>; parentId?: string }) {
   const hub = useHub();
   const parent = hub.list(parentId);
   const [name, setName] = useState('');
   const [look, setLook] = useState<ProjectLook>(() => ({
-    kind: initial?.kind ?? 'tasks',
-    flavor: 'grocery',
     color: hub.freshColor(),
     // Unset until picked: the name suggests one as it's typed.
     icon: undefined,
     visibility: initial?.visibility ?? 'shared',
     pinned: false,
   }));
-  const kind = look.kind ?? 'tasks';
   const [picking, setPicking] = useState(false);
-  const icon = look.icon ?? suggestIcon(name, kind, look.flavor, hub.lists().at(-1)?.icon, hub.iconsInUse());
+  // Inside Shopping, it's a shopping list: its icon leans that way.
+  const shop = hub.isShop(parent);
+  const icon = look.icon ?? suggestIcon(name, shop ? 'shopping' : 'tasks', undefined, hub.lists().at(-1)?.icon, hub.iconsInUse());
 
   const create = () => {
     if (!name.trim()) return;
-    const id = hub.createList({ name, kind, color: look.color, icon, flavor: kind === 'shopping' ? look.flavor : undefined, visibility: look.visibility, owner: look.owner, parentId: parent?.id });
+    const id = hub.createList({ name, color: look.color, icon, visibility: look.visibility, owner: look.owner, parentId: parent?.id });
     if (look.pinned) togglePin(hub, `l:${id}`);
     onClose();
     navigate({ name: 'list', id });
@@ -68,7 +65,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
           </span>
           <span className="ccard__sub projcard__foot">
             <span>
-              {KIND[kind]} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
+              {shop ? 'Shopping list' : parent ? `In ${parent.name}` : 'Project'} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
             </span>
             {/* Its icon, right on the card (low, as on the folders): tap it to pick another. */}
             <CardIcon icon={icon} open={picking} onToggle={() => setPicking(!picking)} />
@@ -89,7 +86,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
         ) : null}
 
 
-        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis withKind noIcon />
+        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis noIcon />
 
         <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim()}>
           Create project
@@ -117,7 +114,7 @@ const tabOf = (hub: Hub, key: string) => pinOptions(hub).find((o) => o.key === k
 function tapPin(hub: Hub, list: List) {
   const pins = pinsOf(hub);
   const key = `l:${list.id}`;
-  if (coveredByTab(hub, list.id, pins)) return replay(liveBar()?.querySelector(`[data-key="${list.kind === 'shopping' ? 'shop' : 'chores'}"]`), 'is-flash');
+  if (coveredByTab(hub, list.id, pins)) return replay(liveBar()?.querySelector('[data-key="shop"]'), 'is-flash');
   if (!pins.includes(key) && pins.length >= MAX_PINS) {
     haptic('warn');
     return replay(liveBar(), 'is-refusing');
@@ -129,7 +126,7 @@ function tapPin(hub: Hub, list: List) {
 /** A folder's pin while arranging: a white + when it's not in the bar, an ink pin when it is. */
 function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: number }) {
   const hub = useHub();
-  const covered = coveredByTab(hub, list.id, pins) ? tabOf(hub, list.kind === 'shopping' ? 'shop' : 'chores') : undefined;
+  const covered = coveredByTab(hub, list.id, pins) ? tabOf(hub, 'shop') : undefined;
   const on = !!covered || pins.includes(`l:${list.id}`);
   const label = covered ? `In the bar as ${covered.label}` : on ? `${list.name} is in the bar` : `Put ${list.name} in the bar`;
   return (
@@ -281,7 +278,7 @@ export function Lists() {
       // The one Chores (or Shopping) project is already there as its tab: move that instead.
       const id = key.startsWith('l:') ? key.slice(2) : null;
       const list = id ? hub.list(id) : undefined;
-      if (list && coveredByTab(hub, list.id, before)) key = list.kind === 'shopping' ? 'shop' : 'chores';
+      if (list && coveredByTab(hub, list.id, before)) key = 'shop';
       const was = before.includes(key);
       pinAt(hub, key, at ?? before.length);
       const name = tabOf(hub, key)?.label;
@@ -292,12 +289,9 @@ export function Lists() {
   }, [hub, toast]);
 
   // Never twice: a tab whose one project is already in the bar isn't offered again.
-  const onlyOf = (kind: List['kind']) => {
-    const of = hub.lists().filter((l) => l.kind === kind);
-    return of.length === 1 && pins.includes(`l:${of[0].id}`);
-  };
+  const root = hub.shopRoot();
   const missing = arranging
-    ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key) && !(o.key === 'shop' && onlyOf('shopping')))
+    ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key) && !(o.key === 'shop' && root && pins.includes(`l:${root.id}`)))
     : [];
 
   return (

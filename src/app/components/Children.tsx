@@ -34,10 +34,23 @@ function Count({ n }: { n: number }) {
  * Open items (hold to reorder), then the add row, then a collapsible Done group.
  * Ticked rows settle before they leave.
  */
-export function Children({ listId, parentId, readonly, cards }: { listId: string; parentId: string | null; readonly?: boolean; cards?: boolean }) {
+export function Children({
+  listId,
+  parentId,
+  readonly,
+  cards,
+  show,
+}: {
+  listId: string;
+  parentId: string | null;
+  readonly?: boolean;
+  cards?: boolean;
+  /** A screen's filter: only these (a task shows when it or one of its subtasks passes). */
+  show?: (i: Item) => boolean;
+}) {
   const hub = useHub();
   const settle = useSettle(idOf);
-  const all = parentId ? hub.childrenOf(parentId) : hub.children(listId, null);
+  const all = (parentId ? hub.childrenOf(parentId) : hub.children(listId, null)).filter((i) => !show || show(i));
   const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
   const rows = settle.view('open', open);

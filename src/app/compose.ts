@@ -3,14 +3,14 @@
  * (docs/03-DESIGN-SYSTEM.md, "Adding"): what the typed words mean, what a chip
  * overrides, and which mode a project puts the add in.
  */
-import type { ListKind } from '../core/model';
 import type { ParseResult, TokenKind } from '../smart/parse';
 import type { Draft } from './components/editors';
 import type { VisChoice } from './privacy';
 
 export type AddMode = 'task' | 'shopping';
 
-export const modeOf = (kind: ListKind | undefined): AddMode => (kind === 'shopping' ? 'shopping' : 'task');
+/** A shopping list's composer reads quantities and stays open for the next thing. */
+export const modeOf = (shop: boolean | 'shopping' | 'tasks' | undefined): AddMode => (shop === true || shop === 'shopping' ? 'shopping' : 'task');
 
 
 /** What the words say before any chip is touched: parsed fields over the screen's defaults. */

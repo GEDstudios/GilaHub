@@ -39,7 +39,7 @@ export function PlacePicker({
   };
   if (!item) return null;
   const banned = new Set([itemId, ...hub.descendants(itemId).map((d) => d.id)]);
-  const lists = [...hub.lists()].filter((l) => !filter || filter(l)).sort((a, b) => Number(b.kind === 'shopping') - Number(a.kind === 'shopping'));
+  const lists = [...hub.lists()].filter((l) => !filter || filter(l));
 
   return (
     <ul className="place" role="tree">
@@ -48,7 +48,7 @@ export function PlacePicker({
           key={l.id}
           depth={0}
           label={<ListLabel list={l} />}
-          expandable={l.kind !== 'shopping' && hub.children(l.id, null).some((i) => !i.done && !banned.has(i.id))}
+          expandable={hub.children(l.id, null).some((i) => !i.done && !i.archived && !banned.has(i.id))}
           expanded={open.has(l.id)}
           onExpand={() => toggle(l.id)}
           onPick={() => onPick(l.id, null)}

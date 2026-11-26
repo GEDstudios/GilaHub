@@ -11,8 +11,8 @@ import { ifNotInView, markFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { ListBullet } from '../ui/primitives';
-import { Options, type Draft } from './editors';
-import { categoryMark } from '../aisles';
+import { type Draft } from './editors';
+import { TagMark, TagPicker, tagsLabel } from './Tags';
 import type { Hub } from '../../core/actions';
 import { useShopAdd } from './shopAdd';
 
@@ -27,7 +27,7 @@ export function useParseContext(list: List | undefined): ParseContext {
     weekStart: weekStart(prefs),
     workdays: workdays(),
     h24: use24h(prefs),
-    mode: list?.kind === 'shopping' ? 'shopping' : 'task',
+    mode: hub.isShop(list) ? 'shopping' : 'task',
     repeatFrom: 'schedule',
   };
 }
@@ -58,8 +58,8 @@ export function useCompose({
   const [over, setOver] = useState<Partial<Draft>>({});
   // Where it goes, once picked: a project, or a task in one (then it's a subtask of that task).
   const [place, setPlace] = useState<{ listId: string; parentId: string | null } | null>(null);
-  // A thing to buy's aisle, when picked (otherwise it's worked out from the words).
-  const [category, setCategory] = useState<string | null>(null);
+  // Its tags, once picked; until then, what the words suggest by themselves (Hub.suggestTags).
+  const [picked, setTags] = useState<string[] | null>(null);
   const target = place?.listId ?? null;
   const base = (target ? hub.list(target) : undefined) ?? hub.list(listId);
   const parentPick = place ? place.parentId : parentId;
@@ -68,10 +68,12 @@ export function useCompose({
   const parse = (raw: string) => parseQuickAdd(raw, { ...ctx, ignore });
   const parsed = useMemo(() => parseQuickAdd(text, { ...ctx, ignore }), [text, ctx, ignore]);
   const routed = (p: ParseResult) =>
-    route && !target && base?.kind === 'shopping' && p.title.trim() ? hub.routeShopping(p.title, hub.shoppingLists()) : undefined;
+    route && !target && hub.isShop(base) && p.title.trim() ? hub.routeShopping(p.title, hub.shoppingLists().filter((l) => l.flavor)) : undefined;
   const destOf = (p: ParseResult) => (p.listId && !parent ? hub.list(p.listId) : undefined) ?? routed(p) ?? base;
   const dest = destOf(parsed);
-  const mode: AddMode = parent ? 'task' : modeOf(dest?.kind);
+  const mode: AddMode = parent ? 'task' : modeOf(hub.isShop(dest));
+  const suggested = useMemo(() => (parsed.title.trim() ? hub.suggestTags(parsed.title, dest?.id) : { auto: [], more: [] }), [hub, parsed.title, dest?.id]);
+  const tags = picked ?? suggested.auto;
   const allowed = allowedVis(hub, dest, parent);
   const inherited: VisChoice = parent ? itemVisChoice(hub, parent) : allowed[0];
   const defVis = allowed.includes(inherited) ? inherited : allowed[0];
@@ -98,7 +100,7 @@ export function useCompose({
   /** After an add: a clean slate, but the project and who-sees-it stay as chosen. */
   const reset = () => {
     setIgnore(new Set());
-    setCategory(null);
+    setTags(null);
     setOver((o) => (o.visibility ? { visibility: o.visibility } : {}));
   };
 
@@ -109,10 +111,10 @@ export function useCompose({
     const d = raw === undefined ? draft : draftOf(p);
     const title = p.title.trim();
     if (!to || !title) return undefined;
-    if (modeOf(to.kind) === 'shopping' && !parent) {
-      const made = shopAdd(to.id, { title, qty: p.qty ?? null, urgent: d.urgent, vis: d.visibility }, opts)?.id;
-      if (made && category && raw === undefined) hub.setCategory(made, category);
-      return made;
+    // Picked tags go on this one; other words (a pasted line, a suggestion) find their own.
+    const ownTags = raw === undefined && picked ? picked : undefined;
+    if (hub.isShop(to) && !parent) {
+      return shopAdd(to.id, { title, qty: p.qty ?? null, urgent: d.urgent, vis: d.visibility, tags: ownTags }, opts)?.id;
     }
     const asking = hub.isRequest(d.assignee);
     const id = hub.addItem(to.id, {
@@ -127,6 +129,7 @@ export function useCompose({
       urgent: d.urgent,
       ...visFields(hub, d.visibility),
       needsOk: !!d.needsOk && asking && !d.repeat,
+      tags: ownTags,
     });
     // A dated task notifies by default: ask for permission the first time (in this tap).
     if (d.remind != null && typeof Notification !== 'undefined' && Notification.permission === 'default') setUpReminders(rt, toast);
@@ -135,7 +138,7 @@ export function useCompose({
       notifyAbout(rt, hub, made, d.assignee as string, `🙋 ${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
     }
     // New (from Today, Search…) opens on the last task project used.
-    if (!parent && to.kind === 'tasks') setPrefs({ lastList: to.id });
+    if (!parent && !hub.isShop(to)) setPrefs({ lastList: to.id });
     markFresh(id, { scroll: opts.announce });
     if (!opts.quiet) playSound('add');
     if (opts.announce) toast(`Added to ${to.name}`, { ms: 1800 });
@@ -143,44 +146,24 @@ export function useCompose({
     return id;
   };
 
-  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, mode, allowed, over, change, pickList, keepAsText, reset, commit, parse, category, setCategory };
+  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, mode, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested };
 }
 
 export type Compose = ReturnType<typeof useCompose>;
 
 /**
- * A thing to buy's aisle: what the words make it (or what was picked); its panel lists our aisles
- * in walking order, each with its mark. Picking one also teaches it, for next time.
+ * Its tags: what the words suggest (on by themselves: an aisle for a thing to buy, or what we
+ * taught it), or what was picked. Its panel picks any, finds or makes one.
  */
-export function aisleChip(c: Compose, hub: Hub, dest: List, auto: string) {
-  const flavor = hub.flavorOf(dest);
-  const now = c.category ?? auto;
-  const mark = (id: string) => {
-    const m = categoryMark(hub, flavor, id);
-    return m.icon ? <Icon name={m.icon} className="icon--sm" /> : <span aria-hidden="true">{m.emoji}</span>;
-  };
+export function tagChip(c: Compose, hub: Hub) {
+  const { label, lead } = tagsLabel(hub, c.tags);
   return {
-    key: 'aisle',
-    label: hub.aisleMeta(flavor, now).name,
-    lead: mark(now),
-    panel: (close: () => void) => (
-      <Options
-        value={now}
-        options={hub.aisleOrder(flavor).map((id) => ({
-          value: id,
-          label: (
-            <>
-              {mark(id)}
-              <span dir="auto">{hub.aisleMeta(flavor, id).name}</span>
-            </>
-          ),
-        }))}
-        onPick={(id) => {
-          c.setCategory(id);
-          close();
-        }}
-      />
-    ),
+    key: 'tags',
+    label,
+    icon: lead ? undefined : ('tag' as const),
+    lead: lead ? <TagMark icon={lead} /> : undefined,
+    set: c.tags.length > 0,
+    panel: () => <TagPicker value={c.tags} onChange={c.setTags} suggested={[...c.suggested.auto, ...c.suggested.more]} />,
   };
 }
 
@@ -227,7 +210,7 @@ function DestTree({ lists, listId, parentId, onPick }: { lists: List[]; listId: 
       else n.add(key);
       return n;
     });
-  const tasksOf = (l: List, under: string | null) => (l.kind === 'tasks' ? (under ? hub.childrenOf(under) : hub.children(l.id, null)).filter((i) => !i.done) : []);
+  const tasksOf = (l: List, under: string | null) => (under ? hub.childrenOf(under) : hub.children(l.id, null)).filter((i) => !i.done && !i.archived);
   const row = (key: string, depth: number, label: ReactNode, on: boolean, canOpen: boolean, pick: () => void) => (
     <div key={key} className={`desttree__row ${on ? 'is-on' : ''}`} style={{ paddingInlineStart: 6 + depth * 18 }}>
       {canOpen ? (

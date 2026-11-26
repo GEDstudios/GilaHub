@@ -12,7 +12,7 @@ import { freshAgain, useLater, useTick } from '../tick';
 import { OptRow } from '../components/pickers';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useAddAction } from '../addAction';
-import { ShopItemSheet } from '../components/ShopItemSheet';
+import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { useHub, useRt } from '../context';
 import { back, navigate } from '../router';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
@@ -103,7 +103,7 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
         itemId={id}
         here
         initialOpen={path}
-        filter={(l) => l.kind !== 'shopping' && (!l.owner || l.owner === hub.meId || l.visibility === 'visible')}
+        filter={(l) => !l.owner || l.owner === hub.meId || l.visibility === 'visible'}
         onPick={(listId, parentId) => setTo({ listId, parentId })}
       />
       {to ? (
@@ -221,14 +221,6 @@ export function ItemScreen({ id }: { id: string }) {
     [hub, id],
   );
 
-  useEffect(() => {
-    // Shopping items edit in their own sheet.
-    if (item && hub.list(item.listId)?.kind === 'shopping' && !item.parentId) {
-      navigate({ name: 'shop' }, { replace: true });
-      openSheet((close) => <ShopItemSheet id={item.id} onClose={close} />);
-    }
-  }, [item, hub, openSheet]);
-
   if (!item) {
     return (
       <>
@@ -275,7 +267,7 @@ export function ItemScreen({ id }: { id: string }) {
           <button
             type="button"
             className="token"
-            onClick={() => navigate(twinList.kind === 'shopping' ? { name: 'shop' } : { name: 'item', id: twin.parentId ?? twin.id })}
+            onClick={() => navigate({ name: 'item', id: twin.parentId ?? twin.id })}
           >
             <ListBullet list={twinList} size="xs" />
             <span dir="auto">Go to {twinList.name}</span>
@@ -301,7 +293,7 @@ export function ItemScreen({ id }: { id: string }) {
               const here = (item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here';
               const undo = hub.removeTwin(twin.id);
               close();
-              navigate(twinList.kind === 'shopping' ? { name: 'shop' } : { name: 'item', id: twin.id }, { replace: true });
+              navigate({ name: 'item', id: twin.id }, { replace: true });
               toast(`Taken out of ${here}`, { action: { label: 'Undo', run: undo } });
             }}
           >
@@ -321,6 +313,38 @@ export function ItemScreen({ id }: { id: string }) {
           }}
         />
       ),
+  };
+
+  // Its tags (what the words suggest is offered first), and on a shopping list how many.
+  const tags = hub.tagsOf(item);
+  const tl = tagsLabel(hub, tags);
+  const suggest = hub.suggestTags(item.title, item.listId);
+  const tagsChip = {
+    key: 'tags',
+    label: tl.label,
+    icon: tl.lead ? undefined : ('tag' as const),
+    lead: tl.lead ? <TagMark icon={tl.lead} /> : undefined,
+    set: tags.length > 0,
+    panel: () => <TagPicker value={tags} onChange={(next) => hub.setTags(id, next)} suggested={[...suggest.auto, ...suggest.more]} />,
+  };
+  const shop = hub.isShop(item.listId) && !item.parentId;
+  const qtyNum = item.qty && /^\d+$/.test(item.qty) ? +item.qty : null;
+  const qtyChip = {
+    key: 'qty',
+    label: item.qty ? (qtyNum ? `×${qtyNum}` : item.qty) : 'How many',
+    icon: 'cart' as const,
+    set: !!item.qty,
+    panel: () => (
+      <span className="stepper">
+        <button type="button" aria-label="Less" disabled={!qtyNum || qtyNum <= 1} onClick={() => hub.updateItem(id, { qty: qtyNum && qtyNum > 2 ? String(qtyNum - 1) : null })}>
+          −
+        </button>
+        <input className="num" value={item.qty ?? ''} placeholder="1" onChange={(e) => hub.updateItem(id, { qty: e.target.value || null })} aria-label="Quantity" />
+        <button type="button" aria-label="More" onClick={() => hub.bump(id)}>
+          +
+        </button>
+      </span>
+    ),
   };
 
   const onToggle = () => {
@@ -430,6 +454,8 @@ export function ItemScreen({ id }: { id: string }) {
                     },
                   ]
                 : []),
+              ...(shop ? [qtyChip] : []),
+              tagsChip,
               alsoChip,
             ]}
             value={draft}

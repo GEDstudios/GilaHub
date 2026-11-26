@@ -22,7 +22,6 @@ import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
 import { MomentsSheet } from './Moments';
 import { QuickAddSheet } from './QuickAddSheet';
-import { ShopItemSheet } from './ShopItemSheet';
 
 /**
  * The blocks of the Today page (HOME §2–3). Today.tsx draws the summary and notices, then
@@ -341,7 +340,7 @@ export function PartnerDid({ v }: { v: TodayView }) {
 /** Up to 4 things to buy, ticked straight from Today. */
 function ShopRows({ items, group, settle, showList }: { items: Item[]; group: string; settle: Settle<Item>; showList: boolean }) {
   const hub = useHub();
-  const { openSheet, toast } = useOverlays();
+  const { toast } = useOverlays();
   const rows = settle.view(group, items);
   if (!rows.length) return null;
   const tick = (i: Item) => {
@@ -359,7 +358,7 @@ function ShopRows({ items, group, settle, showList }: { items: Item[]; group: st
           settling={settling}
           showList={showList}
           onTick={tick}
-          onOpen={(it) => openSheet((close) => <ShopItemSheet id={it.id} onClose={close} />)}
+          onOpen={(it) => navigate({ name: 'item', id: it.id })}
         />
       ))}
     </ul>
@@ -381,7 +380,7 @@ export function ToBuyWidget({ v, settle }: { v: TodayView; settle: Settle<Item> 
         </button>
       }
     >
-      <ShopRows items={v.shopping.preview} group="shop" settle={settle} showList={lists.length > 1} />
+      <ShopRows items={v.shopping.preview} group="shop" settle={settle} showList={new Set(v.shopping.all.map((i) => i.listId)).size > 1} />
     </Section>
   );
 }
@@ -391,11 +390,11 @@ export function ToBuyWidget({ v, settle }: { v: TodayView; settle: Settle<Item> 
 const byUrgentThenNewest = (a: Item, b: Item) => Number(!!b.urgent) - Number(!!a.urgent) || (b.createdAt ?? 0) - (a.createdAt ?? 0);
 
 /** A window into one project: its first few open things and its add row. Never deduped. */
-export function ProjectWidget({ listId, settle }: { listId: string; day?: string; settle: Settle<Item> }) {
+export function ProjectWidget({ listId, settle, show }: { listId: string; day?: string; settle: Settle<Item>; show?: (i: Item) => boolean }) {
   const hub = useHub();
   const list = hub.list(listId);
   if (!list) return null;
-  const open = hub.children(listId, null).filter((i) => !i.done && !i.archived);
+  const open = hub.children(listId, null).filter((i) => !i.done && !i.archived && (!show || show(i)));
   const head = (
     <>
       <ProjectMark color={list.color} icon={list.icon} size="sm" />
@@ -403,7 +402,7 @@ export function ProjectWidget({ listId, settle }: { listId: string; day?: string
     </>
   );
   let body;
-  if (list.kind === 'shopping') {
+  if (hub.isShop(list)) {
     body = <ShopRows items={[...open].sort(byUrgentThenNewest).slice(0, 4)} group={`l:${listId}`} settle={settle} showList={false} />;
   } else {
     const rows = settle.view(`l:${listId}`, [...open].sort(byOrder).slice(0, 5));

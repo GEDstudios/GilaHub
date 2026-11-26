@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import type { LineColor, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
+import type { LineColor, Visibility } from '../../core/model';
 import { useHub } from '../context';
 import { listDefaultVis, visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { haptic } from '../ui/haptics';
-import { Icon, type IconName } from '../ui/Icon';
+import { Icon } from '../ui/Icon';
 import { parseGlyph, showsGlyph } from '../ui/ProjectMark';
 import { lineVars } from '../ui/primitives';
 import { EChip, Options, Panel } from './editors';
@@ -46,34 +46,24 @@ export interface ProjectLook {
   /** Whose it is, when it's someone's (Mine, or my person's). */
   owner?: string | null;
   pinned: boolean;
-  kind?: ListKind;
-  flavor?: ShoppingFlavor;
 }
 
-const KIND: Record<ListKind, { label: string; icon: IconName }> = {
-  tasks: { label: 'Tasks', icon: 'lines' },
-  shopping: { label: 'Shopping', icon: 'basket' },
-};
-
-type Field = 'kind' | 'color' | 'icon' | 'vis';
+type Field = 'color' | 'icon' | 'vis';
 
 /**
- * "Want to modify something?" and a row of chips: (Kind,) Color, Icon, who sees it, In bar.
+ * "Want to modify something?" and a row of chips: Color, Icon, who sees it, In bar.
  * Each opens its panel right below the row; nothing stacks.
  */
 export function ProjectFields({
   value,
   onChange,
   canVis,
-  withKind,
   noIcon,
 }: {
   value: ProjectLook;
   onChange: (patch: Partial<ProjectLook>) => void;
   /** Only the owner (or anyone, for Ours) changes who sees it. */
   canVis: boolean;
-  /** New project: what kind it is, too. */
-  withKind?: boolean;
   /** The icon is picked on the card itself (New project): no chip for it. */
   noIcon?: boolean;
 }) {
@@ -82,37 +72,10 @@ export function ProjectFields({
   const hub = useHub();
   const vis = listDefaultVis(hub, { visibility: value.visibility, owner: value.owner ?? (value.visibility === 'shared' ? null : hub.meId) });
   const glyph = parseGlyph(value.icon);
-  const kind = value.kind ?? 'tasks';
   return (
     <div className="inline projfields">
       <p className="inline__prompt">Want to modify something?</p>
       <div className="inline__chips">
-        {withKind ? (
-          <>
-            <EChip label={KIND[kind].label} icon={KIND[kind].icon} set open={open === 'kind'} onToggle={() => toggle('kind')} />
-            {open === 'kind' ? (
-              <Panel>
-                <Options
-                  value={kind}
-                  onPick={(k) => onChange({ kind: k })}
-                  options={(['tasks', 'shopping'] as const).map((k) => ({ value: k, label: KIND[k].label, icon: KIND[k].icon }))}
-                />
-                {kind === 'shopping' ? (
-                  <div className="panel__row">
-                    <Options
-                      value={value.flavor ?? 'grocery'}
-                      onPick={(f) => onChange({ flavor: f })}
-                      options={[
-                        { value: 'grocery', label: 'Grocery categories' },
-                        { value: 'home', label: 'Home categories' },
-                      ]}
-                    />
-                  </div>
-                ) : null}
-              </Panel>
-            ) : null}
-          </>
-        ) : null}
         <EChip label="Color" lead={<span className="echip__dot" style={lineVars(value.color)} />} set open={open === 'color'} onToggle={() => toggle('color')} />
         {open === 'color' ? (
           <Panel>

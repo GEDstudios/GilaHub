@@ -6941,3 +6941,212 @@ textarea.nf__write {
 .aisle--urgent .rows:not(.rows--cards) .row + .row::before {
   background: rgb(10 10 4 / 0.07);
 }
+
+/* ---------------------------------------------------------------- tags */
+
+/* A tag's mark: its glyph, small and quiet beside its name. */
+.tagmark.icon {
+  color: var(--text-2);
+}
+
+.glyph-emoji.tagmark {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* On a row: the mark and the name, after the row's other meta. */
+.meta--tag {
+  max-width: 11em;
+  min-width: 0;
+}
+
+.meta--tag > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta--tag .glyph-emoji {
+  font-size: 11px;
+}
+
+/* The picker: find or make one, then every tag as a token to switch on and off. */
+.tagpick {
+  display: grid;
+  gap: 12px;
+}
+
+.tagpick__find {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.tagpick__find .icon {
+  color: var(--text-3);
+}
+
+.tagpick__find input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  outline: none;
+}
+
+.tagpick__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 232px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.tagpick__manage {
+  justify-self: start;
+}
+
+.tagtoken {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 13px 0 11px;
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    transform 140ms var(--ease),
+    background 140ms var(--ease);
+}
+
+.tagtoken:active {
+  transform: scale(0.96);
+}
+
+.tagtoken .icon {
+  --s: 15;
+}
+
+/* On: filled with my colour, like a set chip. */
+.tagtoken.is-on {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+}
+
+.tagtoken.is-on .tagmark.icon {
+  color: var(--ink);
+}
+
+/* What the words suggest: ringed, first in line. */
+.tagtoken.is-suggested {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.tagtoken--new {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.tagtoken__n {
+  color: var(--text-3);
+  font-size: 12.5px;
+}
+
+.tagman__hint {
+  margin: -4px 0 14px;
+}
+
+/* ---------------------------------------------------------------- filter */
+
+/* The header's filter button wears a dot while something is filtered out. */
+.filterbtn {
+  position: relative;
+}
+
+.filterbtn.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.filterbtn.is-on::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lemon);
+  box-shadow: 0 0 0 2px var(--cta);
+}
+
+.filtersheet__part {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.filtersheet__part .tagpick__tags {
+  max-height: 260px;
+}
+
+.filtersheet__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* While a filter is on: what it keeps, in one row under the header. */
+.filterbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -16px 14px;
+  padding: 2px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filterbar::-webkit-scrollbar {
+  display: none;
+}
+
+.filterbar__lead {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.filterbar .tagtoken {
+  flex: none;
+}
+
+.filterbar .tagtoken > .icon:last-child {
+  --s: 12;
+  opacity: 0.6;
+}
+
+.filterbar__clear {
+  flex: none;
+  white-space: nowrap;
+}

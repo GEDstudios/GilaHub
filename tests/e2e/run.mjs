@@ -158,10 +158,13 @@ try {
 
   await check('Hila receives the shared projects', async () => {
     await hila.goto(`${url}/lists`);
-    for (const name of ['Groceries', 'Home shopping', 'Chores', 'To do']) {
+    for (const name of ['Shopping', 'Chores', 'To do']) {
       await waitFor(async () => (await hila.locator('.projcard__name', { hasText: name }).count()) > 0, 20000, `${name} on hila`);
     }
     await shot(hila, '05-lists-hila');
+    // The shopping lists are projects inside Shopping.
+    await hila.locator('.projcard__name', { hasText: /^Shopping$/ }).click();
+    for (const name of [/groceries/i, /home shopping/i]) await hila.getByRole('radio', { name }).waitFor({ timeout: 10000 });
   });
 
   // ---------- Shopping sync, both ways
@@ -177,7 +180,7 @@ try {
   await check('Smart routing: light bulbs go to Home shopping', async () => {
     await hila.getByRole('radio', { name: /home shopping/i }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'light bulbs' }).count()) > 0, 10000, 'bulbs in home');
-    await hila.getByRole('radio', { name: /both/i }).click();
+    await hila.getByRole('radio', { name: /^all/i }).click();
   });
 
   await check('No duplicates: adding milk again says it exists', async () => {

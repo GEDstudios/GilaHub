@@ -745,4 +745,16 @@
     padding: 0 14px;
     border-radius: 9px;
   }
+
+  /* A filter that's on stays ink, whatever header it sits in. */
+  .band .iconbtn.filterbtn.is-on,
+  .projpage .band__actions .iconbtn.filterbtn.is-on {
+    background: var(--cta);
+    color: var(--cta-text);
+  }
+
+  .band .iconbtn.filterbtn.is-on::after {
+    top: 5px;
+    right: 5px;
+  }
 }

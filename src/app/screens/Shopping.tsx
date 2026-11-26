@@ -1,4 +1,3 @@
-import type { Flavor } from '../../smart/categorize';
 import { ViewToggle } from '../components/ViewToggle';
 import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { useWide } from '../ui/useWide';
@@ -6,14 +5,14 @@ import { TwinTag } from '../components/ItemRow';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react';
 import type { Item, List } from '../../core/model';
 import { cadenceLabel } from '../../smart/suggest';
-import { AisleArrange } from '../components/AisleArrange';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useShopAdd } from '../components/shopAdd';
-import { ShopItemSheet } from '../components/ShopItemSheet';
 import { useHub, usePartnerShopping, useRt } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
 import { notifyMembers } from '../runtime';
-import { Icon, type IconName } from '../ui/Icon';
+import { Icon } from '../ui/Icon';
+import { FilterBar, FilterButton, useFilter } from '../components/Filter';
+import { TagManager, TagMark, TagPills } from '../components/Tags';
 import { useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { Avatar, Band, Check, Empty, IconButton, ListBullet, NewButton, Seg } from '../ui/primitives';
@@ -22,14 +21,12 @@ import { UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
 import { useSettle, type Settle } from '../ui/useSettle';
 import { visTagFor } from '../privacy';
-import { back } from '../router';
+import { back, navigate } from '../router';
 import { useAddAction } from '../addAction';
 import { createFromTemplate, PROJECT_TEMPLATES } from '../../core/actions';
 import { heroVis, ProjectChips, ProjectHero, ProjectMenuButton } from './ListScreen';
-import { NewProjectSheet } from './Lists';
 import { SyncBadge } from '../components/SyncBadge';
-import { shoppingView } from '../views';
-import { categoryMark } from '../aisles';
+import { shoppingView, shopTree } from '../views';
 
 type Row = Item & { emoji: string };
 
@@ -83,17 +80,24 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   const rt = useRt();
   const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
-  const allLists = hub.shoppingLists();
-  // A project page (or the only shopping list) is that project. The Shopping tab shows all the
-  // lists together, or one of them: picked at the very top.
-  const scoped = listId ? hub.list(listId) : allLists.length === 1 ? allLists[0] : undefined;
-  const pick = scoped ? scoped.id : allLists.some((l) => l.id === prefs.shopFilter) ? prefs.shopFilter : 'all';
-  const lists = scoped ? [scoped] : pick === 'all' ? allLists : allLists.filter((l) => l.id === pick);
-  const filter = pick;
-  const openIn = (id: string) => hub.store.all('item').filter((i) => i.listId === id && !i.done && !i.archived && !i.parentId).length;
-  const v = shoppingView(hub, filter, prefs.dismissed);
+  // The Shopping tab is the Shopping project; a list's own page is that list (and what's inside it).
+  const root = hub.shopRoot();
+  const base = listId ? hub.list(listId) : root;
+  const tab = !listId;
+  const subs = base ? hub.subLists(base.id) : [];
+  const [localPick, setLocalPick] = useState('all');
+  const wanted = tab ? prefs.shopFilter : localPick;
+  const pick = subs.some((l) => l.id === wanted) ? wanted : 'all';
+  const setPick = (val: string) => (tab ? setPrefs({ shopFilter: val }) : setLocalPick(val));
+  const scoped = tab ? undefined : base;
+  const filter = useFilter(tab ? 'shop' : `l:${base?.id ?? ''}`);
+  const v = shoppingView(hub, base?.id ?? '', pick, prefs.dismissed);
+  const lists = v.lists;
+  const openIn = (id: string) => {
+    const ids = new Set(shopTree(hub, id).map((l) => l.id));
+    return hub.store.all('item').filter((i) => ids.has(i.listId) && !i.done && !i.archived && !i.parentId).length;
+  };
   const [mode, setMode] = useState(false);
-  const [arranging, setArranging] = useState(false);
   const [flash, setFlash] = useState<Set<string>>(new Set());
   const bar = useRef<HTMLDivElement>(null);
   const settle = useSettle<Item>(itemId);
@@ -177,26 +181,45 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     return () => clearTimeout(t);
   }, [ids, hub, mode, toast]);
 
-  const destFor = (name: string, listId?: string): List | undefined => {
-    if (listId) return hub.list(listId);
+  /** Where a new thing goes: the one list shown, else the list its words belong on ("bulbs" → Home). */
+  const destFor = (name: string): List | undefined => {
     if (lists.length === 1) return lists[0];
-    return hub.routeShopping(name, lists);
+    const leaning = lists.filter((l) => l.flavor);
+    return name && leaning.length ? hub.routeShopping(name, leaning) : (leaning.find((l) => l.flavor === 'grocery') ?? leaning[0] ?? lists[0]);
   };
 
-  /** One tap on a suggestion: straight onto the right list (routed in "Both"), without duplicates. */
+  /** One tap on a suggestion: straight onto the right list (routed in "All"), without duplicates. */
   const quickAdd = (name: string) => {
     const dest = destFor(name);
     if (dest) shopAdd(dest.id, { title: name });
   };
 
-  // New: the composer pointed at the list an item would go to (routed per item in "Both").
-  const openNew = () =>
-    allLists.length
-      ? openSheet((close) => <QuickAddSheet onClose={close} listId={destFor('')?.id ?? lists[0].id} route={lists.length > 1} />)
-      : openSheet((close) => <NewProjectSheet onClose={close} initial={{ kind: 'shopping' }} />);
+  // New: the composer pointed at the list an item would go to (routed per item in "All").
+  const openNew = () => {
+    if (base) openSheet((close) => <QuickAddSheet onClose={close} listId={destFor('')?.id ?? base.id} route={lists.length > 1} />);
+  };
   useAddAction(openNew, 'Add an item');
   const newBtn = <NewButton label="Add an item" onClick={openNew} />;
   const pause = <IconButton icon="pause" label="Pause shopping" onClick={() => setMode(false)} />;
+
+  if (!base) {
+    return (
+      <>
+        <Band top={<SyncBadge />} title="Shopping" />
+        <div className="column">
+          <Empty title="No shopping lists yet" text="They live in one Shopping project: groceries sorted by aisle, things for the home, anything you like.">
+            <div className="tokens tokens--center">
+              {PROJECT_TEMPLATES.filter((t) => t.flavor).map((t) => (
+                <button key={t.key} type="button" className="token" onClick={() => createFromTemplate(hub, t)}>
+                  <Icon name="plus" /> {t.name}
+                </button>
+              ))}
+            </div>
+          </Empty>
+        </div>
+      </>
+    );
+  }
 
   const tick = (i: Item) => {
     // The row strikes and folds where it is, then shows up in the cart.
@@ -205,7 +228,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     hub.toggle(i.id);
   };
 
-  const openItem = (i: Item) => openSheet((close) => <ShopItemSheet id={i.id} onClose={close} />);
+  const openItem = (i: Item) => navigate({ name: 'item', id: i.id });
 
   const finish = () => {
     const n = v.inCart.length;
@@ -219,10 +242,16 @@ export function Shopping({ listId }: { listId?: string } = {}) {
 
   // Nothing to buy: a few things you often buy.
   const empty = !v.openCount && !v.inCart.length;
-  const many = lists.length > 1;
+  // Lists only get named (a dot on a row or an aisle) when more than one has things in it.
+  const many = new Set([...v.groups.flatMap((g) => g.items), ...v.inCart].map((i) => i.listId)).size > 1;
+  // The filter hides rows; the counts still say what's there.
+  const keep = (i: Item) => filter.test(i);
+  const groups = v.groups.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length);
+  const urgent = v.urgent.filter(keep);
+  const hidden = filter.active ? v.openCount - groups.reduce((n, g) => n + g.items.length, 0) : 0;
   const sub = v.openCount ? `${v.openCount} to buy${v.inCart.length ? ` · ${v.inCart.length} in the cart` : ''}` : 'Nothing to buy';
   const shopper = partnerShopping ? hub.member(partnerShopping.member) : undefined;
-  const floating = v.openCount > 0 && !mode && !arranging;
+  const floating = v.openCount > 0 && !mode;
   // Just ticked: it joins the cart once it has settled in its aisle.
   const cart = settle.view('cart', v.inCart);
   useFloatHeight(bar, floating);
@@ -231,16 +260,16 @@ export function Shopping({ listId }: { listId?: string } = {}) {
     <div className={[mode ? 'shopmode' : '', scoped ? 'projpage' : ''].filter(Boolean).join(' ') || undefined}>
       {scoped ? (
         <Band
-          onBack={listId ? () => back({ name: 'lists' }) : undefined}
-          top={listId ? undefined : <SyncBadge />}
+          onBack={() => back(hub.parentOf(scoped.id) ? { name: 'list', id: hub.parentOf(scoped.id)!.id } : { name: 'lists' })}
           actions={
             <>
-              {mode ? pause : <ProjectMenuButton listId={scoped.id} />}
+              {mode ? pause : <FilterButton filter={filter} />}
+              {mode ? null : <ProjectMenuButton listId={scoped.id} />}
               {newBtn}
             </>
           }
           mini={scoped.name}
-          crumbs={listId ? <PathCrumbs steps={projectPath(hub, scoped.id)} /> : undefined}
+          crumbs={<PathCrumbs steps={projectPath(hub, scoped.id)} />}
         >
           <ProjectHero list={scoped} sub={mode ? `Shopping now · ${sub}` : `${sub}${heroVis(hub, scoped)}`} />
           {wide && !mode ? <ProjectChips list={scoped} /> : null}
@@ -248,11 +277,12 @@ export function Shopping({ listId }: { listId?: string } = {}) {
       ) : (
         <Band
           top={<SyncBadge />}
-          title={mode ? 'Shopping now' : 'Shopping'}
+          title={mode ? 'Shopping now' : base.name}
           sub={sub}
           actions={
             <>
-              {mode ? pause : null}
+              {mode ? pause : <FilterButton filter={filter} />}
+              {mode ? null : <ProjectMenuButton listId={base.id} />}
               {newBtn}
             </>
           }
@@ -260,33 +290,23 @@ export function Shopping({ listId }: { listId?: string } = {}) {
       )}
       <div className="column">
         {/* Which list, first thing on the page: all of them together, or one, each with its count. */}
-        {!scoped && allLists.length > 1 ? (
+        {subs.length > 1 || (subs.length === 1 && openIn(base.id) > openIn(subs[0].id)) ? (
           <div className="filter filter--top">
             <Seg
               label="Which list"
               value={pick}
-              onChange={(val) => setPrefs({ shopFilter: val })}
+              onChange={setPick}
               options={[
-                { value: 'all', label: <FilterLabel name={allLists.length > 2 ? 'All' : 'Both'} n={allLists.reduce((a, l) => a + openIn(l.id), 0)} /> },
-                ...allLists.map((l) => ({ value: l.id, label: <FilterLabel list={l} name={l.name} n={openIn(l.id)} /> })),
+                { value: 'all', label: <FilterLabel name="All" n={openIn(base.id)} /> },
+                ...subs.map((l) => ({ value: l.id, label: <FilterLabel list={l} name={l.name} n={openIn(l.id)} /> })),
               ]}
             />
           </div>
         ) : null}
         {scoped && !mode && !wide ? <ProjectChips list={scoped} /> : null}
-        {!allLists.length ? (
-          <Empty title="No shopping lists yet">
-            <div className="tokens tokens--center">
-              {PROJECT_TEMPLATES.filter((t) => t.kind === 'shopping').map((t) => (
-                <button key={t.key} type="button" className="token" onClick={() => createFromTemplate(hub, t)}>
-                  <Icon name="plus" /> {t.name}
-                </button>
-              ))}
-            </div>
-          </Empty>
-        ) : null}
+        <FilterBar filter={filter} hidden={hidden} />
 
-        {allLists.length && empty && v.buyAgain.length ? (
+        {empty && v.buyAgain.length ? (
           <div className="tokens shop__again">
             {v.buyAgain.slice(0, 4).map((s) => (
               <button key={s.key} type="button" className="token" onClick={() => quickAdd(s.name)}>
@@ -311,7 +331,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
         ) : null}
 
         <>
-          {!mode && !empty && v.buyAgain.length ? (
+          {!mode && !empty && v.buyAgain.length && !filter.active ? (
             <div className="buyagain">
               <p className="inline__prompt">Buy again?</p>
               <div className="tokens tokens--scroll">
@@ -339,43 +359,33 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             </div>
           ) : null}
 
-          {arranging ? (
-            <AisleArrange
-              flavors={[...new Map(lists.map((l) => [hub.flavorOf(l), l.name])).entries()].map(([flavor, name]) => ({ flavor, name }))}
-              counts={new Map(v.groups.map((g) => [g.key, g.items.length]))}
-              onDone={() => setArranging(false)}
-            />
-          ) : v.urgent.length || v.groups.length ? (
+          {urgent.length || groups.length ? (
             <>
             <ViewToggle which="shopView" />
             <ShopList
               cards={prefs.shopView === 'cards'}
               groups={[
-                ...(v.urgent.length
+                ...(urgent.length
                   ? [
                       {
                         key: 'urgent',
                         label: null,
-                        items: v.urgent,
+                        items: urgent,
                         showList: many,
                       },
                     ]
                   : []),
-                ...v.groups.map((g) => {
-                  // A list's dot only where it tells you something: on rows where an aisle mixes
-                  // lists, or once on the head when two lists share this aisle's flavor.
+                ...groups.map((g) => {
+                  // A list's dot only where it tells you something: on rows when the aisle mixes lists.
                   const one = new Set(g.items.map((i) => i.listId)).size === 1;
-                  const twins = lists.filter((l) => hub.flavorOf(l) === g.flavor).length > 1;
                   return {
                     key: g.key,
                     label: g.label,
                     items: g.items,
-                    category: g.category,
-                    flavor: g.flavor,
-                    icon: categoryMark(hub, g.flavor, g.category).icon,
-                    emoji: categoryMark(hub, g.flavor, g.category).emoji,
+                    tag: g.tag,
+                    icon: g.icon,
                     showList: many && !one,
-                    dot: many && one && twins ? hub.list(g.items[0].listId) : undefined,
+                    dot: many && one && pick === 'all' ? hub.list(g.items[0].listId) : undefined,
                   };
                 }),
               ]}
@@ -386,13 +396,15 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               settle={settle}
             />
             </>
+          ) : filter.active && v.openCount ? (
+            <p className="hint">Nothing here with this filter.</p>
           ) : null}
 
-          {!mode && !arranging && lists.length ? (
+          {!mode ? (
             <div className="homeedit">
-              <button type="button" className="textbtn" onClick={() => setArranging(true)}>
-                <Icon name="layout" />
-                Manage categories
+              <button type="button" className="textbtn" onClick={() => openSheet((close) => <TagManager onClose={close} />)}>
+                <Icon name="tag" />
+                Edit tags
               </button>
             </div>
           ) : null}
@@ -419,12 +431,9 @@ interface ShopGroup {
   showList: boolean;
   /** The one list this card holds, when its name alone doesn't say which. */
   dot?: List;
-  /** The aisle's glyph; aisles without one keep their emoji. */
-  icon?: IconName;
-  emoji?: string;
-  /** An aisle's category and which kind of list it's for (dragging between aisles changes it). */
-  category?: string;
-  flavor?: Flavor;
+  /** The aisle's tag (null: the untagged), and its mark. Dragging a thing to another aisle gives it that tag. */
+  tag?: string | null;
+  icon?: string | null;
 }
 
 function SortableShopRow(props: Parameters<typeof ShopRow>[0]) {
@@ -487,9 +496,8 @@ function ShopList({
     const to = labeled.find((g) => g.key === key) ?? groupOf.get(next[at - 1]) ?? groupOf.get(next[at + 1]) ?? from;
     const item = hub.item(id);
     if (to !== from) {
-      // Only between aisles of its own kind of list (groceries' aisles aren't the home shop's).
-      if (!item || !to.category || to.flavor !== hub.flavorOf(hub.list(item.listId))) return;
-      hub.setCategory(id, to.category);
+      if (!item || to.tag === undefined) return;
+      hub.moveToTag(id, from.tag ?? null, to.tag);
       haptic('drop');
       toast(`Moved to ${to.label}`);
     }
@@ -506,13 +514,7 @@ function ShopList({
           <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--urgent'}`} aria-label={g.label ?? 'Urgent'} data-aisle={g.label ? g.key : undefined}>
             {g.label ? (
               <h2 className="aisle__head">
-                {g.icon ? (
-                  <Icon name={g.icon} />
-                ) : g.emoji ? (
-                  <span className="aisle__emoji" aria-hidden="true">
-                    {g.emoji}
-                  </span>
-                ) : null}
+                <TagMark icon={g.icon} className="" />
                 {g.label}
                 <span className="num">{g.items.length}</span>
                 {g.dot ? <ListBullet list={g.dot} size="xs" /> : null}
@@ -528,11 +530,11 @@ function ShopList({
                 )}
                 {shown.map(({ row: i, settling }) =>
                   settling ? (
-                    <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} settling />
+                    <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} aisleTag={g.tag} settling />
                   ) : draggable && g.label ? (
-                    <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
+                    <SortableShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} aisleTag={g.tag} />
                   ) : (
-                    <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} />
+                    <ShopRow key={i.id} item={i} onTick={onTick} onOpen={onOpen} flash={flash.has(i.id)} showList={g.showList} inUrgent={!g.label} aisleTag={g.tag} />
                   ),
                 )}
               </ul>
@@ -554,7 +556,7 @@ function ShopList({
         const g = groupOf.get(id);
         return item && g ? (
           <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
-            <ShopRow item={item as Row} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={false} />
+            <ShopRow item={item as Row} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={false} aisleTag={g.tag} />
           </ul>
         ) : null;
       }}
@@ -572,6 +574,7 @@ export function ShopRow({
   flash,
   showList,
   inUrgent,
+  aisleTag,
   settling,
   liRef,
   liStyle,
@@ -585,6 +588,8 @@ export function ShopRow({
   showList?: boolean;
   /** Rendered inside the Urgent card (so no extra tag needed). */
   inUrgent?: boolean;
+  /** The aisle it's drawn in: that tag goes without saying. */
+  aisleTag?: string | null;
   /** Just ticked: drawn checked while it strikes through and folds away (useSettle). */
   settling?: boolean;
   liRef?: Ref<HTMLLIElement>;
@@ -600,6 +605,7 @@ export function ShopRow({
   // Once it's in the cart, the urgency is dealt with.
   const tagged = item.urgent && !item.done && !inUrgent;
   const twin = hub.linked(item);
+  const tags = hub.tagsOf(item).filter((t) => t !== aisleTag);
   return (
     <li
       ref={liRef}
@@ -616,9 +622,10 @@ export function ShopRow({
           {item.title}
           {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
-        {vis || note || twin ? (
+        {vis || note || twin || tags.length ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} label={`For ${hub.item(twin.parentId)?.title ?? twin.title}`} /> : null}
+            <TagPills ids={tags} />
             {vis ? <VisTag item={item} /> : null}
             {note ? (
               <span className="meta" dir="auto">

@@ -12,6 +12,8 @@ export interface ShopAdd {
   urgent?: boolean;
   /** Who sees it; undefined = the list's default. */
   vis?: VisChoice;
+  /** Its tags, as picked; undefined = what the words suggest. */
+  tags?: string[];
 }
 
 /**
@@ -49,7 +51,7 @@ export function useShopAdd() {
     const title = add.title.trim();
     if (!title) return undefined;
     const f: { visibility?: ItemVisibility; owner?: string } = add.vis ? visFields(hub, add.vis) : {};
-    const res = hub.addShopping(listId, title, { qty: add.qty ?? null, urgent: add.urgent, visibility: f.visibility, owner: f.owner ?? null });
+    const res = hub.addShopping(listId, title, { qty: add.qty ?? null, urgent: add.urgent, visibility: f.visibility, owner: f.owner ?? null, tags: add.tags });
     markFresh(res.id, { scroll: opts.announce });
     const item = hub.item(res.id);
     if (!opts.quiet) {

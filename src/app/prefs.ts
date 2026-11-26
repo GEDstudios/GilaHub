@@ -33,6 +33,8 @@ export interface Prefs {
   taskView: 'list' | 'cards';
   /** The shopping as a list, or as cards (this device). */
   shopView: 'list' | 'cards';
+  /** Each screen's filter ("today", "shop", "l:<id>"): tags, for whom, urgent only. */
+  filters: Record<string, { tags: string[]; who: 'me' | 'partner' | null; urgent: boolean }>;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -55,6 +57,7 @@ const DEFAULTS: Prefs = {
   livelyCursor: null,
   taskView: 'list',
   shopView: 'list',
+  filters: {},
 };
 
 function read(): Prefs {

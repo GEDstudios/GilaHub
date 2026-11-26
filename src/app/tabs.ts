@@ -1,6 +1,5 @@
 import type { Hub } from '../core/actions';
-import { fold } from '../smart/normalize';
-import type { LineColor, List } from '../core/model';
+import type { LineColor } from '../core/model';
 import type { Route } from './router';
 import type { IconName } from './ui/Icon';
 
@@ -42,25 +41,21 @@ export function barDensity(n: number, { editing = false }: { editing?: boolean }
 
 export function pinOptions(hub: Hub): TabDef[] {
   const lists = hub.lists();
-  // A project called "Chores" beside other chores projects: the tab says it gathers them all.
-  // When it's the only one, tab and project are the same thing, so the tab is just "Chores".
-  const label = (name: string, kind: List['kind']) =>
-    lists.some((l) => fold(l.name) === fold(name)) && lists.filter((l) => l.kind === kind).length > 1 ? `All ${name.toLowerCase()}` : name;
+  // The Shopping tab is the Shopping project, under its own name.
+  const root = hub.shopRoot();
   return [
-    { key: 'shop', label: label('Shopping', 'shopping'), path: '/shop', icon: 'basket' },
+    { key: 'shop', label: root?.name ?? 'Shopping', path: '/shop', icon: 'basket' },
     { key: 'search', label: 'Search', path: '/search', icon: 'search' },
     ...lists.map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
 }
 
 /**
- * A project the Shopping or Chores tab already shows: the only one of its kind, with that tab
- * in the bar. The bar's tray and the sidebar don't offer it a second time (it stays a project).
+ * A project the Shopping tab already shows: the Shopping project itself, with that tab in the
+ * bar. The bar's tray and the sidebar don't offer it a second time (it stays a project).
  */
 export function coveredByTab(hub: Hub, listId: string, pins: readonly string[] = pinsOf(hub)): boolean {
-  const kind = hub.list(listId)?.kind;
-  const tab = kind === 'shopping' ? 'shop' : null;
-  return !!tab && pins.includes(tab) && hub.lists().filter((l) => l.kind === kind).length === 1;
+  return !!hub.list(listId)?.shopRoot && pins.includes('shop');
 }
 
 /** Known keys only, each once, in order, at most MAX_PINS (pure, for tests). */
@@ -167,8 +162,7 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
   const forList = (listId: string | undefined): string => {
     if (!listId) return 'projects';
     if (pins.includes(`l:${listId}`)) return `l:${listId}`;
-    const kind = hub.list(listId)?.kind;
-    if (kind === 'shopping' && pins.includes('shop')) return 'shop';
+    if (hub.isShop(listId) && pins.includes('shop')) return 'shop';
     return 'projects';
   };
   switch (r.name) {

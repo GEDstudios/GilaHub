@@ -1,7 +1,6 @@
 import { navigate } from '../router';
 import { useAlsoShop } from '../alsoShop';
 import { useEffect, useRef, useState } from 'react';
-import type { Item } from '../../core/model';
 import { suggestFromCatalog } from '../../smart/categorize';
 import { splitPasted } from '../../smart/normalize';
 import { composerPlaceholder, splitSteps, type AddMode } from '../compose';
@@ -13,7 +12,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
 import { EChip, InlineEditor, useSummary, type Field } from './editors';
-import { aisleChip, listChip, ParsedToken, useCompose } from './QuickAdd';
+import { listChip, ParsedToken, tagChip, useCompose } from './QuickAdd';
 
 /**
  * New: the one way to add, from the black + on every screen. You write straight onto the
@@ -48,7 +47,7 @@ export function QuickAddSheet({
     (listId && hub.list(listId)) ||
     (last && lists.find((l) => l.id === last)) ||
     lists.find((l) => l.name === 'To do') ||
-    lists.find((l) => l.kind === 'tasks') ||
+    lists.find((l) => !hub.isShop(l)) ||
     lists[0];
   return (
     <Sheet onClose={onClose} label="New">
@@ -100,7 +99,7 @@ function Composer({
   const [stepText, setStepText] = useState('');
   const field = useRef<HTMLTextAreaElement>(null);
   // "Task: a, b and c" puts its steps in the words (not for shopping, nor for a step itself).
-  const words = asStep || hub.list(listId)?.kind === 'shopping' ? { head: text, steps: [] } : splitSteps(text);
+  const words = asStep || hub.isShop(listId) ? { head: text, steps: [] } : splitSteps(text);
   const c = useCompose({
     listId,
     parentId: asStep ? parentId : null,
@@ -204,7 +203,7 @@ function Composer({
 
   let sub: string;
   if (shopping) {
-    const aisle = title && dest ? hub.aisleMeta(hub.flavorOf(dest), c.category ?? hub.categoryFor({ title, listId: dest.id } as Item).category) : null;
+    const aisle = title ? hub.tag(c.tags[0]) : undefined;
     const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
     sub = aisle ? [aisle.name, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
   } else if (c.parent) {
@@ -219,7 +218,7 @@ function Composer({
       ? suggestFromCatalog(title, dest ? hub.flavorOf(dest) : undefined, 4)
           .map((s) => s.label)
           .filter((s) => s.toLowerCase() !== title.toLowerCase())
-      : shoppingView(hub, route ? 'all' : (dest?.id ?? listId), prefs.dismissed)
+      : shoppingView(hub, route ? (hub.shopRoot()?.id ?? dest?.id ?? listId) : (dest?.id ?? listId), 'all', prefs.dismissed)
           .buyAgain.slice(0, 5)
           .map((s) => s.name)
     : [];
@@ -227,8 +226,8 @@ function Composer({
   // Where it goes (a project, or a task in one): not when it's already a subtask being added in place.
   const extras = [
     ...(c.fixedParent ? [] : [listChip(c, hub.lists())]),
-    // Something to buy: its aisle, picked here (or as the words make it).
-    ...(shopping && dest && title ? [aisleChip(c, hub, dest, hub.categoryFor({ title, listId: dest.id } as Item).category)] : []),
+    // Its tags: what the words suggest, or picked here.
+    tagChip(c, hub),
   ];
 
   return (

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastLike } from '../../src/app/ui/motion';
 import { AWAY_ON, syncTitle, welcomeBack } from '../../src/app/settingsCopy';
-import { aisleIcon } from '../../src/app/aisles';
-import { GROCERY_ORDER, HOME_ORDER } from '../../src/smart/categorize';
+import { GLYPHS } from '../../src/app/ui/icons.gen';
+import { aisleGlyph as aisleIcon, GROCERY_ORDER, HOME_ORDER } from '../../src/smart/categorize';
 
 describe('sheet pull', () => {
   it('follows the finger down and only gives a little upward', () => {
@@ -102,10 +102,12 @@ describe('words', () => {
     expect(aisleIcon('grocery', 'dairy')).toBe('cheese');
     expect(aisleIcon('grocery', 'nope')).toBeUndefined();
     expect(aisleIcon('home', 'dairy')).toBeUndefined();
-    const home = HOME_ORDER.map((c) => aisleIcon('home', c));
+    const home = HOME_ORDER.filter((c) => c !== 'other').map((c) => aisleIcon('home', c));
     expect(home.every(Boolean)).toBe(true);
     expect(new Set(home).size).toBe(home.length);
-    const grocery = new Set(GROCERY_ORDER.map((c) => aisleIcon('grocery', c)));
+    const grocery = new Set(GROCERY_ORDER.filter((c) => c !== 'other').map((c) => aisleIcon('grocery', c)));
     expect(home.filter((i) => grocery.has(i))).toEqual([]);
+    // Each is an icon the app draws.
+    for (const g of [...home, ...grocery]) expect(GLYPHS).toHaveProperty(g!);
   });
 });

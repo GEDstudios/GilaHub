@@ -44,8 +44,9 @@ const listNamed = (hub: Hub, name: string) => hub.lists().find((l) => l.name ===
 describe('Hub: household & privacy', () => {
   it('creates only the picked projects, plus each person’s private ones', async () => {
     const { guy, hila } = await couple();
-    expect(hila.lists().map((l) => l.name)).toEqual(expect.arrayContaining(['To do', 'Groceries', 'Home shopping', 'Chores', "Guy's things", 'Notes to self']));
-    expect(hila.lists().filter((l) => l.kind === 'shopping')).toHaveLength(2);
+    expect(hila.lists().map((l) => l.name)).toEqual(expect.arrayContaining(['Shopping', 'To do', 'Groceries', 'Home shopping', 'Chores', "Guy's things", 'Notes to self']));
+    // The two shopping lists are projects inside Shopping.
+    expect(hila.shoppingLists().filter((l) => !l.shopRoot).map((l) => l.name)).toEqual(['Groceries', 'Home shopping']);
     // Each sees exactly one "Notes to self": their own.
     expect(guy.lists().filter((l) => l.name === 'Notes to self')).toHaveLength(1);
     expect(hila.lists().filter((l) => l.name === 'Notes to self')).toHaveLength(1);
@@ -138,12 +139,12 @@ describe('Hub: shopping', () => {
     const { guy, hila } = await couple();
     const g = listNamed(guy, 'Groceries');
     const { id } = guy.addShopping(g.id, 'Zaatar crackers');
-    guy.setCategory(id, 'snacks');
+    guy.setTags(id, ['g:snacks']);
     sync(guy, hila);
     const res = hila.addShopping(g.id, 'zaatar crackers ');
     expect(res.kind).toBe('exists');
     const fresh = hila.addItem(g.id, { title: 'Zaatar Crackers' });
-    expect(hila.categoryFor(hila.item(fresh)!).category).toBe('snacks');
+    expect(hila.tagsOf(hila.item(fresh)!)).toEqual(['g:snacks']);
   });
 });
 
@@ -243,7 +244,7 @@ describe('Hub: backup import', () => {
       phone.importBackup(data, { me });
       expect(phone.partner()).toBeUndefined();
       expect(phone.members()).toHaveLength(1);
-      expect(phone.lists()).toHaveLength(3);
+      expect(phone.lists()).toHaveLength(4);
       expect(phone.item(secret)?.title).toBe('Ring');
       expect(phone.store.scopeOf('item', secret)).toBe('p:new');
       expect(phone.item(milk)?.listId).toBe(listNamed(phone, 'Groceries').id);
@@ -421,12 +422,13 @@ describe('Shopping: urgent', () => {
     const milk = guy.addShopping(g, 'milk', { urgent: true }).id;
     const cream = guy.addShopping(g, 'sour cream', { urgent: true }).id;
     const apples = guy.addShopping(g, 'apples', { urgent: true }).id;
-    const urgent = () => shoppingView(guy, 'all', {}).urgent.map((i) => i.id);
+    const root = guy.shopRoot()!.id;
+    const urgent = () => shoppingView(guy, root, 'all', {}).urgent.map((i) => i.id);
     // Fruit & Veg, Dairy, Personal care, then the home departments.
     expect(urgent()).toEqual([apples, milk, cream, shampoo, batteries]);
     // Arranging Dairy is the one way to change where sour cream sits in the walk.
     guy.reorder(cream, null, milk);
-    const dairy = shoppingView(guy, 'all', {}).groups.find((x) => x.category === 'dairy')!.items.map((i) => i.id);
+    const dairy = shoppingView(guy, root, 'all', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
     expect(dairy).toEqual([cream, milk]);
     expect(urgent()).toEqual([apples, cream, milk, shampoo, batteries]);
   });
@@ -435,11 +437,12 @@ describe('Shopping: urgent', () => {
     const guy = await person('guy');
     seedHousehold(guy, ['groceries']);
     const g = listNamed(guy, 'Groceries').id;
-    const m = guy.createList({ name: 'Market', kind: 'shopping', flavor: 'grocery' });
+    const root = guy.shopRoot()!.id;
+    const m = guy.createList({ name: 'Market', flavor: 'grocery', parentId: root });
     // Each list numbers its own keys from the start, so the two lists tie row for row.
     for (const t of ['milk', 'yogurt', 'cottage']) guy.addShopping(g, t);
     for (const t of ['butter', 'cream cheese', 'kefir']) guy.addShopping(m, t);
-    const dairy = () => shoppingView(guy, 'all', {}).groups.find((x) => x.category === 'dairy')!.items.map((i) => i.id);
+    const dairy = () => shoppingView(guy, root, 'all', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
     const before = dairy();
     expect(new Set(before.map((id) => guy.item(id)!.order)).size).toBe(3);
     // Every row into every slot reads back as dropped, one drop after another.

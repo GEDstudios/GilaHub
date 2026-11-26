@@ -176,3 +176,36 @@ export function suggestFromCatalog(query: string, flavor?: Flavor, limit = 6): C
   }
   return out;
 }
+
+/** Each aisle's glyph (an icon name), drawn on its tag; no grocery aisle shares one with the home shop. */
+const GLYPHS: Record<Flavor, Partial<Record<string, string>>> = {
+  grocery: {
+    produce: 'carrot',
+    bakery: 'bread',
+    dairy: 'cheese',
+    meat: 'fish',
+    deli: 'bowl',
+    pantry: 'jar',
+    spices: 'pepper',
+    snacks: 'cookie',
+    frozen: 'snowflake',
+    drinks: 'drink',
+    household: 'spray',
+    personal: 'soap',
+    baby: 'baby',
+    pets: 'paw',
+  },
+  home: {
+    kitchen: 'cooking-pot',
+    bath: 'bath',
+    bedroom: 'bed',
+    furniture: 'armchair',
+    cleaning: 'broom',
+    tools: 'wrench',
+    electrical: 'lightbulb',
+    garden: 'plant',
+    office: 'briefcase',
+  },
+};
+
+export const aisleGlyph = (flavor: Flavor, category: string): string | undefined => GLYPHS[flavor][category];

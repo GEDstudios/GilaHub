@@ -32,6 +32,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
   const store = await Store.load(persistence, session.deviceId, readableScopes(session));
   const hub = new Hub(store, session.memberId);
   hub.renameOldDefaults();
+  hub.uniformProjects();
   hub.endAwayMode();
   const relayListeners = new Set<() => void>();
 
@@ -67,6 +68,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
       rt.sync = sync;
       await sync.start();
       hub.renameOldDefaults();
+      hub.uniformProjects();
       hub.endAwayMode();
       for (const fn of relayListeners) fn();
       void registerPush(rt);

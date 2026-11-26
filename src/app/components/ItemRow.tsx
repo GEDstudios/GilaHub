@@ -13,6 +13,7 @@ import { Avatar, Check, ListBullet, StepRing } from '../ui/primitives';
 import { ReqTag, UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
 import { useSettleHold } from '../ui/useSettle';
+import { TagPills } from './Tags';
 import { stepProgress, todayRef } from '../views';
 
 export function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
@@ -83,6 +84,7 @@ export const ItemRow = memo(function ItemRow({
   };
 
   const twin = hub.linked(item);
+  const tags = hub.tagsOf(item);
   return (
     <li
       ref={liRef}
@@ -98,7 +100,7 @@ export const ItemRow = memo(function ItemRow({
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
         </span>
-        {(showList && list) || req || vis || due || item.repeat || steps.total || twin ? (
+        {(showList && list) || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} /> : null}
             {showList && list ? (
@@ -128,6 +130,7 @@ export const ItemRow = memo(function ItemRow({
                 {steps.done}/{steps.total}
               </span>
             ) : null}
+            <TagPills ids={tags} />
           </span>
         ) : null}
         {below}
@@ -159,7 +162,7 @@ export function TwinTag({ twin, label }: { twin: Item; label?: string }) {
       className="meta meta--link meta--twin"
       onClick={(e) => {
         e.stopPropagation();
-        navigate(list.kind === 'shopping' ? { name: 'shop' } : { name: 'item', id: twin.parentId ?? twin.id });
+        navigate({ name: 'item', id: twin.parentId ?? twin.id });
       }}
     >
       <Icon name="link" className="icon--xs" />

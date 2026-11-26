@@ -110,8 +110,9 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
   // A new page closes it (by where it is, not by the route object, which is new every render).
   const where = JSON.stringify(route);
   useEffect(() => setOpen(false), [where]);
-  const here = route.name === 'list' ? hub.list(route.id) : route.name === 'item' ? hub.list(hub.item(route.id)?.listId) : undefined;
-  const buying = route.name === 'shop' || here?.kind === 'shopping';
+  const here = route.name === 'list' ? hub.list(route.id) : route.name === 'item' ? hub.list(hub.item(route.id)?.listId) : route.name === 'shop' ? hub.shopRoot() : undefined;
+  const buying = hub.isShop(here);
+  const inside = route.name === 'list' || route.name === 'shop' ? here : undefined;
   const choices: Array<{ key: string; label: string; face: ReactNode; run: () => void }> = [
     {
       key: 'task',
@@ -124,9 +125,9 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
     },
     {
       key: 'project',
-      label: here && route.name === 'list' ? `Project inside ${here.name}` : 'Project',
+      label: inside ? (inside.shopRoot ? 'Shopping list' : `Project inside ${inside.name}`) : 'Project',
       face: <MenuGlyph kind="project" />,
-      run: () => openSheet((close) => <NewProjectSheet onClose={close} parentId={route.name === 'list' ? here?.id : undefined} />),
+      run: () => openSheet((close) => <NewProjectSheet onClose={close} parentId={inside?.id} />),
     },
     ...(note ? [{ key: 'note', label: `Sticky note for ${note.to}`, face: <MenuGlyph kind="note" />, run: note.open }] : []),
   ];
