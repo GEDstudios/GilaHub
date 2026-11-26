@@ -34,7 +34,7 @@ export interface WidgetDef {
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   // Today holds what my person asked of me too (docs/07-HOME.md): one list of things to do.
   today: { title: () => 'Today', icon: 'sun' },
-  quick: { title: () => 'Quick view', icon: 'eye' },
+  quick: { title: () => 'Spotlight', icon: 'sparkle' },
   upcoming: { title: () => 'The week', icon: 'calendar' },
   week: { title: (hub) => (hub.partner() ? 'Us' : 'Your week'), icon: 'heart' },
 };
@@ -308,7 +308,7 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
     }
     case 'quick': {
       const n = quickItems(hub).length;
-      return join([n > 0 && `${n} you chose`], 'Tasks you pick (Quick view on a task)');
+      return join([n > 0 && `${n} you chose`], 'Tasks you pick to keep in sight (Spotlight, on a task)');
     }
     case 'upcoming': {
       const n = aheadOf(v).length;

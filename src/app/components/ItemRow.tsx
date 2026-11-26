@@ -1,4 +1,6 @@
-import { memo, useCallback, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { useDragOut } from '../ui/dragOut';
+import { movedTo } from './TemplateAsk';
+import { memo, useCallback, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { diffDays, humanDate, humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
@@ -10,7 +12,7 @@ import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { ticksAway, useTick } from '../tick';
 import { doerOf, requestState, visTagFor } from '../privacy';
-import { Avatar, Check, ListBullet, StepRing } from '../ui/primitives';
+import { Avatar, Check, ListBullet } from '../ui/primitives';
 import { ReqTag, UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
 import { useSettleHold } from '../ui/useSettle';
@@ -115,9 +117,53 @@ export const ItemRow = memo(function ItemRow({
     toast(`${item.title}: not now`, { ms: 2200, action: { label: 'Undo', run: undo } });
   } : undefined;
   const swipeRef = useSwipe<HTMLLIElement>({ right: intoOngoing, left: outOfOngoing });
+  // A subtask unfolded here can be dragged out from under its task: onto the page (its own task),
+  // onto another group or a step of the path (its own task there), or onto another task (under that one).
+  const overlays = useOverlays();
+  const lit = useRef<HTMLElement | null>(null);
+  const light = (el: HTMLElement | null) => {
+    if (lit.current === el) return;
+    lit.current?.classList.remove('is-droptarget');
+    el?.classList.add('is-droptarget');
+    if (el) haptic('select');
+    lit.current = el;
+  };
+  const outTarget = (p: { x: number; y: number }): { el: HTMLElement | null; listId: string; parentId: string | null } | null => {
+    const els = document.elementsFromPoint(p.x, p.y);
+    for (const e of els) {
+      const crumb = e.closest<HTMLElement>('.crumbs [data-drop-list]');
+      if (crumb) return { el: crumb, listId: crumb.dataset.dropList!, parentId: null };
+      const row = e.closest<HTMLElement>('li.row:not(.row--nested)[data-id]');
+      if (row) {
+        // Still over its own task: nothing changes.
+        if (row.dataset.id === item.parentId) return null;
+        const under = hub.item(row.dataset.id);
+        return under && !under.parentId ? { el: row, listId: under.listId, parentId: under.id } : null;
+      }
+      const group = e.closest<HTMLElement>('.aisle[data-list]');
+      if (group) return { el: group, listId: group.dataset.list!, parentId: null };
+    }
+    return { el: null, listId: item.listId, parentId: null };
+  };
+  const outRef = useDragOut<HTMLLIElement>({
+    label: item.title,
+    enabled: !!nested && !!item.parentId && !readonly && !item.done,
+    aim: (p) => light(p ? (outTarget(p)?.el ?? null) : null),
+    drop: (p) => {
+      light(null);
+      const t = outTarget(p);
+      if (!t) return;
+      const was = { listId: item.listId, parentId: item.parentId ?? null };
+      hub.move(item.id, { listId: t.listId, parentId: t.parentId });
+      haptic('success');
+      const where = t.parentId ? `under “${hub.item(t.parentId)?.title ?? 'it'}”` : `its own task${t.listId !== was.listId ? ` in ${hub.list(t.listId)?.name ?? 'there'}` : ''}`;
+      movedTo(hub, overlays, item.id, was.listId, t.parentId ? was.listId : t.listId, `${item.title}: ${where}`, () => hub.move(item.id, was));
+    },
+  });
   const setRefs = useCallback(
     (el: HTMLLIElement | null) => {
       swipeRef.current = el;
+      outRef.current = el;
       if (typeof liRef === 'function') liRef(el);
       else if (liRef) (liRef as { current: HTMLLIElement | null }).current = el;
     },
@@ -198,7 +244,7 @@ export const ItemRow = memo(function ItemRow({
             {steps.total ? (
               nested ? (
                 <span className="meta">
-                  <StepRing done={steps.done} total={steps.total} />
+                  <Icon name="subtask" />
                   {steps.done}/{steps.total}
                 </span>
               ) : (
@@ -209,7 +255,7 @@ export const ItemRow = memo(function ItemRow({
                   aria-label={`${unfolded ? 'Fold' : 'Unfold'} the subtasks of ${item.title}: ${steps.done} of ${steps.total} done`}
                   onClick={fold}
                 >
-                  <StepRing done={steps.done} total={steps.total} />
+                  <Icon name="subtask" />
                   {steps.done}/{steps.total}
                   <Icon name="chevron-down" className="meta__chev" />
                 </button>

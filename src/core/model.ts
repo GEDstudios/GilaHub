@@ -30,6 +30,8 @@ export interface Member {
   /** My recovery code's id on the relay (from the code; it can't give the code back), and when it was made. */
   recoveryId?: string | null;
   recoverySetAt?: number | null;
+  /** When a task has a day and no time, its notification comes at this time ("HH:MM"; unset: 09:00). Each of us has our own. */
+  remindAt?: string | null;
   /** My private To-Do was made (its id): never made again, even if I delete it. */
   personalFolder?: string | null;
   /** How I look at each folder (list, cards, by tag): mine, not my partner's. Unset: the folder's own default. */
@@ -381,6 +383,16 @@ export interface TaskTemplate {
   /** Who sees it: 'ours' | 'mine' | 'theirs' | 'private'. */
   visibility?: 'ours' | 'mine' | 'theirs' | 'private' | null;
   tags?: string[];
+  /** Due this many days after it's added (0 = the same day; null = no date). */
+  dueIn?: number | null;
+  /** At this time ("HH:MM"), on that day. */
+  dueTime?: string | null;
+  /** Notify again until done, on this rhythm (as Item.nag). */
+  nag?: RepeatRule | null;
+  /** A note it starts with. */
+  notes?: string | null;
+  /** Subtasks it starts with, in order. */
+  steps?: string[] | null;
 }
 
 export interface TableTypes {

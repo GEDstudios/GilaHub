@@ -214,7 +214,7 @@ describe('A task moved into a folder with a template', () => {
   });
 });
 
-describe('My Quick view', () => {
+describe('My Spotlight', () => {
   it('holds the tasks I put there, open ones only; Undo takes it out again', async () => {
     const { setQuick, quickItems, isQuick } = await import('../../src/app/quick');
     const guy = await person('guy');
@@ -229,5 +229,37 @@ describe('My Quick view', () => {
     guy.toggle(a);
     expect(quickItems(guy)).toEqual([]);
     setQuick(a, false);
+  });
+});
+
+describe('A template’s day, note and subtasks', () => {
+  it('gives a new task its day and time, its note and subtasks; moving one in asks and Undo takes them off', async () => {
+    const { templateDay, startFromTemplate, applyTemplate, templateSummary } = await import('../../src/app/template');
+    const { addDays, today } = await import('../../src/core/dates');
+    const guy = await person('guy');
+    const l = guy.createList({ name: 'Bills' });
+    guy.setListTemplate(l, { dueIn: 3, dueTime: '09:00', notes: 'Pay from the joint account', steps: ['Find the invoice', 'Pay it'] });
+    const t = guy.list(l)!.template!;
+    expect(templateDay(t, { due: null, dueTime: null })).toEqual({ due: addDays(today(), 3), dueTime: '09:00' });
+    // A day typed or picked wins.
+    expect(templateDay(t, { due: '2026-12-24', dueTime: null }).due).toBe('2026-12-24');
+    const id = guy.addItem(l, { title: 'Electricity' });
+    startFromTemplate(guy, id, t);
+    expect(guy.item(id)?.notes).toBe('Pay from the joint account');
+    expect(guy.childrenOf(id).map((c) => c.title)).toEqual(['Find the invoice', 'Pay it']);
+    // Not twice.
+    startFromTemplate(guy, id, t);
+    expect(guy.childrenOf(id)).toHaveLength(2);
+    expect(templateSummary(guy, t)).toContain('2 subtasks');
+    // One moved in from elsewhere.
+    const other = guy.createList({ name: 'Home' });
+    const w = guy.addItem(other, { title: 'Water bill' });
+    guy.move(w, { listId: l, parentId: null });
+    const undo = applyTemplate(guy, w, l);
+    expect(guy.item(w)).toMatchObject({ due: addDays(today(), 3), dueTime: '09:00', notes: 'Pay from the joint account' });
+    expect(guy.childrenOf(w)).toHaveLength(2);
+    undo();
+    expect(guy.item(w)).toMatchObject({ due: null, notes: '' });
+    expect(guy.childrenOf(w)).toHaveLength(0);
   });
 });

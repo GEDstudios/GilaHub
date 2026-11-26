@@ -192,3 +192,26 @@ describe('editing a note', () => {
     expect(hub.store.get('note', id)?.text).toBe('Oat milk 💛');
   });
 });
+
+describe('the time a day-only task notifies', () => {
+  it('is each person’s own: one reminder each when our times differ, one for both when they match', async () => {
+    const { desiredReminders } = await import('../../src/app/reminders');
+    const { atLocal } = await import('../../src/core/dates');
+    const hub = await person('guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    hub.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    const l = hub.createList({ name: 'Home', kind: 'tasks' });
+    const id = hub.addItem(l, { title: 'Bins out', due: '2026-12-01', remind: 0 });
+    const now = atLocal('2026-11-26', '12:00');
+    const mine = () => desiredReminders(hub, now).filter((r) => r.id.startsWith(id));
+    expect(mine().map((r) => [r.at, r.members])).toEqual([[atLocal('2026-12-01', '09:00'), ['guy', 'hila']]]);
+    hub.upsertMember('guy', { remindAt: '07:30' });
+    expect(mine().map((r) => [r.at, r.members]).sort()).toEqual([
+      [atLocal('2026-12-01', '07:30'), ['guy']],
+      [atLocal('2026-12-01', '09:00'), ['hila']],
+    ]);
+    // A time of its own: that time, for both.
+    hub.updateItem(id, { dueTime: '18:00' });
+    expect(mine().map((r) => [r.at, r.members])).toEqual([[atLocal('2026-12-01', '18:00'), ['guy', 'hila']]]);
+  });
+});

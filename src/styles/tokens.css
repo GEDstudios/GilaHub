@@ -71,6 +71,14 @@
 
   /* Space & shape */
   --gutter: 22px;
+  /* One spacing scale for stacking blocks (docs/03, Space):
+     1 inside a group · 2 a control to what it controls · 3 a thing to its own settings ·
+     4 sibling blocks in a column · 5 titled sections and page-level groups */
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 36px;
   --r-s: 12px;
   --r-m: 18px;
   --r-l: 24px;

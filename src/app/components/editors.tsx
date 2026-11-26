@@ -558,24 +558,21 @@ export function WhenCard({
 
       <div className="whencard__rows">
         {mouse ? (
-          // A computer: its own picker (type it, or pick the hour and the minutes), not the phone's wheel.
-          <WhenRow
-            icon="clock"
-            title="Time"
-            value={value.dueTime ? humanTime(value.dueTime, h24) : 'Any time'}
-            on={!!value.dueTime}
-            open={part === 'time'}
-            onOpen={() => flip('time')}
-            trail={
-              value.dueTime ? (
-                <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => (setTime(null), setPart(null))}>
+          // A computer: the usual time field (as in a calendar): type it, or pick from the list it opens.
+          <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
+            <div className="whenrow__line whenrow__line--combo">
+              <span className="whenrow__lead">
+                <Icon name="clock" className="icon--sm" lit={!!value.dueTime} />
+                <span className="whenrow__title">Time</span>
+              </span>
+              <TimeCombo value={value.dueTime} h24={h24} onChange={setTime} />
+              {value.dueTime ? (
+                <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
                   <Icon name="x" className="icon--xs" />
                 </button>
-              ) : undefined
-            }
-          >
-            <TimePanel value={value.dueTime} h24={h24} onChange={setTime} onDone={() => setPart(null)} />
-          </WhenRow>
+              ) : null}
+            </div>
+          </div>
         ) : (
         <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
           <div className="whenrow__line">
@@ -753,91 +750,141 @@ export function parseTime(text: string): string | null {
   return `${pad2(h)}:${pad2(min)}`;
 }
 
-const QUICK_TIMES = [
-  { label: 'Morning', t: '09:00' },
-  { label: 'Noon', t: '12:00' },
-  { label: 'Afternoon', t: '15:00' },
-  { label: 'Evening', t: '18:00' },
-  { label: 'Night', t: '21:00' },
-];
+/** A time field anywhere: the list-and-type field on a computer, the phone's own picker on a phone. */
+export function TimeField({ value, onChange, label = 'Time' }: { value: string | null; onChange: (t: string | null) => void; label?: string }) {
+  const h24 = use24h(usePrefs());
+  const mouse = useMouse();
+  if (mouse) return <TimeCombo value={value} h24={h24} onChange={onChange} />;
+  return <input type="time" className="timecombo__field" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)} aria-label={label} />;
+}
+
+/** Every quarter of an hour, the day through. */
+const SLOTS = Array.from({ length: 96 }, (_, i) => `${pad2(Math.floor(i / 4))}:${pad2((i % 4) * 15)}`);
+const slotOf = (t: string) => {
+  const [h, m] = t.split(':').map(Number);
+  return Math.min(95, h * 4 + Math.round(m / 15));
+};
 
 /**
- * The time, on a computer: type it ("9:30", "6pm"; ↑ ↓ move by a quarter hour, Enter keeps it),
- * or pick a part of the day, or an hour and then its minutes. Every pick sets it at once.
+ * The time, on a computer: a field like a calendar's. Click it and a list of times opens (every
+ * 15 minutes, scrolled to the one set, or to now); ↑ ↓ and Enter pick, or type any time ("9:30",
+ * "6pm", "1830") and Enter or leave the field. Esc puts it back.
  */
-function TimePanel({ value, h24, onChange, onDone }: { value: string | null; h24: boolean; onChange: (t: string | null) => void; onDone: () => void }) {
-  const [text, setText] = useState(value ? humanTime(value, h24) : '');
+function TimeCombo({ value, h24, onChange }: { value: string | null; h24: boolean; onChange: (t: string | null) => void }) {
+  const show = (t: string | null) => (t ? humanTime(t, h24) : '');
+  const [text, setText] = useState(show(value));
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const [typed, setTyped] = useState(false);
   const field = useRef<HTMLInputElement>(null);
-  // A pick elsewhere shows in the field (not while it's being typed in).
+  const list = useRef<HTMLUListElement>(null);
   useEffect(() => {
-    if (document.activeElement !== field.current) setText(value ? humanTime(value, h24) : '');
+    if (document.activeElement !== field.current) setText(show(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, h24]);
-  useEffect(() => field.current?.focus(), []);
-  const [h, m] = value ? value.split(':').map(Number) : [null, null];
-  const typed = text.trim() ? parseTime(text) : null;
-  const bad = !!text.trim() && !typed;
-  const set = (t: string) => onChange(t);
-  const step = (by: number) => {
-    const base = value ? (h as number) * 60 + (m as number) : 9 * 60;
-    const next = (((Math.round(base / 15) * 15 + by) % 1440) + 1440) % 1440;
-    set(`${pad2(Math.floor(next / 60))}:${pad2(next % 60)}`);
+  const near = () => {
+    if (value) return slotOf(value);
+    const d = new Date();
+    return Math.min(95, d.getHours() * 4 + Math.ceil(d.getMinutes() / 15));
   };
-  const hourLabel = (n: number) => (h24 ? pad2(n) : `${n % 12 === 0 ? 12 : n % 12}${n < 12 ? 'a' : 'p'}`);
+  const reveal = (i: number, center = false) =>
+    requestAnimationFrame(() => {
+      const el = list.current?.children[i] as HTMLElement | undefined;
+      if (!el || !list.current) return;
+      if (center) list.current.scrollTop = el.offsetTop - list.current.clientHeight / 2 + el.offsetHeight / 2;
+      else el.scrollIntoView({ block: 'nearest' });
+    });
+  const openList = () => {
+    const i = near();
+    setHi(i);
+    setTyped(false);
+    setOpen(true);
+    reveal(i, true);
+  };
+  const pick = (t: string) => {
+    onChange(t);
+    setText(show(t));
+    setOpen(false);
+  };
+  const commit = () => {
+    const t = text.trim() ? parseTime(text) : null;
+    if (t) pick(t);
+    else {
+      setText(show(value));
+      setOpen(false);
+    }
+  };
   return (
-    <div className="timepick">
-      <div className={`timepick__field ${bad ? 'is-bad' : ''}`}>
-        <Icon name="clock" className="icon--sm" />
-        <input
-          ref={field}
-          value={text}
-          placeholder={h24 ? 'Type a time, like 9:30' : 'Type a time, like 6:30pm'}
-          aria-label="Time"
-          aria-invalid={bad}
-          onChange={(e) => {
-            setText(e.target.value);
-            const t = parseTime(e.target.value);
-            if (t) onChange(t);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-              e.preventDefault();
-              step(e.key === 'ArrowUp' ? 15 : -15);
-            } else if (e.key === 'Enter') {
-              e.preventDefault();
-              onDone();
-            }
-          }}
-          onBlur={() => setText(value ? humanTime(value, h24) : '')}
-        />
-        <span className="timepick__keys" aria-hidden="true">
-          <kbd>↑</kbd>
-          <kbd>↓</kbd>
-        </span>
-      </div>
-      <div className="timepick__quick" role="group" aria-label="Part of the day">
-        {QUICK_TIMES.map((q) => (
-          <button key={q.t} type="button" className={`timepick__q ${value === q.t ? 'is-on' : ''}`} aria-pressed={value === q.t} onClick={() => set(q.t)}>
-            <span>{q.label}</span>
-            <span className="timepick__qt num">{humanTime(q.t, h24)}</span>
-          </button>
-        ))}
-      </div>
-      <div className="timepick__grid">
-        <div className="timepick__hours" role="group" aria-label="Hour">
-          {Array.from({ length: 24 }, (_, n) => (
-            <button key={n} type="button" className={`timepick__h num ${h === n ? 'is-on' : ''} ${n < 6 ? 'is-night' : ''}`} aria-pressed={h === n} aria-label={humanTime(`${pad2(n)}:00`, h24)} onClick={() => set(`${pad2(n)}:${pad2(m ?? 0)}`)}>
-              {hourLabel(n)}
-            </button>
+    <div className="timecombo">
+      <input
+        ref={field}
+        className="timecombo__field"
+        value={text}
+        placeholder="Any time"
+        aria-label="Time"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="timecombo-list"
+        aria-activedescendant={open ? `timecombo-${hi}` : undefined}
+        onFocus={(e) => {
+          e.target.select();
+          openList();
+        }}
+        onClick={() => !open && openList()}
+        onChange={(e) => {
+          setText(e.target.value);
+          setTyped(true);
+          // The list follows what's typed.
+          const t = parseTime(e.target.value);
+          if (t) {
+            const i = slotOf(t);
+            setHi(i);
+            reveal(i, true);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (!open) return openList();
+            const i = Math.max(0, Math.min(95, hi + (e.key === 'ArrowDown' ? 1 : -1)));
+            setHi(i);
+            setTyped(false);
+            setText(show(SLOTS[i]));
+            reveal(i);
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (open && !typed) pick(SLOTS[hi]);
+            else commit();
+          } else if (e.key === 'Escape' && open) {
+            e.preventDefault();
+            e.stopPropagation();
+            setText(show(value));
+            setOpen(false);
+          }
+        }}
+        onBlur={() => open && commit()}
+      />
+      {open ? (
+        <ul ref={list} id="timecombo-list" className="timecombo__list" role="listbox" aria-label="Times">
+          {SLOTS.map((t, i) => (
+            <li
+              key={t}
+              id={`timecombo-${i}`}
+              role="option"
+              aria-selected={t === value}
+              className={`timecombo__opt num ${i === hi ? 'is-hi' : ''} ${t === value ? 'is-on' : ''}`}
+              // Keeps the field's focus: the pick happens before it would blur.
+              onMouseDown={(e) => {
+                e.preventDefault();
+                pick(t);
+              }}
+              onMouseEnter={() => setHi(i)}
+            >
+              {humanTime(t, h24)}
+            </li>
           ))}
-        </div>
-        <div className="timepick__mins" role="group" aria-label="Minutes">
-          {[0, 15, 30, 45].map((n) => (
-            <button key={n} type="button" className={`timepick__m num ${m === n ? 'is-on' : ''}`} aria-pressed={m === n} onClick={() => set(`${pad2(h ?? 9)}:${pad2(n)}`)}>
-              :{pad2(n)}
-            </button>
-          ))}
-        </div>
-      </div>
+        </ul>
+      ) : null}
     </div>
   );
 }

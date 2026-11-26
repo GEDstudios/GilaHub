@@ -552,7 +552,7 @@
 .homeedit {
   display: flex;
   justify-content: center;
-  margin-top: 44px;
+  margin-top: var(--space-5);
 }
 
 .homeedit .icon {
@@ -923,7 +923,7 @@ button.projcard:active {
  */
 
 .composer__card {
-  min-height: 168px;
+  min-height: 140px;
   gap: 18px;
   /* Clear of the sheet's close button */
   margin-top: 46px;
@@ -1187,7 +1187,7 @@ span.aislearr__name {
 }
 
 .aisle {
-  margin-top: 20px;
+  margin-top: var(--space-4);
 }
 
 .aisle__head {
@@ -2212,7 +2212,7 @@ html.is-dragging .bartray {
 /* My card: the name in the serif, edited in place; a sync pill; my person's tag on the edge */
 .mecard-wrap {
   position: relative;
-  margin: 6px 0 30px;
+  margin: 6px 0 40px;
 }
 
 .mecard {

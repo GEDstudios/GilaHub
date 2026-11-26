@@ -333,8 +333,13 @@
 
   .main .section,
   .main .aisle {
-    margin-top: 16px;
+    margin-top: var(--space-3);
     padding: 12px 10px 10px;
+  }
+
+  /* The filter row sits with what it filters */
+  .main .column > .lens + * {
+    margin-top: 0;
   }
 
   /* Urgent stays the screen's one lemon card */
@@ -647,7 +652,7 @@
   }
 
   .projpage .hero {
-    min-height: 168px;
+    min-height: 158px;
     padding: 20px 20px 18px;
   }
 

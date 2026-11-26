@@ -3,7 +3,7 @@ import type { Item } from '../core/model';
 import { getPrefs, setPrefs } from './prefs';
 
 /**
- * My Quick view: a handful of tasks I chose to keep in sight on Today, from any folder, whatever
+ * My Spotlight: a handful of tasks I chose to keep in sight on Today, from any folder, whatever
  * their dates. Mine alone (in my prefs, which follow me to my devices; my person never sees it).
  */
 export const isQuick = (id: string, quick: readonly string[] = getPrefs().quick) => quick.includes(id);

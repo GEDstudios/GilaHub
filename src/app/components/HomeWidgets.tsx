@@ -355,7 +355,7 @@ export function PartnerDid({ v }: { v: TodayView }) {
 
 // ---------------------------------------------------------------- my quick view
 
-/** The tasks I chose to keep in sight here (a task's "Quick view" chip), from any folder. Gone while it's empty. */
+/** The tasks I chose to keep in sight here (a task's "Spotlight" chip), from any folder. Gone while it's empty. */
 export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: Item) => boolean }) {
   const hub = useHub();
   const prefs = usePrefs();
@@ -366,8 +366,8 @@ export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: I
     <Section
       title={
         <>
-          <Icon name="eye" className="icon--sm" />
-          <span>Quick view</span>
+          <Icon name="sparkle" className="icon--sm" />
+          <span>Spotlight</span>
         </>
       }
       count={open.length}
@@ -391,11 +391,13 @@ export function ProjectWidget({ listId, settle, show }: { listId: string; day?: 
   // What's open in it, and in the projects inside it.
   const ids = new Set([listId, ...hub.nestedLists(listId).map((l) => l.id)]);
   const open = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId && !i.done && !i.archived && (!show || show(i)));
+  // Its name is the way in.
   const head = (
-    <>
+    <button type="button" className="section__go" onClick={() => navigate({ name: 'list', id: listId })}>
       <ProjectMark color={list.color} icon={list.icon} size="sm" />
       <span dir="auto">{list.name}</span>
-    </>
+      <Icon name="chevron-right" className="section__goarrow" />
+    </button>
   );
   // Urgent first, then in the project's order: the first five.
   const rows = settle.view(`l:${listId}`, [...open].sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent) || byOrder(a, b)).slice(0, 5));
@@ -407,15 +409,7 @@ export function ProjectWidget({ listId, settle, show }: { listId: string; day?: 
     </ul>
   ) : null;
   return (
-    <Section
-      title={head}
-      count={open.length}
-      action={
-        <button type="button" className="textbtn" onClick={() => navigate({ name: 'list', id: listId })}>
-          Open
-        </button>
-      }
-    >
+    <Section title={head} count={open.length}>
       {body}
     </Section>
   );

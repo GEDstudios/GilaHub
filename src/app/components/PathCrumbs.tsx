@@ -22,7 +22,7 @@ export interface Crumb {
  * Where you are: every step from the top down to here (Projects › Home › Kitchen › Fix the tap),
  * each one a way back up. On a task, a small ⌄ beside a step moves the task there.
  */
-export function PathCrumbs({ steps }: { steps: Crumb[] }) {
+export function PathCrumbs({ steps, onMove, moveLabel = 'Move it' }: { steps: Crumb[]; /** A small move button at the end of the path. */ onMove?: () => void; moveLabel?: string }) {
   if (!steps.length) return null;
   return (
     <nav className="crumbs crumbs--path" aria-label="Where you are">
@@ -41,6 +41,11 @@ export function PathCrumbs({ steps }: { steps: Crumb[] }) {
           </span>
         </Fragment>
       ))}
+      {onMove ? (
+        <button type="button" className="crumbs__moveto" onClick={onMove} aria-label={moveLabel} title={moveLabel}>
+          <Icon name="move" />
+        </button>
+      ) : null}
     </nav>
   );
 }

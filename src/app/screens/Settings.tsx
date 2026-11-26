@@ -1,3 +1,5 @@
+import { TimeField } from '../components/editors';
+import { DEFAULT_REMIND_AT } from '../reminders';
 import { playSound } from '../ui/sounds';
 import { hasMouse, wantsLiveCursor } from '../ui/liveCursor';
 import { startTour } from '../tour';
@@ -541,6 +543,12 @@ function ThisDevice() {
               onChange={(v) => setPrefs({ todayNew: v })}
             />
           }
+        />
+        <OptRow
+          icon="bell"
+          title="Notify at"
+          sub="When a task has a day but no time"
+          trail={<TimeField value={hub.me()?.remindAt || DEFAULT_REMIND_AT} label="Notify at, for a task with only a day" onChange={(t) => hub.upsertMember(hub.meId, { remindAt: t ?? null })} />}
         />
         <OptRow
           icon="calendar"

@@ -12,19 +12,10 @@ import type { ProjectGroup } from '../views';
 import { ItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
 import { movedTo } from './TemplateAsk';
+import { useGroupDrag } from '../ui/groupDrag';
 import { TagMark } from './Tags';
 
 const idOf = (i: Item) => i.id;
-
-/** "↳": inside the one before, as a subtask sits under its task (between the steps of a folder's way down). */
-function SubArrow() {
-  return (
-    <svg className="aisle__sep aisle__sub" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6.5 4.5v7.2a4.3 4.3 0 0 0 4.3 4.3h8.2" />
-      <path d="M15.2 12.2 19 16l-3.8 3.8" />
-    </svg>
-  );
-}
 
 /** The project under the hand, if any: one marked [data-drop-list], or a project's tab in the bar. */
 function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
@@ -148,8 +139,11 @@ export function ProjectItems({
         hub.moveToTag(id, from.tag ?? null, to.tag);
         toast(to.tag ? `Tagged ${hub.tag(to.tag)?.name ?? ''}` : 'Untagged');
       } else if (to.listId) {
+        const item = hub.item(id);
+        const was = { listId: item?.listId ?? from.listId ?? to.listId, parentId: item?.parentId ?? null };
         hub.move(id, { listId: to.listId });
-        toast(`Moved to ${hub.list(to.listId)?.name ?? 'there'}`);
+        // From group to group is a move like any other: a folder with a template asks about it.
+        movedTo(hub, overlays, id, was.listId, to.listId, `Moved to ${hub.list(to.listId)?.name ?? 'there'}`, () => hub.move(id, was));
       }
       haptic('drop');
     }
@@ -158,6 +152,20 @@ export function ProjectItems({
       id,
     );
   };
+
+  // By tag: a tag's heading drags its whole group up or down. That's our tag order (it's the
+  // same everywhere: the walk through the store), so both of us see it.
+  const tagGroups = groups.filter((g) => g.tag).map((g) => g.tag as string);
+  useGroupDrag(tagGroups.length > 1, (tag, before) => {
+    const was = hub.tags().map((t) => t.id);
+    const rest = was.filter((x) => x !== tag);
+    const at = before ? rest.indexOf(before) : rest.indexOf(tagGroups.filter((x) => x !== tag).at(-1) ?? '') + 1;
+    rest.splice(at < 0 ? rest.length : at, 0, tag);
+    if (rest.join() === was.join()) return;
+    hub.arrangeTags(rest);
+    haptic('drop');
+    toast(`${hub.tag(tag)?.name ?? 'Tag'} moved`, { action: { label: 'Undo', run: () => hub.arrangeTags(was) } });
+  });
 
   const rowsClass = `rows ${cards ? 'rows--cards' : ''}`;
   const shownUrgent = settle.view('urgent', urgent);
@@ -170,9 +178,10 @@ export function ProjectItems({
         // Rows name their project only where the group mixes projects.
         const mixed = showList && new Set(g.items.map((i) => i.listId)).size > 1;
         return (
-          <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--plain'}`} aria-label={g.label ?? undefined} data-group={g.key}>
+          <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--plain'}`} aria-label={g.label ?? undefined} data-group={g.key} data-list={g.listId ?? undefined} data-tag={g.tag ?? undefined}>
             {g.label ? (
-              <h2 className="aisle__head">
+              <h2 className={`aisle__head ${g.tag ? 'aisle__head--drag' : ''}`} title={g.tag ? 'Drag to reorder the tags' : undefined}>
+                {g.tag ? <Icon name="grip" className="aisle__grip" /> : null}
                 {g.tag !== undefined ? (
                   <>
                     <TagMark icon={g.tag ? g.icon : null} className="" />
@@ -183,7 +192,7 @@ export function ProjectItems({
                   <span className="aisle__path">
                     {pathTo(list).map((l, i, all) => (
                       <Fragment key={l.id}>
-                        {i ? <SubArrow /> : null}
+                        {i ? <Icon name="subtask" className="aisle__sep" /> : null}
                         <button type="button" className={`aisle__go aisle__golabel ${i < all.length - 1 ? 'is-up' : ''}`} onClick={() => navigate({ name: 'list', id: l.id })}>
                           {i === all.length - 1 ? <ListBullet list={l} size="xs" /> : null}
                           <span dir="auto">{l.name}</span>

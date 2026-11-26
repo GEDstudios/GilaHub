@@ -8,7 +8,7 @@ import { OptRow } from '../components/pickers';
 import { ListVisOptions } from '../components/ProjectFields';
 import { Swatches } from '../components/pickers';
 import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
-import { InlineEditor, type Draft } from '../components/editors';
+import { InlineEditor, Options, Panel, RepeatPanel, ruleShort, type Draft } from '../components/editors';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
@@ -21,7 +21,7 @@ import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewButton, Switch } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
-import { setPrefs, usePrefs } from '../prefs';
+import { setPrefs, use24h, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
 import { Sortable, type Outside, type Point } from '../ui/Sortable';
 import { barTabOf, folderLean, NewProjectSheet, ProjectCard, SortableProject, useBarDrop } from './Lists';
@@ -35,7 +35,8 @@ import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
 import { haptic } from '../ui/haptics';
 import { cadenceLabel } from '../../smart/suggest';
-import { hasTemplate } from '../template';
+import { dayIn, hasTemplate } from '../template';
+import { humanTime } from '../../core/dates';
 
 /** The folder's own settings, in place under its card: a photo, on Today, its task template, the tasks it shows from elsewhere, where it sits. Each says what it's set to. */
 const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, assignee: null, urgent: false, visibility: 'ours' };
@@ -48,7 +49,6 @@ function FolderTools({ list }: { list: List }) {
   const photoN = hub.photosOf(`list:${listId}`).length;
   const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === projectKey(listId));
   const shows = hub.shownIn(listId);
-  const parent = hub.parentOf(listId);
   const tpl = hasTemplate(list);
   return (
     <InlineEditor
@@ -79,13 +79,6 @@ function FolderTools({ list }: { list: List }) {
           icon: 'link',
           set: shows.length > 0,
           toggle: () => openSheet((close) => <ShowsSheet listId={listId} onClose={close} />),
-        },
-        {
-          key: 'move',
-          label: parent ? `In ${parent.name}` : 'Move to…',
-          icon: 'move',
-          set: !!parent,
-          toggle: () => openSheet((close) => <MoveProjectSheet listId={listId} onClose={close} />),
         },
       ]}
     />
@@ -130,12 +123,72 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   );
 }
 
+/** A template's day: how many days after it's added, and a time. */
+function TemplateDayPanel({ listId }: { listId: string }) {
+  const hub = useHub();
+  const t = hub.list(listId)?.template ?? {};
+  const days = [0, 1, 2, 3, 7, 14];
+  return (
+    <Panel>
+      <p className="panel__head">Due</p>
+      <Options
+        value={t.dueIn == null ? 'none' : String(t.dueIn)}
+        options={[{ value: 'none', label: 'No date' }, ...days.map((n) => ({ value: String(n), label: dayIn(n) }))]}
+        onPick={(v) => hub.setListTemplate(listId, { dueIn: v === 'none' ? null : Number(v) })}
+      />
+      <label className="tpltime">
+        <Icon name="clock" className="icon--sm" />
+        <span>Time</span>
+        <input type="time" value={t.dueTime ?? ''} onChange={(e) => hub.setListTemplate(listId, { dueTime: e.target.value || null })} aria-label="Time" />
+        {t.dueTime ? (
+          <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => hub.setListTemplate(listId, { dueTime: null })}>
+            <Icon name="x" className="icon--xs" />
+          </button>
+        ) : null}
+      </label>
+    </Panel>
+  );
+}
+
+/** A few lines of the template's own (its subtasks, its note), kept when the field is left. */
+function TemplateText({ value, placeholder, label, rows, onSave }: { value: string; placeholder: string; label: string; rows: number; onSave: (v: string) => void }) {
+  const [text, setText] = useState(value);
+  // Kept on leaving the field, and when its panel closes under it (a tap elsewhere can close it first).
+  const latest = useRef({ text, value, onSave });
+  latest.current = { text, value, onSave };
+  useEffect(
+    () => () => {
+      const l = latest.current;
+      if (l.text !== l.value) l.onSave(l.text);
+    },
+    [],
+  );
+  return (
+    <textarea
+      className="notes tpltext"
+      dir="auto"
+      rows={rows}
+      value={text}
+      placeholder={placeholder}
+      aria-label={label}
+      autoFocus
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        if (text === value) return;
+        onSave(text);
+        latest.current.value = text;
+      }}
+    />
+  );
+}
+
 /**
  * A folder's task template: how every new task added here starts (who it's for, its tags, its
  * notification, a repeat, urgent, who sees it). What's typed or picked when adding still wins.
  */
 function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
+  const h24 = use24h(usePrefs());
   const list = hub.list(listId);
   if (!list) return null;
   const t = list.template ?? {};
@@ -155,7 +208,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
   const tl = tagsLabel(hub, tags);
   return (
     <Sheet onClose={onClose} title={`New tasks in ${list.name}`}>
-      <p className="sheet__lede">Every task added here starts like this. What you type or pick when adding still wins.</p>
+      <p className="sheet__lede">Every task added here starts like this: its day, tags, subtasks, a note, who it’s for, a reminder. What you type or pick when adding still wins.</p>
       <InlineEditor
         value={value}
         onChange={(patch) => {
@@ -173,6 +226,13 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
         whoMode="compose"
         extras={[
           {
+            key: 'day',
+            label: t.dueIn != null ? `${dayIn(t.dueIn)}${t.dueTime ? `, ${humanTime(t.dueTime, h24)}` : ''}` : t.dueTime ? humanTime(t.dueTime, h24) : 'Date',
+            icon: 'calendar' as const,
+            set: t.dueIn != null || !!t.dueTime,
+            panel: () => <TemplateDayPanel listId={listId} />,
+          },
+          {
             key: 'tags',
             label: tl.label,
             icon: tl.lead ? undefined : ('tag' as const),
@@ -180,6 +240,48 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
             set: tags.length > 0,
             panel: () => <TagPicker value={tags} onChange={(next) => hub.setListTemplate(listId, { tags: next })} />,
           },
+          {
+            key: 'steps',
+            label: t.steps?.length ? `Subtasks ${t.steps.length}` : 'Subtasks',
+            icon: 'subtask' as const,
+            set: !!t.steps?.length,
+            panel: () => (
+              <Panel>
+                <TemplateText
+                  value={(t.steps ?? []).join('\n')}
+                  placeholder={'One per line\nBuy paint\nTape the edges'}
+                  label="Subtasks it starts with, one per line"
+                  rows={4}
+                  onSave={(v) => {
+                    const steps = v.split('\n').map((x) => x.trim()).filter(Boolean);
+                    hub.setListTemplate(listId, { steps: steps.length ? steps : null });
+                  }}
+                />
+              </Panel>
+            ),
+          },
+          {
+            key: 'notes',
+            label: t.notes ? 'Note' : 'Note',
+            icon: 'note' as const,
+            set: !!t.notes,
+            panel: () => (
+              <Panel>
+                <TemplateText value={t.notes ?? ''} placeholder="A note each task starts with" label="Its note" rows={3} onSave={(v) => hub.setListTemplate(listId, { notes: v.trim() || null })} />
+              </Panel>
+            ),
+          },
+          ...(t.remind != null
+            ? [
+                {
+                  key: 'again',
+                  label: t.nag ? `Again ${ruleShort(t.nag).toLowerCase()}` : 'Again until done',
+                  icon: 'refresh' as const,
+                  set: !!t.nag,
+                  panel: () => <RepeatPanel nag rule={t.nag ?? null} defaultFrom="schedule" title="Notify again until done" onChange={(nag) => hub.setListTemplate(listId, { nag })} />,
+                },
+              ]
+            : []),
         ]}
       />
       {list.template ? (
@@ -223,7 +325,13 @@ function ShowsSheet({ listId, onClose }: { listId: string; onClose: () => void }
       const subs = hub.subLists(l.id).filter((x) => x.id !== listId && !inside.has(x.id));
       return [
         <li key={l.id}>
-          <div className="place__row showrow" style={{ paddingInlineStart: 6 + depth * 18 }}>
+          {/* The switch leads its row, so it steps in with each level: what's inside what reads at a glance. */}
+          <div className={`place__row showrow ${depth ? 'is-nested' : ''}`} style={{ marginInlineStart: depth * 26 }}>
+            {offered(l) ? (
+              <Switch on={on.has(l.id)} label={`Show ${l.name}’s tasks in ${list.name}`} onChange={(v) => hub.setShows(listId, l.id, v)} />
+            ) : (
+              <span className="showrow__here">This folder</span>
+            )}
             <span className="place__pick showrow__name">
               <ListBullet list={l} size="xs" />
               <span dir="auto">{l.name}</span>
@@ -233,7 +341,6 @@ function ShowsSheet({ listId, onClose }: { listId: string; onClose: () => void }
                 <Icon name="chevron-down" className="icon--sm" />
               </button>
             ) : null}
-            {offered(l) ? <Switch on={on.has(l.id)} label={`Show ${l.name}’s tasks in ${list.name}`} onChange={(v) => hub.setShows(listId, l.id, v)} /> : <span className="showrow__here">here</span>}
           </div>
         </li>,
         ...(open.has(l.id) ? rows(subs, depth + 1) : []),
@@ -581,7 +688,7 @@ function ProjectPage({ id }: { id: string }) {
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
         actions={<ProjectActions listId={id} label={label} onNew={openNew} />}
         mini={list.name}
-        crumbs={<PathCrumbs steps={projectPath(hub, id)} />}
+        crumbs={<PathCrumbs steps={projectPath(hub, id)} onMove={() => openSheet((close) => <MoveProjectSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
       >
         <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
       </Band>

@@ -1,3 +1,4 @@
+import { hasTemplate, startFromTemplate, templateDay } from '../template';
 import { playSound } from '../ui/sounds';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { List } from '../../core/model';
@@ -113,6 +114,8 @@ export function useCompose({
           urgent: d.urgent || !!tpl.urgent,
           remind: d.remind ?? tpl.remind ?? null,
           repeat: d.repeat ?? tpl.repeat ?? null,
+          ...templateDay(tpl, d),
+          nag: d.nag ?? tpl.nag ?? null,
         }
       : d;
   const draftOf = (p: ParseResult) => composeDraft(templated(p, parsedDraft(p, { mode, defaultDue, visibility: defVis })), over, allowed);
@@ -175,6 +178,9 @@ export function useCompose({
       tags: ownTags,
     });
     const id = res.id;
+    // The template's note and subtasks (a new task only).
+    const tplOf = useTpl && hasTemplate(to) ? to.template : null;
+    if (tplOf && res.kind === 'added') startFromTemplate(hub, id, tplOf);
     if (d.urgent && res.kind !== 'exists' && hub.item(id)) pingUrgent(hub.item(id)!, true);
     if (res.kind === 'exists') {
       markFresh(id, { scroll: opts.announce });

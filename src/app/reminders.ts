@@ -36,8 +36,12 @@ export function whoToRemind(hub: Hub, item: Item, scope: Scope): string[] {
 const NAGS_AHEAD = 6;
 const NAG_HORIZON = 120 * 86_400_000;
 
-export function reminderTime(item: Item, due: string): number {
-  return atLocal(due, item.dueTime || '09:00') - (item.remind ?? 0) * 60_000;
+/** The time of day a reminder comes when a task has a day and no time: each person's own (Settings). */
+export const DEFAULT_REMIND_AT = '09:00';
+export const dayTimeOf = (hub: Hub, member: string) => hub.member(member)?.remindAt || DEFAULT_REMIND_AT;
+
+export function reminderTime(item: Item, due: string, dayTime = DEFAULT_REMIND_AT): number {
+  return atLocal(due, item.dueTime || dayTime) - (item.remind ?? 0) * 60_000;
 }
 
 export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
@@ -48,38 +52,65 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
     const list = lists.get(item.listId);
     if (!list) continue;
     const scope = hub.store.scopeOf('item', item.id);
-    const members = whoToRemind(hub, item, scope);
-    const dues = [item.due];
-    if (item.repeat && !isFlexible(item.repeat)) {
-      let d = item.due;
-      for (let i = 0; i < 3; i++) dues.push((d = nextDue(item.repeat, d, d)));
+    const everyone = whoToRemind(hub, item, scope);
+    // With a time, one reminder for all; with only a day, each of us at our own time of day.
+    const byTime = new Map<string, string[]>();
+    for (const m of everyone) {
+      const t = item.dueTime ? '' : dayTimeOf(hub, m);
+      byTime.set(t, [...(byTime.get(t) ?? []), m]);
     }
-    dues.forEach((due, i) => {
-      const at = reminderTime(item, due);
-      if (at < now - 60_000) return;
-      const when = item.dueTime ? `${humanDate(due)} · ${humanTime(item.dueTime, use24h())}` : humanDate(due);
-      out.push({ id: `${item.id}.${i}`, at, members, scope, note: { title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`, body: `${when} · ${list.name}`, url: `/i/${item.id}`, tag: item.id } });
-    });
-    // Again until done: the next few times on its rhythm after the first, while it's still open.
-    // On a repeating task, for the time that's due now (a day its next time is due has that reminder already).
-    if (item.nag) {
-      const own = new Set(dues);
-      const rule = item.nag.type === 'interval' ? { ...item.nag, from: 'schedule' as const } : item.nag;
-      let d = item.due;
-      let n = 0;
-      for (let guard = 0; guard < 3000 && n < NAGS_AHEAD; guard++) {
-        d = nextDue(rule, d, d);
-        const at = reminderTime(item, d);
-        if (at > now + NAG_HORIZON) break;
-        if (at < now - 60_000 || own.has(d)) continue;
-        n++;
+    if (!byTime.size) byTime.set(item.dueTime ? '' : DEFAULT_REMIND_AT, []);
+    const several = byTime.size > 1;
+    for (const [dayTime, members] of byTime) {
+      const sfx = several ? `@${dayTime.replace(':', '')}` : '';
+      const dues = [item.due];
+      if (item.repeat && !isFlexible(item.repeat)) {
+        let d = item.due;
+        for (let i = 0; i < 3; i++) dues.push((d = nextDue(item.repeat, d, d)));
+      }
+      dues.forEach((due, i) => {
+        const at = reminderTime(item, due, dayTime || DEFAULT_REMIND_AT);
+        if (at < now - 60_000) return;
+        const when = item.dueTime ? `${humanDate(due)} · ${humanTime(item.dueTime, use24h())}` : humanDate(due);
         out.push({
-          id: `${item.id}.n${d}`,
+          id: `${item.id}.${i}${sfx}`,
           at,
           members,
           scope,
-          note: { title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`, body: `Still to do · was due ${humanDate(item.due)} · ${list.name}`, url: `/i/${item.id}`, tag: item.id },
+          note: {
+            title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`,
+            body: `${when} · ${list.name}`,
+            url: `/i/${item.id}`,
+            tag: item.id,
+          },
         });
+      });
+      // Again until done: the next few times on its rhythm after the first, while it's still open.
+      // On a repeating task, for the time that's due now (a day its next time is due has that reminder already).
+      if (item.nag) {
+        const own = new Set(dues);
+        const rule = item.nag.type === 'interval' ? { ...item.nag, from: 'schedule' as const } : item.nag;
+        let d = item.due;
+        let n = 0;
+        for (let guard = 0; guard < 3000 && n < NAGS_AHEAD; guard++) {
+          d = nextDue(rule, d, d);
+          const at = reminderTime(item, d, dayTime || DEFAULT_REMIND_AT);
+          if (at > now + NAG_HORIZON) break;
+          if (at < now - 60_000 || own.has(d)) continue;
+          n++;
+          out.push({
+            id: `${item.id}.n${d}${sfx}`,
+            at,
+            members,
+            scope,
+            note: {
+              title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`,
+              body: `Still to do · was due ${humanDate(item.due)} · ${list.name}`,
+              url: `/i/${item.id}`,
+              tag: item.id,
+            },
+          });
+        }
       }
     }
   }
@@ -111,20 +142,36 @@ export class ReminderSync {
       }
       const want = desiredReminders(this.rt.hub);
       const keep = new Set<string>();
-      const upsert: Array<{ id: string; at: number; members: string[]; payload: string }> = [];
+      const upsert: Array<{
+        id: string;
+        at: number;
+        members: string[];
+        payload: string;
+      }> = [];
       const fps = new Map<string, string>();
       for (const r of want) {
         const fp = `${r.at}|${r.members.join(',')}|${r.note.title}|${r.note.body}`;
         keep.add(r.id);
         fps.set(r.id, fp);
-        if (this.sent.get(r.id) !== fp) upsert.push({ id: r.id, at: r.at, members: r.members, payload: await sealNote(this.rt, r.note, r.scope) });
+        if (this.sent.get(r.id) !== fp)
+          upsert.push({
+            id: r.id,
+            at: r.at,
+            members: r.members,
+            payload: await sealNote(this.rt, r.note, r.scope),
+          });
       }
       const remove = [...this.sent.keys()].filter((id) => !keep.has(id));
       if (!upsert.length && !remove.length) return;
-      await api(this.rt.session, 'reminders', { method: 'POST', body: JSON.stringify({ upsert, remove }) });
+      await api(this.rt.session, 'reminders', {
+        method: 'POST',
+        body: JSON.stringify({ upsert, remove }),
+      });
       for (const id of remove) this.sent.delete(id);
       for (const u of upsert) this.sent.set(u.id, fps.get(u.id)!);
-      await this.rt.persistence.commit({ meta: { reminders: Object.fromEntries(this.sent) } });
+      await this.rt.persistence.commit({
+        meta: { reminders: Object.fromEntries(this.sent) },
+      });
     } catch {
       // Offline or relay hiccup — try again later.
       this.schedule(30_000);

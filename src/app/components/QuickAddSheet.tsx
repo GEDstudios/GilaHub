@@ -398,7 +398,7 @@ function Composer({
           <>
             {parent ? (
               <EChip
-                icon={asStep ? 'steps' : 'lines'}
+                icon={asStep ? 'subtask' : 'lines'}
                 label={asStep ? 'A subtask' : 'Its own task'}
                 set={asStep}
                 open={false}

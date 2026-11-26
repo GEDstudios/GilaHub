@@ -467,15 +467,16 @@ export function ItemScreen({ id }: { id: string }) {
           ) : undefined
         }
         crumbs={
-          // Where it lives, from the top: every step goes there; its ⌄ moves the task there (asked first).
+          // Where it lives, from the top: every step goes there; the move button at the end moves it.
           <PathCrumbs
+            onMove={editable ? () => movePath(null) : undefined}
+            moveLabel="Move this task"
             steps={[
               { key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }) },
               ...[...(list ? hub.listPath(list.id) : []), ...(list ? [list] : [])].map((l) => ({
                 key: l.id,
                 label: l.name,
                 go: () => navigate({ name: 'list', id: l.id }),
-                move: editable ? () => movePath(l.id) : undefined,
                 // A subtask dragged up onto it: out on its own, there.
                 drop: editable ? l.id : undefined,
               })),
@@ -483,7 +484,6 @@ export function ItemScreen({ id }: { id: string }) {
                 key: a.id,
                 label: a.title,
                 go: () => navigate({ name: 'item', id: a.id }),
-                move: editable ? () => movePath(a.id) : undefined,
                 dropItem: editable ? a.id : undefined,
               })),
             ]}
@@ -540,13 +540,13 @@ export function ItemScreen({ id }: { id: string }) {
               },
               {
                 key: 'quick',
-                label: 'Quick view',
-                icon: 'eye' as const,
+                label: 'Spotlight',
+                icon: 'sparkle' as const,
                 set: inQuick,
                 toggle: () => {
                   haptic('select');
                   const undo = setQuick(id, !inQuick);
-                  toast(inQuick ? 'Out of your Quick view' : 'In your Quick view on Today', { action: { label: 'Undo', run: undo } });
+                  toast(inQuick ? 'Out of your Spotlight' : 'In your Spotlight, on Today', { action: { label: 'Undo', run: undo } });
                 },
               },
               ...(!item.parentId && (!item.done || item.ongoingAt)

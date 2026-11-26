@@ -47,7 +47,7 @@ export interface Prefs {
   todayNew: 'mine' | 'ours';
   /** Today shows all of it, just mine, or just ours. */
   todayScope: 'all' | 'mine' | 'ours';
-  /** My Quick view on Today: the tasks I put there, in the order I did. */
+  /** My Spotlight on Today: the tasks I put there, in the order I did. */
   quick: string[];
 }
 
