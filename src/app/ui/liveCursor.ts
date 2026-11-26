@@ -62,7 +62,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   // While a hold is under way the cursor is a timer: it fills, and then the thing lifts.
   const timer = document.createElement('div');
   timer.className = 'livecursor__timer';
-  timer.innerHTML = `<svg viewBox="0 0 24 24"><circle class="livecursor__track" cx="12" cy="12" r="9"/><circle class="livecursor__fill" cx="12" cy="12" r="9"/></svg>`;
+  timer.innerHTML = `<svg viewBox="0 0 24 24"><circle class="livecursor__track" cx="12" cy="12" r="9"/><circle class="livecursor__pie" cx="12" cy="12" r="4.25"/><circle class="livecursor__fill" cx="12" cy="12" r="9"/></svg>`;
   timer.style.setProperty('--hold', `${MOUSE_HOLD_MS}ms`);
   el.append(body, beam, timer);
   document.body.append(el);
@@ -71,21 +71,19 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   let x = -100;
   let y = -100;
   let lastX = x;
-  let lastY = y;
-  // The settle wiggle: when a move stops, a swing the other way and two smaller ones.
-  let fast = 0;
-  let peak = 0;
-  let movedAt = 0;
-  let dir = 1;
-  let wiggleAt = 0;
-  let wiggleAmp = 0;
   let kind: CursorKind | 'text' = 'arrow';
   let shown: CursorKind | null = null;
   let waving = false;
+  let pressed = false;
   let visible = false;
-  // Springs: the lean (degrees) and the size (1 = still).
+  // The body hangs from the pointer's tip like a little pendulum on a spring: it trails a move
+  // (further the quicker it goes, never quite flat out), and when the move stops it swings back
+  // past straight and wiggles to rest, by as much as it was going. All in real time, not frames.
   let rot = 0;
   let rotV = 0;
+  let vel = 0;
+  let lastT = 0;
+  // The size (1 = still): a little spring for the click squash and the pop of a new shape.
   let sc = 1;
   let scV = 0;
   let scTarget = 1;
@@ -102,7 +100,9 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   };
   const setKind = (k: CursorKind | 'text') => {
     kind = k;
-    const want: CursorKind | null = k === 'text' ? null : waving ? 'grab' : k;
+    // Pressed on something you can tap or pick up: the hand closes the moment the button goes down.
+    const closed: CursorKind | 'text' = pressed && (k === 'point' || k === 'grab') ? 'grabbing' : k;
+    const want: CursorKind | null = closed === 'text' ? null : waving ? 'grab' : closed;
     el.classList.toggle('is-hidden', !visible);
     el.classList.toggle('is-text', k === 'text');
     if (want && want !== shown) {
@@ -115,44 +115,34 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     kick();
   };
 
-  const frame = () => {
+  const OMEGA = 2 * Math.PI * 3.1; // how fast it swings: about three wiggles a second
+  const ZETA = 0.15; // how soon it settles: each swing back a bit over half the one before
+  const LEAN = 24; // the most it ever trails, in degrees
+  const V0 = 1500; // px/s for about three quarters of that
+  const frame = (now: number) => {
     raf = 0;
-    const vx = x - lastX;
-    const vy = y - lastY;
+    const dt = Math.min(0.034, lastT ? (now - lastT) / 1000 : 1 / 60);
+    lastT = now;
+    if (dt <= 0) {
+      kick();
+      return;
+    }
+    // Sideways speed, smoothed over a few hundredths of a second (mice report unevenly).
+    const v = (x - lastX) / dt;
     lastX = x;
-    lastY = y;
-    const speed = Math.hypot(vx, vy);
-    if (speed > 3) {
-      fast++;
-      peak = Math.max(peak, speed);
-      if (Math.abs(vx) > 1) dir = Math.sign(vx);
-    }
-    // No mouse news for a moment after a real move: it stopped. Wiggle, as big as the move was quick.
-    if (fast && performance.now() - movedAt > 55) {
-      if (fast >= 3 && !waving) {
-        wiggleAt = performance.now();
-        wiggleAmp = Math.min(16, 5 + peak * 0.35) * -dir;
-      }
-      fast = 0;
-      peak = 0;
-    }
-    // Lean into a sideways move; when it stops, swing back well past straight and wiggle to a
-    // stop (a loose spring: a clear swing back, then a smaller one, then still).
-    const lean = Math.max(-13, Math.min(13, vx * 0.55));
-    rotV = (rotV + (lean - rot) * 0.22) * 0.84;
-    rot = Math.max(-17, Math.min(17, rot + rotV));
-    // On top of the lean, the settle wiggle: a quick sine that dies away in about half a second.
-    let wig = 0;
-    if (wiggleAt) {
-      const t = (performance.now() - wiggleAt) / 1000;
-      if (t > 0.7) wiggleAt = 0;
-      else wig = wiggleAmp * Math.exp(-t / 0.17) * Math.sin(2 * Math.PI * 3.6 * t + 0.35);
-    }
+    vel += (v - vel) * (1 - Math.exp(-dt / 0.022));
+    // It trails behind the way it's going: a soft limit, so a flick leans further than a nudge.
+    const target = LEAN * Math.tanh(vel / V0);
+    // Spring towards that, lightly damped (semi-implicit Euler: steady at any frame rate).
+    rotV += (OMEGA * OMEGA * (target - rot) - 2 * ZETA * OMEGA * rotV) * dt;
+    rot += rotV * dt;
     scV = (scV + (scTarget - sc) * 0.3) * 0.62;
     sc += scV;
+    const shown = 30 * Math.tanh(rot / 30);
     el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    body.style.transform = `translate(calc(-1 * var(--hx, 0px)), calc(-1 * var(--hy, 0px))) rotate(${(rot + wig).toFixed(2)}deg) scale(${sc.toFixed(3)})`;
-    if (wiggleAt || fast || Math.abs(rot) > 0.05 || Math.abs(rotV) > 0.05 || Math.abs(sc - scTarget) > 0.002 || Math.abs(scV) > 0.002 || vx) kick();
+    body.style.transform = `translate(calc(-1 * var(--hx, 0px)), calc(-1 * var(--hy, 0px))) rotate(${shown.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+    if (Math.abs(rot) > 0.04 || Math.abs(rotV) > 0.4 || Math.abs(vel) > 2 || Math.abs(sc - scTarget) > 0.002 || Math.abs(scV) > 0.002) kick();
+    else lastT = 0;
   };
   const kick = () => {
     if (!raf) raf = requestAnimationFrame(frame);
@@ -195,13 +185,12 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     }
     x = e.clientX;
     y = e.clientY;
-    movedAt = performance.now();
     // Moved off before the hold landed: no hold.
     if (holdAt && Math.hypot(x - holdAt[0], y - holdAt[1]) > 8) endHold();
     if (!visible) {
       visible = true;
       lastX = x;
-      lastY = y;
+      vel = 0;
     }
     stopWave();
     setKind(kindAt(e.target));
@@ -226,6 +215,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
       setTimeout(() => holdAt && endHold(), MOUSE_HOLD_MS + 120);
     }
     scTarget = 0.86;
+    pressed = e.button === 0;
     setKind(kindAt(e.target));
     restartIdle();
   };
@@ -233,10 +223,12 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     if (e.pointerType !== 'mouse') return;
     endHold();
     scTarget = 1;
+    pressed = false;
     setKind(kindAt(e.target));
   };
   const hide = () => {
     visible = false;
+    pressed = false;
     clearTimeout(idle);
     el.classList.add('is-hidden');
   };

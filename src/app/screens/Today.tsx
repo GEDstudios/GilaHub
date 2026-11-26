@@ -1,3 +1,4 @@
+import { useWide } from '../ui/useWide';
 import { useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { Hub } from '../../core/actions';
@@ -38,6 +39,9 @@ function greeting(): string {
   if (h < 18) return 'Hey';
   return 'Evening';
 }
+
+/** On a computer these sit in the rail beside the day: the week ahead and the glances. */
+const RAIL = new Set(['week', 'upcoming', 'partner', 'shop', 'chores']);
 
 /** Does this block draw anything right now? (Today always does: its add row.) */
 function hasContent(key: string, hub: Hub, v: TodayView, chores: ChoresView, shown: ReadonlySet<string>): boolean {
@@ -111,6 +115,7 @@ export function Today() {
 
   const date = fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
+  const wide = useWide();
   const slots = visibleHome(hub);
   const shown = new Set(slots.map((s) => s.key));
   const first = slots.find((s) => hasContent(s.key, hub, v, chores, shown))?.key;
@@ -137,6 +142,15 @@ export function Today() {
         return null;
     }
   };
+
+  const editLink = (
+    <div className="homeedit">
+      <button type="button" className="textbtn" onClick={() => edit(true)}>
+        <Icon name="edit" />
+        Edit Today
+      </button>
+    </div>
+  );
 
   if (editing) {
     return (
@@ -173,19 +187,31 @@ export function Today() {
         sub={date}
         mini={date}
       />
-      <div className={`column home ${entering ? 'is-entering' : ''}`}>
-        <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
-        <HomeNotices />
-        {slots.map((s) => block(s.key))}
-        <InviteCard />
-        {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
-        <div className="homeedit">
-          <button type="button" className="textbtn" onClick={() => edit(true)}>
-            <Icon name="edit" />
-            Edit Today
-          </button>
+      {wide ? (
+        // A computer: what needs doing on the left, the week and the rest in a rail beside it.
+        <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
+          <div className="home__main">
+            <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+            <HomeNotices />
+            {slots.filter((s) => !RAIL.has(s.key)).map((s) => block(s.key))}
+            {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
+            {editLink}
+          </div>
+          <aside className="home__rail" aria-label="This week and more">
+            {slots.filter((s) => RAIL.has(s.key)).map((s) => block(s.key))}
+            <InviteCard />
+          </aside>
         </div>
-      </div>
+      ) : (
+        <div className={`column home ${entering ? 'is-entering' : ''}`}>
+          <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+          <HomeNotices />
+          {slots.map((s) => block(s.key))}
+          <InviteCard />
+          {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
+          {editLink}
+        </div>
+      )}
     </SettleContext.Provider>
   );
 }

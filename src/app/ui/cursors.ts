@@ -46,6 +46,7 @@ export function setCursors(color: string): void {
   const light = getComputedStyle(probe).color || '#e8ff1f';
   probe.remove();
   const root = document.documentElement.style;
+  root.setProperty('--cur-light', light);
   // The arrow, stood up a little from Phosphor's 45° (about where a computer's own arrow leans), round its tip.
   root.setProperty('--cur-arrow', keep('arrow', `${cursorUrl('cursor-arrow', light, 'translate(34 34) rotate(22) scale(0.84) translate(-34 -34)')} ${at(34, 34)}, auto`));
   // Turning and sizing a note

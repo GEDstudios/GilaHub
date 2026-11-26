@@ -1,0 +1,258 @@
+/* ============================================================ A computer (960px and up)
+ * Not the phone's column on a big screen: a sidebar, then a work area with a real page header
+ * (title on the left, its actions on the right, one line), tighter corners, hover states, and
+ * screens that use the width where it helps (Today with a rail, Projects as a fluid grid).
+ * Loaded last, so it only has to say what differs.
+ */
+
+@media (min-width: 960px) {
+  :root {
+    --gutter: 48px;
+    --column: 760px;
+    /* Calmer, smaller corners at desk distance */
+    --r-s: 8px;
+    --r-m: 12px;
+    --r-l: 16px;
+    --r-xl: 20px;
+  }
+
+  /* Wider screens, a wider page for the screens that lay out in columns */
+  .main:has(.home--wide),
+  .main:has(.projgrid) {
+    --column: 1080px;
+  }
+
+  /* Every page starts at the same left edge, next to the sidebar (not floating mid-screen) */
+  .band,
+  .column {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* ---------------------------------------------------------- The page header */
+  .band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 12px;
+    padding: 40px var(--gutter) 22px;
+  }
+
+  /* Under the back/actions row, a project's banner gets its own room */
+  .band > .hero,
+  .band > :not(.band__top, .band__title, .band__sub, .crumbs) {
+    margin-top: 18px;
+  }
+
+  .band__top {
+    display: contents;
+  }
+
+  /* The phone's corner avatar: the sidebar has me (Settings, with the sync dot) */
+  .band__corner {
+    display: none;
+  }
+
+  .band > .crumbs {
+    order: 0;
+    flex: 1 0 100%;
+    margin: 0 0 6px;
+  }
+
+  .band__top > .iconbtn:first-child {
+    order: 1;
+  }
+
+  .band__title {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 36px;
+  }
+
+  .band__actions {
+    order: 3;
+    margin-left: auto;
+  }
+
+  .band__sub {
+    order: 4;
+    flex: 1 0 100%;
+    margin-top: 6px;
+  }
+
+  .band > :not(.band__top, .band__title, .band__sub, .crumbs) {
+    order: 5;
+    flex: 1 0 100%;
+  }
+
+  /* Things the sidebar already does: going back to Today from Settings, Search */
+  .band--root .band__top > .iconbtn:first-child,
+  .band__actions [aria-label='Search'] {
+    display: none;
+  }
+
+  /* Round header buttons become quiet square-ish ones */
+  .band .iconbtn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  /* The compact bar after scrolling: only over the work area, and no stray line while hidden */
+  .miniband:not(.is-on) {
+    box-shadow: none;
+  }
+
+  /* ---------------------------------------------------------- Ideas and notes: top right of the page */
+  .ideatag {
+    left: auto;
+    right: 28px;
+    top: 30px;
+  }
+
+  .notebtn {
+    left: auto;
+    right: 88px;
+    top: 30px;
+  }
+
+  /* ---------------------------------------------------------- Today: the day, and a rail beside it */
+  .home--wide {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+    gap: 0 36px;
+  }
+
+  .home__main,
+  .home__rail {
+    min-width: 0;
+  }
+
+  .home__rail {
+    position: sticky;
+    top: 24px;
+  }
+
+  .home__rail > :first-child {
+    margin-top: 0;
+  }
+
+  /* Quiet links under a page (Edit Today, Manage categories) line up with it, not mid-screen */
+  .homeedit,
+  .column > .editlink {
+    justify-content: flex-start;
+  }
+
+  /* ---------------------------------------------------------- Projects: as many folders as fit */
+  .projgrid {
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 28px 18px;
+  }
+
+  /* ---------------------------------------------------------- A project's own page: a banner, not a poster */
+  .hero {
+    min-height: 0;
+    gap: 18px;
+    padding: 22px 26px 20px;
+  }
+
+  .hero__title {
+    font-size: 40px;
+  }
+
+  /* ---------------------------------------------------------- Surfaces: one corner size each */
+  .rows,
+  .group,
+  .slot,
+  .lift--slot,
+  .addrow,
+  .notes,
+  .moveask,
+  .notice,
+  .ahead__tile,
+  .ahead__free {
+    border-radius: var(--r-m);
+  }
+
+  .panel,
+  .panel--inline,
+  .strip,
+  .invite,
+  .summary,
+  .pick,
+  .codepanel,
+  .barstage,
+  .pinboard,
+  .noteedit__desk,
+  .noteedit__tray {
+    border-radius: var(--r-l);
+  }
+
+  .invite__main {
+    border-radius: var(--r-l) 0 0 var(--r-l);
+  }
+
+  .arrival,
+  .toast.toast--stack {
+    border-radius: 14px;
+  }
+
+  /* Dialogs, not sheets */
+  .sheet__panel {
+    border-radius: var(--r-xl);
+    max-width: 560px;
+  }
+
+  .sheet__actions {
+    border-radius: var(--r-l);
+  }
+
+  /* Buttons: pills only where they're tags; the big ones get a desk shape */
+  .btn {
+    height: 46px;
+    border-radius: 12px;
+    font-size: 15px;
+  }
+
+  .btn--sm {
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  /* ---------------------------------------------------------- Sidebar */
+  .sidebar {
+    padding: 26px 14px 16px;
+  }
+
+  .sidebar__new {
+    height: 42px;
+    border-radius: 12px;
+    margin: 0 2px 18px;
+  }
+
+  .navitem {
+    height: 38px;
+    border-radius: 9px;
+    font-size: 14.5px;
+  }
+
+  .navitem.is-on {
+    font-weight: 600;
+  }
+
+  /* ---------------------------------------------------------- Hover: a computer says what's clickable */
+  .rows > li:hover,
+  .row--tap:hover {
+    background: var(--press);
+  }
+
+  .projcard {
+    transition: transform 200ms var(--spring);
+  }
+
+  .projcard:hover {
+    transform: translateY(-3px);
+  }
+}

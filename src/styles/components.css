@@ -6394,3 +6394,35 @@ textarea.nf__write {
   border-radius: 50%;
   box-shadow: 0 0 0 1px rgb(10 10 4 / 0.12);
 }
+
+/* A note, opened: the note (and its tools) first, a clear gap, then what to do with it */
+.notesheet__one {
+  display: grid;
+  gap: 0;
+}
+
+.notesheet__keep {
+  margin-top: 28px;
+}
+
+.notesheet__delete {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 0;
+}
+
+.textbtn--danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger, #d92d20);
+}
+
+.tray__actions {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Writing one: the same clear gap before "Stick it" as before "Keep to our notes" */
+.btn.noteedit__go {
+  margin-top: 28px;
+}

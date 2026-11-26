@@ -183,8 +183,27 @@ function line(ctx: CanvasRenderingContext2D, s: Stroke) {
   ctx.stroke();
 }
 
-/** Pick a picture (a screenshot from the phone's photos), then draw on it. */
-export function useShotPicker(onPicked: (jpeg: string) => void): { pick: () => void; input: ReactNode } {
+/** A picture made small enough to sync: its longest side at most `max`, as a JPEG. */
+export function shrinkImage(src: string, max = 720): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => {
+      const k = Math.min(1, max / Math.max(i.naturalWidth, i.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(i.naturalWidth * k);
+      c.height = Math.round(i.naturalHeight * k);
+      c.getContext('2d')!.drawImage(i, 0, 0, c.width, c.height);
+      let out = c.toDataURL('image/jpeg', 0.8);
+      if (out.length > 160_000) out = c.toDataURL('image/jpeg', 0.6);
+      resolve(out);
+    };
+    i.onerror = () => reject(new Error('unreadable'));
+    i.src = src;
+  });
+}
+
+/** Pick a picture (a screenshot from the phone's photos), then draw on it (or, `sketch: false`, take it as it is). */
+export function useShotPicker(onPicked: (jpeg: string) => void, { sketch = true }: { sketch?: boolean } = {}): { pick: () => void; input: ReactNode } {
   const { openSheet, toast } = useOverlays();
   const ref = useRef<HTMLInputElement>(null);
   const input = (
@@ -199,7 +218,8 @@ export function useShotPicker(onPicked: (jpeg: string) => void): { pick: () => v
         if (!file) return;
         try {
           const src = await readImage(file);
-          openSheet((close) => <SketchSheet src={src} onDone={onPicked} onClose={close} />);
+          if (sketch) openSheet((close) => <SketchSheet src={src} onDone={onPicked} onClose={close} />);
+          else onPicked(await shrinkImage(src));
         } catch {
           toast('Couldn’t open that picture');
         }

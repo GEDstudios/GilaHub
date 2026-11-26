@@ -167,7 +167,7 @@ export function Band({
       <header className={`band ${className ?? ''}`} ref={ref}>
         {onBack || top || actions ? (
           <div className="band__top">
-            {onBack ? <IconButton icon="arrow-back" label="Back" onClick={onBack} /> : (top ?? <span />)}
+            {onBack ? <IconButton icon="arrow-back" label="Back" onClick={onBack} /> : <span className="band__corner">{top}</span>}
             {actions ? <div className="band__actions">{actions}</div> : null}
           </div>
         ) : null}

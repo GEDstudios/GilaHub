@@ -707,7 +707,7 @@ export function Settings() {
 
   return (
     <>
-      <Band title="Settings" onBack={() => back({ name: 'today' })} />
+      <Band className="band--root" title="Settings" onBack={() => back({ name: 'today' })} />
       <div className="column settings">
         <MeCard me={me} partner={partner} />
 

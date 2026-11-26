@@ -8,7 +8,7 @@ import { notifyMembers } from '../runtime';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { NoteEditor, NoteFace, PAPER, PHOTO_HOME, type NoteLook, type PhotoBorder, type PhotoPos, type PhotoShape, type Stroke } from './NoteFace';
+import { NoteEditor, NoteFace, PAPER, PHOTO_HOME, type NoteLook, type PhotoPos, type PhotoShape, type Stroke } from './NoteFace';
 import { lineVars } from '../ui/primitives';
 
 /**
@@ -83,7 +83,8 @@ export function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): Not
     by,
     photo: hub.shotOf('note', n.id),
     shape: (n.photoShape as PhotoShape) || 'squircle',
-    border: (n.photoBorder as PhotoBorder) || 'white',
+    // Every photo wears a white border now (the old choices read as white too).
+    border: 'white',
     pos: posOf(n),
     ink,
     size: n.textSize ?? null,
@@ -511,7 +512,7 @@ function StuckNote({
       <button
         type="button"
         className="sticky__check"
-        aria-label="Keep it in our notes"
+        aria-label="Keep to our notes"
         onClick={(e) => {
           e.stopPropagation();
           tick();
@@ -536,7 +537,7 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
     setPeeling(n.id);
     setTimeout(() => {
       const undo = away ? hub.deleteNote(n.id) : hub.peelNote(n.id);
-      toast(away ? 'Taken down' : 'Kept in our notes 💛 (on Projects)', { action: { label: 'Undo', run: undo } });
+      toast(away ? 'Deleted' : 'Kept in our notes 💛 (on Projects)', { action: { label: 'Undo', run: undo } });
       setPeeling(null);
       if (notes.length === 1) onClose();
     }, 380);
@@ -556,13 +557,13 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
                   <NoteFace look={lookOf(hub, n, `— ${from?.name ?? ''} · ${shortAgo(n.createdAt)}`)} scale={2.3} tilt={tiltOf(n.id) / 2} />
                 </div>
               )}
-              <button type="button" className="btn btn--block" onClick={() => peel(n)}>
-                <Icon name="check" className="icon--sm" /> Keep it in our notes 💛
+              <button type="button" className="btn btn--block notesheet__keep" onClick={() => peel(n)}>
+                <Icon name="check" className="icon--sm" /> Keep to our notes 💛
               </button>
               {mine ? (
-                <p className="editlink">
-                  <button type="button" className="textbtn" onClick={() => peel(n, true)}>
-                    Take it down
+                <p className="notesheet__delete">
+                  <button type="button" className="textbtn textbtn--danger" onClick={() => peel(n, true)}>
+                    <Icon name="trash" className="icon--sm" /> Delete
                   </button>
                 </p>
               ) : null}

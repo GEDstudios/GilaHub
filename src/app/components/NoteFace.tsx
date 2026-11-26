@@ -4,7 +4,7 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
-import { SketchSheet, useShotPicker } from './Sketch';
+import { useShotPicker } from './Sketch';
 
 /**
  * One note, drawn the same everywhere: stuck on a screen, big while you write it, small on Our
@@ -125,12 +125,9 @@ function useFit(ref: React.RefObject<HTMLElement | null>, deps: unknown[], max: 
   useLayoutEffect(() => {
     const n = ref.current;
     if (!n) return;
-    if (fixed) {
-      n.style.fontSize = `${fixed}px`;
-      return;
-    }
+    // A size set by hand is where it starts; it still never runs off the paper.
     const fit = () => {
-      let size = max;
+      let size = fixed ?? max;
       n.style.fontSize = `${size}px`;
       while (size > min && (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1)) {
         size -= 0.5;
@@ -139,6 +136,9 @@ function useFit(ref: React.RefObject<HTMLElement | null>, deps: unknown[], max: 
     };
     fit();
     void document.fonts?.ready.then(fit);
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => fit()) : null;
+    ro?.observe(n);
+    return () => ro?.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, max, min, fixed]);
 }
@@ -548,14 +548,17 @@ export function NoteEditor({
   onTextDone?: () => void;
   autoFocus?: boolean;
 }) {
-  const { openSheet, toast } = useOverlays();
+  const { toast } = useOverlays();
   const [tool, setTool] = useState<Tool | null>(null);
   const [pen, setPen] = useState('#0a0a04');
   const [width, setWidth] = useState(2.4);
-  const picker = useShotPicker((photo) => {
-    set(look.photo ? { photo } : { photo, pos: PHOTO_HOME });
-    setTool('photo');
-  });
+  const picker = useShotPicker(
+    (photo) => {
+      set(look.photo ? { photo } : { photo, pos: PHOTO_HOME });
+      setTool('photo');
+    },
+    { sketch: false },
+  );
   const pick = (t: Tool) => {
     haptic('select');
     if (t === 'photo' && !look.photo) {
@@ -648,20 +651,7 @@ export function NoteEditor({
                   </button>
                 ))}
               </div>
-              <div className="tray__grid tray__grid--4" role="radiogroup" aria-label="Border">
-                {BORDERS.map((b) => (
-                  <button key={b.id} type="button" role="radio" aria-checked={look.border === b.id} aria-label={`${b.label} border`} title={`${b.label} border`} className={`tray__tile tray__border tray__border--${b.id} ${look.border === b.id ? 'is-on' : ''}`} onClick={() => set({ border: b.id })}>
-                    <span className="tray__framed">
-                      <img src={look.photo ?? undefined} alt="" draggable={false} />
-                    </span>
-                  </button>
-                ))}
-              </div>
               <div className="tray__actions">
-                <button type="button" className="tray__action" onClick={() => openSheet((close) => <SketchSheet src={look.photo!} onDone={(photo) => set({ photo })} onClose={close} />)}>
-                  <Icon name="scribble" />
-                  <span>Draw</span>
-                </button>
                 <button type="button" className="tray__action" onClick={picker.pick}>
                   <Icon name="image" />
                   <span>Replace</span>

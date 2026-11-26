@@ -150,8 +150,11 @@ textarea::placeholder {
 }
 
 /* The live cursor (ui/liveCursor.ts): the page draws it, I-beam included, so the system's never shows */
-html.has-livecursor.has-livecursor,
-html.has-livecursor.has-livecursor * {
+/* (Specific enough to beat every other cursor rule, the lifted note's and the drag's included.) */
+html.has-livecursor.has-livecursor.has-livecursor.has-livecursor,
+html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *,
+html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *::before,
+html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *::after {
   cursor: none !important;
 }
 
@@ -296,6 +299,25 @@ html.has-livecursor.has-livecursor * {
   stroke-linecap: round;
   stroke-dasharray: 56.55;
   stroke-dashoffset: 56.55;
+}
+
+.livecursor__pie {
+  fill: none;
+  stroke: var(--cur-light, #e8ff1f);
+  stroke-width: 8.5;
+  stroke-dasharray: 26.71;
+  stroke-dashoffset: 26.71;
+}
+
+/* The colour sweeps round inside as the ring fills: a clock face filling up */
+.livecursor__timer.is-on .livecursor__pie {
+  animation: hold-pie var(--hold, 380ms) linear forwards;
+}
+
+@keyframes hold-pie {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 .livecursor__timer.is-on .livecursor__fill {

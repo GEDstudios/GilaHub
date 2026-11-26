@@ -32,7 +32,7 @@ import { Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
 import { Fab, lightVar, Logo } from './ui/primitives';
-import { setCursors } from './ui/cursors';
+import { cursorImage, setCursors } from './ui/cursors';
 import { startLiveCursor } from './ui/liveCursor';
 import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, coveredByTab, tabsOf } from './tabs';
@@ -59,7 +59,7 @@ function Sidebar() {
   const pinned = new Set(tabs.map((t) => t.key));
   const more = hub.lists().filter((l) => !pinned.has(`l:${l.id}`) && !coveredByTab(hub, l.id));
   // One row lit per screen: an unpinned project's own row, not Projects as well.
-  const moreOn = route.name === 'list' && on === 'projects' && more.some((l) => l.id === route.id) ? route.id : null;
+  const moreOn = route.name === 'list' && more.some((l) => l.id === route.id) ? route.id : null;
   return (
     <aside className="sidebar" aria-label="Navigation">
       <div className="sidebar__brand">
@@ -177,9 +177,6 @@ function Duties() {
     // The mouse wears our hands, lit in my colour.
     setCursors(lightVar(me.color));
   }, [me?.color, me, partnerColor]);
-
-  // On a computer, the cursor comes alive: it leans, bounces and waves (ui/liveCursor.ts).
-  useEffect(() => startLiveCursor(prefs.livelyCursor), [prefs.livelyCursor]);
 
   useEffect(() => {
     void updateBadge(todayView(hub, todayRef()).dueCount, prefs.badge);
@@ -355,7 +352,29 @@ function boot(): Promise<Phase> {
   return booting;
 }
 
+/**
+ * On a computer, the cursor comes alive from the first screen (welcome included): it leans,
+ * wiggles and waves (ui/liveCursor.ts). Lemon until I've a colour; Duties then lights it in mine.
+ */
+function LiveCursor() {
+  const prefs = usePrefs();
+  useEffect(() => {
+    if (!cursorImage('arrow')) setCursors('#e8ff1f');
+    return startLiveCursor(prefs.livelyCursor);
+  }, [prefs.livelyCursor]);
+  return null;
+}
+
 export function App() {
+  return (
+    <>
+      <LiveCursor />
+      <AppPhases />
+    </>
+  );
+}
+
+function AppPhases() {
   const [phase, setPhase] = useState<Phase>({ name: 'boot' });
 
   useEffect(() => {

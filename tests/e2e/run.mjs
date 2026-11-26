@@ -525,6 +525,16 @@ try {
     await guy.goto(`${url}/shop`);
     await guy.locator('.notebtn').click();
     await guy.getByRole('dialog', { name: 'A note for Hila' }).waitFor();
+    // Long words at the biggest size never run off the paper.
+    const clipped = () =>
+      guy.evaluate(() => [...document.querySelectorAll('.sheet .nf__text')].filter((n) => n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1).length);
+    await guy.getByRole('textbox', { name: 'Your note' }).fill('Don’t forget the milk, the eggs, the good bread from the corner place, and call your mum back tonight ✨ jumpy gql');
+    await guy.getByRole('button', { name: 'Text size' }).click();
+    await guy.getByRole('slider', { name: 'Text size' }).fill('30');
+    await guy.waitForTimeout(250);
+    await shot(guy, '27b-note-long');
+    if (await clipped()) throw new Error('the words run off the note');
+    await guy.getByRole('button', { name: 'Text size' }).click();
     await guy.getByRole('textbox', { name: 'Your note' }).fill(NOTE);
     await guy.getByRole('button', { name: 'Paper' }).click();
     await guy.getByRole('radio', { name: 'pink' }).click();
@@ -533,7 +543,6 @@ try {
     await guy.getByRole('slider', { name: 'Text size' }).fill('13');
     // A photo on it, drawn on.
     await guy.locator('.sheet input[type=file]').setInputFiles(new URL('./.out/10-chores.png', import.meta.url).pathname);
-    await guy.getByRole('button', { name: 'Attach' }).click();
     await guy.locator('.sheet .nf__photo img').waitFor({ timeout: 5000 });
     // Its tray opens by itself: cut it into a heart.
     const ph = guy.locator('.sheet .nf__photo');
@@ -736,6 +745,13 @@ try {
   });
   if (hit.tag === 'HTML' || /livecursor/.test(hit.cls) || hit.pe === 'none') throw new Error(`the cursor blocks the page: ${JSON.stringify(hit)}`);
   console.log('· ✓ Desktop: the live cursor draws over the page without taking its clicks');
+  // …and the system's pointer never shows anywhere on the page (the live one is the only cursor).
+  const leaks = await deskPage.evaluate(() => {
+    if (!document.documentElement.classList.contains('has-livecursor')) return ['no live cursor'];
+    return [document.documentElement, ...document.querySelectorAll('*')].filter((e) => getComputedStyle(e).cursor !== 'none').map((e) => e.tagName + '.' + String(e.className).slice(0, 30));
+  });
+  if (leaks.length) throw new Error(`the system cursor shows on: ${leaks.slice(0, 5).join(', ')}`);
+  console.log('· ✓ Desktop: the system pointer is hidden everywhere');
   await shot(deskPage, '11-desktop-welcome');
   await desk.close();
 } finally {
