@@ -5404,3 +5404,112 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
   align-items: center;
   white-space: nowrap;
 }
+
+/* When, take two: the month first */
+.month {
+  padding: 2px 0 6px;
+}
+
+.month__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 6px 4px;
+}
+
+.month__title {
+  flex: 1;
+  font-family: var(--serif);
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.month__today {
+  margin-right: 6px;
+  font-size: 13.5px;
+}
+
+.iconbtn--sm {
+  width: 36px;
+  height: 36px;
+}
+
+.month__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.month__wd {
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.month__day {
+  justify-self: center;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background 140ms var(--ease),
+    transform 160ms var(--spring);
+}
+
+.month__day:hover {
+  background: var(--tile);
+}
+
+.month__day:active {
+  transform: scale(0.9);
+}
+
+.month__day.is-past {
+  color: var(--text-3);
+}
+
+.month__day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+  font-weight: 600;
+}
+
+.month__day.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+/* Time: the line itself opens the phone's picker */
+.whenrow__btn--time {
+  position: relative;
+  cursor: var(--cur-point, pointer);
+}
+
+.whenrow__native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: var(--cur-point, pointer);
+}
+
+.whenrow__clear {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--text-2);
+}

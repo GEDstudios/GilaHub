@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { addDays, fromDateStr, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
+import { addMonths, daysInMonth, fromDateStr, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
 import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
 import { useHub } from '../context';
@@ -453,10 +453,10 @@ export function Options<T extends string>({
 }
 
 /**
- * When: one card for the day, the time, the repeat and the notification. The day and the time
- * are one tap each (a row of the usual ones, and "Pick…" for any other). Under them, one line
- * each for Repeat, Notify and Again until done, saying what they're set to; a tap opens just
- * that one, so the card never shows everything at once.
+ * When: one card for the day, the time, the repeat and the notification. Like a calendar app:
+ * the month first (any day, one tap; today ringed, the day it's on filled), then a short list,
+ * each line saying what it's set to: Time (the phone's own picker), Repeat, Notify (with its
+ * switch) and, under Notify, Again until done. A line opens its choices under it, one at a time.
  */
 export function WhenCard({
   value,
@@ -474,27 +474,11 @@ export function WhenCard({
   const prefs = usePrefs();
   const h24 = use24h(prefs);
   const ref = todayStr();
-  const ws = weekStart(prefs);
   const [part, setPart] = useState<'repeat' | 'notify' | 'again' | null>(null);
   const flip = (p: 'repeat' | 'notify' | 'again') => setPart(part === p ? null : p);
 
-  const weekendDay = ws === 0 ? 5 : 6;
-  let weekend = addDays(ref, 1);
-  while (weekday(weekend) !== weekendDay) weekend = addDays(weekend, 1);
-  let nextWeek = addDays(ref, 1);
-  while (weekday(nextWeek) !== ws) nextWeek = addDays(nextWeek, 1);
-  const days: Array<[string, string]> = [
-    ['Today', ref],
-    ['Tomorrow', addDays(ref, 1)],
-    [ws === 0 ? 'Friday' : 'Weekend', weekend],
-    ['Next week', nextWeek],
-  ];
-  const otherDay = !!value.due && !days.some(([, d]) => d === value.due);
-  const times = ['09:00', '12:00', '18:00', '21:00'];
-  const otherTime = !!value.dueTime && !times.includes(value.dueTime);
-
   const setDay = (due: string | null) => onChange(due ? { due, ...withNotification(value, due) } : { due: null, dueTime: null, remind: null, nag: null });
-  const setTime = (dueTime: string | null) => onChange({ dueTime, due: value.due ?? ref, ...withNotification(value, value.due ?? ref) });
+  const setTime = (dueTime: string | null) => onChange(dueTime ? { dueTime, due: value.due ?? ref, ...withNotification(value, value.due ?? ref) } : { dueTime: null });
   const onRepeat = (r: RepeatRule | null) => {
     const due = r && (r.type !== 'interval' || !value.due) ? firstDue(r, ref) : value.due;
     onChange({ repeat: r, due, ...(r ? { nag: null } : {}), ...(due !== value.due ? withNotification(value, due) : {}) });
@@ -508,35 +492,25 @@ export function WhenCard({
 
   return (
     <div className="panel whencard">
-      <div className="whencard__picks" role="group" aria-label="Day">
-        {days.map(([label, d]) => (
-          <button key={label} type="button" className={`option ${value.due === d ? 'is-on' : ''}`} aria-pressed={value.due === d} onClick={() => setDay(value.due === d ? null : d)}>
-            {label}
-          </button>
-        ))}
-        <label className={`option option--pick ${otherDay ? 'is-on' : ''}`}>
-          <Icon name="calendar" className="icon--sm" />
-          {otherDay ? humanDate(value.due!, ref) : 'Pick…'}
-          <input type="date" value={value.due ?? ''} onChange={(e) => setDay(e.target.value || null)} aria-label="Pick a day" />
-        </label>
-      </div>
-      <div className="whencard__picks" role="group" aria-label="Time">
-        <button type="button" className={`option ${!value.dueTime ? 'is-on' : ''}`} aria-pressed={!value.dueTime} onClick={() => onChange({ dueTime: null })}>
-          Any time
-        </button>
-        {times.map((t) => (
-          <button key={t} type="button" className={`option ${value.dueTime === t ? 'is-on' : ''}`} aria-pressed={value.dueTime === t} onClick={() => setTime(value.dueTime === t ? null : t)}>
-            {humanTime(t, h24)}
-          </button>
-        ))}
-        <label className={`option option--pick ${otherTime ? 'is-on' : ''}`}>
-          <Icon name="clock" className="icon--sm" />
-          {otherTime ? humanTime(value.dueTime!, h24) : 'Other'}
-          <input type="time" value={value.dueTime ?? ''} onChange={(e) => setTime(e.target.value || null)} aria-label="Pick a time" />
-        </label>
-      </div>
+      <MonthPicker value={value.due} onPick={(d) => setDay(d === value.due ? null : d)} />
 
       <div className="whencard__rows">
+        <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
+          <div className="whenrow__line">
+            <label className="whenrow__btn whenrow__btn--time">
+              <Icon name="clock" className="icon--sm" lit={!!value.dueTime} />
+              <span className="whenrow__title">Time</span>
+              <span className="whenrow__value">{value.dueTime ? humanTime(value.dueTime, h24) : 'Any time'}</span>
+              {/* The phone's own time picker, opened by the line itself */}
+              <input type="time" className="whenrow__native" value={value.dueTime ?? ''} onChange={(e) => setTime(e.target.value || null)} aria-label="Time" />
+            </label>
+            {value.dueTime ? (
+              <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
+                <Icon name="x" className="icon--xs" />
+              </button>
+            ) : null}
+          </div>
+        </div>
         {repeat ? (
           <WhenRow icon="repeat" title="Repeat" value={value.repeat ? ruleShort(value.repeat) : 'Never'} on={!!value.repeat} open={part === 'repeat'} onOpen={() => flip('repeat')}>
             <RepeatPanel bare rule={value.repeat} defaultFrom={repeatFrom} onChange={onRepeat} />
@@ -569,6 +543,64 @@ export function WhenCard({
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** A month, small: tap a day. Today is ringed, the picked day filled; past days are faint. */
+function MonthPicker({ value, onPick }: { value: string | null; onPick: (d: string) => void }) {
+  const prefs = usePrefs();
+  const ws = weekStart(prefs);
+  const ref = todayStr();
+  const [month, setMonth] = useState(() => (value ?? ref).slice(0, 7));
+  const [y, m] = month.split('-').map(Number);
+  const first = `${month}-01`;
+  const lead = (weekday(first) - ws + 7) % 7;
+  const count = daysInMonth(y, m - 1);
+  const cells: Array<string | null> = [...Array(lead).fill(null), ...Array.from({ length: count }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`)];
+  while (cells.length % 7) cells.push(null);
+  const shift = (n: number) => setMonth(addMonths(first, n).slice(0, 7));
+  const title = fromDateStr(first).toLocaleDateString(undefined, { month: 'long', year: y === Number(ref.slice(0, 4)) ? undefined : 'numeric' });
+  return (
+    <div className="month">
+      <div className="month__head">
+        <span className="month__title">{title}</span>
+        {month !== ref.slice(0, 7) ? (
+          <button type="button" className="textbtn month__today" onClick={() => setMonth(ref.slice(0, 7))}>
+            Today
+          </button>
+        ) : null}
+        <button type="button" className="iconbtn iconbtn--sm" aria-label="Earlier month" onClick={() => shift(-1)}>
+          <Icon name="chevron-left" className="icon--sm" />
+        </button>
+        <button type="button" className="iconbtn iconbtn--sm" aria-label="Later month" onClick={() => shift(1)}>
+          <Icon name="chevron-right" className="icon--sm" />
+        </button>
+      </div>
+      <div className="month__grid" role="grid" aria-label={title}>
+        {[...Array(7).keys()].map((i) => (
+          <span key={`h${i}`} className="month__wd" aria-hidden="true">
+            {weekdayName((i + ws) % 7).slice(0, 1)}
+          </span>
+        ))}
+        {cells.map((d, i) =>
+          d ? (
+            <button
+              key={d}
+              type="button"
+              role="gridcell"
+              aria-selected={d === value}
+              aria-label={humanDate(d, ref)}
+              className={`month__day ${d === value ? 'is-on' : ''} ${d === ref ? 'is-today' : ''} ${d < ref ? 'is-past' : ''}`}
+              onClick={() => onPick(d)}
+            >
+              {Number(d.slice(8))}
+            </button>
+          ) : (
+            <span key={`e${i}`} />
+          ),
+        )}
+      </div>
     </div>
   );
 }
