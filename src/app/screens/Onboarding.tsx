@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { pickColors, PROJECT_TEMPLATES } from '../../core/actions';
-import { formatInviteCode, normalizeInviteCode } from '../../core/ids';
+import { formatInviteCode, formatRecoveryCode, normalizeInviteCode } from '../../core/ids';
 import { LINE_COLORS, type LineColor } from '../../core/model';
-import { claimInvite, InviteError, type InvitePayload } from '../../core/session';
+import { claimInvite, claimRecovery, InviteError, type InvitePayload } from '../../core/session';
 import { query } from '../router';
 import { Icon } from '../ui/Icon';
 import { IconButton, lineVars, Logo, NameTag } from '../ui/primitives';
@@ -16,7 +16,7 @@ export interface OnboardResult {
   colors?: Record<string, LineColor>;
 }
 
-type Step = 'welcome' | 'name' | 'projects' | 'code';
+type Step = 'welcome' | 'name' | 'projects' | 'code' | 'recover';
 
 const STARTERS = PROJECT_TEMPLATES.filter((t) => ['groceries', 'home', 'chores', 'todo'].includes(t.key));
 
@@ -80,6 +80,20 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     }
   };
 
+  // Back as me, from my recovery code: my keys come back, as a device of mine.
+  const [rcode, setRcode] = useState('');
+  const recover = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const inv = await claimRecovery('', rcode);
+      await finish({ kind: 'device', invite: inv });
+    } catch (e) {
+      setBusy(false);
+      setError(e instanceof InviteError ? e.message : 'Can’t reach your hub right now.');
+    }
+  };
+
   const toggle = (key: string) => setPicked((p) => (p.includes(key) ? p.filter((k) => k !== key) : [...p, key]));
 
   if (step === 'welcome') {
@@ -108,6 +122,9 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
           </button>
           <button type="button" className="textbtn onboard__link" onClick={() => setStep('code')}>
             I have a code
+          </button>
+          <button type="button" className="textbtn onboard__link onboard__link--quiet" onClick={() => setStep('recover')}>
+            Recover my account
           </button>
         </div>
       </main>
@@ -144,6 +161,41 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             {error ? <p className="onboard__error">{error}</p> : <p className="hint">It’s on their phone, under “Bring your person in”.</p>}
             <button type="submit" className="btn btn--block onboard__cta" disabled={normalizeInviteCode(code).length !== 8 || busy}>
               {busy ? 'Opening the invite…' : 'Join'}
+            </button>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
+  if (step === 'recover') {
+    const n = normalizeInviteCode(rcode);
+    return (
+      <main className="onboard">
+        <div className="onboard__body">
+          <IconButton icon="arrow-back" label="Back" onClick={() => setStep('welcome')} />
+          <h1 className="onboard__q">Type your recovery code</h1>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void recover();
+            }}
+          >
+            <input
+              className="bigfield codeinput codeinput--long num"
+              value={rcode}
+              autoFocus
+              inputMode="text"
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="K7QM2-XPA9T-…"
+              aria-label="Recovery code"
+              onChange={(e) => setRcode(formatRecoveryCode(normalizeInviteCode(e.target.value).slice(0, 20)))}
+            />
+            {error ? <p className="onboard__error">{error}</p> : <p className="hint">The 20 letters and numbers you saved when you made it (Settings → Recovery code). You come back as you: your private things, your To-Do and your settings.</p>}
+            <button type="submit" className="btn btn--block onboard__cta" disabled={n.length !== 20 || busy}>
+              {busy ? 'Unlocking…' : 'Recover'}
             </button>
           </form>
         </div>

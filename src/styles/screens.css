@@ -3115,3 +3115,19 @@ html.is-dragging .bartray {
 .scopetag:active {
   transform: scale(0.94);
 }
+
+.searchlayer__none p {
+  margin: 0 0 12px;
+}
+
+.searchlayer__make {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.searchlayer__make .token {
+  color: var(--ink);
+  background: var(--me-light, var(--lemon));
+  font-weight: 600;
+}

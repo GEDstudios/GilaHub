@@ -27,6 +27,9 @@ export interface Member {
   requestAlerts?: boolean;
   /** My bottom bar, between Today and Projects, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
   tabs?: string[];
+  /** My recovery code's id on the relay (from the code; it can't give the code back), and when it was made. */
+  recoveryId?: string | null;
+  recoverySetAt?: number | null;
   /** My private To-Do was made (its id): never made again, even if I delete it. */
   personalFolder?: string | null;
   /** How I look at each folder (list, cards, by tag): mine, not my partner's. Unset: the folder's own default. */

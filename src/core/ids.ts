@@ -42,3 +42,25 @@ export function isValidInviteCode(code: string): boolean {
 export function formatInviteCode(code: string): string {
   return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
 }
+
+/**
+ * A recovery code: 20 symbols from the code alphabet (~99 bits), shown as four groups of five,
+ * "K7QM2-XPA9T-…". Written down once; it alone unlocks my keys from the relay.
+ */
+export function newRecoveryCode(): string {
+  const out: string[] = [];
+  while (out.length < 20) {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    for (const b of bytes) if (b < 248 && out.length < 20) out.push(CODE_ALPHABET[b % 31]);
+  }
+  return out.join('');
+}
+
+export function isValidRecoveryCode(code: string): boolean {
+  return code.length === 20 && [...code].every((ch) => CODE_ALPHABET.includes(ch));
+}
+
+export function formatRecoveryCode(code: string): string {
+  return code.replace(/(.{5})(?=.)/g, '$1-');
+}

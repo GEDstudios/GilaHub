@@ -165,6 +165,15 @@ export class Household extends DurableObject<Env> {
       return stub.fetch(new Request(`https://invites/put/${body.iid}`, { method: 'PUT', body: body.blob }));
     }
 
+    // Keep (or replace) a member's recovery copy. Only a device of this household can.
+    if (action === 'recovery' && req.method === 'POST') {
+      const body = (await req.json()) as { rid: string; blob: string; old?: string | null };
+      if (!/^[A-Za-z0-9_-]{16,64}$/.test(body.rid ?? '') || !body.blob || body.blob.length > 8000) return json({ error: 'bad recovery' }, 400);
+      const old = body.old && /^[A-Za-z0-9_-]{16,64}$/.test(body.old) ? `?old=${body.old}` : '';
+      const stub = this.env.INVITES.get(this.env.INVITES.idFromName('invites'));
+      return stub.fetch(new Request(`https://invites/recovery/put/${body.rid}${old}`, { method: 'PUT', body: body.blob }));
+    }
+
     if (action === 'stats' && req.method === 'GET') {
       const ops = this.sql.exec<{ n: number }>('SELECT COUNT(*) AS n FROM ops').toArray()[0]?.n ?? 0;
       const subs = this.sql.exec<{ n: number }>('SELECT COUNT(*) AS n FROM subs').toArray()[0]?.n ?? 0;

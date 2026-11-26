@@ -18,6 +18,8 @@ import { checkForUpdate, updateReady, useUpdateReady, type UpdateCheck } from '.
 import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
+import { makeRecovery } from '../../core/session';
+import { formatRecoveryCode } from '../../core/ids';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, initialOf, lightVar, lineVars, Logo, Section, Seg, Switch } from '../ui/primitives';
 
@@ -87,6 +89,80 @@ function LeaveSheet({ onClose }: { onClose: () => void }) {
         }}
       >
         Reset this device
+      </button>
+    </Sheet>
+  );
+}
+
+// ---------------------------------------------------------------- recovery
+
+/**
+ * My recovery code: made here, shown once, kept by me (never by the app or the relay). With it,
+ * a brand-new device gets me back, as me: my private things, my To-Do, my settings. A new code
+ * replaces the old one, which stops working.
+ */
+function RecoverySheet({ onClose }: { onClose: () => void }) {
+  const rt = useRt();
+  const hub = useHub();
+  const me = hub.me();
+  const { toast } = useOverlays();
+  const [code, setCode] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const make = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await makeRecovery(rt.session, me?.name, me?.recoveryId);
+      hub.upsertMember(hub.meId, { recoveryId: r.recoveryId, recoverySetAt: Date.now() });
+      setCode(r.code);
+    } catch {
+      setError(rt.relay ? 'Couldn’t reach your hub. Try again in a moment.' : 'This needs your hub online (it keeps the locked copy).');
+    }
+    setBusy(false);
+  };
+  if (code) {
+    const shown = formatRecoveryCode(code);
+    return (
+      <Sheet onClose={() => (saved ? onClose() : toast('Save your code first, then tick “I’ve saved it”.'))} title="Your recovery code">
+        <p className="sheet__lede">Write it down or keep it in your password manager. It’s shown only now. Anyone with it can get into your account, so keep it to yourself.</p>
+        <p className="recovery__code num" dir="ltr">
+          {shown}
+        </p>
+        <div className="recovery__acts">
+          <button
+            type="button"
+            className="btn btn--sm btn--quiet"
+            onClick={() => {
+              void navigator.clipboard?.writeText(shown).then(
+                () => toast('Copied'),
+                () => toast('Couldn’t copy. Write it down.'),
+              );
+            }}
+          >
+            <Icon name="copy" className="icon--sm" /> Copy
+          </button>
+        </div>
+        <label className="optrow recovery__ok">
+          <span className="optrow__text">I’ve saved it somewhere safe</span>
+          <Switch on={saved} label="I’ve saved it" onChange={setSaved} />
+        </label>
+        <button type="button" className="btn btn--block" disabled={!saved} onClick={onClose}>
+          Done
+        </button>
+      </Sheet>
+    );
+  }
+  return (
+    <Sheet onClose={onClose} title="Recovery code">
+      <p className="sheet__lede">
+        If you ever lose every device (or reset them all), your recovery code brings you back as you: your private things, your To-Do and your settings. Your keys are kept on your hub locked with the code, so only the code can open them.
+      </p>
+      {me?.recoverySetAt ? <p className="hint">You made one on {new Date(me.recoverySetAt).toLocaleDateString()}. Making a new one stops the old one working.</p> : null}
+      {error ? <p className="onboard__error">{error}</p> : null}
+      <button type="button" className="btn btn--block" disabled={busy} onClick={() => void make()}>
+        {busy ? 'Locking your keys…' : me?.recoverySetAt ? 'Make a new code' : 'Make my recovery code'}
       </button>
     </Sheet>
   );
@@ -560,6 +636,7 @@ function ThisDevice() {
 
 function YourData() {
   const hub = useHub();
+  const me = hub.me();
   const rt = useRt();
   const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
@@ -605,6 +682,17 @@ function YourData() {
   return (
     <Section title="Your data">
       <div className="group">
+        <OptRow
+          icon="lock"
+          title="Recovery code"
+          sub={
+            me?.recoverySetAt
+              ? `Made ${new Date(me.recoverySetAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}. Your way back in if you lose every device.`
+              : 'None yet. Make one, so losing every device never loses you.'
+          }
+          chev
+          onClick={() => openSheet((close) => <RecoverySheet onClose={close} />)}
+        />
         <OptRow icon="download" title="Download a backup" sub={backupSub(prefs.lastBackupAt)} chev onClick={() => downloadBackup(rt, toast)} />
         <OptRow icon="upload" title="Restore from a backup" sub="Adds what’s missing. Never deletes." chev onClick={() => file.current?.click()} />
       </div>

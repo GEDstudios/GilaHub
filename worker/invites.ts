@@ -5,6 +5,10 @@ const TTL_MS = 30 * 60 * 1000;
 /**
  * Short-lived pairing invites. Each blob is sealed with a key stretched from the
  * 8-symbol code, which never reaches the server. Claimed invites are deleted.
+ *
+ * Also recovery copies: a person's keys sealed with a key stretched from their 20-symbol
+ * recovery code (which never reaches the server either), kept under an id derived from it,
+ * until a newer code replaces it.
  */
 export class Invites extends DurableObject {
   private sql: SqlStorage;
@@ -13,6 +17,8 @@ export class Invites extends DurableObject {
     super(ctx, env as never);
     this.sql = ctx.storage.sql;
     this.sql.exec('CREATE TABLE IF NOT EXISTS invites (iid TEXT PRIMARY KEY, blob TEXT NOT NULL, exp INTEGER NOT NULL)');
+    // Recovery copies: a person's keys sealed with their recovery code. Kept until replaced.
+    this.sql.exec('CREATE TABLE IF NOT EXISTS recovery (rid TEXT PRIMARY KEY, blob TEXT NOT NULL, at INTEGER NOT NULL)');
   }
 
   async fetch(req: Request): Promise<Response> {
@@ -30,6 +36,22 @@ export class Invites extends DurableObject {
         now + TTL_MS,
       );
       return Response.json({ ok: true, expires: now + TTL_MS });
+    }
+
+    // A recovery copy: kept (not single-use), replacing the person's previous one.
+    const keep = url.pathname.match(/^\/recovery\/put\/([A-Za-z0-9_-]{16,64})$/);
+    if (keep && req.method === 'PUT') {
+      const old = url.searchParams.get('old');
+      const blob = await req.text();
+      this.sql.exec('INSERT INTO recovery (rid, blob, at) VALUES (?, ?, ?) ON CONFLICT(rid) DO UPDATE SET blob = excluded.blob, at = excluded.at', keep[1], blob, now);
+      if (old && old !== keep[1]) this.sql.exec('DELETE FROM recovery WHERE rid = ?', old);
+      return Response.json({ ok: true });
+    }
+    const fetchRec = url.pathname.match(/^\/api\/recovery\/([A-Za-z0-9_-]{16,64})$/);
+    if (fetchRec && req.method === 'GET') {
+      const row = this.sql.exec<{ blob: string }>('SELECT blob FROM recovery WHERE rid = ?', fetchRec[1]).toArray()[0];
+      if (!row) return Response.json({ error: 'not found' }, { status: 404 });
+      return Response.json({ blob: row.blob }, { headers: { 'cache-control': 'no-store' } });
     }
 
     const get = url.pathname.match(/^\/api\/invite\/([A-Za-z0-9_-]{16,64})$/);

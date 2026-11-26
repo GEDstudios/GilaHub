@@ -4,7 +4,9 @@ import { useHub } from '../context';
 import { navigate, useRoute } from '../router';
 import { clearRecentSearches, closeSearch, recentSearches, rememberSearch, searchEverywhere, useSearchOpen, useSearchScope } from '../search';
 import { Icon } from '../ui/Icon';
-import { lockScroll } from '../ui/overlays';
+import { lockScroll, useOverlays } from '../ui/overlays';
+import { QuickAddSheet } from './QuickAddSheet';
+import { NewProjectSheet } from '../screens/Lists';
 import { ListBullet } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
 
@@ -21,6 +23,7 @@ export function SearchLayer() {
 
 function Layer() {
   const hub = useHub();
+  const { openSheet } = useOverlays();
   const route = useRoute();
   const [q, setQ] = useState('');
   const [recent, setRecent] = useState(recentSearches);
@@ -141,7 +144,38 @@ function Layer() {
                 ))}
               </ul>
             ) : null}
-            {!items.length && !lists.length ? <p className="searchlayer__none">Nothing matches “{term}”</p> : null}
+            {!items.length && !lists.length ? (
+              // Nothing by that name: make it, a task (here, when searching in a folder) or a folder.
+              <div className="searchlayer__none">
+                <p>Nothing matches “{term}”</p>
+                <div className="searchlayer__make">
+                  <button
+                    type="button"
+                    className="token"
+                    onClick={() => {
+                      closeSearch();
+                      openSheet((close) => <QuickAddSheet onClose={close} text={term} listId={scope?.id} />);
+                    }}
+                  >
+                    <Icon name="plus" />
+                    <span dir="auto">Create “{term}” task?</span>
+                  </button>
+                  {scope ? null : (
+                    <button
+                      type="button"
+                      className="token"
+                      onClick={() => {
+                        closeSearch();
+                        openSheet((close) => <NewProjectSheet onClose={close} name={term} />);
+                      }}
+                    >
+                      <Icon name="folder" />
+                      <span dir="auto">Create “{term}” folder?</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

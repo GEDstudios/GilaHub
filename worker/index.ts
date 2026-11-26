@@ -3,6 +3,7 @@
  *   /api/health               liveness (the app uses it to detect a relay)
  *   /api/h/:household/*       per-household Durable Object (sync, push, reminders, invites)
  *   /api/invite/:id           claim a pairing invite (one-time)
+ *   /api/recovery/:id         fetch a recovery copy (sealed with the person's recovery code)
  *   everything else           the PWA (static assets, SPA fallback)
  */
 import { Household, type Env } from './household';
@@ -30,7 +31,7 @@ export default {
       return stub.fetch(req);
     }
 
-    if (/^\/api\/invite\/[A-Za-z0-9_-]{16,64}$/.test(url.pathname)) {
+    if (/^\/api\/(?:invite|recovery)\/[A-Za-z0-9_-]{16,64}$/.test(url.pathname)) {
       const stub = env.INVITES.get(env.INVITES.idFromName('invites'));
       return stub.fetch(req);
     }

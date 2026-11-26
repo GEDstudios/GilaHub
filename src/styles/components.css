@@ -7958,3 +7958,82 @@ textarea.nf__write {
   color: var(--text-3);
   padding: 0 8px;
 }
+
+/* A folder inside, as a group's heading: its dot and name go there. */
+.aisle__go.aisle__golabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font: inherit;
+  border-radius: 8px;
+  padding: 2px 6px 2px 0;
+}
+
+@media (hover: hover) {
+  .aisle__golabel:hover span {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+/* At the end of a folder's group: a small white + to add straight into it. */
+.groupadd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 30px;
+  margin: 8px 0 0 auto;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 2px 6px -3px rgb(10 10 4 / 0.25);
+  transition: transform 200ms var(--spring);
+}
+
+.groupadd .icon {
+  --s: 16;
+}
+
+.groupadd:active {
+  transform: scale(0.9);
+}
+
+/* The recovery code, shown once: big, spaced, easy to copy by hand. */
+.recovery__code {
+  margin: 18px 0 10px;
+  padding: 18px 14px;
+  border-radius: 16px;
+  background: var(--me-light, var(--lemon));
+  box-shadow: 0 0 0 1.5px var(--ink) inset;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  word-break: break-word;
+  user-select: all;
+}
+
+.recovery__acts {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.recovery__ok {
+  margin: 4px 0 14px;
+}
+
+.bigfield.codeinput.codeinput--long {
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.onboard__link--quiet {
+  opacity: 0.7;
+  margin-top: 2px;
+}

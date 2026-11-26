@@ -1,6 +1,6 @@
-import { deriveAuthToken, deriveInviteSecrets, newKeyMaterial, openJSON, sealJSON } from './crypto';
+import { deriveAuthToken, deriveInviteSecrets, deriveRecoverySecrets, newKeyMaterial, openJSON, sealJSON } from './crypto';
 import type { Persistence } from './db';
-import { isValidInviteCode, newId, newInviteCode, normalizeInviteCode } from './ids';
+import { isValidInviteCode, isValidRecoveryCode, newId, newInviteCode, newRecoveryCode, normalizeInviteCode } from './ids';
 import type { Scope } from './model';
 
 /** Everything this device needs to be part of a household. Stored only on the device. */
@@ -143,4 +143,52 @@ export function sessionFromInvite(inv: InvitePayload): Session {
     deviceId: newId(12),
     createdAt: Date.now(),
   };
+}
+
+// ---------- recovery ----------
+
+/**
+ * A recovery code for me: my keys (the household's and my own) sealed with a key stretched from
+ * a fresh code, kept on the relay under an id that comes from the code too. The code never
+ * leaves this device; the relay can't open what it keeps. A new code replaces the last one
+ * (`previous`: its id, to take the old copy away). Returns the code (shown once) and its id.
+ */
+export async function makeRecovery(s: Session, fromName?: string, previous?: string | null): Promise<{ code: string; recoveryId: string }> {
+  const code = newRecoveryCode();
+  const { recoveryId, key } = await deriveRecoverySecrets(code);
+  const payload: InvitePayload = {
+    v: 1,
+    kind: 'device',
+    householdId: s.householdId,
+    householdKey: s.householdKey,
+    apiBase: s.apiBase,
+    from: s.memberId,
+    fromName,
+    memberId: s.memberId,
+    personalKey: s.personalKey,
+  };
+  const blob = await sealJSON(key, payload, 'gila-hub/recovery');
+  await api(s, 'recovery', { method: 'POST', body: JSON.stringify({ rid: recoveryId, blob, old: previous ?? null }) });
+  return { code, recoveryId };
+}
+
+/** Back as me on a new device, from my recovery code: my keys, as a device of mine (InvitePayload kind 'device'). */
+export async function claimRecovery(apiBase: string, rawCode: string): Promise<InvitePayload> {
+  const code = normalizeInviteCode(rawCode);
+  if (!isValidRecoveryCode(code)) throw new InviteError('A recovery code is 20 letters and numbers, in four groups of five.');
+  const { recoveryId, key } = await deriveRecoverySecrets(code);
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(apiBase, `/api/recovery/${recoveryId}`), { cache: 'no-store' });
+  } catch {
+    throw new InviteError('Can’t reach your hub. Are you online?');
+  }
+  if (res.status === 404) throw new InviteError('No account has that recovery code. Check it, or it may have been replaced by a newer one.');
+  if (!res.ok) throw new InviteError('Something went wrong. Try again in a moment.');
+  const { blob } = (await res.json()) as { blob: string };
+  try {
+    return await openJSON<InvitePayload>(key, blob, 'gila-hub/recovery');
+  } catch {
+    throw new InviteError('That code doesn’t match. Check it and try again.');
+  }
 }

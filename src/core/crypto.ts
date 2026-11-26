@@ -106,6 +106,18 @@ export async function deriveInviteSecrets(code: string): Promise<{ inviteId: str
   return { key: toB64u(bits.subarray(0, 32)), inviteId: toB64u(bits.subarray(32, 48)) };
 }
 
+/**
+ * From a recovery code: the key that seals my keys, and the id they're kept under on the relay.
+ * Stretched hard (the code is the only thing standing between the relay's copy and my keys).
+ */
+export async function deriveRecoverySecrets(code: string): Promise<{ recoveryId: string; key: string }> {
+  const base = await crypto.subtle.importKey('raw', enc.encode(code), 'PBKDF2', false, ['deriveBits']);
+  const bits = new Uint8Array(
+    await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode('gila-hub/recovery/v1'), iterations: 310_000 }, base, 384),
+  );
+  return { key: toB64u(bits.subarray(0, 32)), recoveryId: toB64u(bits.subarray(32, 48)) };
+}
+
 export async function sha256B64u(text: string): Promise<string> {
   return toB64u(await crypto.subtle.digest('SHA-256', enc.encode(text)));
 }

@@ -25,10 +25,21 @@ import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
 
 /** A name on a card of its color, then the same chips as a project's page. */
-export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () => void; initial?: Partial<{ visibility: Visibility }>; parentId?: string }) {
+export function NewProjectSheet({
+  onClose,
+  initial,
+  parentId,
+  name: startName = '',
+}: {
+  onClose: () => void;
+  initial?: Partial<{ visibility: Visibility }>;
+  parentId?: string;
+  /** Start with this name written (a search with nothing found). */
+  name?: string;
+}) {
   const hub = useHub();
   const parent = hub.list(parentId);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(startName);
   const [look, setLook] = useState<ProjectLook>(() => ({
     color: hub.freshColor(),
     // Unset until picked: the name suggests one as it's typed.

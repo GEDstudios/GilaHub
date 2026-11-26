@@ -10,6 +10,7 @@ import { Sortable, useSortableItem, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import type { ProjectGroup } from '../views';
 import { ItemRow } from './ItemRow';
+import { QuickAddSheet } from './QuickAddSheet';
 import { TagMark } from './Tags';
 
 const idOf = (i: Item) => i.id;
@@ -55,7 +56,7 @@ export function ProjectItems({
   flash: Set<string>;
 }) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const { toast, openSheet } = useOverlays();
   const settle = useSettle(idOf);
   // A group whose last thing was just ticked stays until that row has settled.
   const last = useRef<ProjectGroup[]>([]);
@@ -151,13 +152,19 @@ export function ProjectItems({
             {g.label ? (
               <h2 className="aisle__head">
                 {g.tag !== undefined ? (
-                  <TagMark icon={g.tag ? g.icon : null} className="" />
+                  <>
+                    <TagMark icon={g.tag ? g.icon : null} className="" />
+                    {g.label}
+                  </>
                 ) : list ? (
-                  <button type="button" className="aisle__go" onClick={() => navigate({ name: 'list', id: list.id })}>
+                  // A folder inside: its name goes there.
+                  <button type="button" className="aisle__go aisle__golabel" onClick={() => navigate({ name: 'list', id: list.id })}>
                     <ListBullet list={list} size="xs" />
+                    <span dir="auto">{g.label}</span>
                   </button>
-                ) : null}
-                {g.label}
+                ) : (
+                  g.label
+                )}
                 <span className="num">{g.items.length}</span>
               </h2>
             ) : null}
@@ -170,6 +177,12 @@ export function ProjectItems({
                 ),
               )}
             </ul>
+            {list && g.label && g.tag === undefined ? (
+              // Add straight into this folder, without going in.
+              <button type="button" className="groupadd" aria-label={`Add to ${list.name}`} onClick={() => openSheet((close) => <QuickAddSheet onClose={close} listId={list.id} />)}>
+                <Icon name="plus" />
+              </button>
+            ) : null}
           </section>
         );
       })}

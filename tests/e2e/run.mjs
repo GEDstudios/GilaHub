@@ -864,6 +864,48 @@ try {
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 3000 });
   });
 
+  // ---------- Recovery
+  await check('Recovery: Guy makes a code; a brand-new phone comes back as Guy, private things and all', async () => {
+    await guy.goto(`${url}/settings`);
+    await guy.locator('.optrow', { hasText: 'Recovery code' }).click();
+    await guy.getByRole('button', { name: 'Make my recovery code' }).click();
+    const codeEl = guy.locator('.recovery__code');
+    await codeEl.waitFor({ timeout: 15000 });
+    const code = (await codeEl.innerText()).trim();
+    if (!/^[2-9A-Z]{5}(-[2-9A-Z]{5}){3}$/.test(code)) throw new Error(`odd code: ${code}`);
+    await shot(guy, '40-recovery-code');
+    await guy.getByRole('switch', { name: 'I’ve saved it' }).click();
+    await guy.getByRole('button', { name: 'Done', exact: true }).click();
+    await guy.locator('.optrow', { hasText: 'Recovery code' }).getByText(/^Made /).waitFor({ timeout: 5000 });
+
+    const freshCtx = await browser.newContext(phone);
+    const fresh = await freshCtx.newPage();
+    try {
+      await fresh.goto(url);
+      await fresh.getByRole('button', { name: 'Recover my account' }).click();
+      await fresh.getByRole('textbox', { name: 'Recovery code' }).fill(code.toLowerCase());
+      await shot(fresh, '41-recover');
+      await fresh.getByRole('button', { name: 'Recover', exact: true }).click();
+      await fresh.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor({ timeout: 20000 });
+      // His Private task (sealed with his own key) is here: the key came back.
+      await fresh.goto(`${url}/lists`);
+      await fresh.locator('.projcard__name', { hasText: /^To do$/ }).click();
+      await fresh.locator('.row__title', { hasText: 'Ring for Hila' }).waitFor({ timeout: 20000 });
+      await shot(fresh, '42-recovered');
+      // A wrong code says so.
+      const other = await browser.newContext(phone);
+      const o = await other.newPage();
+      await o.goto(url);
+      await o.getByRole('button', { name: 'Recover my account' }).click();
+      await o.getByRole('textbox', { name: 'Recovery code' }).fill('22222-22222-22222-22222');
+      await o.getByRole('button', { name: 'Recover', exact: true }).click();
+      await o.getByText(/No account has that recovery code/).waitFor({ timeout: 15000 });
+      await other.close();
+    } finally {
+      await freshCtx.close();
+    }
+  });
+
   // ---------- Desktop
   const desk = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const deskPage = await desk.newPage();
