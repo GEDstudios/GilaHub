@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
-import { Sheet } from '../ui/overlays';
+import { Sheet, useOverlays } from '../ui/overlays';
 
 /**
  * Draw on a screenshot: circle the thing, scribble an arrow, write "this!". The picture fills
@@ -182,3 +182,30 @@ function line(ctx: CanvasRenderingContext2D, s: Stroke) {
   for (const [x, y] of s.pts.slice(1)) ctx.lineTo(x, y);
   ctx.stroke();
 }
+
+/** Pick a picture (a screenshot from the phone's photos), then draw on it. */
+export function useShotPicker(onPicked: (jpeg: string) => void): { pick: () => void; input: ReactNode } {
+  const { openSheet, toast } = useOverlays();
+  const ref = useRef<HTMLInputElement>(null);
+  const input = (
+    <input
+      ref={ref}
+      type="file"
+      accept="image/*"
+      hidden
+      onChange={async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        try {
+          const src = await readImage(file);
+          openSheet((close) => <SketchSheet src={src} onDone={onPicked} onClose={close} />);
+        } catch {
+          toast('Couldn’t open that picture');
+        }
+      }}
+    />
+  );
+  return { pick: () => ref.current?.click(), input };
+}
+

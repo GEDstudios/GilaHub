@@ -11,7 +11,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { Check, Disclosure, lineVars } from '../ui/primitives';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { useSettle } from '../ui/useSettle';
-import { readImage, SketchSheet } from './Sketch';
+import { SketchSheet, useShotPicker } from './Sketch';
 
 /**
  * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag sits in the page
@@ -131,32 +131,6 @@ function useAutosize(ref: React.RefObject<HTMLTextAreaElement | null>, value: st
 
 /** Enter commits, Shift+Enter is a new line. */
 const isCommit = (e: KeyboardEvent) => e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing;
-
-/** Pick a picture (a screenshot from the phone's photos), then draw on it. */
-function useShotPicker(onPicked: (jpeg: string) => void): { pick: () => void; input: React.ReactNode } {
-  const { openSheet, toast } = useOverlays();
-  const ref = useRef<HTMLInputElement>(null);
-  const input = (
-    <input
-      ref={ref}
-      type="file"
-      accept="image/*"
-      hidden
-      onChange={async (e) => {
-        const file = e.target.files?.[0];
-        e.target.value = '';
-        if (!file) return;
-        try {
-          const src = await readImage(file);
-          openSheet((close) => <SketchSheet src={src} onDone={onPicked} onClose={close} />);
-        } catch {
-          toast('Couldn’t open that picture');
-        }
-      }}
-    />
-  );
-  return { pick: () => ref.current?.click(), input };
-}
 
 function Composer() {
   const hub = useHub();

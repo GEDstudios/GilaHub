@@ -1196,34 +1196,41 @@ export class Hub {
     return this.store.create('idea', fields);
   }
 
-  /** An idea's picture, once all its parts are here (null while syncing, or none). */
-  ideaShot(id: string): string | null {
-    const idea = this.idea(id);
-    if (!idea?.shotN || !idea.shotV) return null;
+  /** A picture on an idea or a note, once all its parts are here (null while syncing, or none). */
+  shotOf(t: 'idea' | 'note', id: string): string | null {
+    const rec = this.store.get(t, id) as (Record<string, unknown> & { shotN?: number | null; shotV?: string | null }) | undefined;
+    if (!rec?.shotN || !rec.shotV) return null;
     let out = '';
-    for (let i = 0; i < idea.shotN; i++) {
-      const part = idea[`shot${i}`];
-      if (typeof part !== 'string' || !part.startsWith(`${idea.shotV}:`)) return null;
-      out += part.slice(idea.shotV.length + 1);
+    for (let i = 0; i < rec.shotN; i++) {
+      const part = rec[`shot${i}`];
+      if (typeof part !== 'string' || !part.startsWith(`${rec.shotV}:`)) return null;
+      out += part.slice(rec.shotV.length + 1);
     }
     return out;
   }
 
-  /** Attach (or, null, take off) an idea's picture: the parts first, each its own op, then the count. */
-  setIdeaShot(id: string, dataUrl: string | null): void {
-    const idea = this.idea(id);
-    if (!idea) return;
+  /** Put (or, null, take off) a picture: the parts first, each its own op (a sync op is size-capped), then the count. */
+  setShot(t: 'idea' | 'note', id: string, dataUrl: string | null): void {
+    if (!this.store.get(t, id)) return;
     if (!dataUrl) {
-      this.store.mutate('idea', id, { shotN: null, shotV: null });
+      this.store.mutate(t, id, { shotN: null, shotV: null });
       return;
     }
     const v = newId(6);
     const SIZE = 28_000;
     const n = Math.ceil(dataUrl.length / SIZE);
     this.store.batch(() => {
-      for (let i = 0; i < n; i++) this.store.mutate('idea', id, { [`shot${i}`]: `${v}:${dataUrl.slice(i * SIZE, (i + 1) * SIZE)}` });
-      this.store.mutate('idea', id, { shotN: n, shotV: v });
+      for (let i = 0; i < n; i++) this.store.mutate(t, id, { [`shot${i}`]: `${v}:${dataUrl.slice(i * SIZE, (i + 1) * SIZE)}` });
+      this.store.mutate(t, id, { shotN: n, shotV: v });
     });
+  }
+
+  ideaShot(id: string): string | null {
+    return this.shotOf('idea', id);
+  }
+
+  setIdeaShot(id: string, dataUrl: string | null): void {
+    this.setShot('idea', id, dataUrl);
   }
 
   editIdea(id: string, text: string): void {

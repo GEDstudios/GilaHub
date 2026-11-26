@@ -303,6 +303,11 @@ try {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard--new').first().click();
     if (await guy.locator('.sheet .tokens .token').count()) throw new Error('New project still suggests projects');
+    // The phone's Back closes the sheet, and you're still on Projects.
+    await guy.goBack();
+    await guy.locator('.sheet').waitFor({ state: 'detached', timeout: 3000 });
+    if (new URL(guy.url()).pathname !== '/lists') throw new Error(`Back left Projects: ${guy.url()}`);
+    await guy.locator('.projcard--new').first().click();
     await guy.locator('.sheet .ccard__input').fill('Next trip');
     await guy.getByRole('button', { name: /create project/i }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
@@ -522,6 +527,10 @@ try {
     await guy.getByRole('dialog', { name: 'A note for Hila' }).waitFor();
     await guy.getByRole('textbox', { name: 'Your note' }).fill(NOTE);
     await guy.getByRole('radio', { name: 'pink' }).click();
+    // A photo on it, drawn on.
+    await guy.locator('.sheet input[type=file]').setInputFiles(new URL('./.out/10-chores.png', import.meta.url).pathname);
+    await guy.getByRole('button', { name: 'Attach' }).click();
+    await guy.locator('.sheet .sticky__photo img').waitFor({ timeout: 5000 });
     await shot(guy, '28-note-write');
     await guy.getByRole('button', { name: 'Stick it' }).click();
     await guy.locator('.stuck').waitFor({ timeout: 3000 });
@@ -535,6 +544,7 @@ try {
     await notice.click();
     const stuck = hila.locator('.stuck');
     await stuck.waitFor({ timeout: 3000 });
+    await stuck.locator('.sticky__photo img').waitFor({ timeout: 15000 });
     await hila.waitForTimeout(700);
     await shot(hila, '31-note-hila-shop');
     // A tap reads it.

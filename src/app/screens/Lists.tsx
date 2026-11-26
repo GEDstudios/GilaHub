@@ -52,7 +52,8 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
   };
 
   return (
-    <Sheet onClose={onClose} title={parent ? `New project in ${parent.name}` : 'New project'}>
+    // No title: the card says it, its placeholder asking for the name.
+    <Sheet onClose={onClose} label={parent ? `New project in ${parent.name}` : 'New project'}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -62,7 +63,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
         {/* A folder from the start: the same tab on top as on Projects. */}
         <div className="ccard ccard--lg ccard--edit ccard--folder" style={lineVars(look.color)}>
           <span className="ccard__top">
-            <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
+            <input className="ccard__input" dir="auto" placeholder={parent ? `Name a project in ${parent.name}` : 'Name your new project'} value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
           </span>
           <span className="ccard__sub projcard__foot">
             <span>

@@ -44,8 +44,60 @@ function emit() {
   for (const fn of listeners) fn();
 }
 
+/**
+ * Open sheets take a step in the history, so the phone's Back (or a swipe back) closes the
+ * sheet you're on, not the screen under it. A sheet closed another way (×, a pull, Create)
+ * takes its step back out; a navigation made meanwhile waits for that, so it isn't undone.
+ */
+type SheetStep = { id: number; close: () => void; popped: boolean };
+const sheetSteps: SheetStep[] = [];
+let sheetSeq = 1;
+let unwinding = 0;
+let waiting: Array<() => void> = [];
+
+export function sheetOpened(close: () => void): { closed: () => void } {
+  const step: SheetStep = { id: sheetSeq++, close, popped: false };
+  let pushed = false;
+  if (!memory && typeof history !== 'undefined') {
+    try {
+      history.pushState({ gilaSheet: step.id }, '', location.href);
+      pushed = true;
+    } catch {
+      /* sandboxed: no step */
+    }
+  }
+  sheetSteps.push(step);
+  return {
+    closed: () => {
+      const at = sheetSteps.indexOf(step);
+      if (at >= 0) sheetSteps.splice(at, 1);
+      if (pushed && !step.popped && history.state?.gilaSheet === step.id) {
+        unwinding++;
+        history.back();
+      }
+    },
+  };
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', () => {
+    // A sheet's own step, taken back out after it closed: nothing else moves.
+    if (unwinding > 0) {
+      unwinding--;
+      if (!unwinding) {
+        const run = waiting;
+        waiting = [];
+        run.forEach((fn) => fn());
+      }
+      return;
+    }
+    // Back with a sheet open: that sheet closes; the screen stays.
+    const top = sheetSteps.pop();
+    if (top) {
+      top.popped = true;
+      top.close();
+      return;
+    }
     depth = Math.max(0, depth - 1);
     emit();
   });
@@ -67,6 +119,11 @@ export function navigate(to: Route | string, opts: { replace?: boolean } = {}): 
   // Search isn't a page: it opens over the one you're on.
   if (url.split('?')[0] === '/search') {
     openSearch();
+    return;
+  }
+  // A sheet that just closed is still taking its step back: go once it has.
+  if (unwinding > 0) {
+    waiting.push(() => navigate(to, opts));
     return;
   }
   if (url === currentPath() + (memory ? '' : location.search)) return;

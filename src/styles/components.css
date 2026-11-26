@@ -5513,3 +5513,121 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
   background: var(--tile);
   color: var(--text-2);
 }
+
+/* ============================================================ Notes: words that fit, a photo on top */
+/* Square paper; the words take what's left and size themselves to fill it (FitText) */
+.stuck > .sticky {
+  height: 124px;
+  min-height: 0;
+}
+
+.sticky__text.is-fit {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  -webkit-line-clamp: unset;
+  line-height: 1.15;
+}
+
+.sticky--big:has(> .is-fit) {
+  height: 280px;
+  min-height: 0;
+}
+
+.sticky--big.has-photo,
+.sticky--big:has(> .sticky__photo) {
+  height: auto;
+  min-height: 300px;
+}
+
+.sticky--big:has(> .sticky__photo) > .is-fit {
+  height: 120px;
+  flex: none;
+}
+
+.sticky--mini {
+  height: 112px;
+  min-height: 0;
+}
+
+/* The photo: taped on at the top, a little crooked */
+.sticky__photo {
+  position: relative;
+  display: block;
+  flex: none;
+  height: 56px;
+  margin: -6px -2px 2px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.5);
+  box-shadow: 0 1px 2px rgb(10 10 4 / 0.18);
+  transform: rotate(-1.5deg);
+}
+
+.sticky__photo img,
+.sticky__photobtn {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sticky__photo img {
+  object-fit: cover;
+}
+
+.sticky--big .sticky__photo {
+  height: 190px;
+  margin: -10px -6px 10px;
+}
+
+.sticky--mini .sticky__photo {
+  height: 44px;
+}
+
+.sticky__unphoto {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(10 10 4 / 0.7);
+  color: #fff;
+}
+
+/* Writing one: add a photo from its corner */
+.sticky__addphoto {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.45);
+  color: var(--ink);
+  transition: transform 200ms var(--spring);
+}
+
+.sticky__addphoto:active {
+  transform: scale(0.9);
+}
+
+/* A note's photo is part of the paper: never dragged off on its own */
+.stuck .sticky__photo img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+/* A photo on a small note: a shorter strip, and the words get the by-line's room */
+.stuck .sticky__photo {
+  height: 44px;
+}
+
+.stuck .sticky.has-photo .sticky__by {
+  display: none;
+}

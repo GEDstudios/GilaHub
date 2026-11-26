@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
-import { currentPath } from '../router';
+import { currentPath, sheetOpened } from '../router';
 import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastAction } from './motion';
 
 // ---------------------------------------------------------------- sheets
@@ -285,12 +285,22 @@ const SheetClosingCtx = createContext(false);
 function SheetHost({ render, onClosed }: { render: SheetRender; onClosed: () => void }) {
   const [closing, setClosing] = useState(false);
   const done = useRef(false);
-  const close = useCallback(() => {
-    if (done.current) return;
-    done.current = true;
-    setClosing(true);
-    setTimeout(onClosed, 210);
-  }, [onClosed]);
+  const step = useRef<{ closed: () => void } | null>(null);
+  const finish = useCallback(
+    (byBack: boolean) => {
+      if (done.current) return;
+      done.current = true;
+      if (!byBack) step.current?.closed();
+      setClosing(true);
+      setTimeout(onClosed, 210);
+    },
+    [onClosed],
+  );
+  const close = useCallback(() => finish(false), [finish]);
+  // Its step in the history: the phone's Back closes it (router.sheetOpened). Once per sheet.
+  useEffect(() => {
+    if (!step.current) step.current = sheetOpened(() => finish(true));
+  }, [finish]);
   return <SheetClosingCtx.Provider value={closing}>{render(close)}</SheetClosingCtx.Provider>;
 }
 

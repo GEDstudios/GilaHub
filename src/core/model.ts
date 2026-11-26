@@ -289,6 +289,10 @@ export interface Note {
   rot?: number | null;
   /** Its size, times the usual (NOTE_MIN to NOTE_MAX). */
   scale?: number | null;
+  /** A photo on it (drawn on), in parts like an idea's picture (Hub.setShot). */
+  shotN?: number | null;
+  shotV?: string | null;
+  [part: `shot${number}`]: string | null | undefined;
   /** Read and peeled off (ticked) by the one it was for: it goes to the collected notes. */
   peeledAt?: number | null;
   deleted?: boolean;
