@@ -355,7 +355,7 @@ export function PartnerDid({ v }: { v: TodayView }) {
 
 // ---------------------------------------------------------------- my quick view
 
-/** The tasks I chose to keep in sight here (a task's "Pin to Today" chip), from any folder. Gone while it's empty. */
+/** The tasks I chose to keep in sight here (a task's "Highlights" chip), from any folder. Gone while it's empty. */
 export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: Item) => boolean }) {
   const hub = useHub();
   const prefs = usePrefs();
@@ -366,8 +366,8 @@ export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: I
     <Section
       title={
         <>
-          <Icon name="pin" className="icon--sm" />
-          <span>Pinned</span>
+          <Icon name="sparkle" className="icon--sm" />
+          <span>Highlights</span>
         </>
       }
       count={open.length}

@@ -420,9 +420,9 @@ try {
     await shot(guy, '15-edit-today');
     const rows = () => guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
     const before = await rows();
-    if (before.join() !== 'Today,Pinned,Us,The week') throw new Error(`unexpected slots: ${before.join(', ')}`);
-    await guy.getByRole('button', { name: 'Hide Pinned' }).click();
-    await waitFor(async () => !(await rows()).includes('Pinned'), 3000, 'Pinned hidden');
+    if (before.join() !== 'Today,Highlights,Us,The week') throw new Error(`unexpected slots: ${before.join(', ')}`);
+    await guy.getByRole('button', { name: 'Hide Highlights' }).click();
+    await waitFor(async () => !(await rows()).includes('Highlights'), 3000, 'Highlights hidden');
     await guy.getByRole('button', { name: 'Hide The week' }).click();
     await waitFor(async () => !(await rows()).includes('The week'), 3000, 'The week hidden');
     await guy.locator('.homeghost', { hasText: 'The week' }).waitFor({ timeout: 3000 });
@@ -460,7 +460,7 @@ try {
     await guy.getByRole('button', { name: 'Back to the default' }).click();
     await guy.getByText('Today is back to the default').waitFor({ timeout: 3000 });
     const slots = await guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
-    if (slots.join() !== 'Today,Pinned,Us,The week') throw new Error(`after reset: ${slots.join(', ')}`);
+    if (slots.join() !== 'Today,Highlights,Us,The week') throw new Error(`after reset: ${slots.join(', ')}`);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
   });
 

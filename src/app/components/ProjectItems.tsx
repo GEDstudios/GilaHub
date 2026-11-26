@@ -65,13 +65,22 @@ export function ProjectItems({
   const overlays = useOverlays();
   const { toast, openSheet } = overlays;
   const settle = useSettle(idOf);
+  const prefs = usePrefs();
+  // As lists, the groups go in my order for this page (a group I never moved keeps its place
+  // after the ones I did); the folders' own order isn't touched. The folder's own tasks lead.
+  const mine = pageId ? (prefs.groupOrder[pageId] ?? []) : [];
+  const rank = (g: ProjectGroup, at: number) => (!g.label ? -1 : g.tag !== undefined || !mine.includes(g.key) ? mine.length + at : mine.indexOf(g.key));
+  const ordered = live
+    .map((g, at) => ({ g, r: rank(g, at), at }))
+    .sort((a, b) => a.r - b.r || a.at - b.at)
+    .map((x) => x.g);
   // A group whose last thing was just ticked stays until that row has settled.
   const last = useRef<ProjectGroup[]>([]);
-  const groups = [...live];
+  const groups = [...ordered];
   last.current.forEach((g, at) => {
     if (!groups.some((x) => x.key === g.key) && g.items.some((i) => settle.held.has(i.id))) groups.splice(Math.min(at, groups.length), 0, { ...g, items: [] });
   });
-  last.current = live;
+  last.current = ordered;
 
   // A folder's way down from this page: the folders between, then itself (one shown from
   // elsewhere is just itself).
@@ -81,7 +90,6 @@ export function ProjectItems({
     return at < 0 ? [l] : [...up.slice(at + 1), l];
   };
   // A group can be folded to its heading (mine, remembered on my devices).
-  const prefs = usePrefs();
   const foldKey = (g: ProjectGroup) => `${pageId ?? ''}|${g.key}`;
   const isFolded = (g: ProjectGroup) => !!g.label && prefs.foldedGroups.includes(foldKey(g));
   const flipFold = (g: ProjectGroup) => {
@@ -221,12 +229,10 @@ export function ProjectItems({
 
   // By tag: a tag's heading drags its whole group up or down. That's our tag order (it's the
   // same everywhere: the walk through the store), so both of us see it.
-  // As lists: a folder inside's heading moves it among its sister folders (the folders' own order).
+  // As lists: any folder's group moves among the others, in my order for this page only.
   const sortScope = (g: ProjectGroup): string | null => {
     if (g.tag) return 'tags';
-    const l = g.listId && g.label ? hub.list(g.listId) : undefined;
-    if (!l || !pageId || l.id === pageId || !hub.listPath(l.id).some((x) => x.id === pageId)) return null;
-    return `in:${hub.parentOf(l.id)?.id ?? ''}`;
+    return g.listId && g.label && pageId ? 'lists' : null;
   };
   const tagGroups = groups.filter((g) => g.tag).map((g) => g.tag as string);
   const sortable = groups.filter((g) => sortScope(g)).length > 1;
@@ -244,14 +250,14 @@ export function ProjectItems({
       if (rest.join() === was.join()) return;
       hub.arrangeTags(rest);
       toast(`${hub.tag(tag)?.name ?? 'Tag'} moved`, { action: { label: 'Undo', run: () => hub.arrangeTags(was) } });
-    } else if (g.listId) {
-      const id = g.listId;
-      const parent = hub.parentOf(id)?.id;
-      const sisters = parent ? hub.subLists(parent) : hub.topLists();
-      const at = sisters.findIndex((l) => l.id === id);
-      const wasBefore = sisters[at + 1]?.id ?? null;
-      hub.moveList(id, b?.listId ?? null);
-      toast(`${hub.list(id)?.name ?? 'Folder'} moved`, { action: { label: 'Undo', run: () => hub.moveList(id, wasBefore) } });
+    } else if (g.listId && pageId) {
+      const keys = groups.filter((x) => sortScope(x) === 'lists').map((x) => x.key);
+      const next = keys.filter((k) => k !== key);
+      const at = b ? next.indexOf(b.key) : next.length;
+      next.splice(at < 0 ? next.length : at, 0, key);
+      const was = getPrefs().groupOrder;
+      setPrefs({ groupOrder: { ...was, [pageId]: next } });
+      toast(`${g.label} moved`, { action: { label: 'Undo', run: () => setPrefs({ groupOrder: was }) } });
     }
   });
 

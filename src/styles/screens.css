@@ -3131,3 +3131,24 @@ html.is-dragging .bartray {
   background: var(--me-light, var(--lemon));
   font-weight: 600;
 }
+
+/* Today's coloured cards: a small springy hop when the hand comes over them */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .daycard {
+    transition:
+      transform 380ms var(--spring),
+      box-shadow 260ms var(--ease);
+  }
+
+  .daycard:hover {
+    transform: translateY(-3px) rotate(-0.35deg);
+    box-shadow: 0 16px 30px -18px rgb(10 10 4 / 0.32);
+  }
+
+  .wcard:not(.is-open):hover {
+    transform: translateY(-4px) rotate(calc(var(--lean) * 1.5));
+    box-shadow:
+      0 -1px 0 rgb(255 255 255 / 0.35) inset,
+      0 14px 24px -12px rgb(10 10 4 / 0.32);
+  }
+}

@@ -47,10 +47,12 @@ export interface Prefs {
   todayNew: 'mine' | 'ours';
   /** Today shows all of it, just mine, or just ours. */
   todayScope: 'all' | 'mine' | 'ours';
-  /** Pinned to my Today: the tasks I put there, in the order I did. */
+  /** My Highlights on Today: the tasks I put there, in the order I did. */
   quick: string[];
   /** Groups I folded on a folder's page ("<page>|<group>": a folder inside, a tag, one shown from elsewhere). */
   foldedGroups: string[];
+  /** My order of a folder page's groups as lists (page id → group keys). Never the folders' own order. */
+  groupOrder: Record<string, string[]>;
 }
 
 /** About this device itself, not about me: never synced. */
@@ -83,6 +85,7 @@ const DEFAULTS: Prefs = {
   todayScope: 'all',
   quick: [],
   foldedGroups: [],
+  groupOrder: {},
 };
 
 export const PREF_KEYS = Object.keys(DEFAULTS) as Array<keyof Prefs>;
