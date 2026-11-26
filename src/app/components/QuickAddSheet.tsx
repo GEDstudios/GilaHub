@@ -307,6 +307,18 @@ function Composer({
     ...(c.fixedParent ? [] : [listChip(c, hub.lists())]),
     // Its tags: what the words suggest, or picked here.
     tagChip(c, hub),
+    // The folder's template, on by itself: a tap adds this one without it.
+    ...(c.hasTpl
+      ? [
+          {
+            key: 'tpl',
+            label: c.useTpl ? 'Template' : 'No template',
+            icon: 'layout' as const,
+            set: c.useTpl,
+            toggle: () => c.setUseTpl(!c.useTpl),
+          },
+        ]
+      : []),
   ];
 
   return (

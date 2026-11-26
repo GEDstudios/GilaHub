@@ -22,6 +22,8 @@ export interface ComposeSeed {
   place: { listId: string; parentId: string | null } | null;
   tags: string[] | null;
   ignore: string[];
+  /** The folder's template on (unset: on). */
+  useTpl?: boolean;
 }
 
 export function useParseContext(_list?: List): ParseContext {
@@ -94,7 +96,10 @@ export function useCompose({
   const mode: AddMode = 'task';
   const suggested = useMemo(() => (parsed.title.trim() ? hub.suggestTags(parsed.title, dest?.id) : { auto: [], more: [] }), [hub, parsed.title, dest?.id]);
   // The folder's task template: how a new task here starts (the words and the chips still win).
-  const tpl = dest?.template ?? null;
+  // Its chip in New turns it off for this one.
+  const [useTpl, setUseTpl] = useState(seed?.useTpl ?? true);
+  const hasTpl = !!dest?.template && Object.values(dest.template).some((v) => v !== null && v !== undefined && v !== false && !(Array.isArray(v) && !v.length));
+  const tpl = useTpl && hasTpl ? (dest?.template ?? null) : null;
   const tags = picked ?? (tpl?.tags?.length ? [...new Set([...tpl.tags.filter((t) => !!hub.tag(t)), ...suggested.auto])] : suggested.auto);
   const allowed = allowedVis(hub, dest, parent);
   const inherited: VisChoice = parent ? itemVisChoice(hub, parent) : tpl?.visibility && allowed.includes(tpl.visibility) ? tpl.visibility : allowed[0];
@@ -145,7 +150,7 @@ export function useCompose({
     const title = p.title.trim();
     if (!to || !title) return undefined;
     // Picked tags go on this one; other words (a pasted line, a suggestion) find their own.
-    const tplTags = (to.template?.tags ?? []).filter((t) => !!hub.tag(t));
+    const tplTags = (useTpl ? (to.template?.tags ?? []) : []).filter((t) => !!hub.tag(t));
     const ownTags =
       raw === undefined
         ? (picked ?? (tplTags.length ? tags : undefined))
@@ -194,8 +199,8 @@ export function useCompose({
   };
 
   /** What was picked, to keep through a reload. */
-  const seedOut: ComposeSeed = { over, place, tags: picked, ignore: [...ignore] };
-  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, mode, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested, seed: seedOut };
+  const seedOut: ComposeSeed = { over, place, tags: picked, ignore: [...ignore], useTpl };
+  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, mode, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested, seed: seedOut, hasTpl, useTpl, setUseTpl };
 }
 
 export type Compose = ReturnType<typeof useCompose>;
