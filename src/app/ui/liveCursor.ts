@@ -33,9 +33,17 @@ function kindAt(target: EventTarget | null): CursorKind | 'text' {
   return 'arrow';
 }
 
-export function startLiveCursor(): () => void {
-  if (typeof window === 'undefined') return () => {};
-  if (!matchMedia('(hover: hover) and (pointer: fine)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return () => {};
+/** A mouse or trackpad anywhere on this device (a touchscreen laptop counts). */
+export const hasMouse = () => typeof matchMedia === 'function' && matchMedia('(any-hover: hover) and (any-pointer: fine)').matches;
+
+/** On by its switch in Settings; left alone, on unless motion is turned down. */
+export function wantsLiveCursor(pref: boolean | null): boolean {
+  if (!hasMouse()) return false;
+  return pref ?? !matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+export function startLiveCursor(pref: boolean | null = null): () => void {
+  if (typeof window === 'undefined' || !wantsLiveCursor(pref)) return () => {};
 
   const el = document.createElement('div');
   el.className = 'livecursor';
@@ -98,9 +106,10 @@ export function startLiveCursor(): () => void {
     raf = 0;
     const vx = x - lastX;
     lastX = x;
-    // Lean into a quick sideways move; spring back (a touch past straight) when it stops.
-    const lean = Math.max(-16, Math.min(16, vx * 0.6));
-    rotV = (rotV + (lean - rot) * 0.22) * 0.72;
+    // Lean into a sideways move; when it stops, spring back a little past straight, then settle
+    // (an under-damped spring: one small overshoot you can see, not a wobble).
+    const lean = Math.max(-12, Math.min(12, vx * 0.55));
+    rotV = (rotV + (lean - rot) * 0.2) * 0.73;
     rot += rotV;
     scV = (scV + (scTarget - sc) * 0.3) * 0.62;
     sc += scV;

@@ -27,6 +27,8 @@ export interface Prefs {
   sounds: boolean;
   /** Today's "Waiting on you": only what's urgent (the rest one tap away). */
   asksUrgentOnly: boolean;
+  /** A computer's cursor that leans, bounces and waves (null: on, unless motion is turned down). */
+  livelyCursor: boolean | null;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -46,6 +48,7 @@ const DEFAULTS: Prefs = {
   ideasTag: true,
   sounds: true,
   asksUrgentOnly: false,
+  livelyCursor: null,
 };
 
 function read(): Prefs {

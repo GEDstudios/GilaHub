@@ -179,7 +179,7 @@ function Duties() {
   }, [me?.color, me, partnerColor]);
 
   // On a computer, the cursor comes alive: it leans, bounces and waves (ui/liveCursor.ts).
-  useEffect(() => startLiveCursor(), []);
+  useEffect(() => startLiveCursor(prefs.livelyCursor), [prefs.livelyCursor]);
 
   useEffect(() => {
     void updateBadge(todayView(hub, todayRef()).dueCount, prefs.badge);

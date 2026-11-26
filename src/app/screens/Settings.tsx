@@ -1,4 +1,5 @@
 import { playSound } from '../ui/sounds';
+import { hasMouse, wantsLiveCursor } from '../ui/liveCursor';
 import { startTour } from '../tour';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
@@ -497,6 +498,14 @@ function ThisDevice() {
                 }}
               />
             }
+          />
+        ) : null}
+        {hasMouse() ? (
+          <OptRow
+            icon="hand"
+            title="Lively cursor"
+            sub="Your mouse leans, bounces, and waves hello when you rest"
+            trail={<Switch on={wantsLiveCursor(prefs.livelyCursor)} label="Lively cursor" onChange={(on) => setPrefs({ livelyCursor: on })} />}
           />
         ) : null}
         <OptRow
