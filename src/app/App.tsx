@@ -56,12 +56,12 @@ function useAdd() {
 function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
-      // The tick circle in brand green: its outline open at the top right, the check's tip
-      // passing out through the middle of the gap; outline and check of near-equal weight.
-      <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
-        <circle cx="18.5" cy="21.5" r="14.5" fill="var(--mint)" />
-        <circle cx="18.5" cy="21.5" r="14.5" fill="none" stroke="#0a0a04" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="74.91 16.20" transform="rotate(-13.0 18.5 21.5)" />
-        <path d="M10.7 21.1L16.3 26.7L30.5 9.5" fill="none" stroke="#0a0a04" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      // Gila Duo, like the app's icons: an ink tick circle, open at the top right where the
+      // check's tip passes out, over a disc of brand green slipped off-register.
+      <svg className="addmenu__glyph" aria-hidden="true" viewBox="0 0 40 40">
+        <circle cx="21.2" cy="23.2" r="13" fill="var(--mint)" />
+        <circle cx="19" cy="21" r="13" fill="none" stroke="#0a0a04" strokeWidth="2.2" strokeLinecap="round" strokeDasharray="65.80 15.88" transform="rotate(-9.3 19 21)" />
+        <path d="M11.3 20.8L16.5 26L31.5 8.1" fill="none" stroke="#0a0a04" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   if (kind === 'buy')
