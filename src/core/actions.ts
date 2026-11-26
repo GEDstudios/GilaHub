@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type AisleConf, type Idea, type Tag, type Item, type Moment, type Note, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { LINE_COLORS, type AisleConf, type Idea, type Tag, type Item, type Photo, type Moment, type Note, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { aisleGlyph, categorize, categoryMeta, categoryOrder, emojiFor, lookup, routeFlavor, type Flavor } from '../smart/categorize';
@@ -259,6 +259,7 @@ export class Hub {
     this.store.batch(() => {
       this.store.mutate('list', id, { visibility, owner: who });
       this.store.setScope('list', id, this.listScope({ visibility, owner: who }));
+      this.rescopePhotos(`list:${id}`);
       for (const it of this.store.all('item')) if (it.listId === id && !it.parentId) this.rescope(it.id);
     });
   }
@@ -447,6 +448,7 @@ export class Hub {
         const scope = this.scopeForItem(this.item(it.id) ?? it);
         this.store.setScope('item', it.id, scope);
         for (const log of this.store.all('log')) if (log.itemId === it.id) this.store.setScope('log', log.id, scope);
+        this.rescopePhotos(`item:${it.id}`);
       }
     });
   }
@@ -614,7 +616,17 @@ export class Hub {
     const item = this.item(id);
     if (!item) return () => {};
     const kind = this.tickKind(item);
-    if (kind === 'roll') return this.completeRepeating(id);
+    if (kind === 'roll') {
+      // A repeating one done this time is out of Ongoing (it's back for its next time).
+      const was = item.ongoingAt ?? null;
+      const undo = this.completeRepeating(id);
+      if (!was) return undo;
+      this.store.mutate('item', id, { ongoingAt: null, ongoingBy: null });
+      return () => {
+        undo();
+        this.store.mutate('item', id, { ongoingAt: was, ongoingBy: item.ongoingBy ?? null });
+      };
+    }
     if (kind === 'confirm') return this.confirm(id);
     if (kind === 'take-back') return this.sendBack(id);
     if (kind === 'submit') {
@@ -975,6 +987,18 @@ export class Hub {
     if (!item) return;
     const n = item.qty && /^\d+$/.test(item.qty) ? +item.qty : 1;
     this.updateItem(id, { qty: String(n + 1) });
+  }
+
+  /**
+   * Ongoing: put a task in (I'm doing it now: swiped right) or take it out. Only a top-level task
+   * that's still open goes in; one already ticked stays until it's cleared.
+   */
+  setOngoing(id: string, on: boolean): Undo {
+    const item = this.item(id);
+    if (!item || item.parentId || (on && item.done) || !!item.ongoingAt === on) return () => {};
+    const prev = { ongoingAt: item.ongoingAt ?? null, ongoingBy: item.ongoingBy ?? null };
+    this.store.mutate('item', id, on ? { ongoingAt: Date.now(), ongoingBy: this.meId } : { ongoingAt: null, ongoingBy: null });
+    return () => this.store.mutate('item', id, prev);
   }
 
   /** Clear: what was done here (or just these) is filed away (Again? remembers it). */
@@ -1443,7 +1467,7 @@ export class Hub {
   }
 
   /** A picture on an idea or a note, once all its parts are here (null while syncing, or none). */
-  shotOf(t: 'idea' | 'note', id: string): string | null {
+  shotOf(t: 'idea' | 'note' | 'photo', id: string): string | null {
     const rec = this.store.get(t, id) as (Record<string, unknown> & { shotN?: number | null; shotV?: string | null }) | undefined;
     if (!rec?.shotN || !rec.shotV) return null;
     let out = '';
@@ -1456,7 +1480,7 @@ export class Hub {
   }
 
   /** Put (or, null, take off) a picture: the parts first, each its own op (a sync op is size-capped), then the count. */
-  setShot(t: 'idea' | 'note', id: string, dataUrl: string | null): void {
+  setShot(t: 'idea' | 'note' | 'photo', id: string, dataUrl: string | null): void {
     if (!this.store.get(t, id)) return;
     if (!dataUrl) {
       this.store.mutate(t, id, { shotN: null, shotV: null });
@@ -1469,6 +1493,67 @@ export class Hub {
       for (let i = 0; i < n; i++) this.store.mutate(t, id, { [`shot${i}`]: `${v}:${dataUrl.slice(i * SIZE, (i + 1) * SIZE)}` });
       this.store.mutate(t, id, { shotN: n, shotV: v });
     });
+  }
+
+  /** Photos on a task ("item:<id>") or a folder ("list:<id>"), oldest first. */
+  photosOf(on: string): Photo[] {
+    return this.store
+      .all('photo')
+      .filter((p) => p.on === on && !p.deleted)
+      .sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  /** The scope a photo on this thing is sealed with: the thing's own. */
+  private photoScope(on: string): Scope {
+    const [kind, id] = [on.slice(0, on.indexOf(':')), on.slice(on.indexOf(':') + 1)];
+    if (kind === 'item') {
+      const item = this.item(id);
+      return item ? this.scopeForItem(item) : 'h';
+    }
+    return this.store.scopeOf('list', id);
+  }
+
+  /** Add a photo (a small JPEG data URL) to a task or a folder. Returns its id. */
+  addPhoto(on: string, dataUrl: string): string {
+    const id = newId();
+    this.store.batch(() => {
+      this.store.init('photo', id, this.photoScope(on));
+      this.store.mutate('photo', id, { on, by: this.meId, createdAt: Date.now() });
+      this.setShot('photo', id, dataUrl);
+    });
+    return id;
+  }
+
+  removePhoto(id: string): Undo {
+    if (!this.store.get('photo', id)) return () => {};
+    this.store.mutate('photo', id, { deleted: true });
+    return () => this.store.mutate('photo', id, { deleted: false });
+  }
+
+  /** Re-seal a thing's photos with its scope (after its privacy changed). */
+  private rescopePhotos(on: string): void {
+    const scope = this.photoScope(on);
+    for (const p of this.store.all('photo')) if (p.on === on) this.store.setScope('photo', p.id, scope);
+  }
+
+  /**
+   * Tags used lately, newest first: from when each task's tags were last set (on any device),
+   * so the picker can offer them first.
+   */
+  recentTags(limit = 8): string[] {
+    const seen: Array<[string, string]> = [];
+    for (const i of this.store.all('item')) {
+      if (!i.tags?.length) continue;
+      const at = this.store.record('item', i.id)?.c.tags ?? '';
+      seen.push([at, i.id]);
+    }
+    seen.sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0));
+    const out: string[] = [];
+    for (const [, id] of seen) {
+      for (const t of this.item(id)?.tags ?? []) if (!out.includes(t) && this.tag(t)) out.push(t);
+      if (out.length >= limit) break;
+    }
+    return out.slice(0, limit);
   }
 
   ideaShot(id: string): string | null {

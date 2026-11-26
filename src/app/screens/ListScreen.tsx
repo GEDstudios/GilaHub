@@ -10,7 +10,8 @@ import { Swatches } from '../components/pickers';
 import { listDefaultVis, visLabel, VIS_ICON } from '../privacy';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
-import { DoneTray, ProjectItems } from '../components/ProjectItems';
+import { OngoingTray, ProjectItems } from '../components/ProjectItems';
+import { Photos, useAddPhoto } from '../components/Photos';
 import { ItemRow } from '../components/ItemRow';
 import { useHub, usePartnerHere, useRt } from '../context';
 import { back, navigate } from '../router';
@@ -36,11 +37,21 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   const hub = useHub();
   const { toast, openSheet } = useOverlays();
   const list = hub.list(listId);
+  const addPhoto = useAddPhoto(`list:${listId}`);
   if (!list) return null;
   const mineToChange = !list.owner || list.owner === hub.meId;
   return (
     <Sheet onClose={onClose} title={list.name}>
       <div className="group">
+        <OptRow
+          icon="image"
+          title="Add a photo"
+          onClick={() => {
+            // Asked in this tap (the picker needs it), then the sheet goes.
+            void addPhoto();
+            onClose();
+          }}
+        />
         <OptRow
             icon="refresh"
             title="Uncheck all"
@@ -244,54 +255,26 @@ export function ListScreen({ id }: { id: string }) {
   return <ProjectPage id={id} />;
 }
 
-/** The project's header buttons: search it, Start (or Pause), its "…" and its New. */
-export function ProjectActions({ listId, label, onNew, focus }: { listId: string; label: string; onNew: () => void; focus?: { on: boolean; toggle: () => void } }) {
+/** The folder's header buttons: search it, its "…" and its New. */
+export function ProjectActions({ listId, label, onNew }: { listId: string; label: string; onNew: () => void }) {
   return (
     <>
-      {focus?.on ? null : <IconButton icon="search" label="Search this folder" onClick={() => openSearch(listId)} />}
-      {focus ? <IconButton icon={focus.on ? 'pause' : 'play'} label={focus.on ? 'Pause' : 'Start'} onClick={focus.toggle} /> : null}
-      {focus?.on ? null : <ProjectMenuButton listId={listId} />}
+      <IconButton icon="search" label="Search this folder" onClick={() => openSearch(listId)} />
+      <ProjectMenuButton listId={listId} />
       <NewButton label={label} onClick={onNew} />
     </>
   );
 }
 
-/** While we're on it (Start): the screen stays on. */
-function useWakeLock(on: boolean) {
-  useEffect(() => {
-    if (!on || !('wakeLock' in navigator)) return;
-    let lock: WakeLockSentinel | null = null;
-    let alive = true;
-    const acquire = async () => {
-      try {
-        lock = await navigator.wakeLock.request('screen');
-      } catch {
-        /* denied — fine */
-      }
-    };
-    const onVis = () => {
-      if (alive && document.visibilityState === 'visible') void acquire();
-    };
-    void acquire();
-    document.addEventListener('visibilitychange', onVis);
-    return () => {
-      alive = false;
-      document.removeEventListener('visibilitychange', onVis);
-      void lock?.release().catch(() => {});
-    };
-  }, [on]);
-}
-
 /**
- * Start: I'm on this project now (in the store, cleaning the flat). The screen stays on, my
- * partner's phone knows (and once in a while hears: "Guy is on Shopping. Need anything?"), and
- * what they add or mark urgent here shows up as it happens.
+ * On it: something of mine here is ongoing and I'm looking at it (in the store, cleaning the
+ * flat). My partner's phone knows (and once in a while hears: "Guy is on Shopping. Need
+ * anything?"), and what they add or mark urgent here shows up as it happens.
  */
 function useOnIt(on: boolean, listId: string, name: string) {
   const hub = useHub();
   const rt = useRt();
   const partner = hub.partner();
-  useWakeLock(on);
   useEffect(() => {
     if (!on) return;
     rt.sync?.setPresence(`on:${listId}`);
@@ -366,9 +349,10 @@ function ProjectPage({ id }: { id: string }) {
   const view = hub.viewOf(list);
   const v = projectView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(`l:${id}`);
-  // Start: when this round began (null: not on it). Only then do ticks gather in Ongoing.
-  const [since, setSince] = useState<number | null>(null);
-  const focus = since !== null;
+  // Ongoing: what's swiped in (being done now), and what was ticked from it, until cleared.
+  const ongoingOpen = v.open.filter((i) => i.ongoingAt);
+  const ongoingDone = v.tray.filter((i) => i.ongoingAt);
+  const focus = ongoingOpen.some((i) => i.ongoingBy === hub.meId);
   useOnIt(focus, id, list?.name ?? '');
   const flash = usePartnerNews(v.open, focus);
   const partnerHere = usePartnerHere();
@@ -385,18 +369,18 @@ function ProjectPage({ id }: { id: string }) {
     );
   }
 
-  const keep = (i: Item) => filter.test(i, true);
-  const groups = filter.active ? v.groups.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length || g.listId === id) : v.groups;
+  // What's ongoing is in its card, not in the lists below.
+  const keep = (i: Item) => !i.ongoingAt && filter.test(i, true);
+  const groups = v.groups.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length || g.listId === id || !filter.active);
   const urgent = v.urgent.filter(keep);
   const shownN = groups.reduce((n, g) => n + g.items.length, 0);
   const lists = new Set(v.open.map((i) => i.listId));
   const parent = hub.parentOf(id);
   const n = v.open.length;
-  // Ongoing: what was ticked here since Start, not cleared yet. Everything else done is just Done.
-  const ongoing = since !== null ? v.tray.filter((i) => (i.doneAt ?? 0) >= since) : [];
-  const done = [...v.tray.filter((i) => !ongoing.includes(i)), ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
-  const total = n + ongoing.length;
-  const pct = total && ongoing.length ? Math.round((ongoing.length / total) * 100) : null;
+  // Everything else done is just Done.
+  const done = [...v.tray.filter((i) => !i.ongoingAt), ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
+  const total = ongoingOpen.length + ongoingDone.length;
+  const pct = total && ongoingDone.length ? Math.round((ongoingDone.length / total) * 100) : null;
   const shopper = partnerHere && partnerHere.listId === id ? hub.member(partnerHere.member) : undefined;
 
   const again = (name: string) => {
@@ -404,16 +388,13 @@ function ProjectPage({ id }: { id: string }) {
     markFresh(res.id);
     playSound('add');
   };
-  /** Pause: the round ends; what was ticked in it is simply done. */
-  const stop = () => setSince(null);
-  /** Clear: what's ongoing is filed away (Again? remembers it), and the round ends. */
+  /** Clear: what's been done from Ongoing is filed away (Again? remembers it); the rest stays on. */
   const clear = () => {
-    const k = ongoing.length;
+    const k = ongoingDone.length;
     const undo = hub.clearDone(
       v.lists.map((l) => l.id),
-      ongoing.map((i) => i.id),
+      ongoingDone.map((i) => i.id),
     );
-    stop();
     haptic('success');
     toast(k ? `Cleared ${k}` : 'Done for now', { action: { label: 'Undo', run: undo } });
   };
@@ -422,11 +403,11 @@ function ProjectPage({ id }: { id: string }) {
     <div className={`projpage ${focus ? 'is-onit' : ''}`}>
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
-        actions={<ProjectActions listId={id} label={label} onNew={openNew} focus={n || focus ? { on: focus, toggle: () => (focus ? stop() : setSince(Date.now())) } : undefined} />}
+        actions={<ProjectActions listId={id} label={label} onNew={openNew} />}
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} />}
       >
-        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
+        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
       </Band>
       <div className="column">
         <Lens filter={filter} items={v.open} lists={inside ? v.lists : undefined}>
@@ -461,21 +442,23 @@ function ProjectPage({ id }: { id: string }) {
           </div>
         ) : null}
 
-        {focus ? <DoneTray items={ongoing} left={n} onOut={(i) => hub.toggle(i.id)} onClear={clear} strong /> : null}
+        <Photos on={`list:${id}`} />
+
+        {total ? <OngoingTray open={ongoingOpen} done={ongoingDone} onOut={(i) => hub.toggle(i.id)} onClear={clear} /> : null}
 
         <ProjectItems
           groups={groups}
           urgent={urgent}
           cards={view === 'cards'}
-          draggable={!focus}
+          draggable
           showList={lists.size > 1 && (view === 'tags' || !inside)}
           flash={flash}
         />
         {filter.active && n && !shownN ? <p className="hint">Nothing here with this filter.</p> : null}
 
-        {!focus ? <SubProjects list={list} /> : null}
+        <SubProjects list={list} />
 
-        {!focus && done.length ? (
+        {done.length ? (
           <Disclosure title="Done" count={done.length}>
             <ul className="rows">
               {done.slice(0, 40).map((i) => (

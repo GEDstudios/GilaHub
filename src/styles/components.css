@@ -7564,3 +7564,254 @@ textarea.nf__write {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------- rows: swipe, unfold, photo */
+
+/* Swiped sideways: the row follows the finger (translate, so a drag's transform is left alone). */
+.row {
+  translate: var(--swipe, 0px) 0;
+  transition:
+    background 140ms var(--ease),
+    translate 340ms var(--spring);
+}
+
+.row.is-swiping {
+  z-index: 1;
+  transition: background 140ms var(--ease);
+}
+
+/* What letting go will do, under the row: a band in my colour (Ongoing) or a quiet one (Not now). */
+.row__swipe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100vw;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.row__swipe--right {
+  right: 100%;
+  justify-content: flex-end;
+  background: var(--me-light, var(--lemon));
+}
+
+.row__swipe--left {
+  left: 100%;
+  justify-content: flex-start;
+  background: var(--tile-2);
+  color: var(--text-2);
+}
+
+.row.is-swiping .row__swipe {
+  display: flex;
+}
+
+.row__swipe .icon {
+  --s: 18;
+  transition: transform 240ms var(--spring);
+}
+
+.row.is-armed .row__swipe .icon {
+  transform: scale(1.3);
+}
+
+.row.is-armed .row__swipe--right .icon {
+  transform: scale(1.3) translateX(4px);
+}
+
+/* With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). */
+.row__ongo {
+  display: none;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-2);
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.row__ongo .icon {
+  --s: 15;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover > .row__trail > .row__ongo {
+    display: grid;
+  }
+
+  .row__ongo:hover {
+    color: var(--ink);
+    background: var(--me-light, var(--lemon));
+  }
+}
+
+.meta--ongoing {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.meta--ongoing .icon {
+  --s: 13;
+}
+
+/* A task's photo, small, at the row's end. */
+.row__thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgb(10 10 4 / 0.08);
+  transform: rotate(-3deg);
+}
+
+/* Its subtasks, unfolded under it: tap the n/m. */
+.meta--fold {
+  padding: 2px 6px 2px 4px;
+  margin: -2px -6px -2px -4px;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+}
+
+@media (hover: hover) {
+  .meta--fold:hover {
+    background: rgb(10 10 4 / 0.05);
+  }
+}
+
+.meta--fold .meta__chev {
+  --s: 13;
+  transition: transform 220ms var(--ease);
+}
+
+.meta--fold.is-open .meta__chev {
+  transform: rotate(180deg);
+}
+
+.row--unfolded {
+  flex-wrap: wrap;
+}
+
+.rows.rows--sub {
+  flex-basis: 100%;
+  margin: 2px 0 -4px 22px;
+  border-radius: 14px;
+  background: transparent;
+  overflow: visible;
+  animation: row-in 220ms var(--ease) both;
+}
+
+.rows--sub .row {
+  min-height: 44px;
+  padding: 6px 8px 6px 14px;
+  background: transparent;
+}
+
+.rows--sub .row__title {
+  font-size: 15px;
+}
+
+.rows--sub .row + .row::before {
+  left: 44px;
+}
+
+.rows--sub .check {
+  transform: scale(0.86);
+}
+
+.rows--cards .rows--sub {
+  margin-left: 0;
+}
+
+/* ---------------------------------------------------------------- photos on a task or a folder */
+
+.photos {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 14px -16px 4px;
+  padding: 8px 16px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.photos::-webkit-scrollbar {
+  display: none;
+}
+
+/* Each one a little print: a white edge, a soft shadow, a touch turned. */
+.photos__print {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 88px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(10 10 4 / 0.12),
+    0 8px 16px -8px rgb(10 10 4 / 0.35);
+  transition: transform 220ms var(--spring);
+  animation: sticky-in 520ms var(--spring) both;
+}
+
+.photos__print:active {
+  transform: scale(0.95);
+}
+
+.photos__print img,
+.photos__wait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
+  object-fit: cover;
+  background: var(--tile-2);
+}
+
+.photos__add {
+  position: relative;
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1.5px dashed rgb(10 10 4 / 0.25);
+  color: var(--text-2);
+}
+
+.photos__add .icon {
+  --s: 22;
+}
+
+.photos__add .photos__plus {
+  --s: 13;
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.photosheet {
+  display: grid;
+  gap: 16px;
+}
+
+.photosheet img {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 14px;
+  background: var(--tile);
+}

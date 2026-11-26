@@ -57,9 +57,14 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
   const sugg = suggested.filter((t) => !on.has(t) && hub.tag(t));
   const query = fold(q.trim().replace(/^#/, ''));
   const exact = all.find((t) => fold(t.name) === query);
-  const list: Tag[] = query
-    ? all.filter((t) => fold(t.name).includes(query))
-    : [...all.filter((t) => on.has(t.id)), ...sugg.flatMap((t) => hub.tag(t) ?? []), ...all.filter((t) => !on.has(t.id) && !sugg.includes(t.id))];
+  // The order is set as it opens, so picking doesn't shuffle it: what it wears, what we used
+  // lately, what the words suggest, then the rest in our order. New ones join at the end.
+  const [order] = useState(() => [...new Set([...value, ...hub.recentTags(), ...sugg])]);
+  const rank = (id: string) => {
+    const i = order.indexOf(id);
+    return i < 0 ? order.length : i;
+  };
+  const list: Tag[] = query ? all.filter((t) => fold(t.name).includes(query)) : [...all].sort((a, b) => rank(a.id) - rank(b.id));
   const flip = (id: string) => {
     haptic('tick');
     onChange(on.has(id) ? value.filter((t) => t !== id) : [...value, id]);

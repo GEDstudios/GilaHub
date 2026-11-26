@@ -19,6 +19,8 @@ export interface Prefs {
   earlierOpen: boolean;
   /** Today: what my person asked of me is open (it waits folded; it's rarely for right now). */
   asksOpen: boolean;
+  /** Tasks whose subtasks are unfolded in lists (this device). */
+  unfolded: string[];
   /** Today: the invite card stays away until then (ms; 0 = shown). */
   inviteHiddenUntil: number;
   /** When this device last downloaded a backup (ms), for Settings and the reset nudge. */
@@ -52,6 +54,7 @@ const DEFAULTS: Prefs = {
   haptics: true,
   earlierOpen: false,
   asksOpen: false,
+  unfolded: [],
   inviteHiddenUntil: 0,
   lastBackupAt: null,
   ideasTag: true,

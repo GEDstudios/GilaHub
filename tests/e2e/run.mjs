@@ -103,6 +103,23 @@ async function openAsks(p) {
     // Nothing folded (or already open).
   }
 }
+/** Swipe a row sideways with a finger (touch events: what a phone sends). */
+async function swipeRow(p, ctx, row, dx) {
+  await row.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+  await p.waitForTimeout(250);
+  const r = await row.boundingBox();
+  const cdp = await ctx.newCDPSession(p);
+  const x = r.x + 60;
+  const y = r.y + r.height / 2;
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  for (let i = 1; i <= 12; i++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + (dx * i) / 12, y, id: 1 }] });
+    await p.waitForTimeout(16);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await p.waitForTimeout(500);
+  await cdp.detach();
+}
 let failures = 0;
 const check = async (label, fn) => {
   try {
@@ -201,13 +218,14 @@ try {
     if (n !== 1) throw new Error(`expected 1 milk row, found ${n}`);
   });
 
-  await check('Hila presses Start: milk goes into Ongoing; Guy sees it done', async () => {
-    // Without Start, a tick is just done: no tray.
-    if (await hila.locator('.cartcard').count()) throw new Error('a tray before Start');
-    await hila.getByRole('button', { name: 'Start', exact: true }).click();
-    await hila.locator('.cartcard', { hasText: 'Ongoing' }).waitFor({ timeout: 3000 });
-    await hila.locator('li.row', { hasText: 'milk' }).getByRole('checkbox').click();
-    await hila.locator('.cartcard .cartchip', { hasText: 'milk' }).waitFor({ timeout: 3000 });
+  await check('Hila swipes milk right: it goes into Ongoing; ticked there, Guy sees it done', async () => {
+    // Nothing swiped in: a tick is just done, no card.
+    if (await hila.locator('.cartcard').count()) throw new Error('an Ongoing card before anything went in');
+    await swipeRow(hila, hilaCtx, hila.locator('li.row', { has: hila.locator('.row__title', { hasText: /^milk/i }) }).first(), 150);
+    await hila.locator('.cartcard', { hasText: 'Ongoing' }).locator('li.row', { hasText: /milk/i }).waitFor({ timeout: 3000 });
+    await shot(hila, '07a-shop-ongoing');
+    await hila.locator('.cartcard li.row', { hasText: /milk/i }).getByRole('checkbox').click();
+    await hila.locator('.cartcard .cartchip', { hasText: /milk/i }).waitFor({ timeout: 3000 });
     await shot(hila, '07-shop-hila');
     await guy.goto(`${url}/shop`);
     try {
@@ -215,7 +233,9 @@ try {
     } finally {
       await shot(guy, '07b-shop-guy');
     }
-    await hila.getByRole('button', { name: 'Pause', exact: true }).click();
+    // Clear files it away; the card goes.
+    await hila.locator('.cartcard').getByRole('button', { name: 'Clear', exact: true }).click();
+    await hila.locator('.cartcard').waitFor({ state: 'detached', timeout: 3000 });
   });
 
   // ---------- Privacy

@@ -1,4 +1,6 @@
 import { PathCrumbs } from '../components/PathCrumbs';
+import { addPhotoTo, Photos } from '../components/Photos';
+import { haptic } from '../ui/haptics';
 import { PlacePicker } from '../components/PlacePicker';
 import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
@@ -315,6 +317,10 @@ export function ItemScreen({ id }: { id: string }) {
       ),
   };
 
+  // Its photos (a chip adds one; they show above the notes).
+  const photoN = hub.photosOf(`item:${id}`).length;
+  const addPhoto = () => addPhotoTo(hub, toast, `item:${id}`);
+
   // Its tags (what the words suggest is offered first), and on a shopping list how many.
   const tags = hub.tagsOf(item);
   const tl = tagsLabel(hub, tags);
@@ -456,6 +462,27 @@ export function ItemScreen({ id }: { id: string }) {
               qtyChip,
               tagsChip,
               alsoChip,
+              {
+                key: 'photo',
+                label: photoN ? `Photos ${photoN}` : 'Photo',
+                icon: 'image' as const,
+                set: photoN > 0,
+                toggle: () => void addPhoto(),
+              },
+              ...(!item.parentId && (!item.done || item.ongoingAt)
+                ? [
+                    {
+                      key: 'ongoing',
+                      label: 'Ongoing',
+                      icon: 'play' as const,
+                      set: !!item.ongoingAt,
+                      toggle: () => {
+                        haptic('select');
+                        hub.setOngoing(id, !item.ongoingAt);
+                      },
+                    },
+                  ]
+                : []),
             ]}
             value={draft}
             onChange={change}
@@ -473,6 +500,8 @@ export function ItemScreen({ id }: { id: string }) {
             <Icon name="hand" className="icon--sm" /> I’ll take it
           </button>
         ) : null}
+
+        <Photos on={`item:${id}`} />
 
         <textarea
           className="notes"

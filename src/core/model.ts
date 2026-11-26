@@ -5,7 +5,7 @@
  * Lists hold items; items nest infinitely through `parentId`.
  */
 
-export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea' | 'moment' | 'note' | 'tag';
+export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea' | 'moment' | 'note' | 'tag' | 'photo';
 
 /** Encryption scope: 'h' = household key (both partners), 'p:<memberId>' = personal key. */
 export type Scope = 'h' | `p:${string}`;
@@ -176,6 +176,9 @@ export interface Item {
    * "doorknob" on Home shopping): each points at the other, and ticking one ticks both.
    */
   linkId?: string | null;
+  /** In Ongoing (swiped right): being done now, since then, by whom. Stays on once ticked, until cleared. */
+  ongoingAt?: number | null;
+  ongoingBy?: string | null;
   createdAt: number;
   createdBy: string;
   deleted?: boolean;
@@ -337,6 +340,21 @@ export interface Tag {
   deleted?: boolean;
 }
 
+/**
+ * A photo on a task or a folder ("item:<id>", "list:<id>"), kept in parts like a note's picture
+ * (Hub.setShot), sealed the way the thing it's on is (an Only me task's photos are only mine).
+ */
+export interface Photo {
+  id: string;
+  on: string;
+  by: string;
+  createdAt: number;
+  shotN?: number | null;
+  shotV?: string | null;
+  [part: `shot${number}`]: string | null | undefined;
+  deleted?: boolean;
+}
+
 export interface TableTypes {
   member: Member;
   list: List;
@@ -349,4 +367,5 @@ export interface TableTypes {
   moment: Moment;
   note: Note;
   tag: Tag;
+  photo: Photo;
 }

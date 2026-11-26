@@ -227,44 +227,58 @@ export function ProjectItems({
 }
 
 /**
- * Ongoing: while I'm on a project (Start), what I tick there drops in here, as itself. The bar
- * shows how much of this round is done, a tap puts a thing back, and Clear files them away
- * (Again? remembers) and ends the round. The same in every project.
+ * Ongoing: what's being done now. A task swiped right comes in here (it leaves the list below),
+ * ticked it stays as a chip (tap puts it back to doing), and Clear files the done ones away
+ * (Again? remembers them). Swipe one left to take it out: not now. The same in every folder.
  */
-export function DoneTray({ items, left, onOut, onClear, strong }: { items: Item[]; left: number; onOut: (i: Item) => void; onClear: () => void; strong: boolean }) {
+export function OngoingTray({ open, done, onOut, onClear }: { open: Item[]; done: Item[]; onOut: (i: Item) => void; onClear: () => void }) {
   const hub = useHub();
-  const total = items.length + left;
-  const pct = total ? Math.round((items.length / total) * 100) : 100;
+  const total = open.length + done.length;
+  const pct = total ? Math.round((done.length / total) * 100) : 0;
+  const settle = useSettle(idOf);
+  const rows = settle.view('ongoing', open);
   return (
-    <section className={`cartcard ${left === 0 ? 'is-full' : ''}`} aria-label={`Ongoing: ${items.length} of ${total}`}>
-      <div className="cartcard__head">
-        <span className="cartcard__basket" key={items.length}>
-          <Icon name="check" />
-          <span className="cartcard__n num">{items.length}</span>
-        </span>
-        <span className="cartcard__title">Ongoing</span>
-        <span className="cartcard__bar" aria-hidden="true">
-          <span style={{ width: `${pct}%` }} />
-        </span>
-        <span className="cartcard__of num">
-          {items.length}/{total}
-        </span>
-      </div>
-      <div className="cartcard__items">
-        {items.length ? null : <p className="cartcard__hint">Tick things as you go: they gather here.</p>}
-        {items.map((i) => {
-          const e = hub.emojiOf(i);
-          return (
-            <button key={i.id} type="button" className="cartchip" onClick={() => onOut(i)} aria-label={`Put ${i.title} back`}>
-              {e ? <span className="cartchip__e">{e}</span> : <Icon name="check" className="icon--xs" />}
-              <span dir="auto">{i.title}</span>
-            </button>
-          );
-        })}
-      </div>
-      <button type="button" className={`btn btn--sm cartcard__pay ${strong || left === 0 ? '' : 'btn--quiet'}`} onClick={onClear}>
-        Clear
-      </button>
-    </section>
+    <SettleContext.Provider value={settle}>
+      <section className={`cartcard ${open.length === 0 ? 'is-full' : ''}`} aria-label={`Ongoing: ${done.length} of ${total} done`}>
+        <div className="cartcard__head">
+          <span className="cartcard__basket" key={done.length}>
+            <Icon name="play" />
+            {open.length ? <span className="cartcard__n num">{open.length}</span> : null}
+          </span>
+          <span className="cartcard__title">Ongoing</span>
+          <span className="cartcard__bar" aria-hidden="true">
+            <span style={{ width: `${pct}%` }} />
+          </span>
+          <span className="cartcard__of num">
+            {done.length}/{total}
+          </span>
+        </div>
+        {rows.length ? (
+          <ul className="rows cartcard__rows">
+            {rows.map(({ row: i, settling }) => (
+              <ItemRow key={i.id} item={i} inTray settling={settling} />
+            ))}
+          </ul>
+        ) : null}
+        {done.length ? (
+          <div className="cartcard__items">
+            {done.map((i) => {
+              const e = hub.emojiOf(i);
+              return (
+                <button key={i.id} type="button" className="cartchip" onClick={() => onOut(i)} aria-label={`Put ${i.title} back`}>
+                  {e ? <span className="cartchip__e">{e}</span> : <Icon name="check" className="icon--xs" />}
+                  <span dir="auto">{i.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {done.length ? (
+          <button type="button" className={`btn btn--sm cartcard__pay ${open.length === 0 ? '' : 'btn--quiet'}`} onClick={onClear}>
+            Clear
+          </button>
+        ) : null}
+      </section>
+    </SettleContext.Provider>
   );
 }

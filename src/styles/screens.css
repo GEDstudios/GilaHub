@@ -1415,6 +1415,7 @@ html.is-searching :is(.tabbar:not(.tabbar--preview), .shopbar, .ideatag) {
   grid-template-columns: 1fr auto;
   grid-template-areas:
     'head pay'
+    'rows rows'
     'items items';
   align-items: center;
   gap: 10px 12px;
@@ -1492,6 +1493,13 @@ html.is-searching :is(.tabbar:not(.tabbar--preview), .shopbar, .ideatag) {
 
 .cartcard__pay {
   grid-area: pay;
+}
+
+/* What's being done now: real rows (tick them here; swipe one left: not now). */
+.cartcard__rows {
+  grid-area: rows;
+  margin: 0 -4px;
+  background: var(--tile);
 }
 
 .cartcard__items {
