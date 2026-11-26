@@ -118,6 +118,12 @@ if (typeof window !== 'undefined') {
 let memory: string[] | null = null;
 
 /** The path on screen now (also in a sandboxed frame, where history is kept in memory). */
+/** Run once any sheet that just closed has taken its step back out of the history. */
+export function afterSheets(fn: () => void): void {
+  if (unwinding > 0) waiting.push(fn);
+  else fn();
+}
+
 export function currentPath(): string {
   return memory ? memory[memory.length - 1] : location.pathname;
 }
@@ -159,6 +165,11 @@ export function navigate(to: Route | string, opts: { replace?: boolean } = {}): 
 
 /** Go back within the app, or to a sensible parent when opened directly. */
 export function back(fallback: Route): void {
+  // A sheet that just closed is still taking its step back: go once it has.
+  if (unwinding > 0) {
+    waiting.push(() => back(fallback));
+    return;
+  }
   if (memory && memory.length > 1) {
     memory.pop();
     depth = Math.max(0, depth - 1);

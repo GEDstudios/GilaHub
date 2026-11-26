@@ -1,10 +1,11 @@
 import { PathCrumbs } from '../components/PathCrumbs';
 import { addPhotoTo, Photos } from '../components/Photos';
 import { haptic } from '../ui/haptics';
+import { useBackGuard } from '../ui/backGuard';
 import { PlacePicker } from '../components/PlacePicker';
 import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
@@ -215,6 +216,35 @@ export function ItemScreen({ id }: { id: string }) {
     }
   }, [hub, id]);
 
+  // What it was when I opened it: Back asks before leaving with changes (keep them, or put it back).
+  const tracked = ['title', 'notes', 'due', 'dueTime', 'repeat', 'remind', 'nag', 'assignee', 'urgent', 'private', 'owner', 'tags', 'qty', 'needsOk'] as const;
+  const snapOf = (it: typeof item) => (it ? Object.fromEntries(tracked.map((k) => [k, it[k] ?? null])) : null);
+  const [snap] = useState(() => snapOf(item));
+  const changed = !!item && !!snap && (JSON.stringify(snapOf(item)) !== JSON.stringify(snap) || notes !== (item.notes ?? ''));
+  const upToRef = useRef<() => void>(() => back({ name: 'today' }));
+  const guard = useBackGuard({
+    dirty: changed,
+    title: 'Keep your changes?',
+    text: 'You changed this task. Keep it as it is now, or put it back the way it was.',
+    saveLabel: 'Keep changes',
+    discardLabel: 'Put it back',
+    onSave: () => {
+      const it = hub.item(id);
+      if (it && notes !== (it.notes ?? '')) hub.updateItem(id, { notes });
+      upToRef.current();
+    },
+    onDiscard: () => {
+      const it = hub.item(id);
+      if (it && snap) {
+        const privacy = it.private !== snap.private || it.owner !== snap.owner;
+        hub.store.mutate('item', id, snap as never);
+        if (privacy) hub.rescope(id);
+        setNotes((snap.notes as string | null) ?? '');
+      }
+      upToRef.current();
+    },
+  });
+
   // Start here: "Tap me to open me" is done by opening it (ticked as you leave, after reading).
   useEffect(
     () => () => {
@@ -255,6 +285,7 @@ export function ItemScreen({ id }: { id: string }) {
     : list
       ? { name: 'list' as const, id: list.id }
       : { name: 'today' as const };
+  upToRef.current = () => back(upTo);
   const steps = hub.childrenOf(id);
 
   // One thing, two places: "Also in Home shopping" (tap to go there, or stop), or "Also in…".
@@ -397,7 +428,9 @@ export function ItemScreen({ id }: { id: string }) {
   return (
     <>
       <Band
-        onBack={() => back(upTo)}
+        onBack={() => {
+          if (!guard.ask()) back(upTo);
+        }}
         mini={item.title}
         actions={
           editable ? (

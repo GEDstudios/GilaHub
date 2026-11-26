@@ -67,9 +67,10 @@ describe('a project for my person', () => {
     const id = hub.createList({ name: 'Her garden', kind: 'tasks', visibility: 'visible', owner: 'hila' });
     expect(hub.list(id)).toMatchObject({ visibility: 'visible', owner: 'hila' });
     expect(hub.store.scopeOf('list', id)).toBe('h');
-    // Hiding is never done to someone else's.
+    // One of hers that we both see can be made Private: it becomes mine, sealed with my key.
     hub.setListVisibility(id, 'private');
-    expect(hub.list(id)).toMatchObject({ visibility: 'visible', owner: 'hila' });
+    expect(hub.list(id)).toMatchObject({ visibility: 'private', owner: 'guy' });
+    expect(hub.store.scopeOf('list', id)).toBe('p:guy');
     hub.setListVisibility(id, 'visible', 'guy');
     expect(hub.list(id)?.owner).toBe('guy');
     hub.setListVisibility(id, 'visible', 'hila');

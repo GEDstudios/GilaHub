@@ -9,6 +9,7 @@ import { getPrefs, usePrefs } from '../prefs';
 import { projectView } from '../views';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
+import { useBackGuard } from '../ui/backGuard';
 import { lineVars } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
 import { EChip, InlineEditor, useSummary, type Field } from './editors';
@@ -161,6 +162,23 @@ function Composer({
     text: words.head,
     route,
     seed: restore?.seed,
+  });
+
+  // Back with something written: save it, or discard it (closing the question keeps writing).
+  useBackGuard({
+    dirty: !!text.trim() || own.length > 0,
+    title: 'Save this task?',
+    saveLabel: 'Save it',
+    discardLabel: 'Discard',
+    onSave: () => {
+      if (!c.parsed.title.trim() || !save(undefined, false)) return onDone();
+      saveDraft(null);
+      onDone();
+    },
+    onDiscard: () => {
+      saveDraft(null);
+      onDone();
+    },
   });
 
   // Kept while it's being written (a reload brings it back); gone once added or closed.

@@ -297,8 +297,9 @@ export class Hub {
   setListVisibility(id: string, visibility: Visibility, owner?: string | null): void {
     const list = this.list(id);
     if (!list) return;
-    // Only Only me is kept to its owner: hiding is never done to someone else.
-    if (visibility === 'private' && list.owner && list.owner !== this.meId) return;
+    // Someone's Private folder stays theirs. One of my person's that we both see can be made
+    // Private: it becomes mine, hidden from them (their tasks in it too).
+    if (visibility === 'private' && list.owner && list.owner !== this.meId && list.visibility === 'private') return;
     const who = visibility === 'shared' ? null : visibility === 'private' ? this.meId : (owner ?? list.owner ?? this.meId);
     this.store.batch(() => {
       this.store.mutate('list', id, { visibility, owner: who });

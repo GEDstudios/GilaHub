@@ -4402,10 +4402,10 @@ html:has(.iconlib) .fab {
 
 .pinboard {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(92px, 108px));
+  grid-template-columns: repeat(auto-fill, minmax(98px, 118px));
   justify-content: space-evenly;
-  gap: 8px 2px;
-  padding: 26px 16px 30px;
+  gap: 22px 14px;
+  padding: 22px 14px 24px;
   border-radius: 22px;
   background:
     radial-gradient(rgb(10 10 4 / 0.05) 1px, transparent 1.4px) 0 0 / 10px 10px,
@@ -5815,17 +5815,13 @@ textarea.nf__write {
 }
 
 /* On the board */
-/* Kept notes, tossed on the board: off the grid, turned, overlapping, each pinned or taped. */
+/* Kept notes on the board: an even grid in a shuffled order, each turned, pinned or taped. */
 .pinboard__note {
   position: relative;
-  z-index: var(--z, 1);
   display: grid;
   place-items: center;
   padding: 4px 0;
-  translate: var(--dx, 0) var(--dy, 0);
-  transition:
-    transform 280ms var(--spring),
-    translate 280ms var(--spring);
+  transition: transform 280ms var(--spring);
   animation: pin-drop 560ms var(--spring) both;
   animation-delay: calc(min(var(--i, 0), 12) * 45ms);
 }
@@ -7929,4 +7925,36 @@ textarea.nf__write {
 .hero__desc:focus-visible {
   outline: none;
   color: var(--ink);
+}
+
+/* Unsaved changes, on Back: Save or Discard. */
+.leaveq {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.leaveq .btn {
+  gap: 8px;
+}
+
+.leaveq__discard {
+  color: var(--danger, #c0392b);
+}
+
+/* Show tasks from…: a folded tree, a switch on each folder. */
+.showrow {
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.showrow__name {
+  flex: 1;
+  cursor: default;
+}
+
+.showrow__here {
+  font-size: 13px;
+  color: var(--text-3);
+  padding: 0 8px;
 }

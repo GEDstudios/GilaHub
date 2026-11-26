@@ -44,24 +44,12 @@ export function placeName(hub: ReturnType<typeof useHub>, place: string): string
   return { today: 'Today', shop: 'Shopping', chores: 'Chores', lists: 'Folders' }[kind] ?? 'Today';
 }
 
-/**
- * How a kept note landed on the board, the same every time (from its id): nudged off the grid,
- * turned, a little bigger or smaller, overlapping its neighbours, held by a pin or a bit of tape.
- */
-function messOf(id: string): { dx: number; dy: number; rot: number; scale: number; z: number; hold: 'pin' | 'tape'; pin: string } {
+/** Where a kept note lands on the board, the same every time (from its id): its place in the shuffle, and a pin or tape. */
+function messOf(id: string): { order: number; hold: 'pin' | 'tape'; pin: string } {
   let h = 2166136261;
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
-  const r = (k: number) => (((h >>> (k * 3)) & 1023) / 1023) * 2 - 1;
   const pins = ['pink', 'sky', 'lemon', 'mint', 'lilac', 'amber'];
-  return {
-    dx: Math.round(r(1) * 16),
-    dy: Math.round(r(2) * 14),
-    rot: Math.round(r(3) * 11),
-    scale: 0.74 + ((r(4) + 1) / 2) * 0.16,
-    z: 1 + Math.round(((r(5) + 1) / 2) * 6),
-    hold: r(6) > 0 ? 'pin' : 'tape',
-    pin: pins[Math.abs(h) % pins.length],
-  };
+  return { order: h >>> 0, hold: (h >>> 7) & 1 ? 'pin' : 'tape', pin: pins[(h >>> 11) % pins.length] };
 }
 
 /** A small, stable tilt per note. */
@@ -695,21 +683,24 @@ export function CollectedNotes() {
             Notes you tick off land here, to look back on
           </p>
         )}
-        {notes.map((n, i) => {
-          const m = messOf(n.id);
-          return (
-            <button
-              key={n.id}
-              type="button"
-              className={`pinboard__note pinboard__note--${m.hold}`}
-              style={{ '--dx': `${m.dx}px`, '--dy': `${m.dy}px`, '--z': m.z, '--i': i, '--pin': `var(--${m.pin})` } as CSSProperties}
-              aria-label={n.text}
-              onClick={() => openSheet((close) => <CollectedSheet id={n.id} onClose={close} />)}
-            >
-              <NoteFace look={lookOf(hub, n, `— ${hub.member(n.by)?.name ?? ''}`)} scale={m.scale} tilt={m.rot} />
-            </button>
-          );
-        })}
+        {/* An even grid, in a shuffled order (the same each time), each turned its own way. */}
+        {[...notes]
+          .sort((a, b) => messOf(a.id).order - messOf(b.id).order)
+          .map((n, i) => {
+            const m = messOf(n.id);
+            return (
+              <button
+                key={n.id}
+                type="button"
+                className={`pinboard__note pinboard__note--${m.hold}`}
+                style={{ '--i': i, '--pin': `var(--${m.pin})` } as CSSProperties}
+                aria-label={n.text}
+                onClick={() => openSheet((close) => <CollectedSheet id={n.id} onClose={close} />)}
+              >
+                <NoteFace look={lookOf(hub, n, `— ${hub.member(n.by)?.name ?? ''}`)} scale={0.8} tilt={tiltOf(n.id)} />
+              </button>
+            );
+          })}
       </div>
     </section>
   );

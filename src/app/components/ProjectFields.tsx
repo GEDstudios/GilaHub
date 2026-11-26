@@ -25,7 +25,8 @@ export function ListVisOptions({ value, owner, onPick }: { value: Visibility; ow
   const hub = useHub();
   const partner = hub.partner();
   const now = listDefaultVis(hub, { visibility: value, owner: owner ?? null });
-  const choices: VisChoice[] = ['ours', 'mine', ...(partner ? (['theirs'] as const) : []), ...(now === 'theirs' ? [] : (['private'] as const))];
+  // Every choice, whatever it is now: a folder set to Hila's can be made Private (mine, hidden from her).
+  const choices: VisChoice[] = ['ours', 'mine', ...(partner ? (['theirs'] as const) : []), 'private'];
   return (
     <>
       <Options

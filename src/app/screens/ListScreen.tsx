@@ -114,25 +114,46 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
 function ShowsSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const list = hub.list(listId);
+  const on = new Set(list?.shows ?? []);
+  // Folders inside folders fold into their parent; open from the start, the way down to the ones it shows.
+  const [open, setOpen] = useState<Set<string>>(() => new Set((list?.shows ?? []).flatMap((x) => hub.listPath(x).map((l) => l.id))));
   if (!list) return null;
-  const on = new Set(list.shows ?? []);
   const inside = new Set(hub.nestedLists(listId).map((l) => l.id));
-  const offered = hub.lists().filter((l) => l.id !== listId && !inside.has(l.id));
+  const offered = (l: List) => l.id !== listId && !inside.has(l.id);
+  const flip = (id: string) =>
+    setOpen((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const rows = (ls: List[], depth: number): ReactNode[] =>
+    ls.flatMap((l) => {
+      const subs = hub.subLists(l.id).filter((x) => x.id !== listId && !inside.has(x.id));
+      return [
+        <li key={l.id}>
+          <div className="place__row showrow" style={{ paddingInlineStart: 6 + depth * 18 }}>
+            <span className="place__pick showrow__name">
+              <ListBullet list={l} size="xs" />
+              <span dir="auto">{l.name}</span>
+            </span>
+            {subs.length ? (
+              <button type="button" className={`place__open ${open.has(l.id) ? 'is-open' : ''}`} aria-label={open.has(l.id) ? 'Fold' : 'Unfold'} aria-expanded={open.has(l.id)} onClick={() => flip(l.id)}>
+                <Icon name="chevron-down" className="icon--sm" />
+              </button>
+            ) : null}
+            {offered(l) ? <Switch on={on.has(l.id)} label={`Show ${l.name}’s tasks in ${list.name}`} onChange={(v) => hub.setShows(listId, l.id, v)} /> : <span className="showrow__here">here</span>}
+          </div>
+        </li>,
+        ...(open.has(l.id) ? rows(subs, depth + 1) : []),
+      ];
+    });
   return (
     <Sheet onClose={onClose} title={`Show in ${list.name}`}>
       <p className="sheet__lede">Their tasks show here too, each folder in its own group. {list.name}’s own tasks stay where they are.</p>
-      <div className="group">
-        {offered.map((l) => (
-          <OptRow
-            key={l.id}
-            icon={undefined}
-            lead={<ListBullet list={l} size="sm" />}
-            title={l.name}
-            sub={hub.parentOf(l.id) ? `In ${hub.parentOf(l.id)!.name}` : undefined}
-            trail={<Switch on={on.has(l.id)} label={`Show ${l.name}’s tasks in ${list.name}`} onChange={(v) => hub.setShows(listId, l.id, v)} />}
-          />
-        ))}
-      </div>
+      <ul className="place" aria-label="Folders">
+        {rows(hub.topLists().filter((l) => !inside.has(l.id)), 0)}
+      </ul>
     </Sheet>
   );
 }
