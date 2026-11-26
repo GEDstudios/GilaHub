@@ -56,11 +56,11 @@ function useAdd() {
 function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
-      // A box ticked by hand: the check swoops out past its corner, over a stroke of highlighter.
+      // The lemon tick circle, its outline trimmed open where the check reaches out.
       <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
-        <rect x="3" y="9" width="27" height="27" rx="7" fill="#fff" stroke="#0a0a04" strokeWidth="1.8" />
-        <path d="M9.5 22l6.5 6.5L36 5" fill="none" stroke="var(--lemon)" strokeWidth="8.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M9.5 22l6.5 6.5L36 5" fill="none" stroke="#0a0a04" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="20" cy="20.5" r="15" fill="var(--lemon)" />
+        <circle cx="20" cy="20.5" r="15" fill="none" stroke="#0a0a04" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="72 22.25" transform="rotate(-20 20 20.5)" />
+        <path d="M12.5 21l5 5L31.5 11.5" fill="none" stroke="#0a0a04" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   if (kind === 'buy')
