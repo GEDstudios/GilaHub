@@ -8161,153 +8161,152 @@ textarea.nf__write {
   padding-right: 2px;
 }
 
-/* ============================================================ Time: parts of the day, then − / + by a quarter hour */
-.tpick {
+/* ============================================================ Time, entered (a computer): hour : minute, AM / PM, OK */
+.tentry {
   display: grid;
   gap: 14px;
-  padding-top: 4px;
+  padding: 6px 2px 4px;
 }
 
-.tpick__parts {
+.tentry__head {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.tentry__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tentry__cell {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
 }
 
-.tpick__part {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  min-width: 0;
-  padding: 9px 2px 8px;
-  border-radius: 14px;
-  background: var(--tile);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-  transition: background 120ms var(--ease), transform 120ms var(--ease);
-}
-
-.tpick__part > span:first-child {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tpick__parttime {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-3);
-}
-
-.tpick__part:active {
-  transform: scale(0.96);
-}
-
-.tpick__part.is-on {
-  background: var(--cta);
-  color: var(--cta-text);
-}
-
-.tpick__part.is-on .tpick__parttime {
-  color: inherit;
-  opacity: 0.7;
-}
-
-.tpick__step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-}
-
-.tpick__btn {
-  flex: none;
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--tile);
-  color: var(--ink);
-  touch-action: manipulation;
-  user-select: none;
-  transition: background 120ms var(--ease), transform 120ms var(--ease);
-}
-
-.tpick__btn .icon {
-  --s: 20;
-}
-
-.tpick__btn:active {
-  transform: scale(0.92);
-  background: var(--tile-2);
-}
-
-.tpick__time {
-  width: 128px;
-  height: 52px;
+.tentry__box {
+  width: 96px;
+  height: 72px;
   border: 0;
-  border-radius: 14px;
-  background: transparent;
-  font: inherit;
+  border-radius: 16px;
+  background: var(--tile);
+  box-shadow: inset 0 0 0 2px transparent;
   font-family: var(--serif);
-  font-size: 34px;
+  font-size: 44px;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
   text-align: center;
   color: var(--ink);
   outline: none;
-  transition: background 140ms var(--ease);
+  caret-color: var(--ink);
+  transition: box-shadow 140ms var(--ease), background 140ms var(--ease);
 }
 
-.tpick__time::placeholder {
-  color: var(--text-4);
+.tentry__box:focus {
+  background: var(--card);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 4px var(--me-light, var(--lemon));
 }
 
-.tpick__time:focus {
-  background: var(--tile);
-}
-
-.tpick__hint {
-  margin: -4px 0 0;
-  text-align: center;
-  font-size: 12px;
+.tentry__label {
+  font-size: 13px;
   color: var(--text-3);
 }
 
-@media (hover: hover) {
-  .tpick__part:hover,
-  .tpick__btn:hover {
-    background: var(--tile-2);
-  }
-
-  .tpick__part.is-on:hover {
-    background: var(--cta);
-  }
+.tentry__colon {
+  align-self: flex-start;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-size: 40px;
+  color: var(--ink);
 }
 
-/* Small, in a row (Settings, a template's time): − 09:00 + */
-.tpick--compact .tpick__step {
+.tentry__ampm {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  height: 72px;
+  margin-inline-start: 6px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+
+.tentry__ampm button {
+  width: 56px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-3);
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+
+.tentry__ampm button + button {
+  border-top: 1.5px solid var(--line);
+}
+
+.tentry__ampm button.is-on {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+}
+
+.tentry__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+/* In a row (Settings, a template): just the boxes, small */
+.tentry--compact {
+  padding: 0;
+}
+
+.tentry__row--compact {
+  align-items: center;
   gap: 4px;
 }
 
-.tpick--compact .tpick__btn {
-  width: 32px;
-  height: 32px;
-}
-
-.tpick--compact .tpick__btn .icon {
-  --s: 15;
-}
-
-.tpick--compact .tpick__time {
-  width: 72px;
+.tentry__row--compact .tentry__box {
+  width: 40px;
   height: 34px;
+  border-radius: 10px;
   font-family: var(--font);
   font-size: 16px;
   font-weight: 600;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.tentry__row--compact .tentry__box:focus {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.tentry__row--compact .tentry__colon {
+  height: 34px;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tentry__row--compact .tentry__ampm {
+  height: 34px;
+  grid-template-rows: none;
+  grid-template-columns: 1fr 1fr;
+  margin-inline-start: 4px;
+  border-radius: 10px;
+}
+
+.tentry__row--compact .tentry__ampm button {
+  width: 36px;
+  font-size: 11.5px;
+}
+
+.tentry__row--compact .tentry__ampm button + button {
+  border-top: 0;
+  border-inline-start: 1.5px solid var(--line);
 }
 
 /* ============================================================ Shortcuts */
@@ -8579,21 +8578,6 @@ section.aisle.is-settling-in > .rows {
   background: var(--me-light, var(--tile-2));
   box-shadow: inset 0 0 0 2px var(--ink);
   border-radius: 14px;
-}
-
-/* Five parts of the day across a phone: the names fit whole */
-@media (max-width: 480px) {
-  .tpick__part {
-    font-size: 12px;
-    letter-spacing: -0.01em;
-    padding-inline: 0;
-  }
-}
-
-/* In a grey row (Settings): its − and + stand out from the row */
-.optrow .tpick--compact .tpick__btn {
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 /* ============================================================ Kept stocked */
@@ -8940,18 +8924,21 @@ section.aisle.is-settling-in > .rows {
   color: var(--text);
 }
 
-/* A task's card: a star (Highlights) and a photo, small, beside the tick */
-.hero__tools {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* A task's card: a photo button at its foot, under the tick */
+.hero--item {
+  position: relative;
 }
 
-.herotool {
-  position: relative;
-  width: 38px;
-  height: 38px;
+.hero--item .hero__sub {
+  padding-inline-end: 52px;
+}
+
+.herophoto {
+  position: absolute;
+  inset-inline-end: 20px;
+  bottom: 16px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -8960,31 +8947,21 @@ section.aisle.is-settling-in > .rows {
   transition: background 140ms var(--ease), transform 160ms var(--spring);
 }
 
-.herotool .icon {
+.herophoto .icon {
   --s: 18;
 }
 
-.herotool:active {
+.herophoto:active {
   transform: scale(0.9);
 }
 
 @media (hover: hover) {
-  .herotool:hover {
+  .herophoto:hover {
     background: rgb(255 255 255 / 0.65);
   }
 }
 
-.herotool.is-on {
-  background: var(--ink);
-  color: var(--lemon);
-}
-
-.herotool.is-on .icon__light {
-  fill: var(--lemon);
-  opacity: 1;
-}
-
-.herotool__n {
+.herophoto__n {
   position: absolute;
   top: -3px;
   inset-inline-end: -3px;
@@ -9000,8 +8977,45 @@ section.aisle.is-settling-in > .rows {
   text-align: center;
 }
 
-.echip--more {
+/* Highlights: the star by the "…" (filled when it's on my Today) */
+.starbtn.is-on {
+  background: var(--ink);
+  color: var(--lemon);
+}
+
+.starbtn.is-on .icon__light {
+  fill: var(--lemon);
+  opacity: 1;
+}
+
+/* The chips' expand arrow: at the end of the first line */
+.echip--expand {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin-inline-start: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
   color: var(--text-2);
+  transition: background 140ms var(--ease);
+}
+
+.echip--expand .icon {
+  --s: 18;
+  transition: transform 200ms var(--ease);
+}
+
+.echip--expand.is-open .icon {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) {
+  .echip--expand:hover {
+    background: var(--tile-2);
+    color: var(--text);
+  }
 }
 
 /* A time on a phone, in a row: the phone's own picker, in a field */

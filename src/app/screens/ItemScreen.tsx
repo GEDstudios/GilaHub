@@ -576,6 +576,21 @@ export function ItemScreen({ id }: { id: string }) {
         actions={
           editable ? (
             <>
+              {/* Highlights: a star by the "…" */}
+              <button
+                type="button"
+                className={`iconbtn starbtn ${inQuick ? 'is-on' : ''}`}
+                aria-pressed={inQuick}
+                aria-label={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
+                title={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
+                onClick={() => {
+                  haptic('select');
+                  const undo = setQuick(id, !inQuick);
+                  toast(inQuick ? 'Out of your Highlights' : 'In your Highlights, on Today', { action: { label: 'Undo', run: undo } });
+                }}
+              >
+                <Icon name="star" lit={inQuick} />
+              </button>
               <IconButton icon="more" label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} />
               <NewButton label="Add a subtask" onClick={openNew} />
             </>
@@ -622,30 +637,7 @@ export function ItemScreen({ id }: { id: string }) {
         <div className={`hero hero--item ${item.done ? 'is-done' : ''}`} style={lineVars(list?.color)}>
           <div className="hero__top">
             <AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} onDraft={setTitleDraft} />
-            <span className="hero__tools">
-              {/* Highlights (on my Today) and a photo: small, on the card, by the tick */}
-              <button
-                type="button"
-                className={`herotool ${inQuick ? 'is-on' : ''}`}
-                aria-pressed={inQuick}
-                aria-label={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
-                title={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
-                onClick={() => {
-                  haptic('select');
-                  const undo = setQuick(id, !inQuick);
-                  toast(inQuick ? 'Out of your Highlights' : 'In your Highlights, on Today', { action: { label: 'Undo', run: undo } });
-                }}
-              >
-                <Icon name="star" lit={inQuick} />
-              </button>
-              {editable ? (
-                <button type="button" className="herotool" aria-label={photoN ? `Add a photo (${photoN})` : 'Add a photo'} title="Add a photo" onClick={() => void addPhoto()}>
-                  <Icon name="image" />
-                  {photoN ? <span className="herotool__n num">{photoN}</span> : null}
-                </button>
-              ) : null}
-              {item.stock != null ? <StockCount item={item} readonly={!editable} /> : <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />}
-            </span>
+            {item.stock != null ? <StockCount item={item} readonly={!editable} /> : <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />}
           </div>
           <p className="hero__sub">
             {item.submittedAt && !item.done
@@ -656,11 +648,18 @@ export function ItemScreen({ id }: { id: string }) {
                 ? `Done${item.doneAt ? ` ${relativeAgo(item.doneAt)}` : ''}${item.doneBy && item.doneBy !== hub.meId ? ` by ${hub.member(item.doneBy)?.name ?? ''}` : ''}.`
                 : item.paused
                   ? 'Paused.'
-                  : `${summarize(draft)}${asker && !iAsked ? (item.sentBackAt ? ` ${asker.name} said not yet.` : ` ${asker.name} asked.`) : ''}`}
+                  : `${summarize(draft) === 'No date' ? '' : summarize(draft)}${asker && !iAsked ? (item.sentBackAt ? ` ${asker.name} said not yet.` : ` ${asker.name} asked.`) : ''}`}
             {item.repeat && item.lastDoneAt && !item.done
               ? ` Last done ${relativeAgo(item.lastDoneAt)}${item.lastDoneBy && item.lastDoneBy !== hub.meId ? ` by ${hub.member(item.lastDoneBy)?.name ?? ''}` : ''}.`
               : ''}
           </p>
+          {editable ? (
+            // A photo: at the card's foot, under the tick.
+            <button type="button" className="herophoto" aria-label={photoN ? `Add a photo (${photoN})` : 'Add a photo'} title="Add a photo" onClick={() => void addPhoto()}>
+              <Icon name="image" />
+              {photoN ? <span className="herophoto__n num">{photoN}</span> : null}
+            </button>
+          ) : null}
         </div>
       </Band>
 
@@ -695,9 +694,10 @@ export function ItemScreen({ id }: { id: string }) {
               tagsChip,
             ]}
             more
+            later={['who']}
             value={draft}
             onChange={change}
-            // First: when, urgent, who (and who sees it); the rest under More.
+            // First: when, urgent, who sees it; Who and the rest under the arrow.
             fields={(['when', 'repeat', 'remind', 'urgent', 'who', 'vis'] as const).filter(
               (f) => (f !== 'vis' || hub.canSetPrivacy(item)) && (f !== 'who' || vis !== 'private'),
             )}

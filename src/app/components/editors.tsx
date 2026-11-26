@@ -9,7 +9,6 @@ import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { withNotification } from '../compose';
 import { REMIND_OPTIONS } from '../reminders';
 import { Icon, type IconName } from '../ui/Icon';
-import { haptic } from '../ui/haptics';
 import { useOverlays } from '../ui/overlays';
 import { Avatar, lightVar, Switch } from '../ui/primitives';
 import { PairSheet } from './PairSheet';
@@ -316,9 +315,12 @@ export function InlineEditor({
   after,
   className,
   more,
+  later = [],
 }: {
-  /** The fields lead; the extras wait behind a "More" chip (those already set stay in sight). */
+  /** The fields lead; the extras wait behind an expand arrow (those already set stay in sight). */
   more?: boolean;
+  /** Fields that wait behind it too, while they're unset (Who). */
+  later?: Field[];
   value: Draft;
   onChange: (patch: Partial<Draft>) => void;
   fields: Field[];
@@ -363,7 +365,10 @@ export function InlineEditor({
     if (open === x.key && x.panel) into.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
   const chips: ReactNode[] = more ? [] : extraChips;
+  const fieldSet = (f: Field) => (f === 'who' ? value.assignee != null : f === 'urgent' ? value.urgent : f === 'when' ? !!value.due : true);
   for (const f of fields) {
+    const from = chips.length;
+    const waits = !!more && later.includes(f) && !fieldSet(f) && open !== f;
     // One "When" chip holds the day, the time, the repeat and the notification (when this editor
     // has a date at all; new chores, with no date chip, keep Repeat and Notification as chips).
     const inWhen = fields.includes('when');
@@ -463,15 +468,15 @@ export function InlineEditor({
           <span>Urgent</span>
         </button>,
       );
+    if (waits) hiddenChips.unshift(...chips.splice(from));
   }
 
   if (more) {
     chips.push(...extraChips);
     if (hiddenChips.length) {
       chips.push(
-        <button key="more" type="button" className={`echip echip--more ${moreOpen ? 'is-open' : ''} ${compact ? 'echip--sm' : ''}`} aria-expanded={moreOpen} onClick={() => setMoreOpen(!moreOpen)}>
-          <Icon name={moreOpen ? 'chevron-up' : 'more'} className="icon--sm" />
-          <span>{moreOpen ? 'Less' : 'More'}</span>
+        <button key="more" type="button" className={`echip--expand ${moreOpen ? 'is-open' : ''}`} aria-expanded={moreOpen} aria-label={moreOpen ? 'Fewer' : 'More'} title={moreOpen ? 'Fewer' : 'More'} onClick={() => setMoreOpen(!moreOpen)}>
+          <Icon name="chevron-down" />
         </button>,
       );
       if (moreOpen) chips.push(...hiddenChips);
@@ -611,7 +616,7 @@ export function WhenCard({
             ) : undefined
           }
         >
-          <TimePicker value={value.dueTime} h24={h24} onChange={setTime} />
+          <TimePicker value={value.dueTime} h24={h24} onChange={setTime} onDone={() => setPart(null)} />
         </WhenRow>
         )}
         {repeat ? (
@@ -773,123 +778,185 @@ export function parseTime(text: string): string | null {
   return `${pad2(h)}:${pad2(min)}`;
 }
 
-const PARTS = [
-  { label: 'Morning', t: '09:00' },
-  { label: 'Noon', t: '12:00' },
-  { label: 'Afternoon', t: '15:00' },
-  { label: 'Evening', t: '18:00' },
-  { label: 'Night', t: '21:00' },
-];
-
-const toMin = (t: string) => {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-};
-const ofMin = (n: number) => {
-  const v = ((n % 1440) + 1440) % 1440;
-  return `${pad2(Math.floor(v / 60))}:${pad2(v % 60)}`;
-};
-/** Where − / + start from with no time yet: the next quarter hour. */
-const nextQuarter = () => {
-  const d = new Date();
-  return ofMin(Math.ceil((d.getHours() * 60 + d.getMinutes() + 1) / 15) * 15);
-};
-
 /**
- * Picking a time, the same everywhere: a part of the day in one tap (Morning 9, Noon 12,
- * Afternoon 3, Evening 6, Night 9), then − / + to move it by a quarter hour (hold to run).
- * The time itself can be typed over too ("9:30", "6pm"). `compact`: just − time +.
+ * The time on a computer, entered: an hour box and a minute box (type, or ↑ ↓), AM / PM on a
+ * 12-hour clock, then Cancel or OK (Enter is OK). Two digits in the hour move on to the minutes.
+ * `compact`: just the boxes, kept as soon as it reads as a time (Settings, a template).
  */
-export function TimePicker({ value, h24, onChange, compact }: { value: string | null; h24: boolean; onChange: (t: string) => void; compact?: boolean }) {
-  const show = (t: string | null) => (t ? humanTime(t, h24) : '');
-  const [text, setText] = useState(show(value));
-  const field = useRef<HTMLInputElement>(null);
-  const cur = useRef(value);
-  cur.current = value;
+export function TimePicker({ value, h24, onChange, onDone, compact }: { value: string | null; h24: boolean; onChange: (t: string) => void; onDone?: () => void; compact?: boolean }) {
+  const start = value ?? nextHour();
+  const [H, M] = start.split(':').map(Number);
+  const [pm, setPm] = useState(H >= 12);
+  const [hh, setHh] = useState(h24 ? pad2(H) : String(H % 12 === 0 ? 12 : H % 12));
+  const [mm, setMm] = useState(pad2(M));
+  const hourBox = useRef<HTMLInputElement>(null);
+  const minBox = useRef<HTMLInputElement>(null);
+  // The first digit typed into a box starts it afresh; the next ones add to it.
+  const fresh = useRef({ h: true, m: true });
+  const typeHour = (d: string) => {
+    const v = fresh.current.h ? d : (hh + d).slice(-2);
+    fresh.current.h = false;
+    setHh(v);
+    keep(v);
+    // Two digits (or one that can't start a longer hour): on to the minutes.
+    if (v.length === 2 || Number(v) > (h24 ? 2 : 1)) minBox.current?.focus();
+  };
+  const typeMin = (d: string) => {
+    const v = fresh.current.m ? d : (mm + d).slice(-2);
+    fresh.current.m = false;
+    setMm(v);
+    keep(hh, v);
+  };
   useEffect(() => {
-    if (document.activeElement !== field.current) setText(show(value));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, h24]);
-  const step = (by: number) => {
-    const from = cur.current;
-    // Onto the quarter first (9:10 + → 9:15), then by quarters.
-    const n = from ? toMin(from) : toMin(nextQuarter()) - by;
-    const snapped = by > 0 ? Math.floor(n / 15) * 15 + 15 : Math.ceil(n / 15) * 15 - 15;
-    const t = ofMin(snapped);
-    cur.current = t;
-    onChange(t);
-    haptic('select');
+    if (!compact) hourBox.current?.focus();
+  }, [compact]);
+  /** What the boxes say, as "HH:MM" (null while they don't make a time). */
+  const read = (h = hh, m = mm, p = pm): string | null => {
+    const hn = Number(h);
+    const mn = Number(m === '' ? '0' : m);
+    if (h === '' || Number.isNaN(hn) || Number.isNaN(mn) || mn > 59) return null;
+    if (h24) return hn > 23 ? null : `${pad2(hn)}:${pad2(mn)}`;
+    if (hn < 1 || hn > 12) return null;
+    return `${pad2((hn % 12) + (p ? 12 : 0))}:${pad2(mn)}`;
   };
-  // Held: it keeps going, faster after a moment.
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stop = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
+  const keep = (h = hh, m = mm, p = pm) => {
+    const t = read(h, m, p);
+    if (t && compact) onChange(t);
+    return t;
   };
-  useEffect(() => stop, []);
-  const press = (by: number) => (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    step(by);
-    let n = 0;
-    const run = () => {
-      step(by);
-      n++;
-      timer.current = setTimeout(run, n > 6 ? 60 : 120);
-    };
-    timer.current = setTimeout(run, 420);
-  };
-  const commit = () => {
-    const t = text.trim() ? parseTime(text) : null;
+  const ok = () => {
+    const t = read();
     if (t) onChange(t);
-    else setText(show(value));
+    onDone?.();
   };
-  const stepper = (
-    <div className="tpick__step">
-      <button type="button" className="tpick__btn" aria-label="15 minutes earlier" onPointerDown={press(-1 * 15)} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), step(-15))}>
-        <Icon name="minus" />
-      </button>
-      <input
-        ref={field}
-        className="tpick__time num"
-        value={text}
-        placeholder="--:--"
-        aria-label="Time"
-        inputMode="numeric"
-        onFocus={(e) => e.target.select()}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            commit();
-            (e.target as HTMLInputElement).blur();
-          } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-            e.preventDefault();
-            step(e.key === 'ArrowUp' ? 15 : -15);
-          }
-        }}
-        onBlur={commit}
-      />
-      <button type="button" className="tpick__btn" aria-label="15 minutes later" onPointerDown={press(15)} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), step(15))}>
-        <Icon name="plus" />
-      </button>
+  const step = (which: 'h' | 'm', by: number) => {
+    if (which === 'h') {
+      const max = h24 ? 24 : 12;
+      const lo = h24 ? 0 : 1;
+      let n = (Number(hh) || lo) + by;
+      if (n > (h24 ? 23 : 12)) n = lo;
+      if (n < lo) n = max - (h24 ? 1 : 0);
+      const v = h24 ? pad2(n) : String(n);
+      setHh(v);
+      keep(v);
+    } else {
+      const n = (((Number(mm) || 0) + by * 5) % 60 + 60) % 60;
+      const v = pad2(n - (n % 5));
+      setMm(v);
+      keep(hh, v);
+    }
+  };
+  const keys = (which: 'h' | 'm') => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (/^\d$/.test(e.key)) {
+      e.preventDefault();
+      if (which === 'h') typeHour(e.key);
+      else typeMin(e.key);
+      return;
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      step(which, e.key === 'ArrowUp' ? 1 : -1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (compact) (e.target as HTMLInputElement).blur();
+      else ok();
+    } else if (e.key === 'Escape' && !compact) {
+      e.preventDefault();
+      e.stopPropagation();
+      onDone?.();
+    } else if (which === 'm' && e.key === 'Backspace' && mm === '') {
+      hourBox.current?.focus();
+    }
+  };
+  const boxes = (
+    <div className={`tentry__row ${compact ? 'tentry__row--compact' : ''}`}>
+      <label className="tentry__cell">
+        <input
+          ref={hourBox}
+          className="tentry__box num"
+          inputMode="numeric"
+          maxLength={2}
+          value={hh}
+          aria-label="Hour"
+          onFocus={(e) => {
+            fresh.current.h = true;
+            e.target.select();
+          }}
+          onChange={(e) => {
+            // Pasted, or typed some other way: digits only.
+            const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+            setHh(v);
+            keep(v);
+          }}
+          onKeyDown={keys('h')}
+          onBlur={() => h24 && setHh((h) => (h.length === 1 ? pad2(Number(h)) : h))}
+        />
+        {compact ? null : <span className="tentry__label">Hour</span>}
+      </label>
+      <span className="tentry__colon">:</span>
+      <label className="tentry__cell">
+        <input
+          ref={minBox}
+          className="tentry__box num"
+          inputMode="numeric"
+          maxLength={2}
+          value={mm}
+          aria-label="Minute"
+          onFocus={(e) => {
+            fresh.current.m = true;
+            e.target.select();
+          }}
+          onChange={(e) => {
+            const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+            setMm(v);
+            keep(hh, v);
+          }}
+          onKeyDown={keys('m')}
+          onBlur={() => setMm((m) => (m.length === 1 ? pad2(Number(m)) : m))}
+        />
+        {compact ? null : <span className="tentry__label">Minute</span>}
+      </label>
+      {h24 ? null : (
+        <span className="tentry__ampm" role="radiogroup" aria-label="AM or PM">
+          {(['AM', 'PM'] as const).map((x) => (
+            <button
+              key={x}
+              type="button"
+              role="radio"
+              aria-checked={(x === 'PM') === pm}
+              className={(x === 'PM') === pm ? 'is-on' : ''}
+              onClick={() => {
+                setPm(x === 'PM');
+                keep(hh, mm, x === 'PM');
+              }}
+            >
+              {x}
+            </button>
+          ))}
+        </span>
+      )}
     </div>
   );
-  if (compact) return <div className="tpick tpick--compact">{stepper}</div>;
+  if (compact) return <div className="tentry tentry--compact">{boxes}</div>;
+  const valid = !!read();
   return (
-    <div className="tpick">
-      <div className="tpick__parts" role="group" aria-label="Part of the day">
-        {PARTS.map((p) => (
-          <button key={p.t} type="button" className={`tpick__part ${value === p.t ? 'is-on' : ''}`} aria-pressed={value === p.t} onClick={() => (haptic('select'), onChange(p.t))}>
-            <span>{p.label}</span>
-            <span className="tpick__parttime num">{humanTime(p.t, h24)}</span>
-          </button>
-        ))}
+    <div className="tentry">
+      <p className="tentry__head">Enter time</p>
+      {boxes}
+      <div className="tentry__foot">
+        <button type="button" className="textbtn" onClick={() => onDone?.()}>
+          Cancel
+        </button>
+        <button type="button" className="btn btn--sm" disabled={!valid} onClick={ok}>
+          OK
+        </button>
       </div>
-      {stepper}
-      <p className="tpick__hint">Steps of 15 minutes · hold to keep going</p>
     </div>
   );
 }
+
+/** Where the boxes start with no time yet: the next whole hour. */
+const nextHour = () => `${pad2((new Date().getHours() + 1) % 24)}:00`;
 
 /** A time on its own (Settings, a template): just − time +. */
 export function TimeField({ value, onChange, label = 'Time' }: { value: string | null; onChange: (t: string | null) => void; label?: string }) {
