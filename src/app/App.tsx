@@ -52,6 +52,44 @@ function useAdd() {
  * (Today, your pins, Projects) in the middle; search, ideas and the two of us on the right.
  * Adding (the black +) and a note for my person float bottom right, as they do on the phone.
  */
+/** The +'s choices, each drawn as the little thing it makes. */
+function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
+  if (kind === 'task')
+    return (
+      <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="4" y="9" width="32" height="23" rx="6" fill="#fff" stroke="rgb(10 10 4 / 0.14)" />
+        <circle cx="13" cy="20.5" r="5" fill="var(--lemon)" stroke="#0a0a04" strokeWidth="1.6" />
+        <path d="M10.6 20.6l1.7 1.8 3.2-3.6" fill="none" stroke="#0a0a04" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="21" y="16.6" width="10.5" height="2.6" rx="1.3" fill="#0a0a04" />
+        <rect x="21" y="22" width="7" height="2.2" rx="1.1" fill="rgb(10 10 4 / 0.3)" />
+      </svg>
+    );
+  if (kind === 'buy')
+    return (
+      <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M14.5 15v-2.5a5.5 5.5 0 0 1 11 0V15" fill="none" stroke="#0a0a04" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M8.6 15h22.8l-1.9 16.2a3 3 0 0 1-3 2.6H13.5a3 3 0 0 1-3-2.6z" fill="var(--pink)" stroke="#0a0a04" strokeWidth="1.6" strokeLinejoin="round" />
+        <circle cx="15" cy="20" r="1.4" fill="#0a0a04" />
+        <circle cx="25" cy="20" r="1.4" fill="#0a0a04" />
+      </svg>
+    );
+  if (kind === 'project')
+    return (
+      <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M4 11.5a3 3 0 0 1 3-3h8.2l3.3 3.4H33a3 3 0 0 1 3 3V29a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" fill="var(--sky)" stroke="#0a0a04" strokeWidth="1.6" strokeLinejoin="round" />
+        <path d="M4 17.5a2.5 2.5 0 0 1 2.5-2.5h27a2.5 2.5 0 0 1 2.5 2.5V29a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z" fill="color-mix(in srgb, var(--sky) 55%, #fff)" stroke="#0a0a04" strokeWidth="1.6" strokeLinejoin="round" />
+      </svg>
+    );
+  return (
+    <svg className="addmenu__glyph addmenu__glyph--note" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M7 8h26v17.5L24.5 34H7z" fill="var(--lemon)" stroke="#0a0a04" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M33 25.5L24.5 34v-6.5a2 2 0 0 1 2-2z" fill="color-mix(in srgb, var(--lemon) 60%, #0a0a04)" stroke="#0a0a04" strokeWidth="1.6" strokeLinejoin="round" />
+      <rect x="14" y="4.5" width="12" height="6" rx="1" fill="rgb(255 255 255 / 0.75)" transform="rotate(-5 20 7.5)" />
+      <path d="M12 17h13M12 21.5h9" stroke="rgb(10 10 4 / 0.55)" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /**
  * The +: what to make. A tap opens three choices over it (the + turns into an x): a task (or a
  * thing to buy, or a subtask, as the screen says), a project (inside this one, on a project's
@@ -78,7 +116,7 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
     {
       key: 'task',
       label: buying ? 'Something to buy' : addLabel === 'New' ? 'Task' : addLabel,
-      face: buying ? <Icon name="basket" /> : <span className="addmenu__check" aria-hidden="true" />,
+      face: <MenuGlyph kind={buying ? 'buy' : 'task'} />,
       run: () => {
         primeKeyboard();
         add();
@@ -87,10 +125,10 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
     {
       key: 'project',
       label: here && route.name === 'list' ? `Project inside ${here.name}` : 'Project',
-      face: <span className="addmenu__folder" aria-hidden="true" />,
+      face: <MenuGlyph kind="project" />,
       run: () => openSheet((close) => <NewProjectSheet onClose={close} parentId={route.name === 'list' ? here?.id : undefined} />),
     },
-    ...(note ? [{ key: 'note', label: `Sticky note for ${note.to}`, face: <span className="addmenu__note" aria-hidden="true" />, run: note.open }] : []),
+    ...(note ? [{ key: 'note', label: `Sticky note for ${note.to}`, face: <MenuGlyph kind="note" />, run: note.open }] : []),
   ];
   return (
     <>

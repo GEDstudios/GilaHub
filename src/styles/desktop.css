@@ -348,11 +348,9 @@
     background: transparent;
   }
 
-  /* As cards, Urgent is just its title over lemon cards */
+  /* As cards, Urgent is one lemon card with white cards in it */
   .main .aisle--urgent:has(.rows--cards) {
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
+    padding: 12px 12px 12px;
   }
 
   .main .column > .rows,

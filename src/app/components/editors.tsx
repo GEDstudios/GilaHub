@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { addMonths, daysInMonth, fromDateStr, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
 import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
@@ -93,8 +93,28 @@ export function EChip({
   ghost?: boolean;
   compact?: boolean;
 }) {
+  // Open, a tap anywhere outside the chip and its panel closes it (not inside another chip, which
+  // opens itself, nor in a sheet opened over this one).
+  const ref = useRef<HTMLButtonElement>(null);
+  const toggleRef = useRef(onToggle);
+  toggleRef.current = onToggle;
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: PointerEvent) => {
+      const chip = ref.current;
+      const t = e.target instanceof Element ? e.target : null;
+      if (!chip || !t || chip.contains(t)) return;
+      if (t.closest('.panel, .echip, .livecursor, .toasts')) return;
+      const theirs = t.closest('.sheet');
+      if (theirs && theirs !== chip.closest('.sheet')) return;
+      toggleRef.current();
+    };
+    document.addEventListener('pointerdown', down, true);
+    return () => document.removeEventListener('pointerdown', down, true);
+  }, [open]);
   return (
     <button
+      ref={ref}
       type="button"
       className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${compact ? 'echip--sm' : ''}`}
       onClick={onToggle}

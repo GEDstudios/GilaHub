@@ -44,3 +44,50 @@ export function AutoTitle({ value, onSave, readOnly, label = 'Title' }: { value:
     />
   );
 }
+
+/**
+ * A name being written (a new project's): the same growing, wrapping field, one paragraph long.
+ * Enter is "done" (it submits the form it's in), not a new line.
+ */
+export function GrowField({
+  value,
+  onChange,
+  className,
+  placeholder,
+  label,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+  placeholder?: string;
+  label: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      className={className}
+      dir="auto"
+      rows={1}
+      value={value}
+      placeholder={placeholder}
+      aria-label={label}
+      data-autofocus
+      enterKeyHint="done"
+      onChange={(e) => onChange(e.target.value.replace(/\n/g, ' '))}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          (e.target as HTMLTextAreaElement).form?.requestSubmit();
+        }
+      }}
+    />
+  );
+}

@@ -1,3 +1,4 @@
+import { GrowField } from '../ui/AutoTitle';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Hub } from '../../core/actions';
 import { suggestIcon } from '../../core/projectIcons';
@@ -63,7 +64,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
         {/* A folder from the start: the same tab on top as on Projects. */}
         <div className="ccard ccard--lg ccard--edit ccard--folder" style={lineVars(look.color)}>
           <span className="ccard__top">
-            <input className="ccard__input" dir="auto" placeholder={parent ? `Name a project in ${parent.name}` : 'Name your new project'} value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
+            <GrowField className="ccard__input" placeholder={parent ? `Name a project in ${parent.name}` : 'Name your new project'} value={name} onChange={setName} label="Project name" />
           </span>
           <span className="ccard__sub projcard__foot">
             <span>
