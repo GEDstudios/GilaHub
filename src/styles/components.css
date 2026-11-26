@@ -5060,3 +5060,87 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
 .stuck .sticky__turn {
   scale: calc(1 / var(--scale));
 }
+
+/* A part of a panel (the date's Repeat, the notification's Again until done) */
+.panel__part {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, rgb(10 10 4 / 0.08));
+}
+
+.panel__head {
+  margin: 0 2px 10px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* The path on a task: each part a soft pill you can tap to move it */
+.crumbs--edit {
+  gap: 4px;
+}
+
+.crumbs--edit button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px 4px 10px;
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--text-2);
+  transition: background 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.crumbs--edit button:disabled {
+  background: transparent;
+  padding: 4px 2px;
+}
+
+.crumbs--edit button:not(:disabled):active {
+  transform: scale(0.96);
+  background: var(--tile-2);
+}
+
+.crumbs__caret {
+  --s: 12;
+  opacity: 0.7;
+}
+
+.move__open {
+  margin: -6px 0 10px;
+  text-align: start;
+}
+
+/* "Move to …?" pinned to the bottom of the sheet */
+.moveask {
+  position: sticky;
+  bottom: 0;
+  margin: 16px -4px 0;
+  padding: 14px 14px 12px;
+  border-radius: 20px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 -10px 30px -12px rgb(10 10 4 / 0.4);
+  animation: pop 220ms var(--spring) both;
+}
+
+.moveask p {
+  margin: 0 4px 12px;
+  font-size: 15.5px;
+}
+
+.moveask__btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.moveask .btn--quiet {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+.moveask .btn:not(.btn--quiet) {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+}

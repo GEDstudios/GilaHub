@@ -8,7 +8,7 @@ import { Children } from '../components/Children';
 import { InlineEditor, useSummary, type Draft } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
-import { ListPickerSheet, OptRow } from '../components/pickers';
+import { OptRow } from '../components/pickers';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useAddAction } from '../addAction';
 import { ShopItemSheet } from '../components/ShopItemSheet';
@@ -23,30 +23,12 @@ import { AutoTitle } from '../ui/AutoTitle';
 
 function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; onGone: () => void }) {
   const hub = useHub();
-  const { openSheet, toast } = useOverlays();
+  const { toast } = useOverlays();
   const item = hub.item(id);
   if (!item) return null;
   return (
     <Sheet onClose={onClose} title="More">
       <div className="group">
-        <OptRow
-          icon="move"
-          title="Move to another project"
-          onClick={() => {
-            onClose();
-            openSheet((close) => (
-              <ListPickerSheet
-                onClose={close}
-                current={item.listId}
-                filter={(l) => l.kind !== 'shopping' && (!l.owner || l.owner === hub.meId)}
-                onPick={(l) => {
-                  hub.move(id, { listId: l.id });
-                  toast(`Moved to ${l.name}`);
-                }}
-              />
-            ));
-          }}
-        />
         <OptRow
           icon="copy"
           title="Duplicate"
@@ -71,6 +53,73 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
           }}
         />
       </div>
+    </Sheet>
+  );
+}
+
+/**
+ * Where it lives, open from its path: the projects (and their tasks and subtasks, opened down
+ * to where it is now). Tap a new place, then say yes to "Move to …?". Undo is on the toast.
+ */
+function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onClose: () => void }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const item = hub.item(id);
+  const [to, setTo] = useState<{ listId: string; parentId: string | null } | null>(null);
+  if (!item) return null;
+  const path = [item.listId, ...hub.ancestors(item).map((a) => a.id)];
+  const fromName = from ? (hub.list(from)?.name ?? hub.item(from)?.title) : null;
+  const name = (p: { listId: string; parentId: string | null }) => {
+    const l = hub.list(p.listId)?.name ?? '';
+    const parent = p.parentId ? hub.item(p.parentId)?.title : null;
+    return parent ? `“${parent}” in ${l}` : l;
+  };
+  const go = () => {
+    if (!to) return;
+    const was = { listId: item.listId, parentId: item.parentId ?? null };
+    hub.move(id, to);
+    onClose();
+    toast(`Moved to ${name(to)}`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
+  };
+  return (
+    <Sheet onClose={onClose} title="Where it lives">
+      {from && fromName ? (
+        <p className="editlink move__open">
+          <button
+            type="button"
+            className="textbtn"
+            onClick={() => {
+              onClose();
+              navigate(hub.list(from) ? { name: 'list', id: from } : { name: 'item', id: from });
+            }}
+          >
+            Open {fromName}
+            <Icon name="arrow" className="icon--xs" />
+          </button>
+        </p>
+      ) : null}
+      <PlacePicker
+        itemId={id}
+        here
+        initialOpen={path}
+        filter={(l) => l.kind !== 'shopping' && (!l.owner || l.owner === hub.meId || l.visibility === 'visible')}
+        onPick={(listId, parentId) => setTo({ listId, parentId })}
+      />
+      {to ? (
+        <div className="moveask" role="alertdialog" aria-label={`Move to ${name(to)}?`}>
+          <p dir="auto">
+            Move to <strong>{name(to)}</strong>?
+          </p>
+          <div className="moveask__btns">
+            <button type="button" className="btn btn--quiet" onClick={() => setTo(null)}>
+              Cancel
+            </button>
+            <button type="button" className="btn" onClick={go}>
+              Move
+            </button>
+          </div>
+        </div>
+      ) : null}
     </Sheet>
   );
 }
@@ -190,6 +239,7 @@ export function ItemScreen({ id }: { id: string }) {
 
   const list = hub.list(item.listId);
   const ancestors = hub.ancestors(item);
+  const movePath = (from: string | null) => openSheet((close) => <MoveSheet id={id} from={from} onClose={close} />);
   const editable = hub.canEdit(item);
   const vis = hub.visibilityOf(item);
   const partner = hub.partner();
@@ -326,15 +376,18 @@ export function ItemScreen({ id }: { id: string }) {
           ) : undefined
         }
         crumbs={
-          <nav className="crumbs" aria-label="Path">
-            <button type="button" onClick={() => list && navigate({ name: 'list', id: list.id })} dir="auto">
+          // The path is where it lives: tap any part to move it somewhere else (asked first).
+          <nav className="crumbs crumbs--edit" aria-label="Where it lives">
+            <button type="button" disabled={!editable} onClick={() => movePath(list?.id ?? null)} dir="auto" aria-label={`In ${list?.name ?? ''}. Move it`}>
               {list?.name}
+              {editable ? <Icon name="chevron-down" className="crumbs__caret" /> : null}
             </button>
             {ancestors.map((a) => (
               <span key={a.id} className="crumbs__step">
                 <Icon name="chevron-right" className="icon--sm" />
-                <button type="button" onClick={() => navigate({ name: 'item', id: a.id })} dir="auto">
+                <button type="button" disabled={!editable} onClick={() => movePath(a.id)} dir="auto" aria-label={`Inside ${a.title}. Move it`}>
                   {a.title}
+                  {editable ? <Icon name="chevron-down" className="crumbs__caret" /> : null}
                 </button>
               </span>
             ))}

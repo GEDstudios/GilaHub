@@ -305,11 +305,28 @@ export function InlineEditor({
     if (open === x.key && x.panel) chips.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
   for (const f of fields) {
+    // Repeat lives inside the date (one chip: "Tomorrow · every week"), unless there's no date chip (new chores).
+    const repeatInside = fields.includes('when') && fields.includes('repeat');
+    const onRepeat = (repeat: RepeatRule | null) => {
+      const due = repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due;
+      onChange({ repeat, due, ...(repeat ? { nag: null } : {}), ...(due !== value.due ? withNotification(value, due) : {}) });
+    };
     if (f === 'when') {
-      chips.push(chip('when', value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date', 'calendar', !!value.due));
-      if (open === 'when') chips.push(<WhenPanel key="when:panel" due={value.due} time={value.dueTime} onChange={(due, dueTime) => onChange({ due, dueTime, ...withNotification(value, due) })} />);
+      const day = value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date';
+      const label = repeatInside && value.repeat ? `${value.due ? `${humanDate(value.due, ref)} · ` : ''}${ruleShort(value.repeat).toLowerCase()}` : day;
+      chips.push(chip('when', label, repeatInside && value.repeat ? 'repeat' : 'calendar', !!value.due || (repeatInside && !!value.repeat)));
+      if (open === 'when')
+        chips.push(
+          <WhenPanel
+            key="when:panel"
+            due={value.due}
+            time={value.dueTime}
+            onChange={(due, dueTime) => onChange({ due, dueTime, ...withNotification(value, due) })}
+            extra={repeatInside ? <RepeatPanel bare title="Repeat" rule={value.repeat} defaultFrom={repeatFrom} onChange={onRepeat} /> : undefined}
+          />,
+        );
     }
-    if (f === 'repeat') {
+    if (f === 'repeat' && !repeatInside) {
       chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
       if (open === 'repeat')
         chips.push(
@@ -332,7 +349,16 @@ export function InlineEditor({
         onChange({ remind: 0, due: value.due ?? ref });
         setOpen('remind');
       };
-      chips.push(chip('remind', off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, 'bell', !off, undefined, off ? turnOn : undefined));
+      chips.push(
+        chip(
+          'remind',
+          off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}${value.nag && !value.repeat ? `, then ${ruleShort(value.nag).toLowerCase()}` : ''}`,
+          'bell',
+          !off,
+          undefined,
+          off ? turnOn : undefined,
+        ),
+      );
       if (open === 'remind')
         chips.push(
           <Panel key="remind:panel">
@@ -341,16 +367,15 @@ export function InlineEditor({
               options={[{ value: 'none', label: 'No notification' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
               onPick={(v) => {
                 onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due, ...(v === 'none' ? { nag: null } : {}) });
-                setOpen(null);
+                if (v === 'none') setOpen(null);
               }}
             />
+            {/* Again and again until it's done: every day, on set days, days of the month… */}
+            {!off && !value.repeat && value.nag !== undefined ? (
+              <RepeatPanel bare nag title="Again until done" rule={value.nag} defaultFrom="schedule" onChange={(nag) => onChange({ nag })} />
+            ) : null}
           </Panel>,
         );
-      // Again and again until it's done: every day, on set days, on days of the month…
-      if (!off && !value.repeat && value.nag !== undefined) {
-        chips.push(chip('nag', value.nag ? `Again ${ruleShort(value.nag).toLowerCase()}` : 'Again until done', 'repeat', !!value.nag));
-        if (open === 'nag') chips.push(<RepeatPanel key="nag:panel" nag rule={value.nag} defaultFrom="schedule" onChange={(nag) => onChange({ nag })} />);
-      }
     }
     if (f === 'who')
       chips.push(
@@ -408,8 +433,18 @@ export function InlineEditor({
   );
 }
 
-export function Panel({ children }: { children: ReactNode }) {
+export function Panel({ children }: { children: ReactNode; title?: string }) {
   return <div className="panel">{children}</div>;
+}
+
+/** A part of a panel: a hairline, a small heading, then its choices. */
+function PanelPart({ children, title }: { children: ReactNode; title?: string }) {
+  return (
+    <div className="panel__part">
+      {title ? <p className="panel__head">{title}</p> : null}
+      {children}
+    </div>
+  );
 }
 
 export function Options<T extends string>({
@@ -433,7 +468,18 @@ export function Options<T extends string>({
   );
 }
 
-export function WhenPanel({ due, time, onChange }: { due: string | null; time: string | null; onChange: (due: string | null, time: string | null) => void }) {
+export function WhenPanel({
+  due,
+  time,
+  onChange,
+  extra,
+}: {
+  due: string | null;
+  time: string | null;
+  onChange: (due: string | null, time: string | null) => void;
+  /** More of the same thing below the day: its Repeat. */
+  extra?: ReactNode;
+}) {
   const prefs = usePrefs();
   const ref = todayStr();
   const ws = weekStart(prefs);
@@ -466,6 +512,7 @@ export function WhenPanel({ due, time, onChange }: { due: string | null; time: s
           </button>
         ) : null}
       </div>
+      {extra}
     </Panel>
   );
 }
@@ -481,13 +528,19 @@ export function RepeatPanel({
   onChange: set,
   defaultFrom,
   nag,
+  bare,
+  title,
 }: {
   rule: RepeatRule | null;
   onChange: (r: RepeatRule | null) => void;
   defaultFrom: 'done' | 'schedule';
   /** For "notify again until done": once is the other choice, and it always keeps to the calendar. */
   nag?: boolean;
+  /** Inside another panel (the date's, the notification's): no card of its own, a small heading. */
+  bare?: boolean;
+  title?: string;
 }) {
+  const Wrap = bare ? PanelPart : Panel;
   const onChange = (r: RepeatRule | null) => set(nag && r?.type === 'interval' ? { ...r, from: 'schedule' } : r);
   const prefs = usePrefs();
   const ws = weekStart(prefs);
@@ -504,7 +557,7 @@ export function RepeatPanel({
   const order = [...Array(7).keys()].map((i) => (i + ws) % 7);
 
   return (
-    <Panel>
+    <Wrap title={title}>
       <Options
         value={key}
         options={[
@@ -602,7 +655,7 @@ export function RepeatPanel({
           <Switch on={rule.from === 'done'} label="Count from when it’s done" onChange={(v) => onChange({ ...rule, from: v ? 'done' : 'schedule' })} />
         </div>
       ) : null}
-    </Panel>
+    </Wrap>
   );
 }
 

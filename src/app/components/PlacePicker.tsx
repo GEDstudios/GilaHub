@@ -9,10 +9,25 @@ import { ListBullet } from '../ui/primitives';
  * Where else should this live? Tap a project to put it there. Long-press a project (or tap its
  * arrow) to open it up and tap one of its tasks, or a task's subtask, to put it inside that.
  */
-export function PlacePicker({ itemId, onPick }: { itemId: string; onPick: (listId: string, parentId: string | null) => void }) {
+export function PlacePicker({
+  itemId,
+  onPick,
+  initialOpen = [],
+  filter,
+  here = false,
+}: {
+  itemId: string;
+  onPick: (listId: string, parentId: string | null) => void;
+  /** Opened from the start (the way down to where it is now). */
+  initialOpen?: string[];
+  /** Which projects to offer. */
+  filter?: (l: List) => boolean;
+  /** Mark where it is now ("here") rather than just disabling it. */
+  here?: boolean;
+}) {
   const hub = useHub();
   const item = hub.item(itemId);
-  const [open, setOpen] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState<Set<string>>(() => new Set(initialOpen));
   const toggle = (k: string) => {
     haptic('select');
     setOpen((s) => {
@@ -24,7 +39,7 @@ export function PlacePicker({ itemId, onPick }: { itemId: string; onPick: (listI
   };
   if (!item) return null;
   const banned = new Set([itemId, ...hub.descendants(itemId).map((d) => d.id)]);
-  const lists = [...hub.lists()].sort((a, b) => Number(b.kind === 'shopping') - Number(a.kind === 'shopping'));
+  const lists = [...hub.lists()].filter((l) => !filter || filter(l)).sort((a, b) => Number(b.kind === 'shopping') - Number(a.kind === 'shopping'));
 
   return (
     <ul className="place" role="tree">
@@ -38,8 +53,9 @@ export function PlacePicker({ itemId, onPick }: { itemId: string; onPick: (listI
           onExpand={() => toggle(l.id)}
           onPick={() => onPick(l.id, null)}
           disabled={l.id === item.listId && !item.parentId}
+          hint={here && l.id === item.listId && !item.parentId ? 'here now' : undefined}
         >
-          {open.has(l.id) ? <Tasks list={l} parentId={null} depth={1} banned={banned} open={open} toggle={toggle} onPick={onPick} /> : null}
+          {open.has(l.id) ? <Tasks list={l} parentId={null} depth={1} banned={banned} open={open} toggle={toggle} onPick={onPick} current={here ? item.parentId : undefined} /> : null}
         </PlaceRow>
       ))}
     </ul>
@@ -63,6 +79,7 @@ function Tasks({
   open,
   toggle,
   onPick,
+  current,
 }: {
   list: List;
   parentId: string | null;
@@ -71,6 +88,7 @@ function Tasks({
   open: Set<string>;
   toggle: (k: string) => void;
   onPick: (listId: string, parentId: string | null) => void;
+  current?: string | null;
 }) {
   const hub = useHub();
   const rows: Item[] = (parentId ? hub.childrenOf(parentId) : hub.children(list.id, null)).filter((i) => !i.done && !banned.has(i.id));
@@ -85,9 +103,10 @@ function Tasks({
           expanded={open.has(t.id)}
           onExpand={() => toggle(t.id)}
           onPick={() => onPick(list.id, t.id)}
-          hint="inside"
+          disabled={current === t.id}
+          hint={current === t.id ? 'here now' : 'inside'}
         >
-          {open.has(t.id) ? <Tasks list={list} parentId={t.id} depth={depth + 1} banned={banned} open={open} toggle={toggle} onPick={onPick} /> : null}
+          {open.has(t.id) ? <Tasks list={list} parentId={t.id} depth={depth + 1} banned={banned} open={open} toggle={toggle} onPick={onPick} current={current} /> : null}
         </PlaceRow>
       ))}
     </>
