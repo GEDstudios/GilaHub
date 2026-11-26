@@ -305,26 +305,23 @@ export function InlineEditor({
     if (open === x.key && x.panel) chips.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
   for (const f of fields) {
-    // Repeat lives inside the date (one chip: "Tomorrow · every week"), unless there's no date chip (new chores).
-    const repeatInside = fields.includes('when') && fields.includes('repeat');
-    const onRepeat = (repeat: RepeatRule | null) => {
-      const due = repeat && (repeat.type !== 'interval' || !value.due) ? firstDue(repeat, ref) : value.due;
-      onChange({ repeat, due, ...(repeat ? { nag: null } : {}), ...(due !== value.due ? withNotification(value, due) : {}) });
-    };
+    // One "When" chip holds the day, the time, the repeat and the notification (when this editor
+    // has a date at all; new chores, with no date chip, keep Repeat and Notification as chips).
+    const inWhen = fields.includes('when');
+    const repeatInside = inWhen && fields.includes('repeat');
+    const remindInside = inWhen && fields.includes('remind');
     if (f === 'when') {
-      const day = value.due ? `${humanDate(value.due, ref)}${value.dueTime ? ` · ${humanTime(value.dueTime, h24)}` : ''}` : 'Date';
-      const label = repeatInside && value.repeat ? `${value.due ? `${humanDate(value.due, ref)} · ` : ''}${ruleShort(value.repeat).toLowerCase()}` : day;
-      chips.push(chip('when', label, repeatInside && value.repeat ? 'repeat' : 'calendar', !!value.due || (repeatInside && !!value.repeat)));
+      const text = value.due ? `${humanDate(value.due, ref)}${value.dueTime ? `, ${humanTime(value.dueTime, h24)}` : ''}` : repeatInside && value.repeat ? ruleShort(value.repeat) : 'Date';
+      const marks = (
+        <>
+          {text}
+          {repeatInside && value.repeat && value.due ? <Icon name="repeat" className="echip__mark" title={ruleShort(value.repeat)} /> : null}
+          {remindInside && value.remind != null ? <Icon name="bell" className="echip__mark" title={`Notify ${(remindText(value.remind) ?? '').toLowerCase()}`} /> : null}
+        </>
+      );
+      chips.push(chip('when', marks, 'calendar', !!value.due || (repeatInside && !!value.repeat)));
       if (open === 'when')
-        chips.push(
-          <WhenPanel
-            key="when:panel"
-            due={value.due}
-            time={value.dueTime}
-            onChange={(due, dueTime) => onChange({ due, dueTime, ...withNotification(value, due) })}
-            extra={repeatInside ? <RepeatPanel bare title="Repeat" rule={value.repeat} defaultFrom={repeatFrom} onChange={onRepeat} /> : undefined}
-          />,
-        );
+        chips.push(<WhenCard key="when:panel" value={value} onChange={onChange} repeat={repeatInside} remind={remindInside} repeatFrom={repeatFrom} />);
     }
     if (f === 'repeat' && !repeatInside) {
       chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
@@ -342,23 +339,14 @@ export function InlineEditor({
           />,
         );
     }
-    if (f === 'remind') {
+    if (f === 'remind' && !remindInside) {
       const off = value.remind == null;
       // Tapping the chip while it's off turns it on ("When due", today if undated) and shows the options.
       const turnOn = () => {
         onChange({ remind: 0, due: value.due ?? ref });
         setOpen('remind');
       };
-      chips.push(
-        chip(
-          'remind',
-          off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}${value.nag && !value.repeat ? `, then ${ruleShort(value.nag).toLowerCase()}` : ''}`,
-          'bell',
-          !off,
-          undefined,
-          off ? turnOn : undefined,
-        ),
-      );
+      chips.push(chip('remind', off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, 'bell', !off, undefined, off ? turnOn : undefined));
       if (open === 'remind')
         chips.push(
           <Panel key="remind:panel">
@@ -367,13 +355,9 @@ export function InlineEditor({
               options={[{ value: 'none', label: 'No notification' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
               onPick={(v) => {
                 onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due, ...(v === 'none' ? { nag: null } : {}) });
-                if (v === 'none') setOpen(null);
+                setOpen(null);
               }}
             />
-            {/* Again and again until it's done: every day, on set days, days of the month… */}
-            {!off && !value.repeat && value.nag !== undefined ? (
-              <RepeatPanel bare nag title="Again until done" rule={value.nag} defaultFrom="schedule" onChange={(nag) => onChange({ nag })} />
-            ) : null}
           </Panel>,
         );
     }
@@ -468,52 +452,165 @@ export function Options<T extends string>({
   );
 }
 
-export function WhenPanel({
-  due,
-  time,
+/**
+ * When: one card for the day, the time, the repeat and the notification. The day and the time
+ * are one tap each (a row of the usual ones, and "Pick…" for any other). Under them, one line
+ * each for Repeat, Notify and Again until done, saying what they're set to; a tap opens just
+ * that one, so the card never shows everything at once.
+ */
+export function WhenCard({
+  value,
   onChange,
-  extra,
+  repeat,
+  remind,
+  repeatFrom,
 }: {
-  due: string | null;
-  time: string | null;
-  onChange: (due: string | null, time: string | null) => void;
-  /** More of the same thing below the day: its Repeat. */
-  extra?: ReactNode;
+  value: Draft;
+  onChange: (p: Partial<Draft>) => void;
+  repeat: boolean;
+  remind: boolean;
+  repeatFrom: 'done' | 'schedule';
 }) {
   const prefs = usePrefs();
+  const h24 = use24h(prefs);
   const ref = todayStr();
   const ws = weekStart(prefs);
+  const [part, setPart] = useState<'repeat' | 'notify' | 'again' | null>(null);
+  const flip = (p: 'repeat' | 'notify' | 'again') => setPart(part === p ? null : p);
+
   const weekendDay = ws === 0 ? 5 : 6;
   let weekend = addDays(ref, 1);
   while (weekday(weekend) !== weekendDay) weekend = addDays(weekend, 1);
   let nextWeek = addDays(ref, 1);
   while (weekday(nextWeek) !== ws) nextWeek = addDays(nextWeek, 1);
-  const quick: Array<[string, string]> = [
+  const days: Array<[string, string]> = [
     ['Today', ref],
     ['Tomorrow', addDays(ref, 1)],
     [ws === 0 ? 'Friday' : 'Weekend', weekend],
     ['Next week', nextWeek],
   ];
+  const otherDay = !!value.due && !days.some(([, d]) => d === value.due);
+  const times = ['09:00', '12:00', '18:00', '21:00'];
+  const otherTime = !!value.dueTime && !times.includes(value.dueTime);
+
+  const setDay = (due: string | null) => onChange(due ? { due, ...withNotification(value, due) } : { due: null, dueTime: null, remind: null, nag: null });
+  const setTime = (dueTime: string | null) => onChange({ dueTime, due: value.due ?? ref, ...withNotification(value, value.due ?? ref) });
+  const onRepeat = (r: RepeatRule | null) => {
+    const due = r && (r.type !== 'interval' || !value.due) ? firstDue(r, ref) : value.due;
+    onChange({ repeat: r, due, ...(r ? { nag: null } : {}), ...(due !== value.due ? withNotification(value, due) : {}) });
+  };
+  const notifyOn = value.remind != null;
+  const setNotify = (on: boolean) => {
+    onChange(on ? { remind: 0, due: value.due ?? ref } : { remind: null, nag: null });
+    setPart(on ? 'notify' : null);
+  };
+  const again = remind && notifyOn && !value.repeat && value.nag !== undefined;
+
   return (
-    <Panel>
-      <Options value={due} options={quick.map(([label, v]) => ({ value: v, label }))} onPick={(v) => onChange(v, time)} />
-      <div className="panel__row">
-        <label className="option option--input">
-          <Icon name="calendar" className="icon--sm" />
-          <input type="date" value={due ?? ''} onChange={(e) => onChange(e.target.value || null, e.target.value ? time : null)} aria-label="Pick a date" />
-        </label>
-        <label className="option option--input">
-          <Icon name="clock" className="icon--sm" />
-          <input type="time" value={time ?? ''} onChange={(e) => onChange(due ?? ref, e.target.value || null)} aria-label="Time" />
-        </label>
-        {due ? (
-          <button type="button" className="panel__clear" onClick={() => onChange(null, null)}>
-            No date
+    <div className="panel whencard">
+      <div className="whencard__picks" role="group" aria-label="Day">
+        {days.map(([label, d]) => (
+          <button key={label} type="button" className={`option ${value.due === d ? 'is-on' : ''}`} aria-pressed={value.due === d} onClick={() => setDay(value.due === d ? null : d)}>
+            {label}
           </button>
+        ))}
+        <label className={`option option--pick ${otherDay ? 'is-on' : ''}`}>
+          <Icon name="calendar" className="icon--sm" />
+          {otherDay ? humanDate(value.due!, ref) : 'Pick…'}
+          <input type="date" value={value.due ?? ''} onChange={(e) => setDay(e.target.value || null)} aria-label="Pick a day" />
+        </label>
+      </div>
+      <div className="whencard__picks" role="group" aria-label="Time">
+        <button type="button" className={`option ${!value.dueTime ? 'is-on' : ''}`} aria-pressed={!value.dueTime} onClick={() => onChange({ dueTime: null })}>
+          Any time
+        </button>
+        {times.map((t) => (
+          <button key={t} type="button" className={`option ${value.dueTime === t ? 'is-on' : ''}`} aria-pressed={value.dueTime === t} onClick={() => setTime(value.dueTime === t ? null : t)}>
+            {humanTime(t, h24)}
+          </button>
+        ))}
+        <label className={`option option--pick ${otherTime ? 'is-on' : ''}`}>
+          <Icon name="clock" className="icon--sm" />
+          {otherTime ? humanTime(value.dueTime!, h24) : 'Other'}
+          <input type="time" value={value.dueTime ?? ''} onChange={(e) => setTime(e.target.value || null)} aria-label="Pick a time" />
+        </label>
+      </div>
+
+      <div className="whencard__rows">
+        {repeat ? (
+          <WhenRow icon="repeat" title="Repeat" value={value.repeat ? ruleShort(value.repeat) : 'Never'} on={!!value.repeat} open={part === 'repeat'} onOpen={() => flip('repeat')}>
+            <RepeatPanel bare rule={value.repeat} defaultFrom={repeatFrom} onChange={onRepeat} />
+          </WhenRow>
+        ) : null}
+        {remind ? (
+          <WhenRow
+            icon="bell"
+            title="Notify"
+            value={notifyOn ? (remindText(value.remind) ?? '') : 'Off'}
+            on={notifyOn}
+            open={part === 'notify' && notifyOn}
+            onOpen={() => (notifyOn ? flip('notify') : setNotify(true))}
+            trail={<Switch on={notifyOn} label="Notify" onChange={setNotify} />}
+          >
+            <Options value={String(value.remind)} options={REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))} onPick={(v) => onChange({ remind: Number(v) })} />
+          </WhenRow>
+        ) : null}
+        {again ? (
+          <WhenRow icon="refresh" title="Again until done" value={value.nag ? ruleShort(value.nag) : 'Just once'} on={!!value.nag} open={part === 'again'} onOpen={() => flip('again')} sub>
+            <RepeatPanel bare nag rule={value.nag ?? null} defaultFrom="schedule" onChange={(nag) => onChange({ nag })} />
+          </WhenRow>
         ) : null}
       </div>
-      {extra}
-    </Panel>
+
+      {value.due ? (
+        <div className="whencard__foot">
+          <button type="button" className="textbtn" onClick={() => setDay(null)}>
+            No date
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** One line of the When card: what it is, what it's set to; a tap opens its choices under it. */
+function WhenRow({
+  icon,
+  title,
+  value,
+  on,
+  open,
+  onOpen,
+  trail,
+  sub,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  value: string;
+  on: boolean;
+  open: boolean;
+  onOpen: () => void;
+  trail?: ReactNode;
+  /** Belongs to the row above (Again until done, under Notify). */
+  sub?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`whenrow ${open ? 'is-open' : ''} ${on ? 'is-set' : ''} ${sub ? 'whenrow--sub' : ''}`}>
+      <div className="whenrow__line">
+        <button type="button" className="whenrow__btn" aria-expanded={open} onClick={onOpen}>
+          <Icon name={icon} className="icon--sm" lit={on} />
+          <span className="whenrow__title">{title}</span>
+          <span className="whenrow__value" dir="auto">
+            {value}
+          </span>
+          {trail ? null : <Icon name="chevron-down" className="whenrow__chev icon--xs" />}
+        </button>
+        {trail}
+      </div>
+      {open ? <div className="whenrow__body">{children}</div> : null}
+    </div>
   );
 }
 
