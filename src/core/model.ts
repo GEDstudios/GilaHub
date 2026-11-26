@@ -244,6 +244,13 @@ export interface Idea {
   /** Set when someone brought a resolved one back (its author hears about it). */
   reopenedAt?: number | null;
   reopenedBy?: string | null;
+  /**
+   * A screenshot (drawn on), as a JPEG data URL cut into parts so each syncs within an op's
+   * limit: shot0…shot{shotN-1}, each "<shotV>:<part>" so parts of different pictures never mix.
+   */
+  shotN?: number | null;
+  shotV?: string | null;
+  [part: `shot${number}`]: string | null | undefined;
   deleted?: boolean;
 }
 

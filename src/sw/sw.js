@@ -124,6 +124,17 @@ self.addEventListener('push', (event) => {
       } catch {
         /* show the generic note */
       }
+      // Looking at the app right now: it shows there (with its doorbell), not over it. Not on
+      // Safari, which wants every push to show a notification.
+      const safari = /Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Android/.test(navigator.userAgent);
+      if (!safari) {
+        const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        const seen = open.find((c) => c.visibilityState === 'visible' && c.focused);
+        if (seen) {
+          seen.postMessage({ type: 'push', note });
+          return;
+        }
+      }
       // A thing to do (its page is /i/<id>) gets Done and Tomorrow right on the notification.
       const isItem = /^\/i\/[A-Za-z0-9]+$/.test(note.url || '');
       await self.registration.showNotification(note.title, {

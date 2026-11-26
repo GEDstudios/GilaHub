@@ -54,7 +54,7 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
       const at = reminderTime(item, due);
       if (at < now - 60_000) return;
       const when = item.dueTime ? `${humanDate(due)} · ${humanTime(item.dueTime, use24h())}` : humanDate(due);
-      out.push({ id: `${item.id}.${i}`, at, members, scope, note: { title: item.title, body: `${list.name} · ${when}`, url: `/i/${item.id}`, tag: item.id } });
+      out.push({ id: `${item.id}.${i}`, at, members, scope, note: { title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`, body: `${when} · ${list.name}`, url: `/i/${item.id}`, tag: item.id } });
     });
   }
   return out;

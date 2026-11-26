@@ -8,6 +8,7 @@ import { loadSession, newSession, saveSession, sessionFromInvite } from '../core
 import { runAdd, useAddLabel } from './addAction';
 import { IdeaTag } from './components/Ideas';
 import { NoteButton, NotesLayer } from './components/Notes';
+import { announce, Arrivals, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
 import { QuickAddSheet } from './components/QuickAddSheet';
@@ -145,6 +146,7 @@ function Duties() {
   const { toast } = useOverlays();
   const add = useAdd();
   const me = hub.me();
+  useArrivalWatch(hub);
 
   // Start here: tick off what the data shows was done; when it's all done, bow out.
   useEffect(() => {
@@ -177,7 +179,7 @@ function Duties() {
   useEffect(() => {
     const reminders = new ReminderSync(rt);
     const local = new LocalReminders(hub, (r) => {
-      toast(`Reminder: ${r.note.title}`);
+      announce({ kind: 'reminder', title: r.note.title, body: r.note.body, url: r.note.url });
       // With a relay, push already delivers the system notification.
       if (!rt.relay && 'Notification' in window && Notification.permission === 'granted') {
         void swContainer()?.getRegistration().then((reg) => reg?.showNotification(r.note.title, { body: r.note.body, tag: r.note.tag, data: { url: r.note.url } }));
@@ -220,6 +222,8 @@ function Duties() {
     const relayRetry = setInterval(() => !rt.relay && void rt.ensureSync(), 60_000);
     const onSwMessage = (e: MessageEvent) => {
       if (e.data?.type === 'navigate' && typeof e.data.url === 'string') navigate(e.data.url);
+      // A push while I'm looking: in the app, not over it.
+      if (e.data?.type === 'push' && e.data.note?.title) announce({ title: e.data.note.title, body: e.data.note.body, url: e.data.note.url, kind: /^\/i\//.test(e.data.note.url ?? '') ? 'reminder' : 'other' });
     };
     const sw = swContainer();
     sw?.addEventListener('message', onSwMessage);
@@ -285,6 +289,7 @@ function Shell() {
       <IdeaTag />
       <NoteButton />
       <NotesLayer />
+      <Arrivals />
       <SearchLayer />
       <Duties />
     </div>

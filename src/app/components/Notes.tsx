@@ -32,6 +32,9 @@ function routeOf(place: string): Route {
   return { name: 'today' };
 }
 
+/** Where a note's screen is, as a link. */
+export const placeUrl = (place: string): string => href(routeOf(place));
+
 /** "Shopping", "Projects", a project's name, a task's title. */
 export function placeName(hub: ReturnType<typeof useHub>, place: string): string {
   const [kind, id] = place.split(':');
@@ -89,7 +92,7 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
     haptic('tick');
     onClose();
     toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.peelNote(id) } });
-    if (partner) void notifyMembers(rt, [partner.id], { title: `${hub.me()?.name ?? 'Your person'} left you a note`, body: text.trim(), url: href(routeOf(place)), tag: `note-${id}` });
+    if (partner) void notifyMembers(rt, [partner.id], { title: `📝 ${hub.me()?.name ?? 'Your person'} left you a note`, body: text.trim(), url: href(routeOf(place)), tag: `note-${id}` });
   };
   return (
     <Sheet onClose={onClose} title={`A note for ${partner?.name ?? 'your person'}`}>

@@ -121,7 +121,7 @@ export function useCompose({
     if (d.remind != null && typeof Notification !== 'undefined' && Notification.permission === 'default') setUpReminders(rt, toast);
     const made = hub.item(id);
     if (made && asking && made.requestedBy === hub.meId) {
-      notifyAbout(rt, hub, made, d.assignee as string, `${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
+      notifyAbout(rt, hub, made, d.assignee as string, `🙋 ${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
     }
     // New (from Today, Search…) opens on the last task project used.
     if (!parent && to.kind === 'tasks') setPrefs({ lastList: to.id });

@@ -8,10 +8,11 @@
  *   success  a two-note chime (paid, kept a moment, all done)
  *   warn     a low bump ("not there")
  *   add      a light rising blip (added something)
+ *   notify   a three-note doorbell (something arrived: a reminder, a note, an ask)
  */
 import { getPrefs } from '../prefs';
 
-export type SoundKind = 'tick' | 'drop' | 'success' | 'warn' | 'add';
+export type SoundKind = 'tick' | 'drop' | 'success' | 'warn' | 'add' | 'notify';
 
 let ctx: AudioContext | null = null;
 
@@ -27,19 +28,34 @@ function audio(): AudioContext | null {
   }
 }
 
-/** One soft note: a sine with a quick attack and a short tail. */
+/**
+ * One struck note, like a small marimba bar: the tone plus a quieter partial a fourth octave up
+ * that dies fast (the "tock"), a quick attack and a natural tail. Loud enough for a phone speaker.
+ */
 function note(a: AudioContext, freq: number, at: number, len: number, vol: number, type: OscillatorType = 'sine', glide?: number) {
+  const out = a.createGain();
+  out.gain.setValueAtTime(0.0001, at);
+  out.gain.exponentialRampToValueAtTime(vol, at + 0.006);
+  out.gain.exponentialRampToValueAtTime(0.0001, at + len);
+  out.connect(a.destination);
   const o = a.createOscillator();
-  const g = a.createGain();
   o.type = type;
   o.frequency.setValueAtTime(freq, at);
   if (glide) o.frequency.exponentialRampToValueAtTime(glide, at + len);
-  g.gain.setValueAtTime(0.0001, at);
-  g.gain.exponentialRampToValueAtTime(vol, at + 0.008);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + len);
-  o.connect(g).connect(a.destination);
+  o.connect(out);
   o.start(at);
-  o.stop(at + len + 0.02);
+  o.stop(at + len + 0.03);
+  // The strike
+  const k = a.createOscillator();
+  const kg = a.createGain();
+  k.type = 'sine';
+  k.frequency.setValueAtTime(freq * 4, at);
+  kg.gain.setValueAtTime(0.0001, at);
+  kg.gain.exponentialRampToValueAtTime(vol * 0.35, at + 0.003);
+  kg.gain.exponentialRampToValueAtTime(0.0001, at + Math.min(0.05, len));
+  k.connect(kg).connect(a.destination);
+  k.start(at);
+  k.stop(at + 0.07);
 }
 
 export function playSound(kind: SoundKind): void {
@@ -50,20 +66,27 @@ export function playSound(kind: SoundKind): void {
     const t = a.currentTime + 0.005;
     switch (kind) {
       case 'tick':
-        note(a, 880, t, 0.09, 0.12, 'triangle', 660);
+        note(a, 988, t, 0.12, 0.32, 'triangle', 784);
         break;
       case 'drop':
-        note(a, 420, t, 0.06, 0.08, 'triangle', 300);
+        note(a, 440, t, 0.09, 0.26, 'triangle', 330);
         break;
       case 'add':
-        note(a, 620, t, 0.1, 0.07, 'sine', 930);
+        note(a, 659, t, 0.1, 0.22, 'sine', 880);
+        note(a, 988, t + 0.06, 0.14, 0.18);
         break;
       case 'success':
-        note(a, 784, t, 0.18, 0.08);
-        note(a, 1175, t + 0.09, 0.32, 0.07);
+        note(a, 784, t, 0.22, 0.26);
+        note(a, 1175, t + 0.09, 0.4, 0.22);
         break;
       case 'warn':
-        note(a, 180, t, 0.14, 0.1, 'triangle', 140);
+        note(a, 196, t, 0.16, 0.3, 'triangle', 147);
+        break;
+      case 'notify':
+        // Our little doorbell: up and over, then a soft landing.
+        note(a, 1047, t, 0.3, 0.24);
+        note(a, 1319, t + 0.11, 0.3, 0.22);
+        note(a, 1568, t + 0.22, 0.55, 0.2);
         break;
     }
   } catch {

@@ -297,7 +297,7 @@ export function ItemScreen({ id }: { id: string }) {
       hub.assign(id, p.assignee ?? null);
       const now = hub.item(id);
       if (now && hub.isRequest(p.assignee) && now.requestedBy === hub.meId && item.assignee !== p.assignee) {
-        notifyAbout(rt, hub, now, p.assignee as string, `${hub.me()?.name ?? 'Your partner'} asked you`, now.title);
+        notifyAbout(rt, hub, now, p.assignee as string, `🙋 ${hub.me()?.name ?? 'Your partner'} asked you`, now.title);
       }
       return;
     }

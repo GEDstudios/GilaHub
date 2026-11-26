@@ -98,3 +98,22 @@ describe('the backlog', () => {
     expect(openCount(hub, l)).toBe(2);
   });
 });
+
+describe('pictures on ideas', () => {
+  it('stores a big picture in parts and puts it back together; a new one never mixes with the old', async () => {
+    const hub = await person('guy');
+    const id = hub.addIdea('The cart is confusing')!;
+    const big = `data:image/jpeg;base64,${'A'.repeat(70_000)}`;
+    hub.setIdeaShot(id, big);
+    expect(hub.idea(id)?.shotN).toBe(3);
+    expect(hub.ideaShot(id)).toBe(big);
+    const small = `data:image/jpeg;base64,${'B'.repeat(100)}`;
+    hub.setIdeaShot(id, small);
+    expect(hub.ideaShot(id)).toBe(small);
+    // A part from another picture (half-synced) isn't glued on.
+    hub.store.mutate('idea', id, { shot0: 'zzzzzz:BBBB' });
+    expect(hub.ideaShot(id)).toBeNull();
+    hub.setIdeaShot(id, null);
+    expect(hub.ideaShot(id)).toBeNull();
+  });
+});

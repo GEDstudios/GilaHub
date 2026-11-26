@@ -11,6 +11,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { Check, Disclosure, lineVars } from '../ui/primitives';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { useSettle } from '../ui/useSettle';
+import { readImage, SketchSheet } from './Sketch';
 
 /**
  * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag sits in the page
@@ -131,21 +132,51 @@ function useAutosize(ref: React.RefObject<HTMLTextAreaElement | null>, value: st
 /** Enter commits, Shift+Enter is a new line. */
 const isCommit = (e: KeyboardEvent) => e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing;
 
+/** Pick a picture (a screenshot from the phone's photos), then draw on it. */
+function useShotPicker(onPicked: (jpeg: string) => void): { pick: () => void; input: React.ReactNode } {
+  const { openSheet, toast } = useOverlays();
+  const ref = useRef<HTMLInputElement>(null);
+  const input = (
+    <input
+      ref={ref}
+      type="file"
+      accept="image/*"
+      hidden
+      onChange={async (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        try {
+          const src = await readImage(file);
+          openSheet((close) => <SketchSheet src={src} onDone={onPicked} onClose={close} />);
+        } catch {
+          toast('Couldn’t open that picture');
+        }
+      }}
+    />
+  );
+  return { pick: () => ref.current?.click(), input };
+}
+
 function Composer() {
   const hub = useHub();
   const [text, setText] = useState('');
+  const [shot, setShot] = useState<string | null>(null);
   const field = useRef<HTMLTextAreaElement>(null);
+  const picker = useShotPicker(setShot);
   useAutosize(field, text);
   const add = (e?: FormEvent) => {
     e?.preventDefault();
-    const id = hub.addIdea(text);
+    const id = hub.addIdea(text.trim() || (shot ? 'See the picture' : ''));
     if (!id) return;
+    if (shot) hub.setIdeaShot(id, shot);
     haptic('tick');
     markFresh(id);
     setText('');
+    setShot(null);
   };
   return (
-    <form className="addrow ideas__compose" onSubmit={add}>
+    <form className={`addrow ideas__compose ${shot ? 'has-shot' : ''}`} onSubmit={add}>
       <span className="addrow__plus" aria-hidden="true">
         <Icon name="plus" />
       </span>
@@ -162,12 +193,71 @@ function Composer() {
           if (isCommit(e)) add(e);
         }}
       />
-      {text.trim() ? (
+      {shot ? (
+        <span className="ideas__pending">
+          <img src={shot} alt="Your picture" />
+          <button type="button" className="ideas__unshot" aria-label="Take the picture off" onClick={() => setShot(null)}>
+            <Icon name="x" className="icon--xs" />
+          </button>
+        </span>
+      ) : (
+        <button type="button" className="slot__btn ideas__shotbtn" aria-label="Add a screenshot to draw on" title="Add a screenshot" onClick={picker.pick}>
+          <Icon name="image" />
+        </button>
+      )}
+      {picker.input}
+      {text.trim() || shot ? (
         <button type="submit" className="btn btn--sm ideas__add">
           Add
         </button>
       ) : null}
     </form>
+  );
+}
+
+/** An idea's picture, small, under its text: tap to see it big, draw on it again, or take it off. */
+function Shot({ idea }: { idea: Idea }) {
+  const hub = useHub();
+  const { openSheet } = useOverlays();
+  const src = hub.ideaShot(idea.id);
+  if (!idea.shotN) return null;
+  if (!src) return <span className="idea__shot is-loading" aria-label="Picture on its way" />;
+  return (
+    <button type="button" className="idea__shot" aria-label="See the picture" onClick={() => openSheet((close) => <ShotSheet id={idea.id} onClose={close} />)}>
+      <img src={src} alt="" />
+    </button>
+  );
+}
+
+function ShotSheet({ id, onClose }: { id: string; onClose: () => void }) {
+  const hub = useHub();
+  const { openSheet, toast } = useOverlays();
+  const src = hub.ideaShot(id);
+  if (!src) return null;
+  return (
+    <Sheet onClose={onClose} title="The picture">
+      <img className="shotview" src={src} alt={hub.idea(id)?.text ?? ''} />
+      <div className="shotview__actions">
+        <button
+          type="button"
+          className="btn btn--block"
+          onClick={() => openSheet((close) => <SketchSheet src={src} onDone={(jpeg) => hub.setIdeaShot(id, jpeg)} onClose={close} title="Draw on it" />)}
+        >
+          <Icon name="scribble" className="icon--sm" /> Draw on it
+        </button>
+        <button
+          type="button"
+          className="textbtn"
+          onClick={() => {
+            hub.setIdeaShot(id, null);
+            onClose();
+            toast('Picture taken off', { action: { label: 'Undo', run: () => hub.setIdeaShot(id, src) } });
+          }}
+        >
+          Take it off
+        </button>
+      </div>
+    </Sheet>
   );
 }
 
@@ -270,6 +360,7 @@ function OpenRow({ idea, settling, onResolve }: { idea: Idea; settling: boolean;
         <span className="row__meta" dir="auto">
           {meta}
         </span>
+        <Shot idea={idea} />
       </div>
       <Check on={settling} color={hub.me()?.color} onToggle={() => onResolve(idea.id)} label={idea.text} disabled={settling} />
       <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="slot__btn slot__grip" aria-label={`Move ${idea.text}`}>
@@ -319,6 +410,7 @@ function ResolvedRow({ idea }: { idea: Idea }) {
         <span className="row__meta" dir="auto">
           {meta}
         </span>
+        <Shot idea={idea} />
       </div>
       {/* Filled in the color of whoever resolved it */}
       <Check on color={hub.member(idea.resolvedBy)?.color} onToggle={() => hub.reopenIdea(idea.id)} label={idea.text} />

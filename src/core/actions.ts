@@ -1166,6 +1166,36 @@ export class Hub {
     return this.store.create('idea', fields);
   }
 
+  /** An idea's picture, once all its parts are here (null while syncing, or none). */
+  ideaShot(id: string): string | null {
+    const idea = this.idea(id);
+    if (!idea?.shotN || !idea.shotV) return null;
+    let out = '';
+    for (let i = 0; i < idea.shotN; i++) {
+      const part = idea[`shot${i}`];
+      if (typeof part !== 'string' || !part.startsWith(`${idea.shotV}:`)) return null;
+      out += part.slice(idea.shotV.length + 1);
+    }
+    return out;
+  }
+
+  /** Attach (or, null, take off) an idea's picture: the parts first, each its own op, then the count. */
+  setIdeaShot(id: string, dataUrl: string | null): void {
+    const idea = this.idea(id);
+    if (!idea) return;
+    if (!dataUrl) {
+      this.store.mutate('idea', id, { shotN: null, shotV: null });
+      return;
+    }
+    const v = newId(6);
+    const SIZE = 28_000;
+    const n = Math.ceil(dataUrl.length / SIZE);
+    this.store.batch(() => {
+      for (let i = 0; i < n; i++) this.store.mutate('idea', id, { [`shot${i}`]: `${v}:${dataUrl.slice(i * SIZE, (i + 1) * SIZE)}` });
+      this.store.mutate('idea', id, { shotN: n, shotV: v });
+    });
+  }
+
   editIdea(id: string, text: string): void {
     const idea = this.idea(id);
     const t = text.trim();

@@ -541,6 +541,21 @@ try {
     await hila.getByRole('dialog').waitFor({ state: 'detached', timeout: 3000 });
     await hila.locator('.stickies').waitFor({ state: 'detached', timeout: 3000 });
     await guy.locator('.stickies').waitFor({ state: 'detached', timeout: 15000 });
+
+    // With the app open, the next one rings in from the top.
+    await hila.goto(`${url}/`);
+    await hila.waitForTimeout(800);
+    await guy.goto(`${url}/chores`);
+    await guy.locator('.notebtn').click();
+    await guy.getByRole('textbox', { name: 'Your note' }).fill('Your turn for the bins 🗑️');
+    await guy.getByRole('button', { name: 'Stick it' }).click();
+    const card = hila.locator('.arrival');
+    await card.waitFor({ timeout: 15000 });
+    if (!/Guy left you a note/.test(await card.innerText())) throw new Error(`the card says: ${await card.innerText()}`);
+    await hila.waitForTimeout(700);
+    await shot(hila, '33-arrival');
+    await card.locator('.arrival__main').click();
+    await hila.locator('.stickies').waitFor({ timeout: 3000 });
   });
 
   // ---------- Desktop

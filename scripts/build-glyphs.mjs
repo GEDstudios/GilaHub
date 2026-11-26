@@ -39,7 +39,7 @@ const MAP = {
   moon: ['moon', 'duo'], hand: ['hand', 'duo'], pin: ['push-pin', 'duo'], urgent: ['lightning', 'duo'],
   layout: ['layout', 'duo'], sliders: ['sliders-horizontal', 'duo'], inbox: ['tray', 'duo'], stack: ['rows', 'duo'],
   request: ['hand-waving', 'duo'], 'user-plus': ['user-plus', 'duo'], badge: ['notification', 'duo'],
-  lightbulb: ['lightbulb', 'duo'],
+  lightbulb: ['lightbulb', 'duo'], image: ['image', 'duo'], scribble: ['scribble-loop', 'duo'],
   // projects
   home: ['house', 'duo'], gift: ['gift', 'duo'], book: ['book-open', 'duo'], car: ['car', 'duo'],
   paw: ['paw-print', 'duo'], wallet: ['wallet', 'duo'], film: ['film-slate', 'duo'], utensils: ['fork-knife', 'duo'],
