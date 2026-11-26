@@ -719,6 +719,14 @@ try {
   const deskPage = await desk.newPage();
   await deskPage.goto(url);
   await deskPage.waitForTimeout(1500);
+  // The live cursor (a computer's) must never stand between the mouse and the page.
+  await deskPage.mouse.move(640, 430);
+  const hit = await deskPage.evaluate(() => {
+    const e = document.elementFromPoint(640, 430);
+    return { tag: e?.tagName, cls: String(e?.className ?? ''), pe: getComputedStyle(document.documentElement).pointerEvents, live: !!document.querySelector('.livecursor') };
+  });
+  if (hit.tag === 'HTML' || /livecursor/.test(hit.cls) || hit.pe === 'none') throw new Error(`the cursor blocks the page: ${JSON.stringify(hit)}`);
+  console.log('· ✓ Desktop: the live cursor draws over the page without taking its clicks');
   await shot(deskPage, '11-desktop-welcome');
   await desk.close();
 } finally {

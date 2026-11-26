@@ -12,6 +12,9 @@ const POINT = "a, button, summary, select, label, [role='button'], [role='radio'
 const GRAB = '[data-drag], [data-grip], .stuck, .slot__grip, .homecard__grip, .nf__photo.is-editable';
 const TEXT = "input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']), textarea, [contenteditable='true']";
 const IDLE_MS = 3000;
+/** Things that need a hold to pick up (with the mouse: a note, a note's photo), and how long. */
+const HOLD = '.stuck:not(.is-lifted), .nf__photo.is-editable:not(.is-lifted)';
+export const MOUSE_HOLD_MS = 380;
 
 function kindAt(target: EventTarget | null): CursorKind | 'text' {
   const root = document.documentElement;
@@ -44,9 +47,14 @@ export function startLiveCursor(): () => void {
   img.width = 32;
   img.height = 32;
   body.append(img);
-  el.append(body);
+  // A small timer by the cursor while a hold is under way: it fills, and then the thing lifts.
+  const timer = document.createElement('div');
+  timer.className = 'livecursor__timer';
+  timer.innerHTML = `<svg viewBox="0 0 24 24"><circle class="livecursor__track" cx="12" cy="12" r="9"/><circle class="livecursor__fill" cx="12" cy="12" r="9"/></svg>`;
+  timer.style.setProperty('--hold', `${MOUSE_HOLD_MS}ms`);
+  el.append(body, timer);
   document.body.append(el);
-  document.documentElement.classList.add('livecursor');
+  document.documentElement.classList.add('has-livecursor');
 
   let x = -100;
   let y = -100;
@@ -133,6 +141,8 @@ export function startLiveCursor(): () => void {
     }
     x = e.clientX;
     y = e.clientY;
+    // Moved off before the hold landed: no hold.
+    if (holdAt && Math.hypot(x - holdAt[0], y - holdAt[1]) > 8) endHold();
     if (!visible) {
       visible = true;
       lastX = x;
@@ -141,15 +151,29 @@ export function startLiveCursor(): () => void {
     setKind(kindAt(e.target));
     restartIdle();
   };
+  let holdAt: [number, number] | null = null;
+  const endHold = () => {
+    holdAt = null;
+    timer.classList.remove('is-on');
+  };
   const onDown = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
     stopWave();
+    const t = e.target instanceof Element ? e.target : null;
+    if (e.button === 0 && t?.closest(HOLD) && !t.closest('.sticky__check')) {
+      holdAt = [e.clientX, e.clientY];
+      timer.classList.remove('is-on');
+      void timer.offsetWidth;
+      timer.classList.add('is-on');
+      setTimeout(() => holdAt && endHold(), MOUSE_HOLD_MS + 120);
+    }
     scTarget = 0.86;
     setKind(kindAt(e.target));
     restartIdle();
   };
   const onUp = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
+    endHold();
     scTarget = 1;
     setKind(kindAt(e.target));
   };
@@ -187,7 +211,7 @@ export function startLiveCursor(): () => void {
     document.removeEventListener('mouseout', onLeave);
     window.removeEventListener('blur', hide);
     window.removeEventListener('gila:cursors', onRepaint);
-    document.documentElement.classList.remove('livecursor');
+    document.documentElement.classList.remove('has-livecursor');
     el.remove();
   };
 }
