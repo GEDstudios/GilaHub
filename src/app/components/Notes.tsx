@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { shortAgo } from '../../core/dates';
 import type { LineColor, Note } from '../../core/model';
+import { NOTE_MAX, NOTE_MIN } from '../../core/actions';
 import { useHub, useRt } from '../context';
 import { href, navigate, useRoute, type Route } from '../router';
 import { notifyMembers } from '../runtime';
@@ -173,6 +174,9 @@ export function NotesLayer() {
   );
 }
 
+type Place = { x: number; y: number; rot: number; scale: number };
+const clampScale = (s: number) => Math.min(NOTE_MAX, Math.max(NOTE_MIN, s));
+
 function StuckNote({
   note,
   index,
@@ -190,95 +194,172 @@ function StuckNote({
   const { openSheet, toast } = useOverlays();
   const el = useRef<HTMLDivElement>(null);
   const mine = note.by === hub.meId;
-  const forMe = note.to === hub.meId;
   const width = () => board.current?.getBoundingClientRect().width || 360;
   // Where it is: where it was left, else up by the top corner, fanned by age.
-  const home = () => ({
+  const home = (): Place => ({
     x: note.x ?? Math.max(0, (width() - NOTE_W - 16 - index * 14) / width()),
     y: note.y ?? 62 + index * 22,
     rot: note.rot ?? tiltOf(note.id),
+    scale: note.scale ?? 1,
   });
-  const [live, setLive] = useState<{ x: number; y: number; rot: number } | null>(null);
+  const [live, setLive] = useState<Place | null>(null);
+  const liveRef = useRef<Place | null>(null);
+  const show = (p: Place | null) => {
+    liveRef.current = p;
+    setLive(p);
+  };
   const at = live ?? home();
   const [peeling, setPeeling] = useState(false);
 
-  // One gesture at a time: a hold lifts it, then a drag moves it (or, from the handle, turns it).
-  const g = useRef<{ mode: 'wait' | 'move' | 'turn' | 'tap'; sx: number; sy: number; start: { x: number; y: number; rot: number }; timer?: ReturnType<typeof setTimeout>; cx?: number; cy?: number; a0?: number } | null>(null);
-  // While a note is held, the page mustn't scroll under the finger.
+  /**
+   * The gesture. One finger: a hold picks it up, then it follows the finger; a quick tap (no
+   * hold, no move) reads it. Two fingers, any time: pinch to size it, twist to turn it, both to
+   * move it, like a sticker. The round handle does size and turn for one finger (or a mouse).
+   */
+  const fingers = useRef(new Map<number, { x: number; y: number }>());
+  const g = useRef<{
+    mode: 'wait' | 'move' | 'pinch' | 'handle';
+    sx: number;
+    sy: number;
+    start: Place;
+    timer?: ReturnType<typeof setTimeout>;
+    d0?: number;
+    a0?: number;
+    c0?: { x: number; y: number };
+    center?: { x: number; y: number };
+  } | null>(null);
+  const tap = useRef(false);
+
+  // While it's in hand, the page mustn't scroll (or zoom) under the fingers.
   useEffect(() => {
     const n = el.current;
     if (!n) return;
     const stop = (e: TouchEvent) => {
-      if (g.current && (g.current.mode === 'move' || g.current.mode === 'turn')) e.preventDefault();
+      if (e.touches.length > 1 || (g.current && g.current.mode !== 'wait')) e.preventDefault();
     };
     n.addEventListener('touchmove', stop, { passive: false });
     return () => n.removeEventListener('touchmove', stop);
   }, []);
 
-  const down = (e: React.PointerEvent, turn = false) => {
+  const two = () => {
+    const [a, b] = [...fingers.current.values()];
+    return { d: Math.hypot(b.x - a.x, b.y - a.y), a: Math.atan2(b.y - a.y, b.x - a.x), c: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+  };
+  const centerOf = () => {
+    const r = el.current!.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+
+  const down = (e: React.PointerEvent, handle = false) => {
     if ((e.target as Element).closest('.sticky__check')) return;
     e.stopPropagation();
-    const start = home();
-    if (turn) {
-      const r = el.current!.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      g.current = { mode: 'turn', sx: e.clientX, sy: e.clientY, start, cx, cy, a0: Math.atan2(e.clientY - cy, e.clientX - cx) };
+    try {
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {
+      /* a pointer the browser doesn't track (synthetic): no capture */
+    }
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tap.current = false;
+    clearTimeout(g.current?.timer);
+    const start = liveRef.current ?? home();
+    if (handle) {
+      const c = centerOf();
+      g.current = { mode: 'handle', sx: e.clientX, sy: e.clientY, start, center: c, d0: Math.hypot(e.clientX - c.x, e.clientY - c.y), a0: Math.atan2(e.clientY - c.y, e.clientX - c.x) };
+      return;
+    }
+    if (fingers.current.size >= 2) {
+      const t = two();
+      g.current = { mode: 'pinch', sx: t.c.x, sy: t.c.y, start, d0: t.d, a0: t.a, c0: t.c };
+      if (!lifted) onLift(true);
+      haptic('select');
       return;
     }
     g.current = { mode: lifted ? 'move' : 'wait', sx: e.clientX, sy: e.clientY, start };
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
     if (!lifted)
       g.current.timer = setTimeout(() => {
         if (g.current?.mode !== 'wait') return;
         g.current.mode = 'move';
-        haptic('select');
+        haptic('lift');
         onLift(true);
       }, 380);
   };
+
   const move = (e: React.PointerEvent) => {
+    if (!fingers.current.has(e.pointerId)) return;
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const s = g.current;
     if (!s) return;
-    const dx = e.clientX - s.sx;
-    const dy = e.clientY - s.sy;
+    const w = width();
+    const keep = (p: Place): Place => ({ ...p, x: Math.min(1 - 40 / w, Math.max(-60 / w, p.x)), y: Math.max(8, p.y), scale: clampScale(p.scale) });
+    const turned = (rot: number) => {
+      let r = ((rot + 540) % 360) - 180;
+      if (Math.abs(r) < 2.5) r = 0; // a little snap to straight
+      return r;
+    };
     if (s.mode === 'wait') {
       // Moving before the hold lands: it was a scroll, not for the note.
-      if (Math.hypot(dx, dy) > 8) {
+      if (Math.hypot(e.clientX - s.sx, e.clientY - s.sy) > 8) {
         clearTimeout(s.timer);
         g.current = null;
       }
       return;
     }
     if (s.mode === 'move') {
-      const w = width();
-      setLive({ x: Math.min(1 - 40 / w, Math.max(-60 / w, s.start.x + dx / w)), y: Math.max(8, s.start.y + dy), rot: s.start.rot });
-    } else if (s.mode === 'turn') {
-      const a = Math.atan2(e.clientY - s.cy!, e.clientX - s.cx!);
-      let rot = s.start.rot + ((a - s.a0!) * 180) / Math.PI;
-      rot = ((rot + 540) % 360) - 180;
-      // A little snap to straight.
-      if (Math.abs(rot) < 2.5) rot = 0;
-      setLive({ ...s.start, rot });
+      show(keep({ ...s.start, x: s.start.x + (e.clientX - s.sx) / w, y: s.start.y + (e.clientY - s.sy) }));
+    } else if (s.mode === 'pinch' && fingers.current.size >= 2) {
+      const t = two();
+      show(
+        keep({
+          x: s.start.x + (t.c.x - s.c0!.x) / w,
+          y: s.start.y + (t.c.y - s.c0!.y),
+          rot: turned(s.start.rot + ((t.a - s.a0!) * 180) / Math.PI),
+          scale: s.start.scale * (t.d / Math.max(1, s.d0!)),
+        }),
+      );
+    } else if (s.mode === 'handle') {
+      const c = s.center!;
+      const d = Math.hypot(e.clientX - c.x, e.clientY - c.y);
+      const a = Math.atan2(e.clientY - c.y, e.clientX - c.x);
+      show(keep({ ...s.start, rot: turned(s.start.rot + ((a - s.a0!) * 180) / Math.PI), scale: s.start.scale * (d / Math.max(1, s.d0!)) }));
     }
   };
+
   const up = (e: React.PointerEvent) => {
+    fingers.current.delete(e.pointerId);
     const s = g.current;
-    g.current = null;
     if (!s) return;
-    clearTimeout(s.timer);
-    const moved = Math.hypot(e.clientX - s.sx, e.clientY - s.sy) > 8;
-    if ((s.mode === 'move' || s.mode === 'turn') && live) {
-      hub.placeNote(note.id, live);
-      haptic('drop');
-      setLive(null);
+    // One of two fingers lifted: carry on with the other as a plain move.
+    if (s.mode === 'pinch' && fingers.current.size === 1) {
+      const [f] = [...fingers.current.values()];
+      g.current = { mode: 'move', sx: f.x, sy: f.y, start: liveRef.current ?? s.start };
       return;
     }
-    // A plain tap: read it.
-    if (s.mode === 'wait' && !moved) {
-      haptic('select');
-      openSheet((close) => <NoteSheet ids={[note.id]} onClose={close} />);
+    if (fingers.current.size) return;
+    g.current = null;
+    clearTimeout(s.timer);
+    if (s.mode !== 'wait') {
+      if (liveRef.current) {
+        hub.placeNote(note.id, liveRef.current);
+        haptic('drop');
+      }
+      show(null);
+      return;
     }
+    // A plain tap: the click that follows opens it (opening here would let that click land on the sheet's veil).
+    tap.current = Math.hypot(e.clientX - s.sx, e.clientY - s.sy) <= 8;
+  };
+
+  const cancel = (e: React.PointerEvent) => {
+    fingers.current.delete(e.pointerId);
+    if (fingers.current.size) return;
+    clearTimeout(g.current?.timer);
+    g.current = null;
+    show(null);
+  };
+
+  const read = () => {
+    haptic('select');
+    openSheet((close) => <NoteSheet ids={[note.id]} onClose={close} />);
   };
 
   const tick = () => {
@@ -286,7 +367,7 @@ function StuckNote({
     setPeeling(true);
     setTimeout(() => {
       const undo = hub.peelNote(note.id);
-      toast('Collected · it’s with your notes in Projects', { action: { label: 'Undo', run: undo } });
+      toast('Collected · it’s on Our notes, in Projects', { action: { label: 'Undo', run: undo } });
     }, 420);
   };
 
@@ -295,21 +376,22 @@ function StuckNote({
       ref={el}
       data-note={note.id}
       className={`stuck ${lifted ? 'is-lifted' : ''} ${live ? 'is-moving' : ''} ${peeling ? 'is-peeling' : ''}`}
-      style={{ left: `${at.x * 100}%`, top: at.y, '--rot': `${at.rot}deg` } as CSSProperties}
+      style={{ left: `${at.x * 100}%`, top: at.y, '--rot': `${at.rot}deg`, '--scale': at.scale } as CSSProperties}
       role="button"
       tabIndex={0}
-      aria-label={`A note ${mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `from ${hub.member(note.by)?.name ?? 'your person'}`}: ${note.text}. Hold to move it.`}
+      aria-label={`A note ${mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `from ${hub.member(note.by)?.name ?? 'your person'}`}: ${note.text}. Hold to move it; pinch to size and turn it.`}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') openSheet((close) => <NoteSheet ids={[note.id]} onClose={close} />);
+        if (e.key === 'Enter') read();
+      }}
+      onClick={() => {
+        if (!tap.current) return;
+        tap.current = false;
+        read();
       }}
       onPointerDown={(e) => down(e)}
       onPointerMove={move}
       onPointerUp={up}
-      onPointerCancel={() => {
-        clearTimeout(g.current?.timer);
-        g.current = null;
-        setLive(null);
-      }}
+      onPointerCancel={cancel}
       onContextMenu={(e) => e.preventDefault()}
     >
       <span className="sticky" style={lineVars(note.color)}>
@@ -318,13 +400,20 @@ function StuckNote({
         </span>
         <span className="sticky__by">{mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `— ${hub.member(note.by)?.name ?? ''}`}</span>
       </span>
-      {forMe ? (
-        <button type="button" className="sticky__check" aria-label="Read it: tick it off" onClick={tick} onPointerDown={(e) => e.stopPropagation()}>
-          <Icon name="check" className="icon--sm" />
-        </button>
-      ) : null}
+      <button
+        type="button"
+        className="sticky__check"
+        aria-label="Read: tick it off"
+        onClick={(e) => {
+          e.stopPropagation();
+          tick();
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <Icon name="check" className="icon--sm" />
+      </button>
       {lifted ? (
-        <span className="sticky__turn" aria-hidden="true" onPointerDown={(e) => down(e, true)} onPointerMove={move} onPointerUp={up}>
+        <span className="sticky__turn" aria-hidden="true" onPointerDown={(e) => down(e, true)} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}>
           <Icon name="refresh" className="icon--xs" />
         </span>
       ) : null}
@@ -339,12 +428,12 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
   const notes = ids.map((id) => hub.store.get('note', id)).filter((n): n is Note => !!n && !n.deleted && !n.peeledAt);
   const [peeling, setPeeling] = useState<string | null>(null);
   if (!notes.length) return null;
-  const peel = (n: Note) => {
+  const peel = (n: Note, away = false) => {
     haptic('tick');
     setPeeling(n.id);
     setTimeout(() => {
-      const undo = hub.peelNote(n.id);
-      toast(n.by === hub.meId ? 'Taken down' : 'Collected · it’s with your notes in Projects', { action: { label: 'Undo', run: undo } });
+      const undo = away ? hub.deleteNote(n.id) : hub.peelNote(n.id);
+      toast(away ? 'Taken down' : 'Collected · it’s on Our notes, in Projects', { action: { label: 'Undo', run: undo } });
       setPeeling(null);
       if (notes.length === 1) onClose();
     }, 380);
@@ -365,9 +454,16 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
                   {mine ? `For ${hub.member(n.to)?.name ?? 'them'}` : `— ${from?.name ?? ''}`} · {shortAgo(n.createdAt)}
                 </span>
               </div>
-              <button type="button" className={`btn btn--block ${mine ? 'btn--quiet' : ''}`} onClick={() => peel(n)}>
-                {mine ? 'Take it down' : (<><Icon name="check" className="icon--sm" /> Got it</>)}
+              <button type="button" className="btn btn--block" onClick={() => peel(n)}>
+                <Icon name="check" className="icon--sm" /> Got it
               </button>
+              {mine ? (
+                <p className="editlink">
+                  <button type="button" className="textbtn" onClick={() => peel(n, true)}>
+                    Take it down
+                  </button>
+                </p>
+              ) : null}
             </div>
           );
         })}
@@ -413,14 +509,21 @@ export function CollectedNotes() {
   const hub = useHub();
   const { openSheet } = useOverlays();
   const notes = hub.collectedNotes();
-  if (!notes.length) return null;
+  // Notes are for the two of us: the board waits for my person.
+  if (!notes.length && !hub.partner()) return null;
   return (
     <section className="collected" aria-label="Our notes">
       <h2 className="collected__head">
         <span className="collected__pin" aria-hidden="true" />
-        Our notes <span className="collected__n num">{notes.length}</span>
+        Our notes {notes.length ? <span className="collected__n num">{notes.length}</span> : null}
       </h2>
-      <div className="pinboard">
+      <div className={`pinboard ${notes.length ? '' : 'is-empty'}`}>
+        {notes.length ? null : (
+          <p className="pinboard__empty">
+            <span className="sticky sticky--mini sticky--ghost" aria-hidden="true" />
+            Notes you tick off land here, to look back on
+          </p>
+        )}
         {notes.map((n) => (
           <button
             key={n.id}

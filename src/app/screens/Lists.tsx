@@ -340,6 +340,8 @@ export function Lists() {
           </div>
         </Sortable>
 
+        {arranging ? null : <CollectedNotes />}
+
         {arranging ? null : (
           <p className="editlink editlink--phone">
             <button ref={arrangeRef} type="button" className="textbtn" onClick={start}>
@@ -348,8 +350,6 @@ export function Lists() {
             </button>
           </p>
         )}
-
-        {arranging ? null : <CollectedNotes />}
 
         {backlog.length ? (
           <Disclosure title="Backlog" count={backlog.length}>

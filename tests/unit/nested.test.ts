@@ -168,3 +168,20 @@ describe('notify again until done', () => {
     expect(hub.item(id)?.nag).toBeNull();
   });
 });
+
+describe('sticky notes, sized', () => {
+  it('keeps a size between the smallest and biggest, and either of us can tick it', async () => {
+    const { NOTE_MAX, NOTE_MIN } = await import('../../src/core/actions');
+    const hub = await person('guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    hub.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    const id = hub.addNote('shop', 'Milk', 'lemon')!;
+    hub.placeNote(id, { x: 0.5, y: 100, rot: 0, scale: 9 });
+    expect(hub.store.get('note', id)?.scale).toBe(NOTE_MAX);
+    hub.placeNote(id, { x: 0.5, y: 100, rot: 0, scale: 0.1 });
+    expect(hub.store.get('note', id)?.scale).toBe(NOTE_MIN);
+    // The one who left it ticks it: collected, not gone.
+    hub.peelNote(id);
+    expect(hub.collectedNotes().map((n) => n.id)).toEqual([id]);
+  });
+});

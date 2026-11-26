@@ -4440,10 +4440,13 @@ html:has(.iconlib) .fab {
 
 .stuck {
   --rot: 3deg;
+  --scale: 1;
   position: absolute;
   width: 124px;
-  transform: rotate(var(--rot));
-  touch-action: manipulation;
+  transform-origin: 50% 50%;
+  transform: rotate(var(--rot)) scale(var(--scale));
+  /* One finger still scrolls the page; two are for the note (pinch, twist). */
+  touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -4462,7 +4465,7 @@ html:has(.iconlib) .fab {
 .stuck.is-lifted {
   z-index: 2;
   touch-action: none;
-  transform: rotate(var(--rot)) scale(1.07);
+  transform: rotate(var(--rot)) scale(calc(var(--scale) * 1.07));
   filter: drop-shadow(0 18px 18px rgb(10 10 4 / 0.28));
   cursor: grab;
 }
@@ -4529,7 +4532,7 @@ html:has(.iconlib) .fab {
     transform 420ms var(--ease),
     opacity 420ms var(--ease);
   transform-origin: 0% 0%;
-  transform: rotate(calc(var(--rot) - 20deg)) translate(-20px, -80px) scale(0.8);
+  transform: rotate(calc(var(--rot) - 20deg)) translate(-20px, -80px) scale(calc(var(--scale) * 0.8));
   opacity: 0;
   pointer-events: none;
 }
@@ -5010,4 +5013,45 @@ html.is-editing .stickyboard {
   display: flex;
   justify-content: flex-end;
   margin: -4px 0 10px;
+}
+
+.collected {
+  margin-top: 30px;
+}
+
+.pinboard.is-empty {
+  display: block;
+  padding: 18px;
+}
+
+.pinboard__empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+.sticky--ghost {
+  flex: none;
+  width: 44px;
+  min-height: 40px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: 1.5px dashed var(--tile-2);
+  transform: rotate(-5deg);
+}
+
+.sticky--ghost::before {
+  width: 22px;
+  height: 9px;
+  top: -5px;
+}
+
+/* However big or small the note, its tick and handle stay finger-sized */
+.stuck .sticky__check,
+.stuck .sticky__turn {
+  scale: calc(1 / var(--scale));
 }

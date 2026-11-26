@@ -11,6 +11,10 @@ import { firstDue, isFlexible, nextDue, shiftForAway, skipDue } from '../smart/r
 export type ItemVisibility = 'ours' | 'mine' | 'private';
 export type Undo = () => void;
 
+/** How small and how big a sticky note can be made (times its usual size). */
+export const NOTE_MIN = 0.6;
+export const NOTE_MAX = 1.8;
+
 export interface NewItem {
   title: string;
   parentId?: string | null;
@@ -1137,9 +1141,10 @@ export class Hub {
   }
 
   /** Move or turn a note on its screen (both of us see it there). */
-  placeNote(id: string, at: { x: number; y: number; rot: number }): void {
+  placeNote(id: string, at: { x: number; y: number; rot: number; scale?: number }): void {
     if (!this.store.get('note', id)) return;
-    this.store.mutate('note', id, { x: Math.round(at.x * 1000) / 1000, y: Math.round(at.y), rot: Math.round(at.rot * 10) / 10 });
+    const scale = at.scale === undefined ? undefined : Math.round(Math.min(NOTE_MAX, Math.max(NOTE_MIN, at.scale)) * 100) / 100;
+    this.store.mutate('note', id, { x: Math.round(at.x * 1000) / 1000, y: Math.round(at.y), rot: Math.round(at.rot * 10) / 10, ...(scale === undefined ? {} : { scale }) });
   }
 
   /** The notes we've read and ticked off, kept together (Projects), newest first. */
@@ -1157,14 +1162,11 @@ export class Hub {
     return () => this.store.mutate('note', id, { deleted: false });
   }
 
-  /** Read it, peel it off (the one it was for); the one who left it takes it down. Returns the way back. */
+  /** Tick it: read, peeled off, kept with the collected notes (either of us). Returns the way back. Taking one down for good is deleteNote. */
   peelNote(id: string): Undo {
     const n = this.store.get('note', id);
     if (!n) return () => {};
-    if (n.by === this.meId) {
-      this.store.mutate('note', id, { deleted: true });
-      return () => this.store.mutate('note', id, { deleted: false });
-    }
+    // Either of us ticks it: it's read, and joins the collection.
     this.store.mutate('note', id, { peeledAt: Date.now() });
     return () => this.store.mutate('note', id, { peeledAt: null });
   }

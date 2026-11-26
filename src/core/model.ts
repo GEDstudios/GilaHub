@@ -290,6 +290,8 @@ export interface Note {
   x?: number | null;
   y?: number | null;
   rot?: number | null;
+  /** Its size, times the usual (NOTE_MIN to NOTE_MAX). */
+  scale?: number | null;
   /** Read and peeled off (ticked) by the one it was for: it goes to the collected notes. */
   peeledAt?: number | null;
   deleted?: boolean;

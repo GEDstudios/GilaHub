@@ -539,6 +539,9 @@ try {
     // A tap reads it.
     await stuck.locator('.sticky__text').click();
     await hila.getByRole('dialog', { name: 'A note' }).getByText(NOTE).waitFor({ timeout: 3000 });
+    // …and it stays open (the tap's own click mustn't land on the sheet's veil).
+    await hila.waitForTimeout(600);
+    if (!(await hila.getByRole('dialog', { name: 'A note' }).count())) throw new Error('the note closed right after opening');
     await shot(hila, '32-note-hila-read');
     await hila.keyboard.press('Escape');
     await hila.getByRole('dialog').waitFor({ state: 'detached', timeout: 3000 });
@@ -557,8 +560,32 @@ try {
       const n = document.querySelector('.stuck');
       return n && parseFloat(n.style.top) > 250;
     }, null, { timeout: 15000 });
-    // The tick: read, collected.
+    // Two fingers: pinch out and twist; it grows and turns (and stays in bounds).
     await hila.mouse.click(5, 400);
+    const before = await stuck.evaluate((n) => [parseFloat(getComputedStyle(n).getPropertyValue('--scale')), parseFloat(n.style.getPropertyValue('--rot'))]);
+    await stuck.evaluate(async (n) => {
+      const r = n.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const fire = (type, id, x, y) => n.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: id === 11 }));
+      fire('pointerdown', 11, cx - 30, cy);
+      fire('pointerdown', 12, cx + 30, cy);
+      for (let i = 1; i <= 10; i++) {
+        const d = 30 + i * 4;
+        const a = (i / 10) * 0.5;
+        fire('pointermove', 11, cx - d * Math.cos(a), cy - d * Math.sin(a));
+        fire('pointermove', 12, cx + d * Math.cos(a), cy + d * Math.sin(a));
+        await new Promise((r2) => setTimeout(r2, 16));
+      }
+      fire('pointerup', 12, cx, cy);
+      fire('pointerup', 11, cx, cy);
+    });
+    await hila.waitForTimeout(300);
+    const note = await hila.evaluate(() => [...document.querySelectorAll('.stuck')].map((n) => [parseFloat(n.style.getPropertyValue('--scale')), parseFloat(n.style.getPropertyValue('--rot'))])[0]);
+    if (!(note[0] > before[0] * 1.5) || Math.abs(note[1] - before[1]) < 20) throw new Error(`pinch didn't size/turn it: ${before} → ${note}`);
+    await hila.mouse.click(5, 400);
+    await shot(hila, '32b2-note-pinched');
+    // The tick: read, collected.
     await stuck.locator('.sticky__check').click();
     await stuck.waitFor({ state: 'detached', timeout: 3000 });
     await guy.locator('.stuck').waitFor({ state: 'detached', timeout: 15000 });
