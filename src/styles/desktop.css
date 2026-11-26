@@ -761,4 +761,9 @@
     padding-right: 136px;
   }
 
+  /* Us inside its panel: the panel is the tile. */
+  .main .homeus .ustile {
+    padding: 2px 8px 0;
+    background: none;
+  }
 }

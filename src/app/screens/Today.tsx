@@ -5,9 +5,8 @@ import { flushSync } from 'react-dom';
 import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
-import { AsksWidget } from '../components/Asks';
-import { ComingUp, HomeNotices, InviteCard, PartnerDid, ProjectWidget, SummaryCard, WeekStrips } from '../components/HomeWidgets';
-import { TodayBlock } from '../components/Home';
+import { HomeNotices, InviteCard, ProjectWidget } from '../components/HomeWidgets';
+import { DayCard, TodayList, UsTile, WeekStrip } from '../components/Home';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
@@ -30,8 +29,8 @@ function greeting(): string {
   return 'Evening';
 }
 
-/** On a computer the week (and us) is a glance, in the side column beside the day. */
-const SIDE = new Set(['week']);
+/** On a computer, the looking (the week, us) sits beside the doing. */
+const SIDE = new Set(['upcoming', 'week']);
 
 /** Today with a filter on: only what passes, everywhere on the page (the counts follow). */
 function filterToday(v: TodayView, keep: (i: Item) => boolean): TodayView {
@@ -106,26 +105,17 @@ export function Today() {
 
   const wide = useWide();
   const slots = visibleHome(hub);
-  const shown = new Set(slots.map((x) => x.key));
 
   const block = (key: string) => {
     const listId = listIdOf(key);
     if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} show={filter.active ? (i) => filter.test(i, true) : undefined} />;
     switch (key) {
-      case 'asks':
-        return <AsksWidget key={key} v={v} settle={settle} />;
       case 'today':
-        return <TodayBlock key={key} v={v} day={ref} settle={settle} />;
-      case 'week':
-        // The week, and what my person did in it: one place for us.
-        return (
-          <div key={key} className="homeweek">
-            <WeekStrips v={v} shown={shown} />
-            <PartnerDid v={v} />
-          </div>
-        );
+        return <TodayList key={key} v={v} day={ref} settle={settle} />;
       case 'upcoming':
-        return <ComingUp key={key} v={v} day={ref} />;
+        return <WeekStrip key={key} v={v} day={ref} />;
+      case 'week':
+        return <UsTile key={key} v={v} settle={settle} />;
       default:
         return null;
     }
@@ -154,7 +144,7 @@ export function Today() {
           mini="Edit Today"
         />
         <div className="column home home--editing">
-          <SummaryCard v={v} day={ref} asksShown={false} />
+          <DayCard v={v} day={ref} />
           <TodayArrange peek={block} />
         </div>
       </>
@@ -181,22 +171,14 @@ export function Today() {
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
           <div className="home__cols">
             <div className="home__main">
+              <DayCard v={v} day={ref} />
               <HomeNotices />
               {lens}
-              {/* A computer's way in: an "add" line at the head of the day (N works from anywhere) */}
-              <button type="button" className="quickbar" onClick={openNew} aria-keyshortcuts="N">
-                <span className="quickbar__plus">
-                  <Icon name="plus" className="icon--sm" />
-                </span>
-                <span className="quickbar__text">Add a task, or ask {hub.partner()?.name ?? 'your person'}…</span>
-                <span className="kbd">N</span>
-              </button>
               {slots.filter((s) => !SIDE.has(s.key)).map((s) => block(s.key))}
               {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
               {editLink}
             </div>
-            <aside className="home__side" aria-label="Your day and your week">
-              <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+            <aside className="home__side" aria-label="The week, and us">
               {slots.filter((s) => SIDE.has(s.key)).map((s) => block(s.key))}
               <InviteCard />
             </aside>
@@ -204,7 +186,7 @@ export function Today() {
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
-          <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+          <DayCard v={v} day={ref} />
           <HomeNotices />
           {lens}
           {slots.map((s) => block(s.key))}

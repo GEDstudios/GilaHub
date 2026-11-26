@@ -2517,57 +2517,6 @@ html.is-dragging .bartray {
   }
 }
 
-/* ============================================================ Today: the summary's next, and labels inside a block */
-
-/* What's next, on the summary: one white line, a way straight to it. */
-.summary__next {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  margin-top: 14px;
-  padding: 11px 12px 11px 14px;
-  border-radius: 16px;
-  background: var(--card);
-  color: var(--ink);
-  text-align: start;
-  box-shadow: var(--lift-1);
-  transition: transform 140ms var(--ease);
-}
-
-.summary__next:active {
-  transform: scale(0.98);
-}
-
-.summary__nextlabel {
-  flex: none;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.summary__nexttitle {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 15.5px;
-  font-weight: 500;
-}
-
-.summary__nexttime {
-  flex: none;
-  font-size: 13.5px;
-  font-weight: 500;
-}
-
-.summary__next > .icon {
-  color: var(--text-3);
-}
-
 /* A quiet label inside a block: From earlier, then Today. */
 .daylabel {
   margin: 14px 4px 7px;
@@ -2586,18 +2535,291 @@ html.is-dragging .bartray {
   color: #b2471a;
 }
 
-/* The week and what my person did: one place for us. */
-.homeweek > .section + .section {
-  margin-top: 22px;
-}
-
-.home .summary + .notice,
-.home .summary ~ .lens {
-  margin-top: 16px;
-}
-
 .cartcard__hint {
   margin: 0;
   font-size: 13.5px;
   color: var(--text-3);
+}
+
+/* ============================================================ Today (docs/07-HOME.md) */
+
+/* The day's card: the page's one colour moment, in my colour. A serif title, one sentence,
+   a black badge; my person's name tag on its edge. */
+.daycard {
+  position: relative;
+  margin: 4px 0 30px;
+  padding: 22px 22px 30px;
+  border-radius: var(--r-xl);
+  background: var(--c);
+  color: var(--ink);
+}
+
+.daycard__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.daycard__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+}
+
+.daycard__badge {
+  flex: none;
+  margin-top: 4px;
+  height: 28px;
+  padding: 0 11px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.daycard__sentence {
+  margin: 12px 0 0;
+  max-width: 88%;
+  font-size: 16px;
+  line-height: 1.4;
+  color: rgb(10 10 4 / 0.78);
+}
+
+.daycard__next {
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  text-decoration: underline;
+  text-decoration-color: rgb(10 10 4 / 0.28);
+  text-underline-offset: 3px;
+}
+
+.daycard__tag {
+  position: absolute;
+  right: 26px;
+  bottom: -17px;
+  gap: 7px;
+  transform: rotate(-3deg);
+  box-shadow: var(--lift-1);
+  transition: transform 220ms var(--spring);
+}
+
+.daycard__tag:active {
+  transform: rotate(-3deg) scale(0.95);
+}
+
+.daycard__tag.is-asking {
+  font-weight: 600;
+}
+
+/* The week: seven days as dates, dots for how full; the chosen one opens under it. */
+.weekstrip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.weekstrip__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 0 9px;
+  border-radius: 18px;
+  background: var(--tile);
+  color: var(--ink);
+  transition:
+    background 160ms var(--ease),
+    color 160ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.weekstrip__day:active {
+  transform: scale(0.94);
+}
+
+.weekstrip__wd {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.weekstrip__date {
+  font-family: var(--serif);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.weekstrip__dots {
+  display: flex;
+  gap: 3px;
+  height: 5px;
+}
+
+.weekstrip__dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.6;
+}
+
+.weekstrip__day.is-empty .weekstrip__date {
+  color: var(--text-3);
+}
+
+.weekstrip__day.is-on {
+  background: var(--ink);
+  color: #fff;
+}
+
+.weekstrip__day.is-on .weekstrip__wd {
+  color: rgb(255 255 255 / 0.65);
+}
+
+.weekstrip__day.is-on .weekstrip__date {
+  color: #fff;
+}
+
+.weekstrip__day.is-on .weekstrip__dots i {
+  background: #fff;
+  opacity: 0.9;
+}
+
+.weekstrip__label {
+  margin: 14px 4px 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+/* Us: one grey tile. */
+.ustile {
+  padding: 16px 16px 6px;
+  border-radius: 22px;
+  background: var(--tile);
+}
+
+.ustile__week {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.ustile__n {
+  font-family: var(--serif);
+  font-size: 44px;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+.ustile__what {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.ustile__vs {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.ustile__people {
+  display: flex;
+  gap: 10px;
+}
+
+.ustile__who {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ustile__did {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.ustile__did li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+}
+
+.ustile__didtext,
+.ustile__mtext {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.ustile__ago {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.ustile .quietline {
+  border-top: 1px solid var(--line);
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.ustile__moment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  border-top: 1px solid var(--line);
+  text-align: start;
+}
+
+.ustile__feel {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--card);
+  font-size: 17px;
+}
+
+.ustile__moment > .icon {
+  color: var(--text-3);
+}
+
+.home .daycard ~ .lens {
+  margin-top: 0;
+}
+
+/* On my own there's no name tag on the edge: no room kept for it. */
+.daycard:not(:has(.daycard__tag)) {
+  margin-bottom: 26px;
+  padding-bottom: 22px;
+}
+
+.home .notice + .lens {
+  margin-top: 14px;
 }

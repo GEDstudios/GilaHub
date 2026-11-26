@@ -100,7 +100,7 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
  * What I asked Hila for, and what I did of hers that waits for her OK, saying who did what:
  * "You asked Hila for 2 things · you did 1 for Hila to OK". It opens to those rows.
  */
-function AskedLine({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
+export function AskedLine({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
   const hub = useHub();
   const partner = hub.partner();
   const [open, setOpen] = useState(false);

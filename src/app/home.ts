@@ -14,10 +14,9 @@ import { openCount, type TodayView } from './views';
  */
 export const MAX_HOME_PROJECTS = 3;
 
-export type WidgetKey = 'asks' | 'today' | 'week' | 'upcoming';
+export type WidgetKey = 'today' | 'upcoming' | 'week';
 
 export const DEFAULT_HOME: readonly HomeSlot[] = [
-  { key: 'asks', on: true },
   { key: 'today', on: true },
   { key: 'upcoming', on: true },
   { key: 'week', on: true },
@@ -31,10 +30,10 @@ export interface WidgetDef {
 }
 
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
-  asks: { title: () => 'Waiting on you', icon: 'hand', needsPartner: true },
+  // Today holds what my person asked of me too (docs/07-HOME.md): one list of things to do.
   today: { title: () => 'Today', icon: 'sun' },
-  week: { title: () => 'This week', icon: 'stack' },
-  upcoming: { title: () => 'Coming up', icon: 'calendar' },
+  upcoming: { title: () => 'The week', icon: 'calendar' },
+  week: { title: (hub) => (hub.partner() ? 'Us' : 'Your week'), icon: 'heart' },
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);
@@ -274,14 +273,10 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
     return join([n > 0 && `${n} open`], 'Nothing open');
   }
   switch (key) {
-    case 'asks': {
+    case 'today': {
       const mine = v.awaitingOk.length + v.asked.length;
-      const asked = v.outgoing.length;
-      const did = v.waitingTheirOk.length;
-      return join([mine > 0 && `${mine} for you`, asked > 0 && `${asked} you asked ${p}`, did > 0 && `${did} waiting for ${p}’s OK`], `${p}’s asks and OKs show up here`);
+      return join([v.today.length > 0 && `${v.today.length} today`, v.earlier.length > 0 && `${v.earlier.length} from earlier`, mine > 0 && `${mine} from ${p}`], 'Nothing due today');
     }
-    case 'today':
-      return join([v.today.length > 0 && `${v.today.length} today`, v.earlier.length > 0 && `${v.earlier.length} from earlier`], 'Nothing due today');
     case 'week': {
       const { week } = weekCounts(hub);
       return join([week > 0 && `${week} done`, v.recent.length > 0 && `${p} did ${v.recent.length} since yesterday`], 'How the week went, and your moments');
