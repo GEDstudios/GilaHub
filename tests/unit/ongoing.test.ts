@@ -116,3 +116,26 @@ describe('Recent tags', () => {
     expect(guy.recentTags().slice(0, 3)).toEqual([fun, work, garden]);
   });
 });
+
+describe('How each of us looks at a folder', () => {
+  it('is mine: my cards view does not change my partner’s list view', async () => {
+    const guy = await person('guy');
+    const hila = await person('hila');
+    guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    hila.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    const l = guy.createList({ name: 'Trip' });
+    sync(guy, hila);
+    guy.setListView(l, 'cards');
+    hila.setListView(l, 'tags');
+    sync(guy, hila);
+    expect(guy.viewOf(guy.list(l))).toBe('cards');
+    expect(hila.viewOf(hila.list(l))).toBe('tags');
+  });
+
+  it('starts from the folder’s own default (Shopping is by tag for both)', async () => {
+    const guy = await person('guy');
+    const l = guy.createList({ name: 'Groceries', view: 'tags' });
+    expect(guy.viewOf(guy.list(l))).toBe('tags');
+    expect(guy.byAisle(l)).toBe(true);
+  });
+});

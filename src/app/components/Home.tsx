@@ -1,21 +1,19 @@
-import { useState } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { addDays, fromDateStr, humanTime, relativeAgo, today as todayStr } from '../../core/dates';
-import type { Item } from '../../core/model';
+import type { Item, LineColor } from '../../core/model';
 import { useHub, usePartnerHere } from '../context';
-import { summaryOf, weekBy, weekCounts } from '../home';
-import { onThisDay } from '../moments';
+import { summaryOf, weekBy, weekCounts, weekDays } from '../home';
 import { setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { PersonCursor } from '../ui/PersonCursor';
-import { Avatar, lineVars } from '../ui/primitives';
+import { Avatar, lightVar, lineVars } from '../ui/primitives';
+import { haptic } from '../ui/haptics';
 import { RequestActions } from '../ui/tags';
 import type { Settle } from '../ui/useSettle';
 import type { TodayView } from '../views';
-import { AskedLine } from './Asks';
 import { ItemRow } from './ItemRow';
-import { MomentsSheet } from './Moments';
 import { QuickAddSheet } from './QuickAddSheet';
 
 /*
@@ -266,81 +264,216 @@ export function WeekStrip({ v, day }: { v: TodayView; day: string }) {
 
 // ---------------------------------------------------------------- us
 
+type Card = { key: string; color: LineColor; num: ReactNode; label: string; detail?: string; more: ReactNode };
+
 /**
- * Us, in one grey tile: the one shared number (done together this week, against last week), who
- * did what; what my person did since yesterday (a ♡ thanks them); what I asked of them; and a
- * moment to keep (or one from a year ago today). On my own: my week and my moments.
+ * Us, as colour cards on a table (each leans a little, the next the other way, overlapping),
+ * only the ones with something to say. A tap picks one up and opens it in place:
+ * - the week: how many we did (against last week); open, a chart of the seven days, a bar each,
+ *   in our colours, that grow in; a tap on a day says who did what.
+ * - what my person did since yesterday: open, each thing with a ♡ to thank them (and one for all).
+ * - what I asked of them: open, those rows, to see where they are.
+ * On my own: my week.
  */
 export function UsTile({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
   const hub = useHub();
-  const { openSheet } = useOverlays();
   const partner = hub.partner();
+  const [open, setOpen] = useState<string | null>(null);
   const { week, last } = weekCounts(hub);
   const by = weekBy(hub);
   const diff = week - last;
-  const vs = !last ? null : diff > 0 ? `${diff} more than last week` : diff < 0 ? `${-diff} fewer than last week` : 'as many as last week';
-  const moments = hub.moments();
-  const back = onThisDay(moments, todayStr());
-  const latest = back?.moment ?? moments[0];
+  const vs = !last ? '' : diff > 0 ? `${diff} more than last week` : diff < 0 ? `${-diff} fewer than last week` : 'as many as last week';
+  const cards: Card[] = [];
+
+  if (week || partner) {
+    const people = partner ? hub.members().map((m) => `${m.id === hub.meId ? 'You' : m.name} ${by.get(m.id) ?? 0}`).join(' · ') : '';
+    cards.push({
+      key: 'week',
+      color: 'lilac',
+      num: week,
+      label: `done ${partner ? 'together ' : ''}this week`,
+      detail: [people, vs].filter(Boolean).join(' · ') || (week ? 'Tap to see your days' : 'Tick things off and they count here'),
+      more: <WeekChart />,
+    });
+  }
+
+  if (partner && v.recent.length) {
+    const n = v.recent.length;
+    const thanked = v.recent.filter((r) => r.log?.thankedBy).length;
+    cards.push({
+      key: 'did',
+      // In their colour (unless that's another card's).
+      color: partner.color === 'ink' ? 'lemon' : partner.color === 'lilac' || partner.color === 'sky' ? 'pink' : partner.color,
+      num: n,
+      label: `${partner.name} did since yesterday`,
+      detail: thanked === n ? 'All thanked ♡' : v.recent.map((r) => r.item.title).slice(0, 3).join(', '),
+      more: <DidList v={v} />,
+    });
+  }
+
+  const asked = v.outgoing.length + v.waitingTheirOk.length;
+  if (partner && asked) {
+    const done = v.waitingTheirOk.length;
+    cards.push({
+      key: 'asked',
+      color: 'sky',
+      num: v.outgoing.length || done,
+      label: v.outgoing.length ? `you asked ${partner.name} for` : `waiting for ${partner.name}’s OK`,
+      detail: v.outgoing.length ? [v.outgoing.slice(0, 2).map((i) => i.title).join(', '), done ? `${done} waiting for ${partner.name}’s OK` : ''].filter(Boolean).join(' · ') : undefined,
+      more: <AskedRows v={v} settle={settle} />,
+    });
+  }
+
+  if (!cards.length) return null;
   return (
     <section className="section homeus" id="week" aria-label={partner ? 'Us' : 'Your week'}>
       <div className="section__head">
         <h2 className="section__title">{partner ? 'Us' : 'Your week'}</h2>
       </div>
-      <div className="ustile">
-        <div className="ustile__week">
-          <span className="ustile__n num">{week}</span>
-          <span className="ustile__what">
-            done {partner ? 'together ' : ''}this week
-            {vs ? <span className="ustile__vs">{vs}</span> : null}
-          </span>
-          {partner ? (
-            <span className="ustile__people">
-              {hub.members().map((m) => (
-                <span key={m.id} className="ustile__who" title={`${m.name}: ${by.get(m.id) ?? 0}`}>
-                  <Avatar member={m} size="xs" />
-                  <span className="num">{by.get(m.id) ?? 0}</span>
+      <div className={`wcards ${open ? 'has-open' : ''}`}>
+        {cards.map((c, i) => {
+          const on = open === c.key;
+          return (
+            <div key={c.key} className={`wcard ${on ? 'is-open' : ''}`} style={{ ...lineVars(c.color), '--i': i } as CSSProperties}>
+              <button
+                type="button"
+                className="wcard__face"
+                aria-expanded={on}
+                onClick={() => {
+                  haptic(on ? 'select' : 'tick');
+                  setOpen(on ? null : c.key);
+                }}
+              >
+                <span className="wcard__num num">{c.num}</span>
+                <span className="wcard__text">
+                  <span className="wcard__label" dir="auto">
+                    {c.label}
+                  </span>
+                  {c.detail ? (
+                    <span className="wcard__detail" dir="auto">
+                      {c.detail}
+                    </span>
+                  ) : null}
                 </span>
-              ))}
-            </span>
-          ) : null}
-        </div>
-        {partner && v.recent.length ? (
-          <ul className="ustile__did">
-            {v.recent.map((r) => (
-              <li key={r.log?.id ?? r.item.id}>
-                <Avatar member={partner} size="xs" />
-                <span className="ustile__didtext" dir="auto">
-                  {r.item.title}
-                  <span className="ustile__ago"> · {relativeAgo(r.at)}</span>
-                </span>
-                {r.log ? (
-                  <button
-                    type="button"
-                    className={`heart ${r.log.thankedBy ? 'is-on' : ''}`}
-                    onClick={() => hub.thank(r.log!.id)}
-                    aria-label={`Thank ${partner.name}`}
-                    aria-pressed={!!r.log.thankedBy}
-                  >
-                    <Icon name={r.log.thankedBy ? 'heart-fill' : 'heart'} />
-                  </button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <AskedLine v={v} settle={settle} />
-        <button type="button" className="ustile__moment" onClick={() => openSheet((close) => <MomentsSheet onClose={close} />)}>
-          <span className="ustile__feel" aria-hidden="true">
-            {latest ? latest.feel : <Icon name="sparkle" />}
-          </span>
-          <span className="ustile__mtext" dir="auto">
-            {latest ? latest.text : 'Keep a moment from this week'}
-            {back ? <span className="ustile__ago"> · {back.ago}</span> : null}
-          </span>
-          <Icon name="chevron-right" className="icon--sm" />
-        </button>
+                <Icon name="chevron-down" className="wcard__chev" />
+              </button>
+              {on ? <div className="wcard__more">{c.more}</div> : null}
+            </div>
+          );
+        })}
       </div>
     </section>
+  );
+}
+
+/** The seven days as bars, a segment each of us in our colours, growing in one after another. */
+function WeekChart() {
+  const hub = useHub();
+  const days = weekDays(hub);
+  const members = hub.partner() ? hub.members() : hub.me() ? [hub.me()!] : [];
+  const max = Math.max(1, ...days.map((d) => d.total));
+  const [pick, setPick] = useState<number>(6);
+  const d = days[pick];
+  const label = (date: string) => (date === todayStr() ? 'Today' : fromDateStr(date).toLocaleDateString('en-GB', { weekday: 'long' }));
+  const said = d.total
+    ? members
+        .filter((m) => d.by.get(m.id))
+        .map((m) => `${m.id === hub.meId ? 'You' : m.name} ${d.by.get(m.id)}`)
+        .join(' · ')
+    : 'Nothing ticked';
+  return (
+    <div className="wchart">
+      <p className="wchart__say" aria-live="polite">
+        <strong>{label(d.date)}</strong> · {said}
+      </p>
+      <div className="wchart__bars" role="group" aria-label="The last seven days">
+        {days.map((day, k) => (
+          <button
+            key={day.date}
+            type="button"
+            className={`wchart__day ${k === pick ? 'is-on' : ''}`}
+            style={{ '--k': k } as CSSProperties}
+            aria-label={`${label(day.date)}: ${day.total}`}
+            aria-pressed={k === pick}
+            onClick={(e) => {
+              e.stopPropagation();
+              haptic('select');
+              setPick(k);
+            }}
+          >
+            <span className="wchart__col" style={{ height: `${Math.max(day.total ? 14 : 4, (day.total / max) * 100)}%` }}>
+              {members.map((m) =>
+                day.by.get(m.id) ? <span key={m.id} className="wchart__seg" style={{ flexGrow: day.by.get(m.id), background: lightVar(m.color) }} /> : null,
+              )}
+            </span>
+            <span className="wchart__wd">{fromDateStr(day.date).toLocaleDateString('en-GB', { weekday: 'short' }).slice(0, 2)}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** What my person did since yesterday, each with a ♡; "Thank for all" sends the rest. */
+function DidList({ v }: { v: TodayView }) {
+  const hub = useHub();
+  const partner = hub.partner();
+  if (!partner) return null;
+  const left = v.recent.filter((r) => r.log && !r.log.thankedBy);
+  return (
+    <>
+      <ul className="wcard__list">
+        {v.recent.map((r) => (
+          <li key={r.log?.id ?? r.item.id}>
+            <span className="wcard__item" dir="auto">
+              {r.item.title}
+              <span className="wcard__ago"> · {relativeAgo(r.at)}</span>
+            </span>
+            {r.log ? (
+              <button
+                type="button"
+                className={`heart ${r.log.thankedBy ? 'is-on' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!r.log!.thankedBy) haptic('success');
+                  hub.thank(r.log!.id);
+                }}
+                aria-label={`Thank ${partner.name} for ${r.item.title}`}
+                aria-pressed={!!r.log.thankedBy}
+              >
+                <Icon name={r.log.thankedBy ? 'heart-fill' : 'heart'} />
+              </button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      {left.length > 1 ? (
+        <button
+          type="button"
+          className="btn btn--sm wcard__all"
+          onClick={(e) => {
+            e.stopPropagation();
+            haptic('success');
+            hub.store.batch(() => {
+              for (const r of left) hub.thank(r.log!.id);
+            });
+          }}
+        >
+          <Icon name="heart" className="icon--sm" /> Thank {partner.name} for all
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+/** What I asked of my person, and what I did of theirs waiting for their OK: the rows themselves. */
+function AskedRows({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
+  const rows = [...settle.view('outgoing', v.outgoing), ...settle.view('theirok', v.waitingTheirOk)];
+  return (
+    <ul className="rows wcard__rows" onClick={(e) => e.stopPropagation()}>
+      {rows.map(({ row: i, settling }) => (
+        <ItemRow key={i.id} item={i} settling={settling} showList />
+      ))}
+    </ul>
   );
 }

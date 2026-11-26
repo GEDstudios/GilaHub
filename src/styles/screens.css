@@ -2816,3 +2816,277 @@ html.is-dragging .bartray {
 .home .notice + .lens {
   margin-top: 14px;
 }
+
+/* ---------------------------------------------------------------- Us: colour cards on a table */
+
+.wcards {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Each card leans a little, the next the other way; they overlap like cards set down. */
+.wcard {
+  --lean: -1.4deg;
+  position: relative;
+  border-radius: 22px;
+  background: var(--c);
+  color: var(--ink);
+  box-shadow:
+    0 -1px 0 rgb(255 255 255 / 0.35) inset,
+    0 6px 14px -8px rgb(10 10 4 / 0.28);
+  transform: rotate(var(--lean));
+  transition:
+    transform 340ms var(--spring),
+    box-shadow 260ms var(--ease),
+    margin 300ms var(--spring);
+  animation: wcard-in 520ms var(--spring) both;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+.wcard:nth-child(2n) {
+  --lean: 1.1deg;
+}
+
+.wcard:nth-child(3n) {
+  --lean: -0.6deg;
+}
+
+.wcard + .wcard {
+  margin-top: -14px;
+}
+
+.wcard + .wcard .wcard__face {
+  padding-top: 28px;
+  min-height: 98px;
+}
+
+@keyframes wcard-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) rotate(calc(var(--lean) * 3));
+  }
+}
+
+/* Picked up: it straightens, lifts, and the ones after it make room. */
+.wcard.is-open {
+  z-index: 1;
+  transform: rotate(0deg) translateY(-4px) scale(1.012);
+  box-shadow:
+    0 -1px 0 rgb(255 255 255 / 0.35) inset,
+    var(--lift-3);
+}
+
+.wcard.is-open + .wcard {
+  margin-top: 10px;
+}
+
+.wcards.has-open .wcard:not(.is-open) {
+  filter: saturate(0.85);
+}
+
+.wcard__face {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 84px;
+  padding: 14px 18px 14px 22px;
+  color: inherit;
+  text-align: start;
+  border-radius: inherit;
+}
+
+.wcard__face:active {
+  transform: scale(0.985);
+}
+
+.wcard__num {
+  flex: 0 0 auto;
+  min-width: 44px;
+  font-family: var(--serif);
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.wcard__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wcard__label {
+  font-size: 15.5px;
+  font-weight: 600;
+}
+
+.wcard__detail {
+  font-size: 13px;
+  color: rgb(10 10 4 / 0.68);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wcard__chev {
+  --s: 18;
+  flex: none;
+  opacity: 0.55;
+  transition: transform 260ms var(--spring);
+}
+
+.wcard.is-open .wcard__chev {
+  transform: rotate(180deg);
+}
+
+.wcard__more {
+  padding: 0 14px 16px;
+  animation: wcard-more 320ms var(--ease) both;
+}
+
+@keyframes wcard-more {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* The week's chart: a bar a day, our colours stacked, growing in one after another. */
+.wchart {
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.55);
+}
+
+.wchart__say {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+}
+
+.wchart__bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  height: 120px;
+}
+
+.wchart__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  color: rgb(10 10 4 / 0.6);
+}
+
+.wchart__col {
+  display: flex;
+  flex-direction: column-reverse;
+  width: 100%;
+  max-width: 30px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgb(10 10 4 / 0.08);
+  box-shadow: 0 0 0 1.5px var(--ink);
+  transform-origin: 50% 100%;
+  animation: wchart-grow 640ms var(--spring) both;
+  animation-delay: calc(var(--k) * 55ms + 80ms);
+}
+
+.wchart__seg {
+  display: block;
+  min-height: 3px;
+}
+
+.wchart__seg + .wchart__seg {
+  border-bottom: 1.5px solid var(--ink);
+}
+
+@keyframes wchart-grow {
+  from {
+    transform: scaleY(0.05);
+  }
+}
+
+.wchart__wd {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wchart__day.is-on .wchart__wd {
+  color: var(--ink);
+}
+
+.wchart__day.is-on .wchart__col {
+  box-shadow: 0 0 0 2.5px var(--ink);
+}
+
+/* What they did: each with a ♡ that pops when it's sent. */
+.wcard__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 4px 6px 14px;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.55);
+}
+
+.wcard__list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+}
+
+.wcard__list li + li {
+  border-top: 1px solid rgb(10 10 4 / 0.07);
+}
+
+.wcard__item {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+}
+
+.wcard__ago {
+  color: rgb(10 10 4 / 0.55);
+  font-size: 13px;
+}
+
+.wcard__list .heart.is-on .icon {
+  animation: heart-pop 520ms var(--spring);
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  45% {
+    transform: scale(1.45) rotate(-10deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.wcard__all {
+  margin-top: 10px;
+}
+
+.wcard__rows {
+  background: rgb(255 255 255 / 0.6);
+}
+
+.wcard__rows .row {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wcard,
+  .wchart__col,
+  .wcard__more {
+    animation: none;
+  }
+}

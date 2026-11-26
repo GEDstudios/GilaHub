@@ -1,8 +1,7 @@
 /**
  * A thing on its way somewhere, in the app's own hand: a sticky note kept from a screen is picked
  * up the way a held note is (it lifts, its shadow deepens, it leans), then glides along an arc
- * into its place in the bar, swaying like paper, leaving a dashed ink trail (the line a lifted
- * note wears) and folding small as it goes. The place catches it: a squash and a bounce, a small
+ * into its place in the bar, swaying like paper and folding small as it goes. The place catches it: a squash and a bounce, a small
  * note in its colour tucking into the folder, a burst of ink strokes. The original is hidden at
  * once (it may vanish); a copy does the flying.
  */
@@ -60,7 +59,7 @@ const glide = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 
 
 /**
  * Fly a copy of `from` into `to`. Resolves when it lands (at once when motion is turned down).
- * `color` is the thing's colour (a CSS colour), for the trail's end and the catch.
+ * `color` is the thing's colour (a CSS colour), for the catch.
  */
 export function flyInto(from: Element | null, to: HTMLElement | null, opts: { color?: string; ms?: number } = {}): Promise<void> {
   const { color, ms = 1050 } = opts;
@@ -146,43 +145,11 @@ export function flyInto(from: Element | null, to: HTMLElement | null, opts: { co
     });
   }
 
-  // The trail: a dashed ink line drawn along the arc behind it, gone as it lands.
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const trail = document.createElementNS(svgNS, 'svg');
-  trail.setAttribute('class', 'flytrail');
-  trail.setAttribute('aria-hidden', 'true');
-  const d = `M${x0} ${y0 - 6} Q${cx} ${cy} ${x1} ${y1}`;
-  const mask = document.createElementNS(svgNS, 'mask');
-  const mid = `fly-${Math.random().toString(36).slice(2)}`;
-  mask.setAttribute('id', mid);
-  mask.setAttribute('maskUnits', 'userSpaceOnUse');
-  const reveal = document.createElementNS(svgNS, 'path');
-  reveal.setAttribute('d', d);
-  reveal.setAttribute('pathLength', '1');
-  reveal.setAttribute('class', 'flytrail__reveal');
-  mask.append(reveal);
-  const line = document.createElementNS(svgNS, 'path');
-  line.setAttribute('d', d);
-  line.setAttribute('class', 'flytrail__line');
-  line.setAttribute('mask', `url(#${mid})`);
-  trail.append(mask, line);
-  document.body.append(trail, ghost);
+  document.body.append(ghost);
 
   // The thing itself is gone from where it was, at once; the copy carries on.
   src.style.visibility = 'hidden';
   const fly = ghost.animate(frames, { duration: ms, easing: 'linear', fill: 'forwards' });
-  // The trail draws just behind the note (it starts once it's picked up), then fades.
-  reveal.animate(
-    [
-      { strokeDashoffset: 1, offset: 0 },
-      { strokeDashoffset: 1, offset: PEEL },
-      { strokeDashoffset: 0.04, offset: 0.97 },
-      { strokeDashoffset: 0, offset: 1 },
-    ],
-    { duration: ms, easing: 'linear', fill: 'forwards' },
-  );
-  const fade = trail.animate([{ opacity: 1 }, { opacity: 1, offset: 0.72 }, { opacity: 0 }], { duration: ms + 260, easing: 'ease-out', fill: 'forwards' });
-  fade.onfinish = () => trail.remove();
 
   return new Promise((done) => {
     let landed = false;

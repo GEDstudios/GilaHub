@@ -305,9 +305,11 @@ try {
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
     await guy.locator('.composer__input').press('Enter');
     await guy.goto(`${url}/`);
-    const line = guy.locator('.quietline', { hasText: 'You asked Hila for 1 thing' });
-    await line.waitFor({ timeout: 5000 });
-    await line.click();
+    // Us: a colour card says it; a tap picks it up and opens the rows.
+    const card = guy.locator('.wcard', { hasText: 'you asked Hila for' });
+    await card.waitFor({ timeout: 5000 });
+    await card.locator('.wcard__face').click();
+    await guy.locator('.wcard.is-open').waitFor({ timeout: 3000 });
     await guy.locator('li.row', { hasText: 'Water the balcony plants' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
     await shot(guy, '09a2-you-asked');
   });

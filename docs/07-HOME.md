@@ -46,8 +46,10 @@ The first two must be answered in two seconds, without scrolling, every time.
    It's the way to what they need from me.
 4. **The week at a glance, opened in place.** Seven days as a strip of dates, dots for how
    full each is; tap a day and its things open right under it (inline, not a new screen).
-5. **Us, quietly.** One grey tile: done together this week (the one shared number), what my
-   person did since yesterday (a ♡ to thank), what I asked them, and a moment to keep.
+5. **Us, as colour cards on a table.** Each leans a little, overlapping; only the ones with
+   something to say: done together this week (a tap opens the seven days as bars in our
+   colours, a tap on a day says who did what), what my person did since yesterday (open: a ♡
+   each, or thank for all), what I asked of them (open: the rows).
 6. **Nothing empty draws.** A block with nothing to say is gone; the page gets shorter, not
    emptier.
 7. **Capture is everywhere already** (the + and N): the page doesn't repeat it.
@@ -73,12 +75,9 @@ Morning, Guy!                         (screen title, date under it)
   27•• 28•  29   30   1••• 2    3
  ┌ ○ Book the dentist                         ┐ the chosen day's things, in place
  └───────────────────────────────────────────┘
- ┌ grey ─────────────────────────────────────┐
- │ 5 done together this week  · You 3 · Hila 2│ Us
- │ Hila did: Water the plants ♡              │
- │ You asked Hila for 1 thing ›              │
- │ ✦ Keep a moment ›                         │
- └───────────────────────────────────────────┘
+ ╱ lilac ─ 5  done together this week ─────── ╲  Us: colour cards, tilted, overlapping
+ ╲ pink ── 2  Hila did since yesterday ──────  ╱  a tap lifts one and opens it in place
+ ╱ sky ─── 1  you asked Hila for ─────────── ╲
  Pinned folders…
  Edit Today
 ```

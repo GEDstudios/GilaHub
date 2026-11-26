@@ -27,6 +27,8 @@ export interface Member {
   requestAlerts?: boolean;
   /** My bottom bar, between Today and Projects, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
   tabs?: string[];
+  /** How I look at each folder (list, cards, by tag): mine, not my partner's. Unset: the folder's own default. */
+  views?: Record<string, ListView> | null;
   /** My Today page, in order (undefined = the defaults). Synced to my devices; see app/home.ts. */
   home?: HomeSlot[];
 }
@@ -66,7 +68,7 @@ export interface List {
   flavor?: ShoppingFlavor;
   /** The Shopping project: "Buy a doorknob" under a task also lands here. (It's a project like any other.) */
   shopRoot?: boolean;
-  /** How we look at it (both of us): a list (unset), cards, or grouped by tag. */
+  /** Where each of us starts looking at it (list, cards, by tag); each keeps their own (Member.views). */
   view?: ListView;
   color: LineColor;
   /** Optional emoji; otherwise the bullet shows the first letter of the name. */

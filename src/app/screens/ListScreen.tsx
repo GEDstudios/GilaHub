@@ -22,7 +22,8 @@ import { Icon } from '../ui/Icon';
 import { setPrefs, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
 import { Sortable } from '../ui/Sortable';
-import { folderLean, NewProjectSheet, ProjectCard, SortableProject } from './Lists';
+import { barTabOf, folderLean, NewProjectSheet, ProjectCard, SortableProject, useBarDrop } from './Lists';
+import { TabChip } from '../components/BarEdit';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { projectView } from '../views';
@@ -479,7 +480,9 @@ function SubProjects({ list }: { list: List }) {
   const subs = hub.subLists(list.id);
   const pins = pinsOf(hub);
   const make = () => openSheet((close) => <NewProjectSheet onClose={close} parentId={list.id} />);
-  // None yet: the + makes one ("Project inside …").
+  // Drag one down onto the bar: it's pinned there, like a folder from the Folders page.
+  const toBar = useBarDrop();
+  // None yet: the + makes one ("Folder inside …").
   if (!subs.length) return null;
   return (
     <section className="subprojects" aria-label={`Inside ${list.name}`}>
@@ -489,9 +492,11 @@ function SubProjects({ list }: { list: List }) {
         layout="grid"
         lean={folderLean}
         label={(id) => hub.list(id)?.name ?? ''}
-        renderOverlay={(id) => {
+        outside={toBar.folders}
+        renderOverlay={(id, { outside }) => {
           const l = hub.list(id);
-          return l ? <ProjectCard list={l} /> : null;
+          const t = outside ? barTabOf(hub, `l:${id}`) : undefined;
+          return t ? <TabChip t={t} /> : l ? <ProjectCard list={l} /> : null;
         }}
       >
         <div className="projgrid">

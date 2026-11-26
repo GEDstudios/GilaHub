@@ -875,13 +875,19 @@ export class Hub {
     });
   }
 
-  /** How a project is looked at, for both of us: as a list, as cards, or grouped by tag. */
+  /**
+   * How I look at a folder: as a list, as cards, or grouped by tag. It's mine (kept on my member
+   * record, on all my phones); my partner keeps theirs. The folder's own `view` is only where
+   * each of us starts.
+   */
   setListView(id: string, view: ListView): void {
-    if (this.list(id)) this.store.mutate('list', id, { view });
+    if (!this.list(id)) return;
+    this.upsertMember(this.meId, { views: { ...(this.me()?.views ?? {}), [id]: view } });
   }
 
   viewOf(list: List | undefined): ListView {
-    return list?.view ?? 'list';
+    if (!list) return 'list';
+    return this.me()?.views?.[list.id] ?? list.view ?? 'list';
   }
 
   /** Learned category lookup: private memory first, then shared. */
@@ -1201,7 +1207,7 @@ export class Hub {
   byAisle(listId: string): boolean {
     const l = this.list(listId);
     if (!l) return false;
-    if ([l, ...this.listPath(l.id)].some((p) => p.view === 'tags')) return true;
+    if ([l, ...this.listPath(l.id)].some((p) => p.view === 'tags' || this.me()?.views?.[p.id] === 'tags')) return true;
     return this.store.all('item').some((i) => i.listId === listId && !i.parentId && this.tagsOf(i).some((t) => /^[gh]:/.test(t)));
   }
 

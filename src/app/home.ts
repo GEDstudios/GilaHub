@@ -210,6 +210,28 @@ export function weekBy(hub: Hub, now = Date.now()): Map<string, number> {
   return out;
 }
 
+/**
+ * The last seven days, oldest first (today last): how many each of us did on each. For the week
+ * card's little chart.
+ */
+export function weekDays(hub: Hub, now = Date.now()): Array<{ date: string; by: Map<string, number>; total: number }> {
+  const today = todayStr();
+  const days = Array.from({ length: 7 }, (_, k) => addDays(today, k - 6));
+  const out = days.map((date) => ({ date, by: new Map<string, number>(), total: 0 }));
+  const at = (t: number, who: string | null | undefined) => {
+    const d = new Date(t);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const slot = out[days.indexOf(key)];
+    if (!slot || !who) return;
+    slot.by.set(who, (slot.by.get(who) ?? 0) + 1);
+    slot.total++;
+  };
+  const since = now - 8 * 86_400_000;
+  for (const l of hub.store.all('log')) if (l.at > since) at(l.at, l.by);
+  for (const i of hub.store.all('item')) if (i.done && i.doneAt && i.doneAt > since && !i.repeat && !i.logId) at(i.doneAt, i.doneBy);
+  return out;
+}
+
 /** Done this week, and the week before, for "more than last week". */
 export function weekCounts(hub: Hub, now = Date.now()): { week: number; last: number } {
   const day = 86_400_000;

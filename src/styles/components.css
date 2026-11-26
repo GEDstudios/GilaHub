@@ -7329,33 +7329,6 @@ textarea.nf__write {
   color: var(--ink);
 }
 
-/* The flight's trail: the dashed ink line a held note wears, drawn along its arc. */
-.flytrail {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 2147482999;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.flytrail__line {
-  fill: none;
-  stroke: rgb(10 10 4 / 0.38);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-dasharray: 1 7;
-}
-
-.flytrail__reveal {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 8;
-  stroke-dasharray: 1 1;
-  stroke-dashoffset: 1;
-}
-
 /* The catch: a small note in its colour pops up out of the folder and tucks back in; ink strokes burst. */
 .catchfx {
   position: fixed;

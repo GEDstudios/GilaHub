@@ -123,6 +123,33 @@ function tapPin(hub: Hub, list: List) {
   togglePin(hub, key);
 }
 
+/**
+ * Dropped on the bar: pinned where it landed. Outside the arranging mode a newcomer says so,
+ * with Undo. For folder cards anywhere (the Folders page, the folders inside a folder) and the
+ * bar tray's tokens.
+ */
+export function useBarDrop(arranging = false) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const arrangingRef = useRef(arranging);
+  arrangingRef.current = arranging;
+  return useMemo(() => {
+    const place = (key: string, at: number | null, full: boolean) => {
+      if (full) return toast('The bar is full');
+      const before = pinsOf(hub);
+      const was = before.includes(key);
+      pinAt(hub, key, at ?? before.length);
+      const name = tabOf(hub, key)?.label;
+      if (!was && name && !arrangingRef.current) toast(`${name} is in the bar`, { action: { label: 'Undo', run: () => setPins(hub, before) } });
+    };
+    const common = { nav: liveBar, tabOf: (key: string) => tabOf(hub, key), pinned: () => pinsOf(hub), get: getAim, set: setAim, place };
+    return { folders: barTarget({ ...common, keyOf: (id) => `l:${id}` }), tokens: barTarget(common) };
+  }, [hub, toast]);
+}
+
+/** As the bar shows a folder, for a card lifted over it. */
+export const barTabOf = tabOf;
+
 /** A folder's pin while arranging: a white + when it's not in the bar, an ink pin when it is. */
 function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: number }) {
   const hub = useHub();
@@ -234,7 +261,7 @@ function useFloatHeight(el: HTMLElement | null) {
  */
 export function Lists() {
   const hub = useHub();
-  const { openSheet, toast } = useOverlays();
+  const { openSheet } = useOverlays();
   const { arranging } = useBarEdit();
   const lists = hub.topLists();
   const pins = pinsOf(hub);
@@ -269,23 +296,10 @@ export function Lists() {
     return () => window.removeEventListener('keydown', onKey);
   }, [arranging]);
 
-  // Dropped on the bar: pinned where it landed. Outside the mode a newcomer says so, with Undo.
-  const arrangingRef = useRef(arranging);
-  arrangingRef.current = arranging;
-  const toBar = useMemo(() => {
-    const place = (key: string, at: number | null, full: boolean) => {
-      if (full) return toast('The bar is full');
-      const before = pinsOf(hub);
-      const was = before.includes(key);
-      pinAt(hub, key, at ?? before.length);
-      const name = tabOf(hub, key)?.label;
-      if (!was && name && !arrangingRef.current) toast(`${name} is in the bar`, { action: { label: 'Undo', run: () => setPins(hub, before) } });
-    };
-    const common = { nav: liveBar, tabOf: (key: string) => tabOf(hub, key), pinned: () => pinsOf(hub), get: getAim, set: setAim, place };
-    return { folders: barTarget({ ...common, keyOf: (id) => `l:${id}` }), tokens: barTarget(common) };
-  }, [hub, toast]);
+  const toBar = useBarDrop(arranging);
 
-  const missing = arranging ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key)) : [];
+  // Out of the bar, waiting in the tray: Search, and the folders inside folders (the top ones are on the page).
+  const missing = arranging ? pinOptions(hub).filter((o) => !pins.includes(o.key) && (!o.key.startsWith('l:') || !!hub.parentOf(o.key.slice(2)))) : [];
 
   return (
     <>
