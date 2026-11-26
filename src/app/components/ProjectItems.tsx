@@ -15,6 +15,16 @@ import { TagMark } from './Tags';
 
 const idOf = (i: Item) => i.id;
 
+/** "↳": inside the one before, as a subtask sits under its task (between the steps of a folder's way down). */
+function SubArrow() {
+  return (
+    <svg className="aisle__sep aisle__sub" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6.5 4.5v7.2a4.3 4.3 0 0 0 4.3 4.3h8.2" />
+      <path d="M15.2 12.2 19 16l-3.8 3.8" />
+    </svg>
+  );
+}
+
 /** The project under the hand, if any: one marked [data-drop-list], or a project's tab in the bar. */
 function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
   for (const e of document.elementsFromPoint(p.x, p.y)) {
@@ -171,7 +181,7 @@ export function ProjectItems({
                   <span className="aisle__path">
                     {pathTo(list).map((l, i, all) => (
                       <Fragment key={l.id}>
-                        {i ? <Icon name="chevron-right" className="aisle__sep" /> : null}
+                        {i ? <SubArrow /> : null}
                         <button type="button" className={`aisle__go aisle__golabel ${i < all.length - 1 ? 'is-up' : ''}`} onClick={() => navigate({ name: 'list', id: l.id })}>
                           {i === all.length - 1 ? <ListBullet list={l} size="xs" /> : null}
                           <span dir="auto">{l.name}</span>
