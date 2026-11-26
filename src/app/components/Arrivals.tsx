@@ -22,6 +22,18 @@ export interface Arrival {
 }
 
 type Shown = Arrival & { id: number };
+
+/**
+ * Was I looking when it happened? While the app is in the background the phone shows the
+ * system notification; the card is only for what arrives while I'm looking, never a repeat of
+ * what the phone already said (once I come back, or reopen the app).
+ */
+let visibleSince = typeof document !== 'undefined' && document.visibilityState === 'visible' ? Date.now() : Infinity;
+if (typeof document !== 'undefined')
+  document.addEventListener('visibilitychange', () => {
+    visibleSince = document.visibilityState === 'visible' ? Date.now() : Infinity;
+  });
+export const sawItHappen = (at: number): boolean => typeof document !== 'undefined' && document.visibilityState === 'visible' && at >= visibleSince - 1500;
 let queue: Shown[] = [];
 let seq = 1;
 const listeners = new Set<() => void>();
@@ -140,12 +152,12 @@ export function useArrivalWatch(hub: Hub): void {
       for (const n of hub.notesForMe()) {
         if (seen.has(n.id)) continue;
         seen.add(n.id);
-        if (n.createdAt > since && n.by !== hub.meId) announce({ kind: 'note', title: `📝 ${partner.name} left you a note`, body: n.text, url: placeUrl(n.place) });
+        if (n.createdAt > since && n.by !== hub.meId && sawItHappen(n.createdAt)) announce({ kind: 'note', title: `📝 ${partner.name} left you a note`, body: n.text, url: placeUrl(n.place) });
       }
       for (const i of hub.store.all('item')) {
         if (seen.has(`ask:${i.id}`) || i.done || i.requestedBy !== partner.id || i.assignee !== hub.meId) continue;
         seen.add(`ask:${i.id}`);
-        if ((i.createdAt ?? 0) > since) announce({ kind: 'ask', title: `🙋 ${partner.name} asked you`, body: i.title, url: `/i/${i.id}` });
+        if ((i.createdAt ?? 0) > since && sawItHappen(i.createdAt ?? 0)) announce({ kind: 'ask', title: `🙋 ${partner.name} asked you`, body: i.title, url: `/i/${i.id}` });
       }
     };
     look();

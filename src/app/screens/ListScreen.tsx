@@ -5,6 +5,7 @@ import { useAddAction } from '../addAction';
 import { Children } from '../components/Children';
 import { OptRow } from '../components/pickers';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
+import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useHub } from '../context';
 import { back, navigate } from '../router';
@@ -138,19 +139,41 @@ export function ProjectMenuButton({ listId }: { listId: string }) {
 }
 
 /** A project's one color moment: its name on a card of its color. Tap the name to rename it. */
+/**
+ * A project's one colour moment: a folder, its tab on top, as on Projects and in New project.
+ * Its name is edited in place; its icon sits low on the card, and a tap opens the picker under it.
+ */
 export function ProjectHero({ list, sub, stat, children }: { list: List; sub: ReactNode; stat?: ReactNode; children?: ReactNode }) {
   const hub = useHub();
+  const [picking, setPicking] = useState(false);
   return (
-    <div className="hero hero--project" style={lineVars(list.color)}>
-      <div className="hero__top">
-        <h1 className="hero__title">
-          <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Project name" />
-        </h1>
-        {stat !== undefined ? <span className="hero__stat num">{stat}</span> : null}
+    <>
+      <div className="hero hero--project hero--folder" style={lineVars(list.color)}>
+        <div className="hero__top">
+          <h1 className="hero__title">
+            <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Project name" />
+          </h1>
+          {stat !== undefined ? <span className="hero__stat num">{stat}</span> : null}
+        </div>
+        <div className="hero__foot">
+          <p className="hero__sub">{sub}</p>
+          <CardIcon icon={list.icon} open={picking} onToggle={() => setPicking(!picking)} />
+        </div>
+        {children}
       </div>
-      <p className="hero__sub">{sub}</p>
-      {children}
-    </div>
+      {picking ? (
+        <div className="panel hero__pick">
+          <IconPicker
+            value={list.icon}
+            color={list.color}
+            onChange={(icon) => {
+              hub.updateList(list.id, { icon });
+              setPicking(false);
+            }}
+          />
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -183,7 +206,7 @@ export function ProjectChips({ list }: { list: List }) {
       toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
     }
   };
-  return <ProjectFields value={{ color: list.color, icon: list.icon, visibility: list.visibility, owner: list.owner, pinned }} onChange={onChange} canVis={canSetListVis(hub, list)} />;
+  return <ProjectFields value={{ color: list.color, icon: list.icon, visibility: list.visibility, owner: list.owner, pinned }} onChange={onChange} canVis={canSetListVis(hub, list)} noIcon />;
 }
 
 export function ListScreen({ id }: { id: string }) {

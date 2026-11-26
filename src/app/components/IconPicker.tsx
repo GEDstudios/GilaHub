@@ -3,7 +3,7 @@ import type { LineColor } from '../../core/model';
 import { Icon, type IconName } from '../ui/Icon';
 import { LIB_GROUPS, searchLibrary, useLibrary } from '../ui/library';
 import { lineVars } from '../ui/primitives';
-import { parseGlyph, PLAIN_FOLDER, PROJECT_ICONS } from '../ui/ProjectMark';
+import { Glyph, parseGlyph, PLAIN_FOLDER, PROJECT_ICONS, showsGlyph } from '../ui/ProjectMark';
 
 const firstGrapheme = (s: string): string => {
   const t = s.trim();
@@ -121,5 +121,15 @@ export function IconPicker({ value, color, onChange }: { value: string | undefin
         </div>
       )}
     </div>
+  );
+}
+
+/** A card's icon, sitting right on the card: tap it to pick another (the picker opens under the card). */
+export function CardIcon({ icon, open, onToggle }: { icon: string | undefined; open: boolean; onToggle: () => void }) {
+  const has = showsGlyph(icon);
+  return (
+    <button type="button" className={`cardicon ${has ? '' : 'is-empty'} ${open ? 'is-open' : ''}`} aria-label={has ? 'Icon: tap to change it' : 'Pick an icon'} aria-expanded={open} onClick={onToggle}>
+      {has ? <Glyph icon={icon} className="cardicon__glyph" /> : <Icon name="plus" className="icon--sm" />}
+    </button>
   );
 }

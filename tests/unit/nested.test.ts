@@ -164,3 +164,19 @@ describe('sticky notes, sized', () => {
     expect(hub.collectedNotes().map((n) => n.id)).toEqual([id]);
   });
 });
+
+describe('editing a note', () => {
+  it('lets me change my own note’s words and paper, never my person’s', async () => {
+    const hub = await person('guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    hub.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    const id = hub.addNote('shop', 'Milk', 'lemon')!;
+    hub.editNote(id, { text: '  Oat milk 💛 ', color: 'pink' });
+    expect(hub.store.get('note', id)).toMatchObject({ text: 'Oat milk 💛', color: 'pink' });
+    hub.editNote(id, { text: '   ' });
+    expect(hub.store.get('note', id)?.text).toBe('Oat milk 💛');
+    const hila = new Hub(hub.store, 'hila');
+    hila.editNote(id, { text: 'Soy' });
+    expect(hub.store.get('note', id)?.text).toBe('Oat milk 💛');
+  });
+});

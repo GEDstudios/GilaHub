@@ -532,14 +532,18 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
           const from = hub.member(n.by);
           return (
             <div key={n.id} className="notesheet__one">
-              <div className={`sticky sticky--big ${peeling === n.id ? 'is-peeling' : ''}`} style={{ ...lineVars(n.color), '--tilt': `${tiltOf(n.id) / 2}deg` } as CSSProperties}>
-                <span className="sticky__text" dir="auto">
-                  {n.text}
-                </span>
-                <span className="sticky__by">
-                  {mine ? `For ${hub.member(n.to)?.name ?? 'them'}` : `— ${from?.name ?? ''}`} · {shortAgo(n.createdAt)}
-                </span>
-              </div>
+              {mine ? (
+                <MyNote note={n} peeling={peeling === n.id} />
+              ) : (
+                <div className={`sticky sticky--big ${peeling === n.id ? 'is-peeling' : ''}`} style={{ ...lineVars(n.color), '--tilt': `${tiltOf(n.id) / 2}deg` } as CSSProperties}>
+                  <span className="sticky__text" dir="auto">
+                    {n.text}
+                  </span>
+                  <span className="sticky__by">
+                    — {from?.name ?? ''} · {shortAgo(n.createdAt)}
+                  </span>
+                </div>
+              )}
               <button type="button" className="btn btn--block" onClick={() => peel(n)}>
                 <Icon name="check" className="icon--sm" /> Got it
               </button>
@@ -555,6 +559,49 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
         })}
       </div>
     </Sheet>
+  );
+}
+
+/** My own note, opened: its words and paper change right on it (saved as I leave the field). */
+function MyNote({ note, peeling }: { note: Note; peeling: boolean }) {
+  const hub = useHub();
+  const [text, setText] = useState(note.text);
+  const latest = useRef(text);
+  latest.current = text;
+  // Closing the sheet mid-sentence still keeps it.
+  useEffect(() => () => hub.editNote(note.id, { text: latest.current }), [hub, note.id]);
+  return (
+    <>
+      <div className={`sticky sticky--big ${peeling ? 'is-peeling' : ''}`} style={{ ...lineVars(note.color), '--tilt': `${tiltOf(note.id) / 2}deg` } as CSSProperties}>
+        <textarea
+          className="sticky__write"
+          dir="auto"
+          value={text}
+          maxLength={240}
+          rows={4}
+          aria-label="Your note"
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => hub.editNote(note.id, { text })}
+        />
+        <span className="sticky__by">
+          For {hub.member(note.to)?.name ?? 'them'} · {shortAgo(note.createdAt)}
+        </span>
+      </div>
+      <div className="note__colors" role="radiogroup" aria-label="Paper">
+        {COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            role="radio"
+            aria-checked={c === note.color}
+            aria-label={c}
+            className={`note__swatch ${c === note.color ? 'is-on' : ''}`}
+            style={lineVars(c)}
+            onClick={() => hub.editNote(note.id, { color: c })}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 

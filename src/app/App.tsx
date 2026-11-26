@@ -10,7 +10,7 @@ import { loadSession, newSession, saveSession, sessionFromInvite } from '../core
 import { runAdd, useAddLabel } from './addAction';
 import { IdeaTag } from './components/Ideas';
 import { NoteButton, NotesLayer } from './components/Notes';
-import { announce, Arrivals, useArrivalWatch } from './components/Arrivals';
+import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
 import { QuickAddSheet } from './components/QuickAddSheet';
@@ -184,7 +184,11 @@ function Duties() {
   useEffect(() => {
     const reminders = new ReminderSync(rt);
     const local = new LocalReminders(hub, (r) => {
-      announce({ kind: 'reminder', title: r.note.title, body: r.note.body, url: r.note.url });
+      // Already done (from the notification itself, maybe): nothing to say.
+      const id = /^\/i\/([A-Za-z0-9]+)/.exec(r.note.url ?? '')?.[1];
+      if (id && hub.item(id)?.done) return;
+      // Only while I'm looking; in the background the phone's own notification says it.
+      if (sawItHappen(r.at)) announce({ kind: 'reminder', title: r.note.title, body: r.note.body, url: r.note.url });
       // With a relay, push already delivers the system notification.
       if (!rt.relay && 'Notification' in window && Notification.permission === 'granted') {
         void swContainer()?.getRegistration().then((reg) => reg?.showNotification(r.note.title, { body: r.note.body, tag: r.note.tag, data: { url: r.note.url } }));

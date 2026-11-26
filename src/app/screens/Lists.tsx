@@ -6,7 +6,7 @@ import { useAddAction } from '../addAction';
 import { barTarget, getAim, setAim, setArranging, useBarEdit } from '../barEdit';
 import { BarToken, BarTokenLifted, TabChip } from '../components/BarEdit';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
-import { IconPicker } from '../components/IconPicker';
+import { CardIcon, IconPicker } from '../components/IconPicker';
 import { useHub } from '../context';
 import { navigate } from '../router';
 import { AddDisc, DoneButton } from '../ui/edit';
@@ -65,19 +65,13 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
         <div className="ccard ccard--lg ccard--edit ccard--folder" style={lineVars(look.color)}>
           <span className="ccard__top">
             <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
-            {/* Its icon, right on the card: tap it to pick another. */}
-            <button
-              type="button"
-              className={`ccard__iconbtn ${showsGlyph(icon) ? '' : 'is-empty'} ${picking ? 'is-open' : ''}`}
-              aria-label="Icon"
-              aria-expanded={picking}
-              onClick={() => setPicking(!picking)}
-            >
-              {showsGlyph(icon) ? <Glyph icon={icon} className="ccard__glyph" /> : <Icon name="plus" className="icon--sm" />}
-            </button>
           </span>
-          <span className="ccard__sub">
-            {KIND[kind]} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
+          <span className="ccard__sub projcard__foot">
+            <span>
+              {KIND[kind]} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
+            </span>
+            {/* Its icon, right on the card (low, as on the folders): tap it to pick another. */}
+            <CardIcon icon={icon} open={picking} onToggle={() => setPicking(!picking)} />
           </span>
         </div>
 

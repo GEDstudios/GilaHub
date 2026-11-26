@@ -1135,6 +1135,16 @@ export class Hub {
     return this.store.create('note', { text: t, by: this.meId, to: this.partner()?.id ?? null, place, color, createdAt: Date.now() });
   }
 
+  /** Change my own note's words or paper (only the one who left it). */
+  editNote(id: string, fields: { text?: string; color?: LineColor }): void {
+    const n = this.store.get('note', id);
+    if (!n || n.by !== this.meId) return;
+    const patch: { text?: string; color?: LineColor } = {};
+    if (fields.text !== undefined && fields.text.trim() && fields.text.trim() !== n.text) patch.text = fields.text.trim();
+    if (fields.color && fields.color !== n.color) patch.color = fields.color;
+    if (Object.keys(patch).length) this.store.mutate('note', id, patch);
+  }
+
   /** Move or turn a note on its screen (both of us see it there). */
   placeNote(id: string, at: { x: number; y: number; rot: number; scale?: number }): void {
     if (!this.store.get('note', id)) return;
