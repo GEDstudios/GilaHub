@@ -1,3 +1,4 @@
+import { useWide } from '../ui/useWide';
 import { TwinTag } from '../components/ItemRow';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react';
 import type { Item, List } from '../../core/model';
@@ -75,6 +76,7 @@ function useWakeLock(on: boolean) {
 
 export function Shopping({ listId }: { listId?: string } = {}) {
   const hub = useHub();
+  const wide = useWide();
   const rt = useRt();
   const prefs = usePrefs();
   const { openSheet, toast } = useOverlays();
@@ -223,7 +225,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
   useFloatHeight(bar, floating);
 
   return (
-    <div className={mode ? 'shopmode' : undefined}>
+    <div className={[mode ? 'shopmode' : '', scoped ? 'projpage' : ''].filter(Boolean).join(' ') || undefined}>
       {scoped ? (
         <Band
           onBack={listId ? () => back({ name: 'lists' }) : undefined}
@@ -237,6 +239,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
           mini={scoped.name}
         >
           <ProjectHero list={scoped} sub={mode ? `Shopping now · ${sub}` : `${sub}${heroVis(hub, scoped)}`} />
+          {wide && !mode ? <ProjectChips list={scoped} /> : null}
         </Band>
       ) : (
         <Band
@@ -266,7 +269,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             />
           </div>
         ) : null}
-        {scoped && !mode ? <ProjectChips list={scoped} /> : null}
+        {scoped && !mode && !wide ? <ProjectChips list={scoped} /> : null}
         {!allLists.length ? (
           <Empty title="No shopping lists yet">
             <div className="tokens tokens--center">

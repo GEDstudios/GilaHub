@@ -1,3 +1,4 @@
+import { useWide } from '../ui/useWide';
 import { openSearch } from '../search';
 import { useState, type ReactNode } from 'react';
 import type { List } from '../../core/model';
@@ -234,6 +235,7 @@ function TaskProject({ id }: { id: string }) {
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={id} />);
   useAddAction(openNew, label);
   const [showAll, setShowAll] = useShowAll(id);
+  const wide = useWide();
 
   if (!list) {
     return (
@@ -254,7 +256,7 @@ function TaskProject({ id }: { id: string }) {
   const nAll = n + nested.reduce((sum, l) => sum + openCount(hub, l.id), 0);
 
   return (
-    <>
+    <div className="projpage">
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
         actions={<ProjectActions listId={id} label={label} onNew={openNew} />}
@@ -270,9 +272,11 @@ function TaskProject({ id }: { id: string }) {
             </>
           }
         />
+        {/* A computer: the folder and its settings stay beside the tasks. */}
+        {wide ? <ProjectChips list={list} /> : null}
       </Band>
       <div className="column">
-        <ProjectChips list={list} />
+        {wide ? null : <ProjectChips list={list} />}
         {nested.length ? (
           <div className="filter filter--top">
             <Seg
@@ -289,7 +293,7 @@ function TaskProject({ id }: { id: string }) {
         <Children listId={id} parentId={null} />
         {everything ? <AllInside lists={nested} /> : <SubProjects list={list} />}
       </div>
-    </>
+    </div>
   );
 }
 

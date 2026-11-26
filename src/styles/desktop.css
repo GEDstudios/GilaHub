@@ -1,22 +1,26 @@
 /* ============================================================ A computer (960px and up)
  *
- * The hierarchy, top to bottom of importance:
- *   1. The sidebar says where you are and who with: brand and New; the places (Today, Shopping,
- *      Chores, Search); every project; then ideas, a note for my person, and the two of us.
- *      It sits on its own quiet surface, so the page reads as the thing you're working on.
- *   2. The page: one header (where it sits, a serif title, a meta line; its own actions on the
- *      right), then the content at one reading width, from one left edge.
- *   3. Only Today spreads out: the day itself, and a rail of glances beside it.
- * Nothing floats over the canvas (the ideas tag and note button live in the sidebar here).
+ * The phone's app, unfolded rather than squeezed into a sidebar:
+ *   - One top bar, centred on the page grid: the brand; the tabs (the phone's bar, Today to
+ *     Projects) in the middle; search, ideas and the two of us on the right.
+ *   - Pages centred on the same grid. Reading pages (Shopping, a task, Settings) at a reading
+ *     width; Today and Projects use the full grid; a project's page is two columns: its folder
+ *     and settings stay put on the left while its tasks scroll on the right.
+ *   - The two things you do from anywhere float bottom right, as on the phone: the black +
+ *     (add) and a sticky note for my person.
  * Loaded last, so it only says what differs from the phone.
  */
 
+.topnav {
+  display: none;
+}
+
 @media (min-width: 960px) {
   :root {
-    --sidebar-w: 248px;
-    --gutter: 56px;
-    --column: 720px;
-    --side: #f2f2ee;
+    --sidebar-w: 0px;
+    --gutter: 40px;
+    --page: 1120px;
+    --column: 760px;
     /* Smaller corners at desk distance */
     --r-s: 8px;
     --r-m: 12px;
@@ -24,221 +28,253 @@
     --r-xl: 20px;
   }
 
-  /* ---------------------------------------------------------- 1. The sidebar */
-  .sidebar {
-    padding: 22px 12px 12px;
-    border-right: 0;
-    background: var(--side);
+  /* ---------------------------------------------------------- The top bar */
+  .topnav {
+    display: block;
+    position: sticky;
+    z-index: 40;
+    top: 0;
+    background: rgb(250 250 248 / 0.86);
+    backdrop-filter: saturate(1.5) blur(18px);
+    -webkit-backdrop-filter: saturate(1.5) blur(18px);
+    box-shadow: 0 1px 0 var(--line);
   }
 
-  .sidebar__brand {
-    padding: 0 10px 20px;
-  }
-
-  .sidebar__new {
-    height: 40px;
-    margin: 0 0 18px;
-    padding: 0 12px 0 14px;
-    border-radius: 10px;
-    font-size: 14.5px;
-    font-weight: 600;
-    box-shadow: 0 1px 2px rgb(10 10 4 / 0.2);
-  }
-
-  .sidebar__new .kbd {
-    background: rgb(255 255 255 / 0.16);
-    color: rgb(255 255 255 / 0.8);
-  }
-
-  .sidebar > .sidebar__scroll {
-    margin: 0 -12px;
-    padding: 0 12px 12px;
-  }
-
-  .sidebar__nav {
-    gap: 1px;
-  }
-
-  .navitem {
-    height: 34px;
-    gap: 10px;
-    padding: 0 10px;
-    border-radius: 8px;
-    font-size: 14px;
-    color: var(--text);
-  }
-
-  .navitem .icon {
-    --s: 18;
-    color: var(--text-2);
-  }
-
-  .navitem:hover {
-    background: rgb(10 10 4 / 0.045);
-  }
-
-  .navitem.is-on {
-    background: #fff;
-    font-weight: 600;
-    box-shadow:
-      0 1px 2px rgb(10 10 4 / 0.08),
-      0 0 0 1px rgb(10 10 4 / 0.04);
-  }
-
-  .navitem.is-on .icon {
-    color: var(--text);
-  }
-
-  .navitem__count {
-    font-size: 12.5px;
-  }
-
-  .navitem__lock {
-    color: var(--text-3);
-  }
-
-  /* Projects: a heading you can open (the overview) with + beside it */
-  .sidebar__head {
-    display: flex;
-    align-items: center;
-    margin: 22px 0 4px;
-    padding: 0 4px 0 10px;
-  }
-
-  .sidebar__label {
-    margin: 0;
-    padding: 4px 0;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--text-3);
-    text-transform: uppercase;
-  }
-
-  .sidebar__label:hover,
-  .sidebar__label.is-on {
-    color: var(--text);
-  }
-
-  .sidebar__plus {
-    margin-left: auto;
-    width: 24px;
-    height: 24px;
+  .topnav__in {
     display: grid;
-    place-items: center;
-    border-radius: 6px;
-    color: var(--text-2);
-  }
-
-  .sidebar__plus:hover {
-    background: rgb(10 10 4 / 0.06);
-    color: var(--text);
-  }
-
-  /* The foot: what's around the work, then us */
-  .sidebar__foot {
-    display: grid;
-    gap: 1px;
-    padding-top: 10px;
-    border-top: 1px solid rgb(10 10 4 / 0.06);
-  }
-
-  .navitem--quiet {
-    color: var(--text-2);
-  }
-
-  .navitem__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--c);
-  }
-
-  .navitem__note {
-    flex: none;
-    width: 15px;
-    height: 15px;
-    margin: 0 1.5px;
-    background: linear-gradient(225deg, transparent 4px, var(--lemon) 4px);
-    box-shadow: 0 1px 2px rgb(10 10 4 / 0.3);
-    transform: rotate(-5deg);
-  }
-
-  .sidebar__us {
-    display: flex;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 10px;
-    margin-top: 6px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    text-align: start;
-    font-size: 14px;
-    font-weight: 600;
+    gap: 24px;
+    max-width: calc(var(--page) + var(--gutter) * 2);
+    height: 64px;
+    margin: 0 auto;
+    padding: 0 var(--gutter);
   }
 
-  .sidebar__us:hover,
-  .sidebar__us.is-on {
-    background: #fff;
-    box-shadow: 0 1px 2px rgb(10 10 4 / 0.08);
-  }
-
-  .sidebar__faces {
+  .topnav__brand {
+    justify-self: start;
     display: flex;
-    flex: none;
+    padding: 6px 4px;
   }
 
-  .sidebar__faces > * + * {
-    margin-left: -7px;
-    box-shadow: 0 0 0 2px var(--side);
+  .topnav__tabs {
+    display: flex;
+    gap: 2px;
+    max-width: 100%;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--tile);
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .sidebar__names {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .sidebar__gear {
-    color: var(--text-3);
-  }
-
-  /* The sidebar holds these here; nothing floats on the page */
-  .ideatag,
-  .notebtn {
+  .topnav__tabs::-webkit-scrollbar {
     display: none;
   }
 
-  /* ---------------------------------------------------------- 2. The page */
+  .topnav__tab {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 16px 0 12px;
+    border-radius: 999px;
+    color: var(--text-2);
+    font-size: 14.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      background 140ms var(--ease),
+      color 140ms var(--ease),
+      box-shadow 140ms var(--ease);
+  }
+
+  .topnav__tab .icon {
+    --s: 18;
+  }
+
+  .topnav__tab:hover {
+    color: var(--text);
+  }
+
+  .topnav__tab.is-on {
+    background: #fff;
+    color: var(--text);
+    font-weight: 600;
+    box-shadow:
+      0 1px 3px rgb(10 10 4 / 0.12),
+      0 0 0 1px rgb(10 10 4 / 0.03);
+    --light: var(--me-light);
+    --shift: 1;
+  }
+
+  .topnav__count {
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
+  .topnav__end {
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topnav__search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 190px;
+    height: 38px;
+    padding: 0 8px 0 12px;
+    border-radius: 10px;
+    background: var(--tile);
+    color: var(--text-3);
+    font-size: 14px;
+  }
+
+  .topnav__search:hover {
+    color: var(--text-2);
+  }
+
+  .topnav__search .kbd {
+    margin-left: auto;
+    background: #fff;
+    opacity: 1;
+    color: var(--text-3);
+  }
+
+  .topnav__icon {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    color: var(--text);
+  }
+
+  .topnav__icon:hover,
+  .topnav__us:hover,
+  .topnav__us.is-on {
+    background: var(--tile);
+  }
+
+  .topnav__dot {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 2px var(--bg);
+  }
+
+  .topnav__n {
+    position: absolute;
+    top: 3px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 10.5px;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  .topnav__us {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 8px 0 4px;
+    border-radius: 19px;
+  }
+
+  .topnav__faces {
+    display: flex;
+  }
+
+  .topnav__faces > * + * {
+    margin-left: -7px;
+    box-shadow: 0 0 0 2px var(--bg);
+  }
+
+  /* The phone's bar and floating corner pieces: here the top bar has them */
+  .tabbar:not(.tabbar--preview),
+  .ideatag,
+  .miniband,
+  .band__corner {
+    display: none !important;
+  }
+
+  /* ---------------------------------------------------------- Floating: add, and a note */
+  .fab {
+    right: max(32px, calc((100% - var(--page)) / 2 - 40px));
+    bottom: 36px;
+  }
+
+  .notebtn {
+    position: fixed;
+    z-index: 36;
+    top: auto;
+    left: auto;
+    right: calc(max(32px, calc((100% - var(--page)) / 2 - 40px)) + 80px);
+    bottom: 40px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .notebtn__paper {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(225deg, transparent 11px, var(--lemon) 11px);
+    filter: drop-shadow(0 0 0.6px rgb(10 10 4 / 0.4)) drop-shadow(0 8px 12px rgb(10 10 4 / 0.2));
+  }
+
+  .notebtn__paper .icon {
+    --s: 20;
+  }
+
+  .notebtn:hover .notebtn__paper {
+    transform: rotate(-3deg) scale(1.05);
+  }
+
+  /* ---------------------------------------------------------- Pages, on the grid */
   .main {
-    padding-bottom: 96px;
+    padding-bottom: 140px;
   }
 
   .band,
   .column {
     max-width: calc(var(--column) + var(--gutter) * 2);
-    margin-left: 0;
-    margin-right: 0;
+    margin-left: auto;
+    margin-right: auto;
   }
 
+  .main:has(.home--wide),
+  .main:has(.projgrid) {
+    --column: var(--page);
+  }
+
+  /* The header: title on the left, its actions on the right, one line */
   .band {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0 10px;
-    padding: 44px var(--gutter) 26px;
+    padding: 40px var(--gutter) 24px;
   }
 
   .band__top {
     display: contents;
   }
 
-  .band__corner {
-    display: none;
-  }
-
-  /* Where it sits (Projects › Home), small, above the title */
   .band > .crumbs {
     order: 0;
     flex: 1 0 100%;
@@ -254,7 +290,7 @@
     order: 2;
     flex: 1 1 auto;
     min-width: 0;
-    font-size: 40px;
+    font-size: 42px;
     line-height: 1.05;
   }
 
@@ -276,16 +312,16 @@
     margin-top: 16px;
   }
 
-  /* The sidebar does these: back to Today from Settings, Search */
+  /* The top bar does these: back to Today from Settings, Search */
   .band--root .band__top > .iconbtn:first-child,
   .band__actions [aria-label='Search'] {
     display: none;
   }
 
   .band .iconbtn {
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     background: transparent;
     box-shadow: inset 0 0 0 1px var(--line);
   }
@@ -294,20 +330,12 @@
     background: var(--tile);
   }
 
-  .miniband:not(.is-on) {
-    box-shadow: none;
-  }
-
-  /* ---------------------------------------------------------- 3. Today: the day, and a rail */
-  .main:has(.home--wide) {
-    --column: 1060px;
-  }
-
+  /* ---------------------------------------------------------- Today: the day, and a rail */
   .home--wide {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 340px;
     align-items: start;
-    gap: 0 40px;
+    gap: 0 48px;
   }
 
   .home__main,
@@ -317,7 +345,7 @@
 
   .home__rail {
     position: sticky;
-    top: 24px;
+    top: 88px;
     display: grid;
     gap: 18px;
   }
@@ -326,14 +354,10 @@
     margin-top: 0 !important;
   }
 
-  /* ---------------------------------------------------------- Projects overview: a grid of folders */
-  .main:has(.projgrid) {
-    --column: 1060px;
-  }
-
+  /* ---------------------------------------------------------- Projects: as many folders as fit */
   .projgrid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 28px 18px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 30px 20px;
   }
 
   .projcard {
@@ -344,53 +368,52 @@
     transform: translateY(-3px);
   }
 
-  /* ---------------------------------------------------------- A project's page: a banner */
-  /* The banner is the header: no Back above it (the sidebar shows where you are), its menu
-     sits inside its top corner */
-  .band:has(> .hero) {
-    position: relative;
+  /* ---------------------------------------------------------- A project: folder left, tasks right */
+  .projpage {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 56px;
+    max-width: calc(var(--page) + var(--gutter) * 2);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
   }
 
-  .band:has(> .hero) .band__top > .iconbtn:first-child {
-    display: none;
+  .projpage > .band {
+    grid-column: 1;
+    grid-row: 1 / span 40;
+    position: sticky;
+    top: 64px;
+    max-width: none;
+    margin: 0;
+    padding: 32px 0 24px;
   }
 
-  .band:has(> .hero) > .hero {
+  .projpage > .column {
+    grid-column: 2;
+    max-width: none;
+    margin: 0;
+    padding: 34px 0 0;
+  }
+
+  .projpage .hero {
+    min-height: 200px;
+  }
+
+  .projpage .hero__title {
+    font-size: 34px;
+  }
+
+  .projpage .band > :not(.band__top, .band__title, .band__sub, .crumbs) {
     margin-top: 14px;
   }
 
-  .band:has(> .hero) .band__actions {
-    position: absolute;
-    z-index: 2;
-    top: 86px;
-    right: calc(var(--gutter) + 18px);
+  .projpage .band .projfields,
+  .projpage .band .inline {
+    margin-top: 22px;
   }
 
-  .band:has(> .hero) .band__actions .iconbtn {
-    background: rgb(255 255 255 / 0.4);
-    box-shadow: none;
-    color: var(--ink);
-  }
-
-  .band:has(> .hero) .band__actions .iconbtn:hover {
-    background: rgb(255 255 255 / 0.65);
-  }
-
-  .hero__stat {
-    margin-right: 48px;
-  }
-
-  .hero {
-    min-height: 0;
-    gap: 22px;
-    padding: 24px 28px 20px;
-  }
-
-  .hero__title {
-    font-size: 40px;
-  }
-
-  /* Which list (Both / Groceries / Home): as wide as its choices, not the page */
+  /* ---------------------------------------------------------- Shopping's list switch: as wide as its choices */
   .filter--top .seg {
     display: inline-flex;
     width: auto;
@@ -402,7 +425,7 @@
     padding-right: 16px;
   }
 
-  /* ---------------------------------------------------------- Quiet links line up with the page */
+  /* ---------------------------------------------------------- Quiet links line up with the content */
   .homeedit,
   .column > .editlink {
     justify-content: flex-start;

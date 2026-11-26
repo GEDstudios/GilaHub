@@ -1,6 +1,6 @@
 import { startTour, tourDone, tourList, tourWatch } from './tour';
 import { updateReady } from './update';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { seedHousehold } from '../core/actions';
 import { addDays, today as todayStr } from '../core/dates';
 import { afterTick } from './notify';
@@ -9,7 +9,7 @@ import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
 import { IdeaTag, useIdeasBadge, useOpenIdeas } from './components/Ideas';
-import { NoteButton, NotesLayer, useNoteHere } from './components/Notes';
+import { NoteButton, NotesLayer } from './components/Notes';
 import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
@@ -22,7 +22,7 @@ import { currentPath, navigate, useRoute } from './router';
 import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime } from './runtime';
 import { ItemScreen } from './screens/ItemScreen';
 import { ListScreen } from './screens/ListScreen';
-import { Lists, NewProjectSheet } from './screens/Lists';
+import { Lists } from './screens/Lists';
 import { Onboarding, type OnboardResult } from './screens/Onboarding';
 import { Settings } from './screens/Settings';
 import { Shopping } from './screens/Shopping';
@@ -34,8 +34,8 @@ import { Avatar, Fab, lightVar, lineVars, Logo } from './ui/primitives';
 import { cursorImage, setCursors } from './ui/cursors';
 import { startLiveCursor } from './ui/liveCursor';
 import { ProjectMark } from './ui/ProjectMark';
-import { activeTabKey, coveredByTab, tabsOf } from './tabs';
-import { projectCount, todayRef, todayView } from './views';
+import { activeTabKey, tabsOf } from './tabs';
+import { todayRef, todayView } from './views';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
 
@@ -46,112 +46,59 @@ function useAdd() {
 }
 
 /**
- * A computer's sidebar: where you are, and who with. The brand and New at the top; the places
- * (Today, Shopping, Chores, Search); every project under its own heading (+ starts one); and at
- * the foot the things around the work (ideas, a note for my person here) and the two of us,
- * which opens Settings.
+ * A computer's top bar: the phone's tab bar, moved up and laid out flat. The brand; the tabs
+ * (Today, your pins, Projects) in the middle; search, ideas and the two of us on the right.
+ * Adding (the black +) and a note for my person float bottom right, as they do on the phone.
  */
-function Sidebar() {
+function TopNav() {
   const route = useRoute();
   const hub = useHub();
-  const add = useAdd();
-  const addLabel = useAddLabel();
-  const { openSheet } = useOverlays();
   const openIdeas = useOpenIdeas();
   const ideas = useIdeasBadge();
   const prefs = usePrefs();
-  const note = useNoteHere();
   const on = activeTabKey(hub, route);
   const v = todayView(hub, todayRef());
   const counts: Record<string, number> = { today: v.dueCount, shop: v.shopping.count };
-  const places = tabsOf(hub).filter((t) => t.key === 'today' || t.key === 'shop' || t.key === 'chores');
-  const projectOn = route.name === 'list' ? route.id : null;
-  // Every project once (one a place already covers, like Chores, isn't listed twice).
-  const top = hub.lists().filter((l) => (!l.parentId || !hub.list(l.parentId)) && !coveredByTab(hub, l.id));
+  const tabs = tabsOf(hub).filter((t) => t.key !== 'search');
   const me = hub.me();
   const partner = hub.partner();
-  const row = (l: ReturnType<typeof hub.lists>[number], depth: number): React.ReactNode => (
-    <Fragment key={l.id}>
-      <button
-        type="button"
-        className={`navitem navitem--project ${projectOn === l.id ? 'is-on' : ''}`}
-        style={{ paddingLeft: 12 + depth * 18 }}
-        onClick={() => navigate({ name: 'list', id: l.id })}
-      >
-        <ProjectMark color={l.color} icon={l.icon} size="sm" />
-        <span className="navitem__label" dir="auto">
-          {l.name}
-        </span>
-        {l.visibility === 'private' ? <Icon name="lock" className="icon--xs navitem__lock" /> : null}
-        <span className="navitem__count">{projectCount(hub, l).n || ''}</span>
-      </button>
-      {hub.subLists(l.id).map((c) => row(c, depth + 1))}
-    </Fragment>
-  );
   return (
-    <aside className="sidebar" aria-label="Navigation">
-      <div className="sidebar__brand">
-        <Logo size={24} />
-      </div>
-      <button type="button" className="sidebar__new" onClick={add} title={addLabel} aria-label={addLabel === 'New' ? 'New' : `New: ${addLabel}`} aria-keyshortcuts="N">
-        <Icon name="plus" className="icon--sm" /> New
-        <span className="kbd">N</span>
-      </button>
-      <div className="sidebar__scroll">
-        <nav className="sidebar__nav" aria-label="Places">
-          {places.map((t) => (
-            <button key={t.key} type="button" className={`navitem ${on === t.key && !projectOn ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
-              {t.icon ? <Icon name={t.icon} /> : null}
-              <span className="navitem__label">{t.label}</span>
-              {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : null}
+    <header className="topnav">
+      <div className="topnav__in">
+        <button type="button" className="topnav__brand" onClick={() => navigate('/')} aria-label="Today">
+          <Logo size={24} />
+        </button>
+        <nav className="topnav__tabs" aria-label="Places">
+          {tabs.map((t) => (
+            <button key={t.key} type="button" className={`topnav__tab ${on === t.key ? 'is-on' : ''}`} aria-current={on === t.key ? 'page' : undefined} onClick={() => navigate(t.path)}>
+              {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
+              <span dir="auto">{t.label}</span>
+              {counts[t.key] ? <span className="topnav__count num">{counts[t.key]}</span> : null}
             </button>
           ))}
-          <button type="button" className="navitem" onClick={() => openSearch()}>
-            <Icon name="search" />
-            <span className="navitem__label">Search</span>
-            <span className="navitem__count kbd">/</span>
-          </button>
         </nav>
-        <div className="sidebar__head">
-          <button type="button" className={`sidebar__label ${route.name === 'lists' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'lists' })}>
-            Projects
+        <div className="topnav__end">
+          <button type="button" className="topnav__search" onClick={() => openSearch()} aria-label="Search" aria-keyshortcuts="/">
+            <Icon name="search" className="icon--sm" />
+            <span>Search</span>
+            <span className="kbd">/</span>
           </button>
-          <button type="button" className="sidebar__plus" aria-label="New project" title="New project" onClick={() => openSheet((close) => <NewProjectSheet onClose={close} />)}>
-            <Icon name="plus" className="icon--xs" />
+          {prefs.ideasTag ? (
+            <button type="button" className="topnav__icon" onClick={openIdeas} aria-label={`Ideas${ideas.n ? `, ${ideas.n} open` : ''}`} title="Ideas for Gila Hub">
+              <Icon name="lightbulb" />
+              {ideas.fresh && ideas.partner ? <span className="topnav__dot" style={lineVars(ideas.partner.color)} /> : ideas.n ? <span className="topnav__n num">{ideas.n}</span> : null}
+            </button>
+          ) : null}
+          <button type="button" className={`topnav__us ${route.name === 'settings' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'settings' })} aria-label="Settings" title="Settings">
+            <span className="topnav__faces">
+              <Avatar member={me} size="sm" />
+              {partner ? <Avatar member={partner} size="sm" /> : null}
+            </span>
+            <SyncDot />
           </button>
         </div>
-        <nav className="sidebar__nav" aria-label="Projects">
-          {top.map((l) => row(l, 0))}
-        </nav>
       </div>
-      <div className="sidebar__foot">
-        {prefs.ideasTag ? (
-          <button type="button" className="navitem navitem--quiet" onClick={openIdeas}>
-            <Icon name="lightbulb" />
-            <span className="navitem__label">Ideas</span>
-            {ideas.fresh && ideas.partner ? <span className="navitem__dot" style={lineVars(ideas.partner.color)} /> : null}
-            {ideas.n ? <span className="navitem__count">{ideas.n}</span> : null}
-          </button>
-        ) : null}
-        {note ? (
-          <button type="button" className="navitem navitem--quiet" onClick={note.open}>
-            <span className="navitem__note" aria-hidden="true" />
-            <span className="navitem__label">Note for {note.to}</span>
-          </button>
-        ) : null}
-        <button type="button" className={`sidebar__us ${route.name === 'settings' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'settings' })} aria-label="Settings">
-          <span className="sidebar__faces">
-            <Avatar member={me} size="sm" />
-            {partner ? <Avatar member={partner} size="sm" /> : null}
-          </span>
-          <span className="sidebar__names" dir="auto">
-            {partner ? `${me?.name ?? 'You'} & ${partner.name}` : (me?.name ?? 'You')}
-          </span>
-          <SyncDot />
-          <Icon name="gear" className="icon--sm sidebar__gear" />
-        </button>
-      </div>
-    </aside>
+    </header>
   );
 }
 
@@ -336,7 +283,7 @@ function Shell() {
   }, []);
   return (
     <div className="app">
-      <Sidebar />
+      <TopNav />
       <main className="main">
         <Screen />
       </main>

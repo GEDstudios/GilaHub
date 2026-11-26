@@ -67,7 +67,6 @@
 .is-lit,
 .tab.is-on,
 .tab.is-scrub,
-.navitem.is-on,
 .echip.is-open,
 .option.is-on,
 .iconpick__btn.is-on {
@@ -82,15 +81,14 @@
 }
 
 .tab .icon--project,
-.navitem .icon--project {
+.topnav__tab .icon--project {
   --light: color-mix(in srgb, var(--c) 45%, transparent);
   color: inherit;
 }
 
 .tab.is-on .icon--project,
 .tab.is-scrub .icon--project,
-.navitem.is-on .icon--project,
-.sidebar__label + .sidebar__nav .icon--project,
+.topnav__tab.is-on .icon--project,
 .iconpick__btn.is-on {
   --light: var(--c);
 }
@@ -3279,134 +3277,6 @@ html.is-dragging * {
   }
 }
 
-.sidebar {
-  display: none;
-}
-
-@media (min-width: 960px) {
-  .tabbar:not(.tabbar--preview) {
-    display: none;
-  }
-  .sidebar {
-    position: fixed;
-    z-index: 20;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: var(--sidebar-w);
-    display: flex;
-    flex-direction: column;
-    padding: 28px 16px 18px;
-    border-right: 1px solid var(--line);
-    background: var(--bg);
-  }
-}
-
-/* Brand, New and Settings stay put at any size; only the navigation between them scrolls. */
-.sidebar > * {
-  flex-shrink: 0;
-}
-
-.sidebar > .sidebar__scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  margin: 0 -16px;
-  padding: 0 16px 4px;
-  overflow-y: auto;
-}
-
-.sidebar__brand {
-  padding: 2px 12px 26px;
-}
-
-.sidebar__new {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  margin: 0 4px 20px;
-  padding: 0 14px 0 16px;
-  border-radius: 999px;
-  background: var(--cta);
-  color: var(--cta-text);
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.sidebar__new .kbd {
-  margin-left: auto;
-}
-
-.sidebar__nav {
-  display: grid;
-  gap: 2px;
-}
-
-.navitem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 42px;
-  padding: 0 12px;
-  border-radius: 12px;
-  color: var(--text-2);
-  font-size: 15px;
-  font-weight: 500;
-  text-align: start;
-  width: 100%;
-  transition:
-    background 140ms var(--ease),
-    color 140ms var(--ease);
-}
-
-.navitem:hover {
-  background: var(--press);
-  color: var(--text);
-}
-
-.navitem.is-on {
-  background: var(--tile);
-  color: var(--text);
-}
-
-.navitem .icon {
-  --s: 20;
-}
-
-.navitem .dot {
-  margin: 0 3px;
-}
-
-.navitem__label {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.navitem__count {
-  margin-left: auto;
-  font-size: 13px;
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
-}
-
-.navitem .kbd {
-  background: var(--tile);
-  opacity: 1;
-}
-
-.sidebar__label {
-  margin: 26px 12px 8px;
-  font-size: 13px;
-  color: var(--text-3);
-  font-weight: 500;
-}
-
-.sidebar__foot {
-  padding-top: 18px;
-}
-
 /* ============================================================ Toast */
 
 /* Above the tab bar and whatever floats on it (the shopbar sets --float-h). */
@@ -4189,12 +4059,6 @@ html:has(.iconlib) .fab {
   transform: scale(0.8);
 }
 
-/* A computer has New in the sidebar */
-@media (min-width: 960px) {
-  .fab {
-    display: none;
-  }
-}
 
 /* ============================================================ Projects inside projects */
 /* A folder holding folders: another sheet peeks out behind it, top right. */

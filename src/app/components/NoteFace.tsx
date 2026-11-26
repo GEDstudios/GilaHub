@@ -586,6 +586,7 @@ function SizeRail({ value, color, min, max, onChange }: { value: number; color: 
     <span
       ref={rail}
       className="sizerail"
+      data-no-pull
       role="slider"
       aria-label="Pen size"
       aria-valuemin={min}
@@ -693,7 +694,7 @@ export function NoteEditor({
   ];
   return (
     <div className="noteedit">
-      <div className={`noteedit__desk ${tool === 'pen' ? 'is-drawing' : ''}`}>
+      <div className={`noteedit__desk ${tool === 'pen' ? 'is-drawing' : ''}`} data-no-pull>
         <NoteFace
           look={look}
           scale={2.2}
