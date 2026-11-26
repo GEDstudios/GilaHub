@@ -219,11 +219,6 @@
     bottom: 28px;
   }
 
-  /* A note for my person: one of the +'s choices here */
-  .notebtn {
-    display: none;
-  }
-
   /* ---------------------------------------------------------- Pages, on the grid */
   .main {
     padding-bottom: 140px;
@@ -351,6 +346,13 @@
   .main .aisle--urgent .rows,
   .main .aisle--urgent .row {
     background: transparent;
+  }
+
+  /* As cards, Urgent is just its title over lemon cards */
+  .main .aisle--urgent:has(.rows--cards) {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .main .column > .rows,

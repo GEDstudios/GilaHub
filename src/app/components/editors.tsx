@@ -492,6 +492,15 @@ export function WhenCard({
 
   return (
     <div className="panel whencard">
+      {/* Taking the date off: first thing, above the month */}
+      {value.due ? (
+        <div className="whencard__head">
+          <button type="button" className="whencard__clear" onClick={() => setDay(null)}>
+            <Icon name="x" className="icon--sm" />
+            Remove date
+          </button>
+        </div>
+      ) : null}
       <MonthPicker value={value.due} onPick={(d) => setDay(d === value.due ? null : d)} />
 
       <div className="whencard__rows">
@@ -536,14 +545,6 @@ export function WhenCard({
         ) : null}
       </div>
 
-      {value.due ? (
-        <div className="whencard__foot">
-          <button type="button" className="whencard__clear" onClick={() => setDay(null)}>
-            <Icon name="x" className="icon--sm" />
-            Remove date
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }

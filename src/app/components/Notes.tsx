@@ -111,23 +111,6 @@ export function useNoteHere(): { to: string; open: () => void } | null {
   };
 }
 
-export function NoteButton() {
-  const here = useNoteHere();
-  if (!here) return null;
-  return (
-    <button
-      type="button"
-      className="notebtn"
-      aria-label={`Leave a note for ${here.to} here`}
-      title={`Leave a note for ${here.to}`}
-      onClick={here.open}
-    >
-      <span className="notebtn__paper">
-        <Icon name="plus" className="icon--xs" />
-      </span>
-    </button>
-  );
-}
 
 function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }) {
   const hub = useHub();

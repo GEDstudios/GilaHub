@@ -536,7 +536,7 @@ try {
   await check('Notes: Guy sticks one on Shopping; Hila finds it from Today, reads it and peels it off', async () => {
     const NOTE = 'Don’t forget the milk 💛';
     await guy.goto(`${url}/shop`);
-    await guy.locator('.notebtn').click();
+    await plus(guy, 'note');
     await guy.getByRole('dialog', { name: 'A note for Hila' }).waitFor();
     // Long words at the biggest size never run off the paper.
     const clipped = () =>
@@ -713,7 +713,7 @@ try {
     await hila.goto(`${url}/`);
     await hila.waitForTimeout(800);
     await guy.goto(`${url}/lists`);
-    await guy.locator('.notebtn').click();
+    await plus(guy, 'note');
     await guy.getByRole('textbox', { name: 'Your note' }).fill('Your turn for the bins 🗑️');
     await guy.getByRole('button', { name: 'Stick it' }).click();
     const card = hila.locator('.arrival');
@@ -727,7 +727,7 @@ try {
 
   await check('Notes stay out of the way while Today is being edited', async () => {
     await guy.goto(`${url}/`);
-    await guy.locator('.notebtn').click();
+    await plus(guy, 'note');
     await guy.getByRole('textbox', { name: 'Your note' }).fill('Dinner at 8? 🍝');
     await guy.getByRole('button', { name: 'Stick it' }).click();
     await hila.goto(`${url}/`);
@@ -736,7 +736,7 @@ try {
     await hila.getByRole('button', { name: 'Edit Today' }).click();
     await hila.getByRole('heading', { name: 'Edit Today', level: 1 }).waitFor();
     if (await note.isVisible()) throw new Error('the note shows while editing Today');
-    if (await hila.locator('.notebtn').isVisible()) throw new Error('the note button shows while editing Today');
+    await waitFor(async () => (await hila.locator('.fab').evaluate((e) => getComputedStyle(e).opacity)) === '0', 2000, 'the + steps aside while editing Today');
     await hila.keyboard.press('Escape');
     await hila.getByRole('heading', { name: 'Edit Today', level: 1 }).waitFor({ state: 'detached', timeout: 3000 });
     await note.waitFor({ state: 'visible', timeout: 3000 });

@@ -9,7 +9,7 @@ import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
 import { IdeaTag, useIdeasBadge, useOpenIdeas } from './components/Ideas';
-import { NoteButton, NotesLayer, useNoteHere } from './components/Notes';
+import { NotesLayer, useNoteHere } from './components/Notes';
 import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
@@ -78,7 +78,7 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
     {
       key: 'task',
       label: buying ? 'Something to buy' : addLabel === 'New' ? 'Task' : addLabel,
-      face: <Icon name={buying ? 'basket' : 'check'} className="icon--sm" />,
+      face: buying ? <Icon name="basket" /> : <span className="addmenu__check" aria-hidden="true" />,
       run: () => {
         primeKeyboard();
         add();
@@ -87,7 +87,7 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
     {
       key: 'project',
       label: here && route.name === 'list' ? `Project inside ${here.name}` : 'Project',
-      face: <Icon name="folder" className="icon--sm" />,
+      face: <span className="addmenu__folder" aria-hidden="true" />,
       run: () => openSheet((close) => <NewProjectSheet onClose={close} parentId={route.name === 'list' ? here?.id : undefined} />),
     },
     ...(note ? [{ key: 'note', label: `Sticky note for ${note.to}`, face: <span className="addmenu__note" aria-hidden="true" />, run: note.open }] : []),
@@ -377,7 +377,6 @@ function Shell() {
       <TabBar />
       {route.name === 'settings' ? null : <AddMenu add={add} addLabel={addLabel} />}
       <IdeaTag />
-      <NoteButton />
       <NotesLayer />
       <Arrivals />
       <SearchLayer />

@@ -4205,39 +4205,6 @@ html:has(.iconlib) .fab {
 
 /* ============================================================ Sticky notes (for each other) */
 /* The little paper by the Ideas tag: a post-it with a +, to leave one on this screen. */
-.notebtn {
-  position: absolute;
-  z-index: 19;
-  top: calc(var(--safe-top) + 12px);
-  left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) + 112px);
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.notebtn__paper {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(225deg, transparent 6px, var(--lemon) 6px);
-  color: var(--ink);
-  transform: rotate(5deg);
-  filter: drop-shadow(0 0 0.6px rgb(10 10 4 / 0.4)) drop-shadow(0 3px 5px rgb(10 10 4 / 0.14));
-  transition: transform 380ms var(--spring);
-}
-
-.notebtn__paper .icon {
-  --s: 13;
-}
-
-.notebtn:active .notebtn__paper {
-  transform: rotate(0deg) scale(0.92);
-  transition-duration: 160ms;
-}
-
 /* A note: square paper in its color, taped on, a little crooked, the writing a touch handwritten. */
 .sticky {
   --tilt: 3deg;
@@ -4549,8 +4516,8 @@ html.is-searching .stickyboard {
 }
 
 /* Arranging a screen (Today, the bar, the categories) is no time for notes: they wait for the regular view. */
-html.is-editing :is(.stickyboard, .notebtn),
-html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
+html.is-editing .stickyboard,
+html:has(.home--editing, .aislearr) .stickyboard {
   display: none;
 }
 
@@ -5275,17 +5242,6 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
-}
-
-.whencard__foot {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: -2px;
-}
-
-.whencard__foot .textbtn {
-  font-size: 13.5px;
-  color: var(--text-2);
 }
 
 /* The When chip's little marks: it repeats, it notifies */
@@ -6836,29 +6792,52 @@ textarea.nf__write {
   display: grid;
   place-items: center;
   margin-right: 8px;
-  border-radius: 50%;
-  background: var(--card);
   color: var(--text);
-  box-shadow:
-    0 0 0 1px rgb(10 10 4 / 0.06),
-    0 6px 16px -6px rgb(10 10 4 / 0.3);
+  filter: drop-shadow(0 4px 8px rgb(10 10 4 / 0.22));
   transition: transform 200ms var(--spring);
+}
+
+.addmenu__face > .icon {
+  --s: 32;
 }
 
 .addmenu__item:active .addmenu__face {
   transform: scale(0.9);
 }
 
-.addmenu__item--task .addmenu__face {
-  background: var(--cta);
-  color: var(--cta-text);
+/* Each choice is the thing itself, small: a task's tick circle, a folder, a sticky note */
+.addmenu__check {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.addmenu__folder {
+  position: relative;
+  width: 38px;
+  height: 28px;
+  margin-top: 6px;
+  border-radius: 3px 7px 7px 7px;
+  background: var(--sky);
+}
+
+.addmenu__folder::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  width: 16px;
+  height: 8px;
+  border-radius: 3px 3px 0 0;
+  background: var(--sky);
 }
 
 .addmenu__note {
-  width: 20px;
-  height: 20px;
-  background: linear-gradient(225deg, transparent 5px, var(--lemon) 5px);
-  box-shadow: 0 1px 2px rgb(10 10 4 / 0.3);
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(225deg, transparent 8px, var(--lemon) 8px);
   transform: rotate(-6deg);
 }
 
@@ -6893,10 +6872,21 @@ textarea.nf__write {
   transform: scale(0.98);
 }
 
-/* Urgent things as cards: white with a lemon edge; the Urgent title spans the row */
-.aisle--urgent .rows--cards .row {
+/* Urgent things as cards: the group is just its title, and each card is filled lemon */
+.aisle--urgent:has(.rows--cards) {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.aisle--urgent .rows--cards .row,
+.aisle--urgent .rows--cards .row:hover,
+.aisle--urgent .rows--cards .row:active,
+.main .aisle--urgent .rows--cards .row,
+.main .aisle--urgent .rows--cards .row:hover {
+  background: var(--lemon);
   box-shadow:
-    0 0 0 2px var(--lemon),
+    0 0 0 1px rgb(10 10 4 / 0.06),
     0 1px 3px rgb(10 10 4 / 0.08);
 }
 
@@ -6915,7 +6905,13 @@ textarea.nf__write {
   font-size: 15.5px;
 }
 
-/* Taking the date off: a plain pill that says so */
+/* Taking the date off: a plain pill that says so, at the top of the card */
+.whencard__head {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 6px;
+}
+
 .whencard__clear {
   display: inline-flex;
   align-items: center;
