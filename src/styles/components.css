@@ -7586,7 +7586,7 @@ textarea.nf__write {
 }
 
 .row__swipe .row__swipeicon {
-  --s: 26;
+  --s: 30;
   --light: rgb(255 255 255 / 0.6);
   flex: none;
   color: var(--ink);
@@ -7606,17 +7606,18 @@ textarea.nf__write {
 /* With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). */
 .row__ongo {
   display: none;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border-radius: 50%;
   color: var(--text-2);
-  background: var(--card);
-  box-shadow: 0 0 0 1px var(--line);
+  transition:
+    color 140ms var(--ease),
+    transform 220ms var(--spring);
 }
 
 .row__ongo .icon {
-  --s: 15;
+  --s: 24;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -7626,7 +7627,8 @@ textarea.nf__write {
 
   .row__ongo:hover {
     color: var(--ink);
-    background: var(--me-light, var(--lemon));
+    --light: var(--me-light, var(--lemon));
+    transform: scale(1.08);
   }
 }
 

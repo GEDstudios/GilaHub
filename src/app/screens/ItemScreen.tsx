@@ -474,7 +474,7 @@ export function ItemScreen({ id }: { id: string }) {
                     {
                       key: 'ongoing',
                       label: 'Ongoing',
-                      icon: 'play' as const,
+                      icon: 'play-circle' as const,
                       set: !!item.ongoingAt,
                       toggle: () => {
                         haptic('select');

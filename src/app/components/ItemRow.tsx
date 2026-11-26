@@ -151,7 +151,7 @@ export const ItemRow = memo(function ItemRow({
     >
       {intoOngoing ? (
         <span className="row__swipe row__swipe--right" aria-hidden="true">
-          <Icon name="play" className="row__swipeicon" />
+          <Icon name="play-circle" className="row__swipeicon" />
         </span>
       ) : null}
       {outOfOngoing ? (
@@ -191,7 +191,7 @@ export const ItemRow = memo(function ItemRow({
             ) : null}
             {ongoing ? (
               <span className="meta meta--ongoing">
-                <Icon name="play" />
+                <Icon name="play-circle" />
                 {onBy ? `${onBy.name}’s on it` : 'Ongoing'}
               </span>
             ) : null}
@@ -238,7 +238,7 @@ export const ItemRow = memo(function ItemRow({
                 intoOngoing();
               }}
             >
-              <Icon name="play" />
+              <Icon name="play-circle" />
             </button>
           ) : null}
         </span>

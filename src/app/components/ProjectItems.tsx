@@ -242,7 +242,7 @@ export function OngoingTray({ open, done, onOut, onClear }: { open: Item[]; done
       <section className={`cartcard ${open.length === 0 ? 'is-full' : ''}`} aria-label={`Ongoing: ${done.length} of ${total} done`}>
         <div className="cartcard__head">
           <span className="cartcard__basket" key={done.length}>
-            <Icon name="play" />
+            <Icon name="play-circle" />
             {open.length ? <span className="cartcard__n num">{open.length}</span> : null}
           </span>
           <span className="cartcard__title">Ongoing</span>
