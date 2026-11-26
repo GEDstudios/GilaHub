@@ -14,14 +14,13 @@ import { openCount, type TodayView } from './views';
  */
 export const MAX_HOME_PROJECTS = 3;
 
-export type WidgetKey = 'asks' | 'today' | 'week' | 'upcoming' | 'partner';
+export type WidgetKey = 'asks' | 'today' | 'week' | 'upcoming';
 
 export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'asks', on: true },
   { key: 'today', on: true },
-  { key: 'week', on: true },
   { key: 'upcoming', on: true },
-  { key: 'partner', on: true },
+  { key: 'week', on: true },
 ];
 
 export interface WidgetDef {
@@ -34,9 +33,8 @@ export interface WidgetDef {
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   asks: { title: () => 'Waiting on you', icon: 'hand', needsPartner: true },
   today: { title: () => 'Today', icon: 'sun' },
-  week: { title: () => 'This week', icon: 'stack' },
-  upcoming: { title: () => 'Coming up', icon: 'calendar' },
-  partner: { title: (hub) => `${hub.partner()?.name ?? 'Your person'} did`, icon: 'heart', needsPartner: true },
+  week: { title: () => 'This week', icon: 'heart' },
+  upcoming: { title: () => 'Next 7 days', icon: 'calendar' },
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);
@@ -285,16 +283,13 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
     case 'today':
       return join([v.today.length > 0 && `${v.today.length} today`, v.earlier.length > 0 && `${v.earlier.length} from earlier`], 'Nothing due today');
     case 'week': {
-      const bands = weekBands(hub, v);
-      const short = (b: WeekBand) => `${b.num} done`;
-      return join(bands.map(short), 'Shows up when there’s something');
+      const { week } = weekCounts(hub);
+      return join([week > 0 && `${week} done`, v.recent.length > 0 && `${p} did ${v.recent.length} since yesterday`], 'How the week went, and your moments');
     }
     case 'upcoming': {
       const n = aheadOf(v).length;
       return join([n > 0 && `${n} in the next 7 days`], 'Nothing in the next 7 days');
     }
-    case 'partner':
-      return join([v.recent.length > 0 && `${v.recent.length} since yesterday`], `Shows what ${p} finishes`);
     default:
       return { text: '', empty: true };
   }

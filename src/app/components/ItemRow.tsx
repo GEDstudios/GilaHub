@@ -53,7 +53,8 @@ export const ItemRow = memo(function ItemRow({
   inUrgent?: boolean;
   /** Just added or marked urgent by my partner: it glows a moment. */
   flash?: boolean;
-  dateMode?: 'full' | 'none';
+  /** 'time': under a day's own heading, only the time. */
+  dateMode?: 'full' | 'time' | 'none';
   trailing?: ReactNode;
   /** Under the text, e.g. OK / Not yet (RequestActions className="row__acts"). */
   below?: ReactNode;
@@ -74,7 +75,7 @@ export const ItemRow = memo(function ItemRow({
   const doer = useDoer(item);
   const req = requestState(hub, item);
   const vis = visTagFor(hub, item);
-  const due = dateMode === 'full' ? dueLabel(item, ref, use24h(prefs)) : null;
+  const due = dateMode === 'full' ? dueLabel(item, ref, use24h(prefs)) : dateMode === 'time' && item.dueTime ? { text: humanTime(item.dueTime, use24h(prefs)), soft: false } : null;
   const readonly = !hub.canEdit(item);
   const tick = useTick();
   const hold = useSettleHold();

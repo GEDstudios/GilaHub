@@ -2,26 +2,17 @@ import { useWide } from '../ui/useWide';
 import { useEffect, useState } from 'react';
 import { Lens, useFilter } from '../components/Filter';
 import { flushSync } from 'react-dom';
-import type { Hub } from '../../core/actions';
 import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { AsksWidget } from '../components/Asks';
-import {
-  ComingUp,
-  HomeNotices,
-  InviteCard,
-  PartnerDid,
-  ProjectWidget,
-  SummaryCard,
-  TodayWidget,
-  WeekStrips,
-} from '../components/HomeWidgets';
+import { HomeNotices, InviteCard, ProjectWidget } from '../components/HomeWidgets';
+import { DayCard, NextDays, TodayBlock, WeekCard } from '../components/Home';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
 import { useHub } from '../context';
-import { aheadOf, listIdOf, visibleHome, weekBands } from '../home';
+import { listIdOf, visibleHome } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -39,24 +30,8 @@ function greeting(): string {
   return 'Evening';
 }
 
-/** On a computer these are glances, in the side column: the week, my person's, shopping. */
-const SIDE = new Set(['week', 'partner']);
-
-/** Does this block draw anything right now? (Today always does: its add row.) */
-function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<string>): boolean {
-  switch (key) {
-    case 'asks':
-      return !!hub.partner() && v.awaitingOk.length + v.asked.length + v.outgoing.length + v.waitingTheirOk.length > 0;
-    case 'week':
-      return weekBands(hub, v, shown).length > 0;
-    case 'upcoming':
-      return aheadOf(v).length > 0;
-    case 'partner':
-      return !!hub.partner() && v.recent.length > 0;
-    default:
-      return true;
-  }
-}
+/** On a computer the week (and us) is a glance, in the side column beside the day. */
+const SIDE = new Set(['week']);
 
 /** Today with a filter on: only what passes, everywhere on the page (the counts follow). */
 function filterToday(v: TodayView, keep: (i: Item) => boolean): TodayView {
@@ -131,8 +106,6 @@ export function Today() {
 
   const wide = useWide();
   const slots = visibleHome(hub);
-  const shown = new Set(slots.map((s) => s.key));
-  const first = slots.find((s) => hasContent(s.key, hub, v, shown))?.key;
 
   const block = (key: string) => {
     const listId = listIdOf(key);
@@ -141,13 +114,11 @@ export function Today() {
       case 'asks':
         return <AsksWidget key={key} v={v} settle={settle} />;
       case 'today':
-        return <TodayWidget key={key} v={v} day={ref} settle={settle} bare={first === 'today' && !wide} />;
+        return <TodayBlock key={key} v={v} day={ref} settle={settle} />;
       case 'week':
-        return <WeekStrips key={key} v={v} shown={shown} />;
+        return <WeekCard key={key} v={v} />;
       case 'upcoming':
-        return <ComingUp key={key} v={v} day={ref} />;
-      case 'partner':
-        return <PartnerDid key={key} v={v} />;
+        return <NextDays key={key} v={v} day={ref} />;
       default:
         return null;
     }
@@ -176,7 +147,7 @@ export function Today() {
           mini="Edit Today"
         />
         <div className="column home home--editing">
-          <SummaryCard v={v} day={ref} asksShown={false} />
+          <DayCard v={v} />
           <TodayArrange peek={block} />
         </div>
       </>
@@ -198,17 +169,13 @@ export function Today() {
         mini={date}
       />
       {wide ? (
-        // A computer: the day's line under the greeting; then the day itself (what needs doing,
-        // asks, pinned projects) as the wide column, and the glances (the week, what's coming,
-        // shopping, the invite) in a narrower one beside it.
+        // A computer: the doing on the left (add, asks, today, the next days, pinned projects),
+        // and beside it, staying in sight, the day at a glance and the week, us.
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
-          <div className="home__lead">
-            <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
-            {lens}
-            <HomeNotices />
-          </div>
           <div className="home__cols">
             <div className="home__main">
+              <HomeNotices />
+              {lens}
               {/* A computer's way in: an "add" line at the head of the day (N works from anywhere) */}
               <button type="button" className="quickbar" onClick={openNew} aria-keyshortcuts="N">
                 <span className="quickbar__plus">
@@ -221,7 +188,8 @@ export function Today() {
               {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
               {editLink}
             </div>
-            <aside className="home__side" aria-label="The week and more">
+            <aside className="home__side" aria-label="Your day and your week">
+              <DayCard v={v} />
               {slots.filter((s) => SIDE.has(s.key)).map((s) => block(s.key))}
               <InviteCard />
             </aside>
@@ -229,9 +197,9 @@ export function Today() {
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
-          <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
-          {lens}
+          <DayCard v={v} />
           <HomeNotices />
+          {lens}
           {slots.map((s) => block(s.key))}
           <InviteCard />
           {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}

@@ -344,7 +344,7 @@ try {
   });
 
   // ---------- Today, arranged
-  await check('Today: Guy hides "Coming up" and moves "This week" up; it sticks after a reload', async () => {
+  await check('Today: Guy hides "Next 7 days" and moves "This week" up; it sticks after a reload', async () => {
     await guy.goto(`${url}/`);
     await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
     await guy.waitForTimeout(1000);
@@ -356,32 +356,32 @@ try {
     await shot(guy, '15-edit-today');
     const rows = () => guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
     const before = await rows();
-    if (before.join() !== 'Waiting on you,Today,This week,Coming up,Hila did') throw new Error(`unexpected slots: ${before.join(', ')}`);
-    await guy.getByRole('button', { name: 'Hide Coming up' }).click();
-    await waitFor(async () => !(await rows()).includes('Coming up'), 3000, 'Coming up hidden');
-    await guy.locator('.homeghost', { hasText: 'Coming up' }).waitFor({ timeout: 3000 });
+    if (before.join() !== 'Waiting on you,Today,Next 7 days,This week') throw new Error(`unexpected slots: ${before.join(', ')}`);
+    await guy.getByRole('button', { name: 'Hide Next 7 days' }).click();
+    await waitFor(async () => !(await rows()).includes('Next 7 days'), 3000, 'Next 7 days hidden');
+    await guy.locator('.homeghost', { hasText: 'Next 7 days' }).waitFor({ timeout: 3000 });
     // Keyboard reorder from the grip: pick up, up twice, drop.
     await guy.getByRole('button', { name: 'Move This week' }).focus();
     for (const key of ['Space', 'ArrowUp', 'ArrowUp', 'Space']) {
       await guy.keyboard.press(key);
       await guy.waitForTimeout(250);
     }
-    await waitFor(async () => (await rows()).join() === 'This week,Waiting on you,Today,Hila did', 3000, 'This week moved up');
+    await waitFor(async () => (await rows()).join() === 'This week,Waiting on you,Today', 3000, 'This week moved up');
     await shot(guy, '15b-edit-today-after');
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
     await guy.reload();
     await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
     await guy.waitForTimeout(1000);
-    const titles = await guy.locator('.home h2.section__title').allInnerTexts();
-    if (titles.some((t) => t.startsWith('Coming up'))) throw new Error('Coming up is back after a reload');
+    const titles = await guy.locator('.home h2.section__title, .home h2.weekcard__title').allInnerTexts();
+    if (titles.some((t) => t.startsWith('Next 7 days'))) throw new Error('Next 7 days is back after a reload');
     const week = titles.findIndex((t) => t.startsWith('This week'));
     const asks = titles.findIndex((t) => t.startsWith('Waiting on you'));
     if (week < 0 || asks < 0 || week > asks) throw new Error(`order after reload: ${titles.join(' | ')}`);
     await shot(guy, '16-today-arranged');
   });
 
-  await check('Today: the "Hila" tag finds her asks, on the page or in a sheet; "Back to the default" restores it', async () => {
-    await guy.locator('.tag--person').click();
+  await check('Today: the "Hila" chip finds her asks, on the page or in a sheet; "Back to the default" restores it', async () => {
+    await guy.locator('.daychip--person').click();
     await waitFor(async () => {
       // Scrolled to it: at the top, or as far as the page goes with it fully in view.
       return guy.locator('#home-asks').evaluate((el) => {
@@ -394,7 +394,7 @@ try {
     await guy.getByRole('button', { name: 'Hide Waiting on you' }).click();
     await guy.waitForTimeout(400);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
-    await guy.locator('.tag--person').click();
+    await guy.locator('.daychip--person').click();
     await guy.locator('.sheet', { hasText: 'Fix the kettle' }).waitFor({ timeout: 3000 });
     await shot(guy, '17-asks-sheet');
     await guy.keyboard.press('Escape');
@@ -403,7 +403,7 @@ try {
     await guy.getByRole('button', { name: 'Back to the default' }).click();
     await guy.getByText('Today is back to the default').waitFor({ timeout: 3000 });
     const slots = await guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
-    if (slots.join() !== 'Waiting on you,Today,This week,Coming up,Hila did') throw new Error(`after reset: ${slots.join(', ')}`);
+    if (slots.join() !== 'Waiting on you,Today,Next 7 days,This week') throw new Error(`after reset: ${slots.join(', ')}`);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
   });
 

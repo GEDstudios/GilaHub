@@ -760,4 +760,26 @@
   .projpage .hero--project .hero__foot {
     padding-right: 136px;
   }
+
+  /* Today: the day and the week beside the doing, in sight as it scrolls. */
+  .home__side .daycard__n {
+    font-size: 84px;
+  }
+
+  .home__side .weekcard {
+    margin-top: 16px;
+  }
+
+  .home__main > .lens {
+    margin-bottom: 16px;
+  }
+
+  .main .home .section__title {
+    font-size: 21px;
+    letter-spacing: -0.01em;
+  }
+
+  .main .home .section__head {
+    margin-bottom: 8px;
+  }
 }

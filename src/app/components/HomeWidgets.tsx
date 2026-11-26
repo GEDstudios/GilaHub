@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { addDays, humanTime, relativeAgo } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
 import { byOrder } from '../../core/order';
-import { useHub, usePartnerHere } from '../context';
+import { useHub } from '../context';
 import { AHEAD_MAX, aheadDay, aheadOf, summaryOf, things, weekBands } from '../home';
 import { setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
@@ -43,7 +43,7 @@ function Cursor() {
 }
 
 /** The partner's asks in a sheet, when Waiting on you isn't on the page. */
-function AsksSheet({ onClose, day }: { onClose: () => void; day: string }) {
+export function AsksSheet({ onClose, day }: { onClose: () => void; day: string }) {
   const hub = useHub();
   const v = todayView(hub, day);
   const settle = useSettle(idOf);
@@ -105,27 +105,8 @@ export function SummaryCard({ v, day, asksShown }: { v: TodayView; day: string; 
 
 /** Live notices under the summary: the partner is in the store. */
 export function HomeNotices() {
-  const hub = useHub();
-  const here = usePartnerHere();
-  const shopper = here ? hub.member(here.member) : undefined;
-  const on = here?.listId ? hub.list(here.listId) : undefined;
-  return (
-    <>
-      <NotesElsewhere />
-      {shopper ? (
-        <button type="button" className="notice" onClick={() => on && navigate({ name: 'list', id: on.id })}>
-          <Avatar member={shopper} size="sm" />
-          <span className="notice__text">
-            <strong>
-              {shopper.name} is on {on?.name ?? 'it'} now.
-            </strong>{' '}
-            Need anything?
-          </span>
-          <Icon name="chevron-right" />
-        </button>
-      ) : null}
-    </>
-  );
+  // My person on a project right now is a chip on the day card.
+  return <NotesElsewhere />;
 }
 
 // ---------------------------------------------------------------- today
