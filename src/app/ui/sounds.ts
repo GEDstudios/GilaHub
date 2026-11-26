@@ -1,20 +1,30 @@
 /**
- * Sounds: small, soft, made on the fly (Web Audio, no files). One per tactile moment, the same
- * kinds as haptics, so a tick sounds like a tick everywhere. The device pref `sounds` (default
- * on) gates them; the phone's silent switch still wins on iPhone.
+ * Sounds: soft, round pops made on the fly (Web Audio, no files). One per tactile moment, the
+ * same kinds as haptics, so a tick sounds like a tick everywhere. The device pref `sounds`
+ * (default on) gates them; the phone's silent switch still wins on iPhone.
  *
- *   tick     a small wooden pop (ticked off, put in the cart)
- *   drop     a soft click (dropped into place)
- *   success  a two-note chime (paid, kept a moment, all done)
- *   warn     a low bump ("not there")
- *   add      a light rising blip (added something)
- *   notify   a three-note doorbell (something arrived: a reminder, a note, an ask)
+ * Every sound is built from two things:
+ *   - a pop: a pure sine that glides in pitch (like a bubble), with a 2-3 ms attack and a short
+ *     natural tail, through a gentle low-pass, so it's round, never bright;
+ *   - a touch: a whisper of filtered noise, a few ms long, under the pop: the feel of a
+ *     fingertip on glass.
+ *
+ *   select   the faintest tap (a chip, a pen, a choice)
+ *   tick     a round bubble pop, rising (ticked off, put in the cart)
+ *   lift     a soft lift-off (picked something up to move it)
+ *   drop     a lower pop, settling (dropped into place)
+ *   add      two little pops, up (added something)
+ *   success  three bubbles rising (paid, kept a moment, all done)
+ *   warn     a low, soft double bump ("not there")
+ *   notify   bloop-bloop and a soft ring (something arrived)
  */
 import { getPrefs } from '../prefs';
 
-export type SoundKind = 'tick' | 'drop' | 'success' | 'warn' | 'add' | 'notify';
+export type SoundKind = 'select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn' | 'add' | 'notify';
 
 let ctx: AudioContext | null = null;
+let out: AudioNode | null = null;
+let noise: AudioBuffer | null = null;
 
 function audio(): AudioContext | null {
   try {
@@ -28,34 +38,61 @@ function audio(): AudioContext | null {
   }
 }
 
-/**
- * One struck note, like a small marimba bar: the tone plus a quieter partial a fourth octave up
- * that dies fast (the "tock"), a quick attack and a natural tail. Loud enough for a phone speaker.
- */
-function note(a: AudioContext, freq: number, at: number, len: number, vol: number, type: OscillatorType = 'sine', glide?: number) {
-  const out = a.createGain();
-  out.gain.setValueAtTime(0.0001, at);
-  out.gain.exponentialRampToValueAtTime(vol, at + 0.006);
-  out.gain.exponentialRampToValueAtTime(0.0001, at + len);
-  out.connect(a.destination);
+/** Everything goes through one warm low-pass and a soft limiter, so nothing is ever sharp or loud. */
+function master(a: AudioContext): AudioNode {
+  if (out) return out;
+  const lp = a.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 3200;
+  lp.Q.value = 0.5;
+  const comp = a.createDynamicsCompressor();
+  comp.threshold.value = -14;
+  comp.knee.value = 12;
+  comp.ratio.value = 4;
+  comp.attack.value = 0.002;
+  comp.release.value = 0.12;
+  lp.connect(comp).connect(a.destination);
+  out = lp;
+  return out;
+}
+
+/** A pop: a sine gliding from `from` to `to` Hz, quick to start, quick to fade. */
+function pop(a: AudioContext, at: number, from: number, to: number, len: number, vol: number) {
   const o = a.createOscillator();
-  o.type = type;
-  o.frequency.setValueAtTime(freq, at);
-  if (glide) o.frequency.exponentialRampToValueAtTime(glide, at + len);
-  o.connect(out);
+  const g = a.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(from, at);
+  // Most of the glide happens up front: the "bloop".
+  o.frequency.exponentialRampToValueAtTime(to, at + len * 0.45);
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(vol, at + 0.0025);
+  g.gain.exponentialRampToValueAtTime(vol * 0.35, at + len * 0.4);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+  o.connect(g).connect(master(a));
   o.start(at);
-  o.stop(at + len + 0.03);
-  // The strike
-  const k = a.createOscillator();
-  const kg = a.createGain();
-  k.type = 'sine';
-  k.frequency.setValueAtTime(freq * 4, at);
-  kg.gain.setValueAtTime(0.0001, at);
-  kg.gain.exponentialRampToValueAtTime(vol * 0.35, at + 0.003);
-  kg.gain.exponentialRampToValueAtTime(0.0001, at + Math.min(0.05, len));
-  k.connect(kg).connect(a.destination);
-  k.start(at);
-  k.stop(at + 0.07);
+  o.stop(at + len + 0.02);
+}
+
+/** A touch: a few ms of soft, band-limited noise: the tactile part. */
+function touch(a: AudioContext, at: number, vol: number, center = 2400) {
+  if (!noise) {
+    noise = a.createBuffer(1, Math.ceil(a.sampleRate * 0.02), a.sampleRate);
+    const d = noise.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const src = a.createBufferSource();
+  src.buffer = noise;
+  const bp = a.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = center;
+  bp.Q.value = 0.9;
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(vol, at + 0.0008);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.012);
+  src.connect(bp).connect(g).connect(master(a));
+  src.start(at);
+  src.stop(at + 0.02);
 }
 
 export function playSound(kind: SoundKind): void {
@@ -63,30 +100,44 @@ export function playSound(kind: SoundKind): void {
     if (!getPrefs().sounds) return;
     const a = audio();
     if (!a) return;
-    const t = a.currentTime + 0.005;
+    const t = a.currentTime + 0.004;
     switch (kind) {
+      case 'select':
+        touch(a, t, 0.06, 3000);
+        pop(a, t, 1100, 1300, 0.035, 0.1);
+        break;
       case 'tick':
-        note(a, 988, t, 0.12, 0.32, 'triangle', 784);
+        touch(a, t, 0.1);
+        pop(a, t, 480, 920, 0.11, 0.42);
+        break;
+      case 'lift':
+        pop(a, t, 380, 620, 0.09, 0.24);
         break;
       case 'drop':
-        note(a, 440, t, 0.09, 0.26, 'triangle', 330);
+        touch(a, t, 0.09, 1800);
+        pop(a, t, 420, 260, 0.1, 0.4);
         break;
       case 'add':
-        note(a, 659, t, 0.1, 0.22, 'sine', 880);
-        note(a, 988, t + 0.06, 0.14, 0.18);
+        touch(a, t, 0.06);
+        pop(a, t, 560, 860, 0.08, 0.16);
+        pop(a, t + 0.065, 760, 1180, 0.11, 0.15);
         break;
       case 'success':
-        note(a, 784, t, 0.22, 0.26);
-        note(a, 1175, t + 0.09, 0.4, 0.22);
+        touch(a, t, 0.07);
+        pop(a, t, 523, 784, 0.1, 0.16);
+        pop(a, t + 0.075, 659, 988, 0.1, 0.15);
+        pop(a, t + 0.15, 784, 1175, 0.22, 0.16);
         break;
       case 'warn':
-        note(a, 196, t, 0.16, 0.3, 'triangle', 147);
+        pop(a, t, 240, 170, 0.1, 0.18);
+        pop(a, t + 0.11, 220, 150, 0.12, 0.15);
         break;
       case 'notify':
-        // Our little doorbell: up and over, then a soft landing.
-        note(a, 1047, t, 0.3, 0.24);
-        note(a, 1319, t + 0.11, 0.3, 0.22);
-        note(a, 1568, t + 0.22, 0.55, 0.2);
+        touch(a, t, 0.06);
+        pop(a, t, 620, 930, 0.12, 0.18);
+        pop(a, t + 0.12, 830, 1245, 0.14, 0.17);
+        // A soft ring after, settling.
+        pop(a, t + 0.26, 1245, 1240, 0.45, 0.07);
         break;
     }
   } catch {

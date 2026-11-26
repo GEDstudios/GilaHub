@@ -431,6 +431,12 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
   );
 }
 
+/** Every sound once, in a row: a tick, a pick, an add, a drop, all done, a nudge, something arrived. */
+function hearThem() {
+  const order = ['tick', 'select', 'add', 'drop', 'success', 'warn', 'notify'] as const;
+  order.forEach((k, i) => setTimeout(() => playSound(k), i * 520));
+}
+
 // ---------------------------------------------------------------- On this device
 
 function ThisDevice() {
@@ -496,7 +502,7 @@ function ThisDevice() {
         <OptRow
           icon="bell"
           title="Sounds"
-          sub="A soft pop when you tick, a chime when you finish"
+          sub="Soft, round pops when you tick, pick and finish"
           trail={
             <Switch
               on={prefs.sounds}
@@ -508,6 +514,13 @@ function ThisDevice() {
             />
           }
         />
+        {prefs.sounds ? (
+          <p className="editlink">
+            <button type="button" className="textbtn" onClick={hearThem}>
+              Hear them
+            </button>
+          </p>
+        ) : null}
       </div>
     </Section>
   );

@@ -61,14 +61,14 @@ export function throttled(kind: HapticKind, now: number, last: number, ios: bool
 }
 
 export function haptic(kind: HapticKind = 'tick'): void {
-  // Each tactile moment has a sound too (its own switch, in Settings).
-  if (kind === 'tick' || kind === 'drop' || kind === 'success' || kind === 'warn') playSound(kind);
   try {
-    if (!getPrefs().haptics) return;
     const ios = !canVibrate();
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
     if (throttled(kind, now, lastSelect, ios)) return;
     if (kind === 'select') lastSelect = now;
+    // Each tactile moment has a sound too (its own switch, in Settings).
+    playSound(kind);
+    if (!getPrefs().haptics) return;
     if (!ios) {
       navigator.vibrate(HAPTIC_PATTERNS[kind]);
       return;
