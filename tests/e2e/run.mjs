@@ -573,8 +573,24 @@ try {
     for (let i = 1; i <= 8; i++) await guy.mouse.move(pad.x + pad.width * (0.15 + i * 0.07), pad.y + pad.height * (0.85 - Math.sin(i / 2.5) * 0.1));
     await guy.mouse.up();
     await guy.locator('.sheet .nf__ink path').waitFor({ timeout: 3000 });
+    // The brushes: a neon line too, then one wiped off with the eraser.
+    await guy.getByRole('radio', { name: 'Neon' }).click();
+    await guy.getByRole('radio', { name: 'sky' }).click();
+    await guy.mouse.move(pad.x + pad.width * 0.2, pad.y + pad.height * 0.3);
+    await guy.mouse.down();
+    for (let i = 1; i <= 6; i++) await guy.mouse.move(pad.x + pad.width * (0.2 + i * 0.08), pad.y + pad.height * 0.3 + (i % 2) * 12);
+    await guy.mouse.up();
     await shot(guy, '28a-note-pen');
-    await guy.getByRole('button', { name: 'Draw on the note' }).click();
+    // The pen line is one path; the neon one three (glow, colour, white core).
+    const paths = () => guy.locator('.sheet .sticky .nf__ink').first().locator('path').count();
+    if ((await paths()) !== 4) throw new Error(`expected a pen and a neon line, found ${await paths()} paths`);
+    await guy.getByRole('radio', { name: 'Eraser' }).click();
+    await guy.mouse.move(pad.x + pad.width * 0.35, pad.y + pad.height * 0.22);
+    await guy.mouse.down();
+    await guy.mouse.move(pad.x + pad.width * 0.35, pad.y + pad.height * 0.4, { steps: 6 });
+    await guy.mouse.up();
+    if ((await paths()) !== 1) throw new Error(`the eraser should have left just the pen line, found ${await paths()} paths`);
+    await guy.getByRole('button', { name: 'Done drawing' }).click();
     await shot(guy, '28b-note-drawn');
     await guy.getByRole('button', { name: 'Stick it' }).click();
     await guy.locator('.stuck').waitFor({ timeout: 3000 });

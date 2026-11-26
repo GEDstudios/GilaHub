@@ -94,23 +94,33 @@ export function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): Not
 // ---------------------------------------------------------------- leaving one
 
 /** The little paper by the Ideas tag: leave a note on this screen for my person. */
-export function NoteButton() {
+/** Leaving a note on this screen for my person: who it's for and how to start one (none where notes can't go). */
+export function useNoteHere(): { to: string; open: () => void } | null {
   const hub = useHub();
   const route = useRoute();
   const { openSheet } = useOverlays();
   const partner = hub.partner();
   const place = placeOf(route);
   if (!partner || !place) return null;
+  return {
+    to: partner.name,
+    open: () => {
+      haptic('select');
+      openSheet((close) => <NewNoteSheet place={place} onClose={close} />);
+    },
+  };
+}
+
+export function NoteButton() {
+  const here = useNoteHere();
+  if (!here) return null;
   return (
     <button
       type="button"
       className="notebtn"
-      aria-label={`Leave a note for ${partner.name} here`}
-      title={`Leave a note for ${partner.name}`}
-      onClick={() => {
-        haptic('select');
-        openSheet((close) => <NewNoteSheet place={place} onClose={close} />);
-      }}
+      aria-label={`Leave a note for ${here.to} here`}
+      title={`Leave a note for ${here.to}`}
+      onClick={here.open}
     >
       <span className="notebtn__paper">
         <Icon name="plus" className="icon--xs" />
@@ -239,7 +249,7 @@ function StuckNote({
    * a mouse: drag it; the wheel sizes it, Shift+wheel turns it; click elsewhere to put it down.
    * A quick tap reads it.
    */
-  const g = useRef<{ mode: 'wait' | 'mouse' | 'finger'; sx: number; sy: number; start: Place; timer?: ReturnType<typeof setTimeout> } | null>(null);
+  const g = useRef<{ mode: 'wait' | 'mouse' | 'finger' | 'drag'; sx: number; sy: number; start: Place; timer?: ReturnType<typeof setTimeout> } | null>(null);
   const tap = useRef(false);
   const release = useRef<(() => void) | null>(null);
   useEffect(() => () => release.current?.(), []);
@@ -440,12 +450,18 @@ function StuckNote({
     const s = g.current;
     if (!s || s.mode === 'finger') return;
     if (s.mode === 'wait') {
-      // Moving before the hold lands: it was a scroll, not for the note.
-      if (Math.hypot(e.clientX - s.sx, e.clientY - s.sy) > 8) {
+      // Moving before the hold lands: just drag it about (no need to hold first). Turning and
+      // sizing still wait for a hold.
+      if (Math.hypot(e.clientX - s.sx, e.clientY - s.sy) > 6) {
         clearTimeout(s.timer);
-        g.current = null;
-      }
-      return;
+        s.mode = 'drag';
+        haptic('select');
+        try {
+          (e.currentTarget as Element).setPointerCapture(e.pointerId);
+        } catch {
+          /* untracked pointer */
+        }
+      } else return;
     }
     show(keep({ ...s.start, x: s.start.x + (e.clientX - s.sx) / width(), y: s.start.y + (e.clientY - s.sy) }));
   };
@@ -455,7 +471,7 @@ function StuckNote({
     if (!s || s.mode === 'finger') return;
     clearTimeout(s.timer);
     g.current = null;
-    if (s.mode === 'mouse') {
+    if (s.mode === 'mouse' || s.mode === 'drag') {
       put();
       return;
     }
@@ -493,7 +509,7 @@ function StuckNote({
       style={{ left: `${at.x * 100}%`, top: at.y, '--rot': `${at.rot}deg`, '--scale': at.scale } as CSSProperties}
       role="button"
       tabIndex={0}
-      aria-label={`A note ${mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `from ${hub.member(note.by)?.name ?? 'your person'}`}: ${note.text}. Hold to move it; with a second finger, turn and size it.`}
+      aria-label={`A note ${mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `from ${hub.member(note.by)?.name ?? 'your person'}`}: ${note.text}. Drag to move it; hold it to turn and size it.`}
       onKeyDown={(e) => {
         if (e.key === 'Enter') read();
       }}
@@ -509,6 +525,22 @@ function StuckNote({
       onContextMenu={(e) => e.preventDefault()}
     >
       <NoteFace look={lookOf(hub, note, mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `— ${hub.member(note.by)?.name ?? ''}`)} />
+      {lifted ? (
+        <button
+          type="button"
+          className="stuck__done"
+          aria-label="Done moving it"
+          title="Done"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            haptic('drop');
+            onLift(false);
+          }}
+        >
+          <Icon name="x" className="icon--sm" />
+        </button>
+      ) : null}
       <button
         type="button"
         className="sticky__check"

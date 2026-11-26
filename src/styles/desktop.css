@@ -1,62 +1,249 @@
 /* ============================================================ A computer (960px and up)
- * Not the phone's column on a big screen: a sidebar, then a work area with a real page header
- * (title on the left, its actions on the right, one line), tighter corners, hover states, and
- * screens that use the width where it helps (Today with a rail, Projects as a fluid grid).
- * Loaded last, so it only has to say what differs.
+ *
+ * The hierarchy, top to bottom of importance:
+ *   1. The sidebar says where you are and who with: brand and New; the places (Today, Shopping,
+ *      Chores, Search); every project; then ideas, a note for my person, and the two of us.
+ *      It sits on its own quiet surface, so the page reads as the thing you're working on.
+ *   2. The page: one header (where it sits, a serif title, a meta line; its own actions on the
+ *      right), then the content at one reading width, from one left edge.
+ *   3. Only Today spreads out: the day itself, and a rail of glances beside it.
+ * Nothing floats over the canvas (the ideas tag and note button live in the sidebar here).
+ * Loaded last, so it only says what differs from the phone.
  */
 
 @media (min-width: 960px) {
   :root {
-    --gutter: 48px;
-    --column: 760px;
-    /* Calmer, smaller corners at desk distance */
+    --sidebar-w: 248px;
+    --gutter: 56px;
+    --column: 720px;
+    --side: #f2f2ee;
+    /* Smaller corners at desk distance */
     --r-s: 8px;
     --r-m: 12px;
     --r-l: 16px;
     --r-xl: 20px;
   }
 
-  /* Wider screens, a wider page for the screens that lay out in columns */
-  .main:has(.home--wide),
-  .main:has(.projgrid) {
-    --column: 1080px;
+  /* ---------------------------------------------------------- 1. The sidebar */
+  .sidebar {
+    padding: 22px 12px 12px;
+    border-right: 0;
+    background: var(--side);
   }
 
-  /* Every page starts at the same left edge, next to the sidebar (not floating mid-screen) */
+  .sidebar__brand {
+    padding: 0 10px 20px;
+  }
+
+  .sidebar__new {
+    height: 40px;
+    margin: 0 0 18px;
+    padding: 0 12px 0 14px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgb(10 10 4 / 0.2);
+  }
+
+  .sidebar__new .kbd {
+    background: rgb(255 255 255 / 0.16);
+    color: rgb(255 255 255 / 0.8);
+  }
+
+  .sidebar > .sidebar__scroll {
+    margin: 0 -12px;
+    padding: 0 12px 12px;
+  }
+
+  .sidebar__nav {
+    gap: 1px;
+  }
+
+  .navitem {
+    height: 34px;
+    gap: 10px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .navitem .icon {
+    --s: 18;
+    color: var(--text-2);
+  }
+
+  .navitem:hover {
+    background: rgb(10 10 4 / 0.045);
+  }
+
+  .navitem.is-on {
+    background: #fff;
+    font-weight: 600;
+    box-shadow:
+      0 1px 2px rgb(10 10 4 / 0.08),
+      0 0 0 1px rgb(10 10 4 / 0.04);
+  }
+
+  .navitem.is-on .icon {
+    color: var(--text);
+  }
+
+  .navitem__count {
+    font-size: 12.5px;
+  }
+
+  .navitem__lock {
+    color: var(--text-3);
+  }
+
+  /* Projects: a heading you can open (the overview) with + beside it */
+  .sidebar__head {
+    display: flex;
+    align-items: center;
+    margin: 22px 0 4px;
+    padding: 0 4px 0 10px;
+  }
+
+  .sidebar__label {
+    margin: 0;
+    padding: 4px 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+
+  .sidebar__label:hover,
+  .sidebar__label.is-on {
+    color: var(--text);
+  }
+
+  .sidebar__plus {
+    margin-left: auto;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    color: var(--text-2);
+  }
+
+  .sidebar__plus:hover {
+    background: rgb(10 10 4 / 0.06);
+    color: var(--text);
+  }
+
+  /* The foot: what's around the work, then us */
+  .sidebar__foot {
+    display: grid;
+    gap: 1px;
+    padding-top: 10px;
+    border-top: 1px solid rgb(10 10 4 / 0.06);
+  }
+
+  .navitem--quiet {
+    color: var(--text-2);
+  }
+
+  .navitem__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--c);
+  }
+
+  .navitem__note {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    margin: 0 1.5px;
+    background: linear-gradient(225deg, transparent 4px, var(--lemon) 4px);
+    box-shadow: 0 1px 2px rgb(10 10 4 / 0.3);
+    transform: rotate(-5deg);
+  }
+
+  .sidebar__us {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    text-align: start;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .sidebar__us:hover,
+  .sidebar__us.is-on {
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(10 10 4 / 0.08);
+  }
+
+  .sidebar__faces {
+    display: flex;
+    flex: none;
+  }
+
+  .sidebar__faces > * + * {
+    margin-left: -7px;
+    box-shadow: 0 0 0 2px var(--side);
+  }
+
+  .sidebar__names {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .sidebar__gear {
+    color: var(--text-3);
+  }
+
+  /* The sidebar holds these here; nothing floats on the page */
+  .ideatag,
+  .notebtn {
+    display: none;
+  }
+
+  /* ---------------------------------------------------------- 2. The page */
+  .main {
+    padding-bottom: 96px;
+  }
+
   .band,
   .column {
+    max-width: calc(var(--column) + var(--gutter) * 2);
     margin-left: 0;
     margin-right: 0;
   }
 
-  /* ---------------------------------------------------------- The page header */
   .band {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0 12px;
-    padding: 40px var(--gutter) 22px;
-  }
-
-  /* Under the back/actions row, a project's banner gets its own room */
-  .band > .hero,
-  .band > :not(.band__top, .band__title, .band__sub, .crumbs) {
-    margin-top: 18px;
+    gap: 0 10px;
+    padding: 44px var(--gutter) 26px;
   }
 
   .band__top {
     display: contents;
   }
 
-  /* The phone's corner avatar: the sidebar has me (Settings, with the sync dot) */
   .band__corner {
     display: none;
   }
 
+  /* Where it sits (Projects › Home), small, above the title */
   .band > .crumbs {
     order: 0;
     flex: 1 0 100%;
-    margin: 0 0 6px;
+    margin: 0 0 8px;
+    font-size: 13px;
   }
 
   .band__top > .iconbtn:first-child {
@@ -67,7 +254,8 @@
     order: 2;
     flex: 1 1 auto;
     min-width: 0;
-    font-size: 36px;
+    font-size: 40px;
+    line-height: 1.05;
   }
 
   .band__actions {
@@ -78,51 +266,48 @@
   .band__sub {
     order: 4;
     flex: 1 0 100%;
-    margin-top: 6px;
+    margin-top: 8px;
+    font-size: 15px;
   }
 
   .band > :not(.band__top, .band__title, .band__sub, .crumbs) {
     order: 5;
     flex: 1 0 100%;
+    margin-top: 16px;
   }
 
-  /* Things the sidebar already does: going back to Today from Settings, Search */
+  /* The sidebar does these: back to Today from Settings, Search */
   .band--root .band__top > .iconbtn:first-child,
   .band__actions [aria-label='Search'] {
     display: none;
   }
 
-  /* Round header buttons become quiet square-ish ones */
   .band .iconbtn {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--line);
   }
 
-  /* The compact bar after scrolling: only over the work area, and no stray line while hidden */
+  .band .iconbtn:hover {
+    background: var(--tile);
+  }
+
   .miniband:not(.is-on) {
     box-shadow: none;
   }
 
-  /* ---------------------------------------------------------- Ideas and notes: top right of the page */
-  .ideatag {
-    left: auto;
-    right: 28px;
-    top: 30px;
+  /* ---------------------------------------------------------- 3. Today: the day, and a rail */
+  .main:has(.home--wide) {
+    --column: 1060px;
   }
 
-  .notebtn {
-    left: auto;
-    right: 88px;
-    top: 30px;
-  }
-
-  /* ---------------------------------------------------------- Today: the day, and a rail beside it */
   .home--wide {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1fr) 320px;
     align-items: start;
-    gap: 0 36px;
+    gap: 0 40px;
   }
 
   .home__main,
@@ -133,33 +318,94 @@
   .home__rail {
     position: sticky;
     top: 24px;
+    display: grid;
+    gap: 18px;
   }
 
-  .home__rail > :first-child {
-    margin-top: 0;
+  .home__rail > * {
+    margin-top: 0 !important;
   }
 
-  /* Quiet links under a page (Edit Today, Manage categories) line up with it, not mid-screen */
-  .homeedit,
-  .column > .editlink {
-    justify-content: flex-start;
+  /* ---------------------------------------------------------- Projects overview: a grid of folders */
+  .main:has(.projgrid) {
+    --column: 1060px;
   }
 
-  /* ---------------------------------------------------------- Projects: as many folders as fit */
   .projgrid {
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 28px 18px;
   }
 
-  /* ---------------------------------------------------------- A project's own page: a banner, not a poster */
+  .projcard {
+    transition: transform 200ms var(--spring);
+  }
+
+  .projcard:hover {
+    transform: translateY(-3px);
+  }
+
+  /* ---------------------------------------------------------- A project's page: a banner */
+  /* The banner is the header: no Back above it (the sidebar shows where you are), its menu
+     sits inside its top corner */
+  .band:has(> .hero) {
+    position: relative;
+  }
+
+  .band:has(> .hero) .band__top > .iconbtn:first-child {
+    display: none;
+  }
+
+  .band:has(> .hero) > .hero {
+    margin-top: 14px;
+  }
+
+  .band:has(> .hero) .band__actions {
+    position: absolute;
+    z-index: 2;
+    top: 86px;
+    right: calc(var(--gutter) + 18px);
+  }
+
+  .band:has(> .hero) .band__actions .iconbtn {
+    background: rgb(255 255 255 / 0.4);
+    box-shadow: none;
+    color: var(--ink);
+  }
+
+  .band:has(> .hero) .band__actions .iconbtn:hover {
+    background: rgb(255 255 255 / 0.65);
+  }
+
+  .hero__stat {
+    margin-right: 48px;
+  }
+
   .hero {
     min-height: 0;
-    gap: 18px;
-    padding: 22px 26px 20px;
+    gap: 22px;
+    padding: 24px 28px 20px;
   }
 
   .hero__title {
     font-size: 40px;
+  }
+
+  /* Which list (Both / Groceries / Home): as wide as its choices, not the page */
+  .filter--top .seg {
+    display: inline-flex;
+    width: auto;
+  }
+
+  .filter--top .seg__btn {
+    flex: 0 0 auto;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* ---------------------------------------------------------- Quiet links line up with the page */
+  .homeedit,
+  .column > .editlink {
+    justify-content: flex-start;
   }
 
   /* ---------------------------------------------------------- Surfaces: one corner size each */
@@ -201,58 +447,29 @@
 
   /* Dialogs, not sheets */
   .sheet__panel {
-    border-radius: var(--r-xl);
     max-width: 560px;
+    border-radius: var(--r-xl);
   }
 
   .sheet__actions {
     border-radius: var(--r-l);
   }
 
-  /* Buttons: pills only where they're tags; the big ones get a desk shape */
   .btn {
-    height: 46px;
-    border-radius: 12px;
+    height: 44px;
+    border-radius: 11px;
     font-size: 15px;
   }
 
   .btn--sm {
-    height: 36px;
-    border-radius: 10px;
-  }
-
-  /* ---------------------------------------------------------- Sidebar */
-  .sidebar {
-    padding: 26px 14px 16px;
-  }
-
-  .sidebar__new {
-    height: 42px;
-    border-radius: 12px;
-    margin: 0 2px 18px;
-  }
-
-  .navitem {
-    height: 38px;
+    height: 34px;
+    padding: 0 14px;
     border-radius: 9px;
-    font-size: 14.5px;
-  }
-
-  .navitem.is-on {
-    font-weight: 600;
   }
 
   /* ---------------------------------------------------------- Hover: a computer says what's clickable */
   .rows > li:hover,
   .row--tap:hover {
     background: var(--press);
-  }
-
-  .projcard {
-    transition: transform 200ms var(--spring);
-  }
-
-  .projcard:hover {
-    transform: translateY(-3px);
   }
 }

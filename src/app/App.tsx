@@ -1,6 +1,6 @@
 import { startTour, tourDone, tourList, tourWatch } from './tour';
 import { updateReady } from './update';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { seedHousehold } from '../core/actions';
 import { addDays, today as todayStr } from '../core/dates';
 import { afterTick } from './notify';
@@ -8,8 +8,8 @@ import type { Persistence } from '../core/db';
 import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
-import { IdeaTag } from './components/Ideas';
-import { NoteButton, NotesLayer } from './components/Notes';
+import { IdeaTag, useIdeasBadge, useOpenIdeas } from './components/Ideas';
+import { NoteButton, NotesLayer, useNoteHere } from './components/Notes';
 import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
@@ -23,7 +23,7 @@ import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime }
 import { Chores } from './screens/Chores';
 import { ItemScreen } from './screens/ItemScreen';
 import { ListScreen } from './screens/ListScreen';
-import { Lists } from './screens/Lists';
+import { Lists, NewProjectSheet } from './screens/Lists';
 import { Onboarding, type OnboardResult } from './screens/Onboarding';
 import { Settings } from './screens/Settings';
 import { Shopping } from './screens/Shopping';
@@ -31,7 +31,7 @@ import { SyncDot } from './components/SyncBadge';
 import { Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
-import { Fab, lightVar, Logo } from './ui/primitives';
+import { Avatar, Fab, lightVar, lineVars, Logo } from './ui/primitives';
 import { cursorImage, setCursors } from './ui/cursors';
 import { startLiveCursor } from './ui/liveCursor';
 import { ProjectMark } from './ui/ProjectMark';
@@ -46,76 +46,110 @@ function useAdd() {
   return () => runAdd(() => openSheet((close) => <QuickAddSheet onClose={close} />));
 }
 
+/**
+ * A computer's sidebar: where you are, and who with. The brand and New at the top; the places
+ * (Today, Shopping, Chores, Search); every project under its own heading (+ starts one); and at
+ * the foot the things around the work (ideas, a note for my person here) and the two of us,
+ * which opens Settings.
+ */
 function Sidebar() {
   const route = useRoute();
   const hub = useHub();
   const add = useAdd();
   const addLabel = useAddLabel();
-  const tabs = tabsOf(hub);
+  const { openSheet } = useOverlays();
+  const openIdeas = useOpenIdeas();
+  const ideas = useIdeasBadge();
+  const prefs = usePrefs();
+  const note = useNoteHere();
   const on = activeTabKey(hub, route);
   const v = todayView(hub, todayRef());
   const counts: Record<string, number> = { today: v.dueCount, shop: v.shopping.count };
-  // The bar's order first (as on the phone), then the projects not pinned there, each once.
-  const pinned = new Set(tabs.map((t) => t.key));
-  const more = hub.lists().filter((l) => !pinned.has(`l:${l.id}`) && !coveredByTab(hub, l.id));
-  // One row lit per screen: an unpinned project's own row, not Projects as well.
-  const moreOn = route.name === 'list' && more.some((l) => l.id === route.id) ? route.id : null;
+  const places = tabsOf(hub).filter((t) => t.key === 'today' || t.key === 'shop' || t.key === 'chores');
+  const projectOn = route.name === 'list' ? route.id : null;
+  // Every project once (one a place already covers, like Chores, isn't listed twice).
+  const top = hub.lists().filter((l) => (!l.parentId || !hub.list(l.parentId)) && !coveredByTab(hub, l.id));
+  const me = hub.me();
+  const partner = hub.partner();
+  const row = (l: ReturnType<typeof hub.lists>[number], depth: number): React.ReactNode => (
+    <Fragment key={l.id}>
+      <button
+        type="button"
+        className={`navitem navitem--project ${projectOn === l.id ? 'is-on' : ''}`}
+        style={{ paddingLeft: 12 + depth * 18 }}
+        onClick={() => navigate({ name: 'list', id: l.id })}
+      >
+        <ProjectMark color={l.color} icon={l.icon} size="sm" />
+        <span className="navitem__label" dir="auto">
+          {l.name}
+        </span>
+        {l.visibility === 'private' ? <Icon name="lock" className="icon--xs navitem__lock" /> : null}
+        <span className="navitem__count">{projectCount(hub, l).n || ''}</span>
+      </button>
+      {hub.subLists(l.id).map((c) => row(c, depth + 1))}
+    </Fragment>
+  );
   return (
     <aside className="sidebar" aria-label="Navigation">
       <div className="sidebar__brand">
-        <Logo size={28} />
+        <Logo size={24} />
       </div>
       <button type="button" className="sidebar__new" onClick={add} title={addLabel} aria-label={addLabel === 'New' ? 'New' : `New: ${addLabel}`} aria-keyshortcuts="N">
         <Icon name="plus" className="icon--sm" /> New
         <span className="kbd">N</span>
       </button>
       <div className="sidebar__scroll">
-        <nav className="sidebar__nav">
-          {tabs.map((t) => (
-            <button key={t.key} type="button" className={`navitem ${on === t.key && !moreOn ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
-              {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
-              <span className="navitem__label" dir="auto">
-                {t.label}
-              </span>
-              {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : t.key === 'search' ? <span className="navitem__count kbd">/</span> : null}
+        <nav className="sidebar__nav" aria-label="Places">
+          {places.map((t) => (
+            <button key={t.key} type="button" className={`navitem ${on === t.key && !projectOn ? 'is-on' : ''}`} onClick={() => navigate(t.path)}>
+              {t.icon ? <Icon name={t.icon} /> : null}
+              <span className="navitem__label">{t.label}</span>
+              {counts[t.key] ? <span className="navitem__count">{counts[t.key]}</span> : null}
             </button>
           ))}
-          {tabs.some((t) => t.key === 'search') ? null : (
-            <button type="button" className="navitem" onClick={() => openSearch()}>
-              <Icon name="search" />
-              <span className="navitem__label">Search</span>
-              <span className="navitem__count kbd">/</span>
-            </button>
-          )}
+          <button type="button" className="navitem" onClick={() => openSearch()}>
+            <Icon name="search" />
+            <span className="navitem__label">Search</span>
+            <span className="navitem__count kbd">/</span>
+          </button>
         </nav>
-        {more.length ? (
-          <>
-            <div className="sidebar__label">{more.length < hub.lists().length ? 'Other projects' : 'Projects'}</div>
-            <nav className="sidebar__nav">
-              {more.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  className={`navitem ${moreOn === l.id ? 'is-on' : ''}`}
-                  onClick={() => navigate({ name: 'list', id: l.id })}
-                >
-                  <ProjectMark color={l.color} icon={l.icon} size="sm" />
-                  <span className="navitem__label" dir="auto">
-                    {l.name}
-                  </span>
-                  {l.visibility === 'private' ? <Icon name="lock" className="icon--sm" /> : null}
-                  <span className="navitem__count">{projectCount(hub, l).n || ''}</span>
-                </button>
-              ))}
-            </nav>
-          </>
-        ) : null}
+        <div className="sidebar__head">
+          <button type="button" className={`sidebar__label ${route.name === 'lists' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'lists' })}>
+            Projects
+          </button>
+          <button type="button" className="sidebar__plus" aria-label="New project" title="New project" onClick={() => openSheet((close) => <NewProjectSheet onClose={close} />)}>
+            <Icon name="plus" className="icon--xs" />
+          </button>
+        </div>
+        <nav className="sidebar__nav" aria-label="Projects">
+          {top.map((l) => row(l, 0))}
+        </nav>
       </div>
       <div className="sidebar__foot">
-        <button type="button" className={`navitem ${route.name === 'settings' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'settings' })}>
-          <Icon name="gear" />
-          <span className="navitem__label">Settings</span>
+        {prefs.ideasTag ? (
+          <button type="button" className="navitem navitem--quiet" onClick={openIdeas}>
+            <Icon name="lightbulb" />
+            <span className="navitem__label">Ideas</span>
+            {ideas.fresh && ideas.partner ? <span className="navitem__dot" style={lineVars(ideas.partner.color)} /> : null}
+            {ideas.n ? <span className="navitem__count">{ideas.n}</span> : null}
+          </button>
+        ) : null}
+        {note ? (
+          <button type="button" className="navitem navitem--quiet" onClick={note.open}>
+            <span className="navitem__note" aria-hidden="true" />
+            <span className="navitem__label">Note for {note.to}</span>
+          </button>
+        ) : null}
+        <button type="button" className={`sidebar__us ${route.name === 'settings' ? 'is-on' : ''}`} onClick={() => navigate({ name: 'settings' })} aria-label="Settings">
+          <span className="sidebar__faces">
+            <Avatar member={me} size="sm" />
+            {partner ? <Avatar member={partner} size="sm" /> : null}
+          </span>
+          <span className="sidebar__names" dir="auto">
+            {partner ? `${me?.name ?? 'You'} & ${partner.name}` : (me?.name ?? 'You')}
+          </span>
           <SyncDot />
+          <Icon name="gear" className="icon--sm sidebar__gear" />
         </button>
       </div>
     </aside>

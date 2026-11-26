@@ -11,7 +11,9 @@ import { cursorImage, type CursorKind } from './cursors';
 const POINT = "a, button, summary, select, label, [role='button'], [role='radio'], [role='checkbox'], [role='switch'], [role='tab'], .row--tap";
 const GRAB = '[data-drag], [data-grip], .stuck, .slot__grip, .homecard__grip, .nf__photo.is-editable';
 const TEXT = "input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']), textarea, [contenteditable='true']";
-const IDLE_MS = 3000;
+/** Left alone this long it turns into the hand and waves; then it waves again every WAVE_EVERY. */
+const IDLE_MS = 1500;
+const WAVE_EVERY = 3000;
 /** Things that need a hold to pick up (with the mouse: a note, a note's photo), and how long. */
 const HOLD = '.stuck:not(.is-lifted), .nf__photo.is-editable:not(.is-lifted)';
 export const MOUSE_HOLD_MS = 380;
@@ -100,8 +102,9 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   };
   const setKind = (k: CursorKind | 'text') => {
     kind = k;
-    // Pressed on something you can tap or pick up: the hand closes the moment the button goes down.
-    const closed: CursorKind | 'text' = pressed && (k === 'point' || k === 'grab') ? 'grabbing' : k;
+    // Pressed on something you can pick up: the hand closes the moment the button goes down
+    // (a button or a link keeps its pointing finger).
+    const closed: CursorKind | 'text' = pressed && k === 'grab' ? 'grabbing' : k;
     const want: CursorKind | null = closed === 'text' ? null : waving ? 'grab' : closed;
     el.classList.toggle('is-hidden', !visible);
     el.classList.toggle('is-text', k === 'text');
@@ -115,9 +118,9 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     kick();
   };
 
-  const OMEGA = 2 * Math.PI * 3.1; // how fast it swings: about three wiggles a second
-  const ZETA = 0.15; // how soon it settles: each swing back a bit over half the one before
-  const LEAN = 24; // the most it ever trails, in degrees
+  const OMEGA = 2 * Math.PI * 2.4; // how fast it swings
+  const ZETA = 0.3; // how soon it settles: one clear swing back, by as much as the move was quick, then still
+  const LEAN = 20; // the most it ever trails, in degrees
   const V0 = 1500; // px/s for about three quarters of that
   const frame = (now: number) => {
     raf = 0;
@@ -130,7 +133,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     // Sideways speed, smoothed over a few hundredths of a second (mice report unevenly).
     const v = (x - lastX) / dt;
     lastX = x;
-    vel += (v - vel) * (1 - Math.exp(-dt / 0.022));
+    vel += (v - vel) * (1 - Math.exp(-dt / 0.06));
     // It trails behind the way it's going: a soft limit, so a flick leans further than a nudge.
     const target = LEAN * Math.tanh(vel / V0);
     // Spring towards that, lightly damped (semi-implicit Euler: steady at any frame rate).
@@ -158,12 +161,16 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
       hide();
       return;
     }
-    waving = true;
-    shown = null;
-    setKind(kind);
+    // It stays the open hand for as long as the mouse rests, waving now and then.
+    if (!waving) {
+      waving = true;
+      shown = null;
+      setKind(kind);
+    }
     body.classList.remove('is-waving');
     void body.offsetWidth;
     body.classList.add('is-waving');
+    idle = setTimeout(wave, WAVE_EVERY);
   };
   const stopWave = () => {
     if (!waving) return;
@@ -172,7 +179,8 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     shown = null;
     setKind(kind);
   };
-  body.addEventListener('animationend', stopWave);
+  // A wave ends: the hand stays (it's still resting), ready for the next one.
+  body.addEventListener('animationend', () => body.classList.remove('is-waving'));
   const restartIdle = () => {
     clearTimeout(idle);
     idle = setTimeout(wave, IDLE_MS);

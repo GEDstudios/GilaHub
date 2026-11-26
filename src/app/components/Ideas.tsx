@@ -81,6 +81,14 @@ export function useOpenIdeas(): () => void {
  * the open count. A dot in my partner's color says they added or changed something since I
  * last looked. It steps aside for sheets and the keyboard (CSS).
  */
+/** How many ideas are open, and whether my person has done something new with them (for a badge). */
+export function useIdeasBadge(): { n: number; fresh: boolean; partner: ReturnType<ReturnType<typeof useHub>['partner']> } {
+  const hub = useHub();
+  const seen = useSeenAt();
+  const partner = hub.partner();
+  return { n: ideasView(hub).open.length, fresh: !!partner && !!ideasUnseen(hub, seen), partner };
+}
+
 export function IdeaTag() {
   const hub = useHub();
   const prefs = usePrefs();

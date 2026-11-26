@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { LineColor } from '../../core/model';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
@@ -20,7 +20,54 @@ export type PhotoShape = 'square' | 'squircle' | 'circle' | 'star' | 'heart' | '
 export type PhotoBorder = 'none' | 'white' | 'ink' | 'tape';
 /** Where the photo sits on the paper: its middle (x, y), its size (s) and its turn (r, degrees). */
 export type PhotoPos = { x: number; y: number; s: number; r: number };
-export type Stroke = { c: string; w: number; p: string };
+/** How a line is drawn: a plain pen, a see-through marker, or neon (a white core in a glow of its colour). */
+export type Brush = 'pen' | 'marker' | 'neon';
+export type Stroke = { c: string; w: number; p: string; k?: Brush };
+
+/** One line of ink, in its brush. `glow` is the id of the svg's blur filter (for neon). */
+function InkPath({ s, glow }: { s: Stroke; glow: string }) {
+  const d = smoothPath(s.p);
+  if (s.k === 'marker') return <path d={d} fill="none" stroke={s.c} strokeOpacity={0.5} strokeWidth={s.w * 2.4} strokeLinecap="round" strokeLinejoin="round" />;
+  if (s.k === 'neon')
+    return (
+      <>
+        <path d={d} fill="none" stroke={s.c} strokeWidth={s.w * 2.2} strokeLinecap="round" strokeLinejoin="round" filter={`url(#${glow})`} />
+        <path d={d} fill="none" stroke={s.c} strokeWidth={s.w * 1.1} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="#fff" strokeWidth={s.w * 0.55} strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    );
+  return <path d={d} fill="none" stroke={s.c} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" />;
+}
+
+/** The ink layer: every line in its brush, over the paper. */
+function Ink({ ink }: { ink: Stroke[] }) {
+  const glow = `glow${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  return (
+    <svg className="nf__ink" viewBox={`0 0 ${PAPER} ${PAPER}`} aria-hidden="true">
+      {ink.some((s) => s.k === 'neon') ? (
+        <defs>
+          <filter id={glow} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.6" />
+          </filter>
+        </defs>
+      ) : null}
+      {ink.map((s, i) => (
+        <InkPath key={i} s={s} glow={glow} />
+      ))}
+    </svg>
+  );
+}
+
+/** The lines an eraser path passes over (by index). */
+export function erasedBy(ink: Stroke[], path: Array<[number, number]>): Set<number> {
+  const hit = new Set<number>();
+  ink.forEach((s, i) => {
+    const reach = (s.k === 'marker' ? s.w * 1.2 : s.k === 'neon' ? s.w * 1.1 : s.w / 2) + 3;
+    const pts = s.p.split(' ').map((xy) => xy.split(',').map(Number));
+    if (pts.some(([x, y]) => path.some(([ex, ey]) => Math.hypot(x - ex, y - ey) <= reach))) hit.add(i);
+  });
+  return hit;
+}
 
 export interface NoteLook {
   text: string;
@@ -174,7 +221,7 @@ export function NoteFace({
   /** Writing it: the words are a field, fitted the same way. */
   write?: { onText: (t: string) => void; onBlur?: () => void; placeholder: string; autoFocus?: boolean };
   /** Drawing on it: a pen in this colour; each finished stroke comes back. */
-  draw?: { color: string; width: number; onStroke: (s: Stroke) => void };
+  draw?: { color: string; width: number; brush: Brush | 'eraser'; onStroke: (s: Stroke) => void; onErase: (path: Array<[number, number]>) => void };
   /** Its photo can be picked up (hold), moved, turned and sized; a tap opens its menu. */
   photo?: { onPos: (p: PhotoPos) => void; onTap: () => void; selected: boolean };
   className?: string;
@@ -218,14 +265,8 @@ export function NoteFace({
         )}
         <span className="sticky__by">{look.by}</span>
         {look.photo ? <ShapedPhoto look={shownLook} lifted={gesture.lifted || photo?.selected} bind={photo && !draw ? gesture.bind : undefined} /> : null}
-        {look.ink.length ? (
-          <svg className="nf__ink" viewBox={`0 0 ${PAPER} ${PAPER}`} aria-hidden="true">
-            {look.ink.map((s, i) => (
-              <path key={i} d={smoothPath(s.p)} fill="none" stroke={s.c} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" />
-            ))}
-          </svg>
-        ) : null}
-        {draw ? <DrawLayer pen={draw.color} width={draw.width} onStroke={draw.onStroke} /> : null}
+        {look.ink.length ? <Ink ink={look.ink} /> : null}
+        {draw ? <DrawLayer pen={draw.color} width={draw.width} brush={draw.brush} onStroke={draw.onStroke} onErase={draw.onErase} /> : null}
       </span>
     </span>
   );
@@ -470,17 +511,30 @@ function usePhotoGesture({
 }
 
 /** Drawing on the note: a finger (or the mouse) leaves a line; lifted, it's kept. */
-function DrawLayer({ pen, width, onStroke }: { pen: string; width: number; onStroke: (s: Stroke) => void }) {
+function DrawLayer({
+  pen,
+  width,
+  brush,
+  onStroke,
+  onErase,
+}: {
+  pen: string;
+  width: number;
+  brush: Brush | 'eraser';
+  onStroke: (s: Stroke) => void;
+  onErase: (path: Array<[number, number]>) => void;
+}) {
   const el = useRef<HTMLSpanElement>(null);
   const [pts, setPts] = useState<Array<[number, number]> | null>(null);
   const at = (e: React.PointerEvent): [number, number] => {
     const r = el.current!.getBoundingClientRect();
     return [Math.round(((e.clientX - r.left) / r.width) * PAPER * 10) / 10, Math.round(((e.clientY - r.top) / r.height) * PAPER * 10) / 10];
   };
+  const line = (p: Array<[number, number]>) => (p.length === 1 ? [p[0], [p[0][0] + 0.1, p[0][1]] as [number, number]] : p).map(([x, y]) => `${x},${y}`).join(' ');
   return (
     <span
       ref={el}
-      className="nf__draw"
+      className={`nf__draw ${brush === 'eraser' ? 'is-erasing' : ''}`}
       onPointerDown={(e) => {
         e.preventDefault();
         try {
@@ -498,16 +552,68 @@ function DrawLayer({ pen, width, onStroke }: { pen: string; width: number; onStr
         if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= 1.4) setPts([...pts, p]);
       }}
       onPointerUp={() => {
-        if (pts) onStroke({ c: pen, w: width, p: (pts.length === 1 ? [pts[0], [pts[0][0] + 0.1, pts[0][1]]] : pts).map(([x, y]) => `${x},${y}`).join(' ') });
+        if (pts) {
+          if (brush === 'eraser') onErase(pts);
+          else onStroke({ c: pen, w: width, p: line(pts), ...(brush === 'pen' ? {} : { k: brush }) });
+        }
         setPts(null);
       }}
       onPointerCancel={() => setPts(null)}
     >
       {pts ? (
-        <svg className="nf__ink" viewBox={`0 0 ${PAPER} ${PAPER}`}>
-          <path d={smoothPath(pts.map(([x, y]) => `${x},${y}`).join(' '))} fill="none" stroke={pen} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        brush === 'eraser' ? (
+          <svg className="nf__ink" viewBox={`0 0 ${PAPER} ${PAPER}`}>
+            <path d={smoothPath(line(pts))} fill="none" stroke="rgb(255 255 255 / 0.75)" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <Ink ink={[{ c: pen, w: width, p: line(pts), k: brush }]} />
+        )
       ) : null}
+    </span>
+  );
+}
+
+/** Instagram's size slider: a tapered rail up the side; up is thicker. Its knob is the pen itself. */
+function SizeRail({ value, color, min, max, onChange }: { value: number; color: string; min: number; max: number; onChange: (w: number) => void }) {
+  const rail = useRef<HTMLSpanElement>(null);
+  const from = (e: React.PointerEvent) => {
+    const r = rail.current!.getBoundingClientRect();
+    const t = 1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    onChange(Math.round((min + t * (max - min)) * 10) / 10);
+  };
+  const t = (value - min) / (max - min);
+  return (
+    <span
+      ref={rail}
+      className="sizerail"
+      role="slider"
+      aria-label="Pen size"
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowUp') onChange(Math.min(max, value + 0.5));
+        if (e.key === 'ArrowDown') onChange(Math.max(min, value - 0.5));
+      }}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* untracked */
+        }
+        from(e);
+      }}
+      onPointerMove={(e) => {
+        if (e.buttons) from(e);
+      }}
+    >
+      <svg className="sizerail__track" viewBox="0 0 20 100" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M2 2 L18 2 L11 98 L9 98 Z" />
+      </svg>
+      <span className="sizerail__knob" style={{ top: `${(1 - t) * 100}%`, '--k': `${10 + value * 3.4}px`, background: color } as CSSProperties} />
     </span>
   );
 }
@@ -516,12 +622,15 @@ function DrawLayer({ pen, width, onStroke }: { pen: string; width: number; onStr
 
 /** Pens: the app's own colours, plus black, white and a red. A custom one comes from the rainbow. */
 const BRAND = ['lemon', 'pink', 'sky', 'mint', 'lilac', 'amber'] as const;
-const PEN_FIXED = ['#0a0a04', '#ffffff', '#ff3b30'];
-const WIDTHS = [
-  { w: 1.4, label: 'Thin' },
-  { w: 2.4, label: 'Medium' },
-  { w: 4, label: 'Thick' },
+const PEN_FIXED = ['#0a0a04', '#ffffff', '#ff3b30', '#ff9500', '#34c759', '#007aff', '#af52de', '#8e8e93', '#a2845e'];
+const BRUSHES: Array<{ id: Brush | 'eraser'; label: string }> = [
+  { id: 'pen', label: 'Pen' },
+  { id: 'marker', label: 'Marker' },
+  { id: 'neon', label: 'Neon' },
+  { id: 'eraser', label: 'Eraser' },
 ];
+/** A little squiggle in a brush: what the brush button shows. */
+const SQUIGGLE = '4,22 9,14 14,19 19,10 24,16 29,8';
 const brandHex = (c: string) => (typeof document === 'undefined' ? '#000' : getComputedStyle(document.documentElement).getPropertyValue(`--${c}`).trim() || '#000');
 
 /** The most ink a note keeps (it syncs as one small field). */
@@ -552,6 +661,14 @@ export function NoteEditor({
   const [tool, setTool] = useState<Tool | null>(null);
   const [pen, setPen] = useState('#0a0a04');
   const [width, setWidth] = useState(2.4);
+  const [brush, setBrush] = useState<Brush | 'eraser'>('pen');
+  const erase = (path: Array<[number, number]>) => {
+    const hit = erasedBy(look.ink, path);
+    if (hit.size) {
+      haptic('select');
+      set({ ink: look.ink.filter((_, i) => !hit.has(i)) });
+    }
+  };
   const picker = useShotPicker(
     (photo) => {
       set(look.photo ? { photo } : { photo, pos: PHOTO_HOME });
@@ -588,7 +705,7 @@ export function NoteEditor({
           look={look}
           scale={2.2}
           write={{ onText, onBlur: onTextDone, placeholder: 'Don’t forget the milk 💛', autoFocus }}
-          draw={tool === 'pen' ? { color: pen, width, onStroke: addStroke } : undefined}
+          draw={tool === 'pen' ? { color: pen, width, brush, onStroke: addStroke, onErase: erase } : undefined}
           photo={{
             onPos: (pos) => set({ pos }),
             onTap: () => {
@@ -598,9 +715,10 @@ export function NoteEditor({
             selected: tool === 'photo',
           }}
         />
+        {tool === 'pen' && brush !== 'eraser' ? <SizeRail value={width} color={pen} min={0.8} max={7} onChange={setWidth} /> : null}
       </div>
 
-      <div className="noteedit__tools" role="toolbar" aria-label="Note">
+      <div className={`noteedit__tools ${tool === 'pen' ? 'is-away' : ''}`} role="toolbar" aria-label="Note">
         {TOOLS.map((t) => (
           <button key={t.id} type="button" className={`tool ${tool === t.id ? 'is-on' : ''}`} aria-label={t.label} aria-pressed={tool === t.id} title={t.label} onClick={() => pick(t.id)}>
             {t.face}
@@ -674,40 +792,61 @@ export function NoteEditor({
 
           {tool === 'pen' ? (
             <>
-              <div className="tray__inks" role="radiogroup" aria-label="Pen colour">
-                {[...BRAND.map((c) => ({ id: c, hex: brandHex(c) })), ...PEN_FIXED.map((hex) => ({ id: hex, hex }))].map((c) => (
+              <div className="draw__bar">
+                <div className="draw__brushes" role="radiogroup" aria-label="Brush">
+                  {BRUSHES.map((b) => (
+                    <button key={b.id} type="button" role="radio" aria-checked={brush === b.id} aria-label={b.label} title={b.label} className={`draw__brush ${brush === b.id ? 'is-on' : ''}`} onClick={() => { haptic('select'); setBrush(b.id); }}>
+                      {b.id === 'eraser' ? (
+                        <svg viewBox="0 0 32 32" aria-hidden="true">
+                          <g transform="rotate(-35 16 16)">
+                            <rect x="7" y="11" width="18" height="10" rx="2.5" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
+                            <rect x="7" y="11" width="7" height="10" rx="2.5" fill="var(--pink)" stroke="currentColor" strokeWidth="1.6" />
+                          </g>
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 32 32" aria-hidden="true">
+                          {b.id === 'neon' ? (
+                            <>
+                              <polyline points={SQUIGGLE} fill="none" stroke={pen} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.35" />
+                              <polyline points={SQUIGGLE} fill="none" stroke={pen} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+                              <polyline points={SQUIGGLE} fill="none" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                            </>
+                          ) : (
+                            <polyline points={SQUIGGLE} fill="none" stroke={pen} strokeOpacity={b.id === 'marker' ? 0.5 : 1} strokeWidth={b.id === 'marker' ? 6 : 2.4} strokeLinecap="round" strokeLinejoin="round" />
+                          )}
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <span className="noteedit__grow" />
+                <button type="button" className="draw__icon" aria-label="Undo" title="Undo" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
+                  <Icon name="undo" />
+                </button>
+                <button type="button" className="btn btn--sm draw__done" aria-label="Done drawing" onClick={() => setTool(null)}>
+                  Done
+                </button>
+              </div>
+              <div className="draw__colors" role="radiogroup" aria-label="Colour">
+                <label className={`draw__dot draw__dot--any ${![...BRAND.map(brandHex), ...PEN_FIXED].includes(pen) ? 'is-on' : ''}`} title="Any colour">
+                  <input type="color" value={pen.startsWith('#') && pen.length === 7 ? pen : '#7a5cff'} aria-label="Any colour" onChange={(e) => { setPen(e.target.value); if (brush === 'eraser') setBrush('pen'); }} />
+                </label>
+                {[...PEN_FIXED.slice(0, 2).map((hex) => ({ id: hex, hex })), ...BRAND.map((c) => ({ id: c, hex: brandHex(c) })), ...PEN_FIXED.slice(2).map((hex) => ({ id: hex, hex }))].map((c) => (
                   <button
                     key={c.id}
                     type="button"
                     role="radio"
                     aria-checked={pen === c.hex}
                     aria-label={c.id}
-                    className={`tray__ink ${pen === c.hex ? 'is-on' : ''}`}
+                    className={`draw__dot ${pen === c.hex ? 'is-on' : ''}`}
                     style={{ background: c.hex }}
-                    onClick={() => setPen(c.hex)}
+                    onClick={() => {
+                      haptic('select');
+                      setPen(c.hex);
+                      if (brush === 'eraser') setBrush('pen');
+                    }}
                   />
                 ))}
-                <label className={`tray__ink tray__ink--custom ${![...BRAND.map(brandHex), ...PEN_FIXED].includes(pen) ? 'is-on' : ''}`} title="Any colour">
-                  <input type="color" value={pen.startsWith('#') && pen.length === 7 ? pen : '#7a5cff'} aria-label="Any colour" onChange={(e) => setPen(e.target.value)} />
-                </label>
-              </div>
-              <div className="tray__row">
-                <div className="tray__widths" role="radiogroup" aria-label="Pen size">
-                  {WIDTHS.map((wd) => (
-                    <button key={wd.w} type="button" role="radio" aria-checked={width === wd.w} aria-label={wd.label} className={`tray__width ${width === wd.w ? 'is-on' : ''}`} onClick={() => setWidth(wd.w)}>
-                      <span style={{ width: wd.w * 3.2, height: wd.w * 3.2, background: pen }} />
-                    </button>
-                  ))}
-                </div>
-                <span className="noteedit__grow" />
-                <button type="button" className="tray__action tray__action--row" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
-                  <Icon name="undo" />
-                  <span>Undo</span>
-                </button>
-                <button type="button" className="tray__action tray__action--row" disabled={!look.ink.length} onClick={() => set({ ink: [] })}>
-                  <Icon name="trash" />
-                  <span>Clear</span>
-                </button>
               </div>
             </>
           ) : null}
