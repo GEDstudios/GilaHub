@@ -1,11 +1,11 @@
 import type { Hub } from '../../core/actions';
-import type { Item } from '../../core/model';
+import type { Item, List } from '../../core/model';
 import { useHub } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
 import type { ReactNode } from 'react';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
-import { Avatar } from '../ui/primitives';
+import { Avatar, ListBullet } from '../ui/primitives';
 import { TagMark } from './Tags';
 
 /**
@@ -16,11 +16,13 @@ export interface Filter {
   tags: string[];
   who: 'me' | 'partner' | null;
   urgent: boolean;
+  /** A folder showing what's inside it: only these projects' things. */
+  lists?: string[];
 }
 
-export const NO_FILTER: Filter = { tags: [], who: null, urgent: false };
+export const NO_FILTER: Filter = { tags: [], who: null, urgent: false, lists: [] };
 
-export const isActive = (f: Filter): boolean => f.tags.length > 0 || !!f.who || f.urgent;
+export const isActive = (f: Filter): boolean => f.tags.length > 0 || !!f.who || f.urgent || !!f.lists?.length;
 
 /** Whose is it to do: whoever it's given to (both, or whose turn); not given to anyone, whose it is. */
 function forWhom(hub: Hub, i: Item, member: string): boolean {
@@ -33,6 +35,7 @@ function forWhom(hub: Hub, i: Item, member: string): boolean {
 /** Does it pass? (A task passes when it does, or when one of its subtasks does.) */
 export function passes(hub: Hub, f: Filter, i: Item, deep = false): boolean {
   if (!isActive(f)) return true;
+  if (f.lists?.length && !f.lists.includes(i.listId)) return false;
   const self = (x: Item) => {
     if (f.urgent && !x.urgent) return false;
     if (f.who) {
@@ -54,7 +57,9 @@ export function useFilter(key: string) {
   const prefs = usePrefs();
   const raw = prefs.filters?.[key];
   // Tags taken away since don't count.
-  const f: Filter = raw ? { tags: (raw.tags ?? []).filter((t) => !!hub.tag(t)), who: raw.who ?? null, urgent: !!raw.urgent } : NO_FILTER;
+  const f: Filter = raw
+    ? { tags: (raw.tags ?? []).filter((t) => !!hub.tag(t)), who: raw.who ?? null, urgent: !!raw.urgent, lists: (raw.lists ?? []).filter((l) => !!hub.list(l)) }
+    : NO_FILTER;
   const set = (next: Filter) => setPrefs({ filters: { ...(prefs.filters ?? {}), [key]: next } });
   return {
     key,
@@ -75,7 +80,7 @@ export type FilterState = ReturnType<typeof useFilter>;
  * show what wears any of them; one person at a time. Nothing to narrow: no row at all. `children`
  * end the row (a project's view switch).
  */
-export function Lens({ filter, items, children }: { filter: FilterState; items: Item[]; children?: ReactNode }) {
+export function Lens({ filter, items, lists, children }: { filter: FilterState; items: Item[]; lists?: List[]; children?: ReactNode }) {
   const hub = useHub();
   const f = filter.f;
   const partner = hub.partner();
@@ -91,7 +96,13 @@ export function Lens({ filter, items, children }: { filter: FilterState; items: 
   const tagN = new Map<string, number>();
   for (const i of items) for (const t of hub.tagsOf(i)) tagN.set(t, (tagN.get(t) ?? 0) + 1);
   const tags = hub.tags().filter((t) => tagN.has(t.id) || f.tags.includes(t.id));
-  const facets = people.length + (urgentN || f.urgent ? 1 : 0) + tags.length;
+  // A folder showing what's inside it: a chip for each project that has something (itself first).
+  const listN = new Map<string, number>();
+  for (const i of items) listN.set(i.listId, (listN.get(i.listId) ?? 0) + 1);
+  const picked = f.lists ?? [];
+  const projects = (lists ?? []).filter((l) => listN.has(l.id) || picked.includes(l.id));
+  const showProjects = projects.length > 1 || picked.length > 0;
+  const facets = (showProjects ? projects.length : 0) + people.length + (urgentN || f.urgent ? 1 : 0) + tags.length;
   const pick = (next: Filter) => {
     haptic('select');
     filter.set(next);
@@ -104,6 +115,18 @@ export function Lens({ filter, items, children }: { filter: FilterState; items: 
           <span>All</span>
           <span className="lens__n num">{items.length}</span>
         </button>
+        {showProjects
+          ? projects.map((l) => {
+              const on = picked.includes(l.id);
+              return (
+                <button key={l.id} type="button" className={`lens__chip ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => pick({ ...f, lists: on ? picked.filter((x) => x !== l.id) : [...picked, l.id] })}>
+                  <ListBullet list={l} size="xs" />
+                  <span dir="auto">{l.name}</span>
+                  <span className="lens__n num">{listN.get(l.id) ?? 0}</span>
+                </button>
+              );
+            })
+          : null}
         {people.map(([who, m, n]) => (
           <button
             key={who}

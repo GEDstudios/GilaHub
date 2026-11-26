@@ -34,7 +34,7 @@ export interface Prefs {
   /** The shopping as a list, or as cards (this device). */
   shopView: 'list' | 'cards';
   /** Each screen's filter ("today", "shop", "l:<id>"): tags, for whom, urgent only. */
-  filters: Record<string, { tags: string[]; who: 'me' | 'partner' | null; urgent: boolean }>;
+  filters: Record<string, { tags: string[]; who: 'me' | 'partner' | null; urgent: boolean; lists?: string[] }>;
 }
 
 const KEY = 'gila-hub:prefs';

@@ -249,7 +249,6 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
         )}
       </div>
 
-      <p className="inline__prompt">Want to modify something?</p>
       <div className="inline__chips" ref={chips}>
         <button type="button" className={`echip is-set ${colors ? 'is-open' : ''}`} aria-expanded={colors} onClick={() => setColors(!colors)}>
           <span className="echip__dot" style={lineVars(me.color)} />

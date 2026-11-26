@@ -55,13 +55,12 @@ function useAdd() {
 function MenuGlyph({ kind }: { kind: 'task' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
-      // The folder's and the note's language: a pink disc, its lower half lighter (like the
-      // folder's front), one 1.6 ink line open at the top right where the tick, as fine, leaves it.
+      // The folder's and the note's language: a flat pink disc, one ink line a touch heavier than
+      // theirs (a circle reads lighter than a box), open at the top right where the tick leaves it.
       <svg className="addmenu__glyph" aria-hidden="true" viewBox="0 0 40 40">
         <circle cx="19.5" cy="21" r="14" fill="var(--pink)" />
-        <path d="M5.5 22a14 14 0 0 0 28 0z" fill="color-mix(in srgb, var(--pink) 40%, #fff)" />
-        <circle cx="19.5" cy="21" r="14" fill="none" stroke="#0a0a04" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="72.82 15.15" transform="rotate(-16.3 19.5 21)" />
-        <path d="M12.1 21.4L16.9 26.2L31.8 7.2" fill="none" stroke="#0a0a04" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="19.5" cy="21" r="14" fill="none" stroke="#0a0a04" strokeWidth="1.9" strokeLinecap="round" strokeDasharray="72.82 15.15" transform="rotate(-16.3 19.5 21)" />
+        <path d="M12.1 21.4L16.9 26.2L31.8 7.2" fill="none" stroke="#0a0a04" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   if (kind === 'project')

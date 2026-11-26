@@ -745,4 +745,19 @@
     padding: 0 14px;
     border-radius: 9px;
   }
+
+  /* The folder's top corner holds search, Start and its menu: its settings line up along the bottom. */
+  .projpage .hero__rail {
+    top: auto;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .projpage .hero--project .hero__top {
+    padding-right: 0;
+  }
+
+  .projpage .hero--project .hero__foot {
+    padding-right: 136px;
+  }
 }

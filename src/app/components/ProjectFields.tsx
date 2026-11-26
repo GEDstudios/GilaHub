@@ -51,7 +51,7 @@ export interface ProjectLook {
 type Field = 'color' | 'icon' | 'vis';
 
 /**
- * "Want to modify something?" and a row of chips: Color, Icon, who sees it, In bar.
+ * A row of chips: Color, Icon, who sees it, In bar.
  * Each opens its panel right below the row; nothing stacks.
  */
 export function ProjectFields({
@@ -74,7 +74,6 @@ export function ProjectFields({
   const glyph = parseGlyph(value.icon);
   return (
     <div className="inline projfields">
-      <p className="inline__prompt">Want to modify something?</p>
       <div className="inline__chips">
         <EChip label="Color" lead={<span className="echip__dot" style={lineVars(value.color)} />} set open={open === 'color'} onToggle={() => toggle('color')} />
         {open === 'color' ? (

@@ -1,12 +1,13 @@
 import { PathCrumbs, projectPath } from '../components/PathCrumbs';
-import { useWide } from '../ui/useWide';
 import { openSearch } from '../search';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Item, List } from '../../core/model';
 import { Lens, useFilter } from '../components/Filter';
 import { useAddAction } from '../addAction';
 import { OptRow } from '../components/pickers';
-import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
+import { ListVisOptions } from '../components/ProjectFields';
+import { Swatches } from '../components/pickers';
+import { listDefaultVis, visLabel, VIS_ICON } from '../privacy';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { DoneTray, ProjectItems } from '../components/ProjectItems';
@@ -15,7 +16,7 @@ import { useHub, usePartnerHere, useRt } from '../context';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewButton, Seg } from '../ui/primitives';
+import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewButton } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
 import { setPrefs, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
@@ -23,7 +24,7 @@ import { Sortable } from '../ui/Sortable';
 import { folderLean, NewProjectSheet, ProjectCard, SortableProject } from './Lists';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
-import { openCount, projectView, shopTree } from '../views';
+import { projectView } from '../views';
 import { notifyMembers } from '../runtime';
 import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
@@ -145,37 +146,89 @@ export function ProjectMenuButton({ listId }: { listId: string }) {
   return <IconButton icon="more" label="Project settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
 }
 
-/** A project's one color moment: its name on a card of its color. Tap the name to rename it. */
 /**
- * A project's one colour moment: a folder, its tab on top, as on Projects and in New project.
- * Its name is edited in place; its icon sits low on the card, and a tap opens the picker under it.
+ * A project's card, the folder, holding its own settings, nothing under it: its name (edit in
+ * place), what's open, and down its right edge the pin to the bar, who sees it, and its icon.
+ * A tap on the card itself changes its colour. Each opens its picker right under the card.
  */
-export function ProjectHero({ list, sub, stat, children }: { list: List; sub: ReactNode; stat?: ReactNode; children?: ReactNode }) {
+export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
   const hub = useHub();
-  const [picking, setPicking] = useState(false);
+  const { toast } = useOverlays();
+  const [open, setOpen] = useState<'icon' | 'color' | 'vis' | null>(null);
+  const toggle = (k: 'icon' | 'color' | 'vis') => setOpen(open === k ? null : k);
+  const pinned = pinsOf(hub).includes(`l:${list.id}`);
+  const partner = hub.partner();
+  const canVis = canSetListVis(hub, list);
+  const vis = listDefaultVis(hub, list);
+  const onCard = (e: MouseEvent) => {
+    if ((e.target as Element).closest('button, input, textarea, a, [contenteditable], .hero__title')) return;
+    haptic('select');
+    toggle('color');
+  };
+  const pin = () => {
+    const before = pinsOf(hub);
+    const now = togglePin(hub, `l:${list.id}`);
+    haptic(now ? 'tick' : 'select');
+    toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
+  };
+  const setVis = (v: { visibility: List['visibility']; owner: string | null }) => {
+    if (v.visibility === 'private' && list.visibility !== 'private' && partner) toast(`Hidden from ${partner.name}`);
+    else if (partner && v.owner === partner.id && list.owner !== partner.id) toast(`${list.name} is ${partner.name}’s now`);
+    hub.setListVisibility(list.id, v.visibility, v.owner);
+    setOpen(null);
+  };
   return (
     <>
-      <div className="hero hero--project hero--folder" style={lineVars(list.color)}>
+      <div className={`hero hero--project hero--folder ${open === 'color' ? 'is-picking' : ''}`} style={lineVars(list.color)} onClick={onCard}>
         <div className="hero__top">
           <h1 className="hero__title">
             <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Project name" />
           </h1>
-          {stat !== undefined ? <span className="hero__stat num">{stat}</span> : null}
         </div>
         <div className="hero__foot">
           <p className="hero__sub">{sub}</p>
-          <CardIcon icon={list.icon} open={picking} onToggle={() => setPicking(!picking)} />
         </div>
-        {children}
+        <div className="hero__rail">
+          <button type="button" className={`herobtn ${pinned ? 'is-on' : ''}`} aria-pressed={pinned} aria-label={pinned ? 'In the bar' : 'Pin to the bar'} title={pinned ? 'In the bar' : 'Pin to the bar'} onClick={pin}>
+            <Icon name="pin" className="icon--sm" />
+          </button>
+          {canVis ? (
+            <button
+              type="button"
+              className={`herobtn ${open === 'vis' ? 'is-open' : ''}`}
+              aria-expanded={open === 'vis'}
+              aria-label={`Who sees it: ${visLabel(vis, partner?.name)}`}
+              title={visLabel(vis, partner?.name)}
+              onClick={() => toggle('vis')}
+            >
+              <Icon name={VIS_ICON[vis]} className="icon--sm" />
+            </button>
+          ) : (
+            <span className="herobtn is-static" title={listVisLabel(hub, list)} aria-label={listVisLabel(hub, list)}>
+              <Icon name={VIS_ICON[vis]} className="icon--sm" />
+            </span>
+          )}
+          <CardIcon icon={list.icon} open={open === 'icon'} onToggle={() => toggle('icon')} />
+        </div>
       </div>
-      {picking ? (
+      {open === 'color' ? (
+        <div className="panel hero__pick">
+          <Swatches value={list.color} onChange={(color) => hub.updateList(list.id, { color })} big />
+        </div>
+      ) : null}
+      {open === 'vis' ? (
+        <div className="panel hero__pick">
+          <ListVisOptions value={list.visibility} owner={list.owner} onPick={setVis} />
+        </div>
+      ) : null}
+      {open === 'icon' ? (
         <div className="panel hero__pick">
           <IconPicker
             value={list.icon}
             color={list.color}
             onChange={(icon) => {
               hub.updateList(list.id, { icon });
-              setPicking(false);
+              setOpen(null);
             }}
           />
         </div>
@@ -186,32 +239,6 @@ export function ProjectHero({ list, sub, stat, children }: { list: List; sub: Re
 
 /** Ours, mine, or my person's-but-in-sight: either of us can say whose it is. Only Only me is the owner's alone. */
 const canSetListVis = (hub: ReturnType<typeof useHub>, list: List) => !list.owner || list.owner === hub.meId || list.visibility === 'visible';
-
-/** " · Hila's" on the hero, only when the privacy chip isn't there to say whose it is. */
-export const heroVis = (hub: ReturnType<typeof useHub>, list: List): string => (canSetListVis(hub, list) ? '' : ` · ${listVisLabel(hub, list)}`);
-
-/** Under a project's hero, like an item's: Color, Icon, who sees it and In bar, changed in place. */
-export function ProjectChips({ list }: { list: List }) {
-  const hub = useHub();
-  const { toast } = useOverlays();
-  const pinned = pinsOf(hub).includes(`l:${list.id}`);
-  const partner = hub.partner();
-  const onChange = (p: Partial<ProjectLook>) => {
-    if (p.color) hub.updateList(list.id, { color: p.color });
-    if (p.icon !== undefined) hub.updateList(list.id, { icon: p.icon });
-    if (p.visibility) {
-      if (p.visibility === 'private' && list.visibility !== 'private' && partner) toast(`Hidden from ${partner.name}`);
-      else if (partner && p.owner === partner.id && list.owner !== partner.id) toast(`${list.name} is ${partner.name}’s now`);
-      hub.setListVisibility(list.id, p.visibility, p.owner);
-    }
-    if (p.pinned !== undefined) {
-      const before = pinsOf(hub);
-      const now = togglePin(hub, `l:${list.id}`);
-      toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
-    }
-  };
-  return <ProjectFields value={{ color: list.color, icon: list.icon, visibility: list.visibility, owner: list.owner, pinned }} onChange={onChange} canVis={canSetListVis(hub, list)} noIcon />;
-}
 
 export function ListScreen({ id }: { id: string }) {
   return <ProjectPage id={id} />;
@@ -331,13 +358,11 @@ function usePartnerNews(open: Item[], saying: boolean): Set<string> {
 function ProjectPage({ id }: { id: string }) {
   const hub = useHub();
   const prefs = usePrefs();
-  const wide = useWide();
   const { openSheet, toast } = useOverlays();
   const list = hub.list(id);
   const nested = hub.nestedLists(id);
-  const [showAll, setShowAll] = useShowAll(id);
-  // A folder shows everything inside it, until "Here" is picked.
-  const inside = nested.length > 0 && (showAll ?? true);
+  // A folder shows everything inside it; the lens narrows it to one project.
+  const inside = nested.length > 0;
   const view = hub.viewOf(list);
   const v = projectView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(`l:${id}`);
@@ -390,29 +415,10 @@ function ProjectPage({ id }: { id: string }) {
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} />}
       >
-        <ProjectHero
-          list={list}
-          stat={pct !== null ? `${pct}%` : undefined}
-          sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : total ? 'All done' : 'Empty'}${heroVis(hub, list)}`}
-        />
-        {wide && !focus ? <ProjectChips list={list} /> : null}
+        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
       </Band>
       <div className="column">
-        {wide || focus ? null : <ProjectChips list={list} />}
-        {nested.length ? (
-          <div className="filter filter--top">
-            <Seg
-              label="Which things"
-              value={inside ? 'all' : 'here'}
-              onChange={(val) => setShowAll(id, val === 'all')}
-              options={[
-                { value: 'here', label: <FilterCount text="Here" n={openCount(hub, id)} /> },
-                { value: 'all', label: <FilterCount text="Everything inside" n={shopTree(hub, id).reduce((sum, l) => sum + openCount(hub, l.id), 0)} /> },
-              ]}
-            />
-          </div>
-        ) : null}
-        <Lens filter={filter} items={v.open}>
+        <Lens filter={filter} items={v.open} lists={inside ? v.lists : undefined}>
           <ViewToggle listId={id} />
         </Lens>
 
@@ -472,15 +478,6 @@ function ProjectPage({ id }: { id: string }) {
   );
 }
 
-function FilterCount({ text, n }: { text: string; n: number }) {
-  return (
-    <>
-      <span dir="auto">{text}</span>
-      {n ? <span className="filter__n num">{n}</span> : null}
-    </>
-  );
-}
-
 /** The folders inside a project, after its own tasks: open one, drag to reorder, or make another. */
 function SubProjects({ list }: { list: List }) {
   const hub = useHub();
@@ -517,28 +514,4 @@ function SubProjects({ list }: { list: List }) {
       </Sortable>
     </section>
   );
-}
-
-/** Here only, or everything inside too: as picked per project, on this device ("-id": here). Unpicked: undefined. */
-const ALL_KEY = 'gila-hub:show-inside';
-function readShowAll(): string[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(ALL_KEY) ?? '[]');
-    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
-  } catch {
-    return [];
-  }
-}
-function useShowAll(id: string): [boolean | undefined, (id: string, on: boolean) => void] {
-  const [ids, setIds] = useState(readShowAll);
-  const set = (key: string, on: boolean) => {
-    const next = [...ids.filter((x) => x !== key && x !== `-${key}`), on ? key : `-${key}`];
-    setIds(next);
-    try {
-      localStorage.setItem(ALL_KEY, JSON.stringify(next));
-    } catch {
-      /* storage blocked */
-    }
-  };
-  return [ids.includes(id) ? true : ids.includes(`-${id}`) ? false : undefined, set];
 }

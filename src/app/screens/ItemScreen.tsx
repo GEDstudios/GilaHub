@@ -464,7 +464,6 @@ export function ItemScreen({ id }: { id: string }) {
             )}
             allowedVis={allowed}
             turn={item.turn}
-            prompt="Want to modify something?"
             repeatFrom={item.repeat?.type === 'interval' ? item.repeat.from : 'schedule'}
           />
         ) : null}

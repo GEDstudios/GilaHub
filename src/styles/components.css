@@ -7229,3 +7229,73 @@ textarea.nf__write {
 .crumbs__step.is-droptarget .icon {
   color: inherit;
 }
+
+/* ---------------------------------------------------------------- a project's card holds its settings */
+
+/* A tap on the card itself picks its colour. */
+.hero--project {
+  cursor: pointer;
+}
+
+.hero--project .hero__title {
+  cursor: text;
+}
+
+.hero--project .hero__top,
+.hero--project .hero__foot {
+  padding-right: 48px;
+}
+
+/* Down its right edge: in the bar, who sees it, its icon. */
+.hero__rail {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hero__rail .cardicon {
+  margin: 0 -4px -4px 0;
+}
+
+.herobtn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.42);
+  color: var(--ink);
+  transition:
+    background 160ms var(--ease),
+    transform 160ms var(--spring);
+}
+
+.herobtn:hover {
+  background: rgb(255 255 255 / 0.7);
+}
+
+.herobtn:active {
+  transform: scale(0.9);
+}
+
+.herobtn.is-on,
+.herobtn.is-open {
+  background: var(--ink);
+  color: #fff;
+}
+
+.herobtn.is-static {
+  background: none;
+  opacity: 0.7;
+}
+
+/* Picking its colour: the card says so with a soft ring. */
+.hero--project.is-picking {
+  box-shadow: 0 0 0 3px rgb(10 10 4 / 0.85);
+}
