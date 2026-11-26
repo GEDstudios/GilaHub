@@ -74,13 +74,13 @@ export function SummaryCard({ v, day, asksShown }: { v: TodayView; day: string; 
       <p className="summary__text">
         {s.mood === 'busy' ? (
           <>
-            You have {things(s.n)}
+            You have {things(s.n)}{' '}
             <br />
             to tackle today
           </>
         ) : (
           <>
-            {s.mood === 'done' ? 'All done for today.' : 'Nothing due today.'}
+            {s.mood === 'done' ? 'All done for today.' : 'Nothing due today.'}{' '}
             <br />
             Enjoy it.
           </>

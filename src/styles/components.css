@@ -6425,24 +6425,34 @@ textarea.nf__write {
   flex: none;
 }
 
-/* Colours: one row of dots that scrolls, like a story's, beside Undo and Done */
+/* Colours: a honeycomb of two rows (five above, four tucked between them below, the eraser
+   last), beside Undo and Done. Nothing scrolls. Each dot spans two half-steps of the grid. */
 .draw__colors {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: -6px 0;
-  padding: 8px 6px 8px 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  scroll-snap-type: x proximity;
-  scroll-padding-inline: 4px;
+  --pitch: 38px;
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(10, calc(var(--pitch) / 2));
+  grid-auto-rows: 32px;
+  row-gap: 2px;
+  margin-right: auto;
+  padding: 2px 4px 2px 2px;
 }
 
-.draw__colors::-webkit-scrollbar {
-  display: none;
+.draw__colors > * {
+  justify-self: center;
+  align-self: center;
 }
+
+.draw__colors > :nth-child(1) { grid-area: 1 / 1 / 2 / 3; }
+.draw__colors > :nth-child(2) { grid-area: 1 / 3 / 2 / 5; }
+.draw__colors > :nth-child(3) { grid-area: 1 / 5 / 2 / 7; }
+.draw__colors > :nth-child(4) { grid-area: 1 / 7 / 2 / 9; }
+.draw__colors > :nth-child(5) { grid-area: 1 / 9 / 2 / 11; }
+.draw__colors > :nth-child(6) { grid-area: 2 / 2 / 3 / 4; }
+.draw__colors > :nth-child(7) { grid-area: 2 / 4 / 3 / 6; }
+.draw__colors > :nth-child(8) { grid-area: 2 / 6 / 3 / 8; }
+.draw__colors > :nth-child(9) { grid-area: 2 / 8 / 3 / 10; }
+
 
 .draw__dot {
   position: relative;
@@ -6459,7 +6469,7 @@ textarea.nf__write {
 }
 
 .draw__dot.is-on {
-  transform: scale(1.22);
+  transform: scale(1.14);
 }
 
 .draw__dot--any {
@@ -6522,8 +6532,4 @@ textarea.nf__write {
   min-width: 0;
 }
 
-/* More colours that way: the row fades out at its edge rather than cutting a dot in half */
-.draw__colors {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
-}
+

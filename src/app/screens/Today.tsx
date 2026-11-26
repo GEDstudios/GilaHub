@@ -39,6 +39,9 @@ function greeting(): string {
   return 'Evening';
 }
 
+/** On a computer these are glances, in the side column: the week, what's coming, my person's, shopping. */
+const SIDE = new Set(['week', 'upcoming', 'partner', 'shop']);
+
 /** Does this block draw anything right now? (Today always does: its add row.) */
 function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<string>): boolean {
   switch (key) {
@@ -179,19 +182,25 @@ export function Today() {
         mini={date}
       />
       {wide ? (
-        // A computer: the day's line across the top, then every block as a panel on a board,
-        // flowing into columns in the order they're arranged.
+        // A computer: the day's line under the greeting; then the day itself (what needs doing,
+        // asks, pinned projects) as the wide column, and the glances (the week, what's coming,
+        // shopping, the invite) in a narrower one beside it.
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
           <div className="home__lead">
             <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
             <HomeNotices />
           </div>
-          <div className="home__board">
-            {slots.map((s) => block(s.key))}
-            <InviteCard />
+          <div className="home__cols">
+            <div className="home__main">
+              {slots.filter((s) => !SIDE.has(s.key)).map((s) => block(s.key))}
+              {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
+              {editLink}
+            </div>
+            <aside className="home__side" aria-label="The week and more">
+              {slots.filter((s) => SIDE.has(s.key)).map((s) => block(s.key))}
+              <InviteCard />
+            </aside>
           </div>
-          {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
-          {editLink}
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
