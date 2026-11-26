@@ -7,7 +7,6 @@ import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { AsksWidget } from '../components/Asks';
 import {
-  ChoresWidget,
   ComingUp,
   HomeNotices,
   InviteCard,
@@ -22,13 +21,13 @@ import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
 import { useHub } from '../context';
-import { aheadOf, choresReady, listIdOf, visibleHome, weekBands } from '../home';
+import { aheadOf, listIdOf, visibleHome, weekBands } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Band, IconButton, NewButton } from '../ui/primitives';
 import { SettleContext, useSettle } from '../ui/useSettle';
-import { choresView, todayView, type ChoresView, type TodayView } from '../views';
+import { todayView, type TodayView } from '../views';
 
 const idOf = (i: Item) => i.id;
 
@@ -41,23 +40,21 @@ function greeting(): string {
 }
 
 /** On a computer these sit in the rail beside the day: the week ahead and the glances. */
-const RAIL = new Set(['week', 'upcoming', 'partner', 'shop', 'chores']);
+const RAIL = new Set(['week', 'upcoming', 'partner', 'shop']);
 
 /** Does this block draw anything right now? (Today always does: its add row.) */
-function hasContent(key: string, hub: Hub, v: TodayView, chores: ChoresView, shown: ReadonlySet<string>): boolean {
+function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<string>): boolean {
   switch (key) {
     case 'asks':
       return !!hub.partner() && v.awaitingOk.length + v.asked.length + v.outgoing.length + v.waitingTheirOk.length > 0;
     case 'week':
-      return weekBands(hub, v, chores, shown).length > 0;
+      return weekBands(hub, v, shown).length > 0;
     case 'upcoming':
       return aheadOf(v).length > 0;
     case 'partner':
       return !!hub.partner() && v.recent.length > 0;
     case 'shop':
       return v.shopping.count > 0;
-    case 'chores':
-      return choresReady(hub, v, chores).length > 0;
     default:
       return true;
   }
@@ -78,7 +75,6 @@ export function Today() {
   const { openSheet } = useOverlays();
   const ref = todayStr();
   const v = todayView(hub, ref);
-  const chores = choresView(hub, ref);
   const me = hub.me();
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
@@ -118,7 +114,7 @@ export function Today() {
   const wide = useWide();
   const slots = visibleHome(hub);
   const shown = new Set(slots.map((s) => s.key));
-  const first = slots.find((s) => hasContent(s.key, hub, v, chores, shown))?.key;
+  const first = slots.find((s) => hasContent(s.key, hub, v, shown))?.key;
 
   const block = (key: string) => {
     const listId = listIdOf(key);
@@ -129,15 +125,13 @@ export function Today() {
       case 'today':
         return <TodayWidget key={key} v={v} day={ref} settle={settle} bare={first === 'today'} />;
       case 'week':
-        return <WeekStrips key={key} v={v} chores={chores} shown={shown} />;
+        return <WeekStrips key={key} v={v} shown={shown} />;
       case 'upcoming':
         return <ComingUp key={key} v={v} day={ref} />;
       case 'partner':
         return <PartnerDid key={key} v={v} />;
       case 'shop':
         return <ToBuyWidget key={key} v={v} settle={settle} />;
-      case 'chores':
-        return <ChoresWidget key={key} v={v} chores={chores} />;
       default:
         return null;
     }

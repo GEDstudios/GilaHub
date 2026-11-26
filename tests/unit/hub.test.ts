@@ -474,17 +474,24 @@ describe('Shopping: urgent', () => {
 });
 
 describe('renameOldDefaults', () => {
-  it('renames the old "Housework" default to "Chores" once, and leaves other names alone', async () => {
+  it('turns old chores projects into plain ones (renaming "Housework" to "Chores"), once, keeping each chore\'s repeat', async () => {
     const store = await Store.load(new MemoryPersistence(), 'dev-x', ['h', 'p:m1']);
     const hub = new Hub(store, 'm1');
-    const a = hub.createList({ name: 'Housework', kind: 'chores' });
-    const b = hub.createList({ name: 'Garden', kind: 'chores' });
+    const old = (name: string) => {
+      const id = hub.createList({ name, kind: 'tasks' });
+      store.mutate('list', id, { kind: 'chores' as never });
+      return id;
+    };
+    const a = old('Housework');
+    const b = old('Garden');
     const c = hub.createList({ name: 'Housework', kind: 'tasks' });
+    const water = hub.addItem(b, { title: 'Water the plants', repeat: { type: 'interval', every: 1, unit: 'week', from: 'done' } });
     hub.renameOldDefaults();
     hub.renameOldDefaults();
-    expect(hub.list(a)?.name).toBe('Chores');
-    expect(hub.list(b)?.name).toBe('Garden');
+    expect(hub.list(a)).toMatchObject({ name: 'Chores', kind: 'tasks' });
+    expect(hub.list(b)).toMatchObject({ name: 'Garden', kind: 'tasks' });
     expect(hub.list(c)?.name).toBe('Housework');
+    expect(hub.item(water)?.repeat).toMatchObject({ every: 1, unit: 'week', from: 'done' });
   });
 });
 

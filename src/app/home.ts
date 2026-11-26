@@ -4,7 +4,7 @@ import { onThisDay } from './moments';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';
 import { keepDormant } from './tabs';
 import type { IconName } from './ui/Icon';
-import { openCount, type ChoreRow, type ChoresView, type TodayView } from './views';
+import { openCount, type TodayView } from './views';
 
 /**
  * My Today page: a fixed summary, then widgets in my order. Only order and on/off are mine
@@ -14,7 +14,7 @@ import { openCount, type ChoreRow, type ChoresView, type TodayView } from './vie
  */
 export const MAX_HOME_PROJECTS = 3;
 
-export type WidgetKey = 'asks' | 'today' | 'week' | 'upcoming' | 'partner' | 'shop' | 'chores';
+export type WidgetKey = 'asks' | 'today' | 'week' | 'upcoming' | 'partner' | 'shop';
 
 export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'asks', on: true },
@@ -23,7 +23,6 @@ export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'upcoming', on: true },
   { key: 'partner', on: true },
   { key: 'shop', on: false },
-  { key: 'chores', on: false },
 ];
 
 export interface WidgetDef {
@@ -40,8 +39,6 @@ export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   upcoming: { title: () => 'Coming up', icon: 'calendar' },
   partner: { title: (hub) => `${hub.partner()?.name ?? 'Your person'} did`, icon: 'heart', needsPartner: true },
   shop: { title: () => 'To buy', icon: 'basket' },
-  // Mine are in Today ("Today wins"), so this one holds my partner's: never anything while solo.
-  chores: { title: (hub) => `${hub.partner()?.name ?? 'Your person'}’s chores`, icon: 'broom', needsPartner: true },
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);
@@ -196,7 +193,7 @@ export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | '
 export const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 export interface WeekBand {
-  key: 'shop' | 'chores' | 'done' | 'moments';
+  key: 'shop' | 'done' | 'moments';
   color: LineColor;
   /** The big figure: a count, or a feeling. */
   num: number | string;
@@ -230,20 +227,12 @@ export function weekCounts(hub: Hub, now = Date.now()): { week: number; last: nu
   return { week: at.filter((t) => t > now - 7 * day).length, last: at.filter((t) => t > now - 14 * day && t <= now - 7 * day).length };
 }
 
-/** Chores ready now, minus what Today already shows (so: my partner's). Nothing while we're away. */
-export function choresReady(hub: Hub, v: TodayView, chores: ChoresView): ChoreRow[] {
-  if (hub.isAway()) return [];
-  const onToday = new Set([...v.today, ...v.earlier].map((i) => i.id));
-  return chores.now.filter((r) => !onToday.has(r.item.id));
-}
-
 /**
- * This week's strips, each only when non-zero, and never twice on the page: the To buy and
- * Chores ready widgets take over their strip when they're on.
+ * This week's strips, each only when non-zero, and never twice on the page: the To buy widget
+ * takes over its strip when it's on.
  */
-export function weekBands(hub: Hub, v: TodayView, chores: ChoresView, shown: ReadonlySet<string> = new Set(visibleHome(hub).map((s) => s.key))): WeekBand[] {
+export function weekBands(hub: Hub, v: TodayView, shown: ReadonlySet<string> = new Set(visibleHome(hub).map((s) => s.key))): WeekBand[] {
   const out: WeekBand[] = [];
-  const names = (xs: string[], n = 3) => (xs.length > n ? `${xs.slice(0, n).join(', ')} +${xs.length - n}` : xs.join(', '));
   if (v.shopping.count && !shown.has('shop'))
     out.push({
       key: 'shop',
@@ -255,11 +244,6 @@ export function weekBands(hub: Hub, v: TodayView, chores: ChoresView, shown: Rea
         return v.shopping.count > shown.length ? `${shown.join(', ')} +${v.shopping.count - shown.length}` : shown.join(', ');
       })(),
     });
-  // The same "ready" the Chores widget shows: not what Today already lists.
-  const readyRows = choresReady(hub, v, chores);
-  const ready = readyRows.length;
-  if (ready && !shown.has('chores'))
-    out.push({ key: 'chores', color: 'pink', num: ready, label: `${ready === 1 ? 'chore' : 'chores'} ready for ${hub.partner()?.name ?? 'them'}`, detail: names(readyRows.map((r) => r.item.title)) });
   // How the week went: who did what, against the week before.
   const { week, last } = weekCounts(hub);
   if (week) {
@@ -295,7 +279,7 @@ export function aheadDay(due: string, ref: string): string {
 }
 
 /** The one-line live preview under a slot in the editor, or why it's empty right now. */
-export function homePreview(key: string, hub: Hub, v: TodayView, chores: ChoresView): { text: string; empty: boolean } {
+export function homePreview(key: string, hub: Hub, v: TodayView): { text: string; empty: boolean } {
   const p = hub.partner()?.name ?? 'your person';
   const join = (parts: Array<string | false>, empty: string) => {
     const t = parts.filter(Boolean).join(' · ');
@@ -316,8 +300,8 @@ export function homePreview(key: string, hub: Hub, v: TodayView, chores: ChoresV
     case 'today':
       return join([v.today.length > 0 && `${v.today.length} today`, v.earlier.length > 0 && `${v.earlier.length} from earlier`], 'Nothing due today');
     case 'week': {
-      const bands = weekBands(hub, v, chores);
-      const short = (b: WeekBand) => (b.key === 'shop' ? `${b.num} to buy` : b.key === 'chores' ? `${b.num} ${b.num === 1 ? 'chore' : 'chores'}` : `${b.num} done`);
+      const bands = weekBands(hub, v);
+      const short = (b: WeekBand) => (b.key === 'shop' ? `${b.num} to buy` : `${b.num} done`);
       return join(bands.map(short), 'Shows up when there’s something');
     }
     case 'upcoming': {
@@ -328,11 +312,6 @@ export function homePreview(key: string, hub: Hub, v: TodayView, chores: ChoresV
       return join([v.recent.length > 0 && `${v.recent.length} since yesterday`], `Shows what ${p} finishes`);
     case 'shop':
       return join([v.shopping.count > 0 && `${v.shopping.count} to buy`, v.shopping.urgent > 0 && `${v.shopping.urgent} urgent`], 'Nothing to buy');
-    case 'chores': {
-      if (hub.isAway()) return { text: 'Paused while you’re away', empty: true };
-      const n = choresReady(hub, v, chores).length;
-      return join([n > 0 && `${n} ready for ${p}`], `${p}’s ready chores show up here`);
-    }
     default:
       return { text: '', empty: true };
   }

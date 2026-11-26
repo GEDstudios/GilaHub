@@ -40,7 +40,8 @@ export interface HomeSlot {
   on: boolean;
 }
 
-export type ListKind = 'tasks' | 'shopping' | 'chores';
+/** What a project holds. (Chores used to be a kind of their own; they're plain projects now.) */
+export type ListKind = 'tasks' | 'shopping';
 
 /**
  * shared  — "Ours": both see and edit, nobody owns it.

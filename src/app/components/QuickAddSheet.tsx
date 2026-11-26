@@ -63,14 +63,12 @@ export function QuickAddSheet({
 
 const GHOST: Record<AddMode, string> = {
   task: 'A new thing',
-  chore: 'A new chore',
   shopping: 'Something to buy',
 };
 
 /** Every option, right there. */
 const FIELDS: Record<AddMode, Field[]> = {
   task: ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'],
-  chore: ['repeat', 'who', 'remind', 'vis'],
   shopping: ['urgent', 'vis'],
 };
 
@@ -299,7 +297,7 @@ function Composer({
         onChange={c.change}
         fields={fields}
         allowedVis={c.allowed}
-        repeatFrom={mode === 'chore' ? 'done' : 'schedule'}
+        repeatFrom="schedule"
         extras={extras}
         after={
           <>

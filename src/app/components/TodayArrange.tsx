@@ -24,7 +24,7 @@ import { useOverlays } from '../ui/overlays';
 import { ListBullet } from '../ui/primitives';
 import { ProjectMark } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { choresView, todayView } from '../views';
+import { todayView } from '../views';
 
 /**
  * Edit Today, on Today itself: every block shows as itself (a short, still peek of what it
@@ -38,7 +38,6 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
   const [picking, setPicking] = useState(false);
   const ref = todayStr();
   const v = todayView(hub, ref);
-  const chores = choresView(hub, ref);
   const keys = visibleHome(hub).map((s) => s.key);
   const hidden = hiddenWidgets(hub);
   const pins = pinnedProjects(hub);
@@ -58,10 +57,10 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
         grips
         onMove={(next) => reorderHome(hub, next)}
         label={(k) => slotTitle(hub, k)}
-        renderOverlay={(k) => <CardFace k={k} peek={peek(k)} sub={homePreview(k, hub, v, chores).text} />}
+        renderOverlay={(k) => <CardFace k={k} peek={peek(k)} sub={homePreview(k, hub, v).text} />}
       >
         {keys.map((k) => (
-          <HomeCard key={k} k={k} peek={peek(k)} sub={homePreview(k, hub, v, chores).text} onHide={() => hideHome(hub, k)} />
+          <HomeCard key={k} k={k} peek={peek(k)} sub={homePreview(k, hub, v).text} onHide={() => hideHome(hub, k)} />
         ))}
       </Sortable>
 
@@ -72,7 +71,7 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
           </span>
           <span className="homeghost__text">
             <span className="homeghost__title">{WIDGETS[k].title(hub)}</span>
-            <span className="homeghost__sub">{homePreview(k, hub, v, chores).text}</span>
+            <span className="homeghost__sub">{homePreview(k, hub, v).text}</span>
           </span>
         </button>
       ))}

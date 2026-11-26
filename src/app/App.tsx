@@ -20,7 +20,6 @@ import { usePrefs } from './prefs';
 import { LocalReminders, ReminderSync } from './reminders';
 import { currentPath, navigate, useRoute } from './router';
 import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime } from './runtime';
-import { Chores } from './screens/Chores';
 import { ItemScreen } from './screens/ItemScreen';
 import { ListScreen } from './screens/ListScreen';
 import { Lists, NewProjectSheet } from './screens/Lists';
@@ -164,7 +163,8 @@ function Screen() {
     case 'shop':
       return <Shopping />;
     case 'chores':
-      return <Chores />;
+      // Chores are ordinary projects now: an old link lands on Projects.
+      return <Lists />;
     case 'lists':
       return <Lists />;
     case 'list':

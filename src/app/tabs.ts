@@ -10,7 +10,7 @@ import type { IconName } from './ui/Icon';
  * holding it lets you slide to pick. 24 is a sanity cap, not a design limit.
  */
 export const MAX_PINS = 24;
-export const DEFAULT_PINS = ['shop', 'chores'];
+export const DEFAULT_PINS = ['shop'];
 /** Tabs that still fit with their labels. */
 export const COMFY_TABS = 5;
 
@@ -48,7 +48,6 @@ export function pinOptions(hub: Hub): TabDef[] {
     lists.some((l) => fold(l.name) === fold(name)) && lists.filter((l) => l.kind === kind).length > 1 ? `All ${name.toLowerCase()}` : name;
   return [
     { key: 'shop', label: label('Shopping', 'shopping'), path: '/shop', icon: 'basket' },
-    { key: 'chores', label: label('Chores', 'chores'), path: '/chores', icon: 'broom' },
     { key: 'search', label: 'Search', path: '/search', icon: 'search' },
     ...lists.map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
@@ -60,7 +59,7 @@ export function pinOptions(hub: Hub): TabDef[] {
  */
 export function coveredByTab(hub: Hub, listId: string, pins: readonly string[] = pinsOf(hub)): boolean {
   const kind = hub.list(listId)?.kind;
-  const tab = kind === 'shopping' ? 'shop' : kind === 'chores' ? 'chores' : null;
+  const tab = kind === 'shopping' ? 'shop' : null;
   return !!tab && pins.includes(tab) && hub.lists().filter((l) => l.kind === kind).length === 1;
 }
 
@@ -170,7 +169,6 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
     if (pins.includes(`l:${listId}`)) return `l:${listId}`;
     const kind = hub.list(listId)?.kind;
     if (kind === 'shopping' && pins.includes('shop')) return 'shop';
-    if (kind === 'chores' && pins.includes('chores')) return 'chores';
     return 'projects';
   };
   switch (r.name) {
@@ -179,7 +177,6 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
     case 'shop':
       return 'shop';
     case 'chores':
-      return 'chores';
     case 'lists':
       return 'projects';
     case 'list':

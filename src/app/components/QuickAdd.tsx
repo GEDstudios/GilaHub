@@ -26,7 +26,7 @@ export function useParseContext(list: List | undefined): ParseContext {
     workdays: workdays(),
     h24: use24h(prefs),
     mode: list?.kind === 'shopping' ? 'shopping' : 'task',
-    repeatFrom: list?.kind === 'chores' ? 'done' : 'schedule',
+    repeatFrom: 'schedule',
   };
 }
 

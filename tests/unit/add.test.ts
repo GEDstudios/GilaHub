@@ -5,7 +5,6 @@ import { Store } from '../../src/core/store';
 import { parseQuickAdd, type ParseContext } from '../../src/smart/parse';
 import { addLabel, registerAdd, runAdd } from '../../src/app/addAction';
 import {
-  CHORE_REPEAT,
   composeDraft,
   composerPlaceholder,
   modeOf,
@@ -55,15 +54,12 @@ describe('New: one action per screen', () => {
 describe('Adding: words, chips and modes', () => {
   it('the project kind picks the mode', () => {
     expect(modeOf('tasks')).toBe('task');
-    expect(modeOf('chores')).toBe('chore');
     expect(modeOf('shopping')).toBe('shopping');
     expect(modeOf(undefined)).toBe('task');
   });
 
-  it('a chore repeats every week from when it’s done unless the words say otherwise', () => {
-    const plain = parsedDraft(parse('Dishes', { repeatFrom: 'done' }), { mode: 'chore', visibility: 'ours' });
-    expect(plain.repeat).toEqual(CHORE_REPEAT);
-    const said = parsedDraft(parse('Water plants every 3 days', { repeatFrom: 'done' }), { mode: 'chore', visibility: 'ours' });
+  it('repeats only when the words say so (chores are plain tasks now)', () => {
+    const said = parsedDraft(parse('Water plants every 3 days'), { mode: 'task', visibility: 'ours' });
     expect(said.repeat).toMatchObject({ type: 'interval', every: 3, unit: 'day' });
     expect(parsedDraft(parse('Call mom'), { mode: 'task', visibility: 'ours' }).repeat).toBeNull();
   });
@@ -99,7 +95,6 @@ describe('Adding: words, chips and modes', () => {
 
   it('placeholders: one sentence per mode, "@P" only when paired', () => {
     expect(composerPlaceholder('shopping', 'Hila')).toBe('milk x2');
-    expect(composerPlaceholder('chore', null)).toBe('Water plants every 3 days');
     expect(composerPlaceholder('task', 'Hila', 0.99)).toBe('Fix the tap @Hila');
     expect(composerPlaceholder('task', null, 0.99)).toBe('Pay rent every 1st');
     expect(composerPlaceholder('task', null, 0)).toBe('Call mom tomorrow 6pm');

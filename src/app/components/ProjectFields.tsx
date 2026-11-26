@@ -53,7 +53,6 @@ export interface ProjectLook {
 const KIND: Record<ListKind, { label: string; icon: IconName }> = {
   tasks: { label: 'Tasks', icon: 'lines' },
   shopping: { label: 'Shopping', icon: 'basket' },
-  chores: { label: 'Chores', icon: 'broom' },
 };
 
 type Field = 'kind' | 'color' | 'icon' | 'vis';
@@ -96,7 +95,7 @@ export function ProjectFields({
                 <Options
                   value={kind}
                   onPick={(k) => onChange({ kind: k })}
-                  options={(['tasks', 'shopping', 'chores'] as const).map((k) => ({ value: k, label: KIND[k].label, icon: KIND[k].icon }))}
+                  options={(['tasks', 'shopping'] as const).map((k) => ({ value: k, label: KIND[k].label, icon: KIND[k].icon }))}
                 />
                 {kind === 'shopping' ? (
                   <div className="panel__row">

@@ -17,7 +17,7 @@ describe('bottom bar pins', () => {
   it('keeps every pin, in order, with no practical cap', async () => {
     const hub = await guy();
     const keys = pinOptions(hub).map((o) => o.key);
-    expect(keys.length).toBeGreaterThanOrEqual(7);
+    expect(keys.length).toBeGreaterThanOrEqual(6);
     setPins(hub, keys);
     expect(pinsOf(hub)).toEqual(keys);
     expect(tabsOf(hub)).toHaveLength(keys.length + 2);
@@ -28,7 +28,7 @@ describe('bottom bar pins', () => {
   it('offers Search (it opens over the page, so it never lights as a page) and starts from the defaults', async () => {
     const hub = await guy();
     expect(pinsOf(hub)).toEqual(DEFAULT_PINS);
-    expect(pinOptions(hub).slice(0, 3).map((o) => o.key)).toEqual(['shop', 'chores', 'search']);
+    expect(pinOptions(hub).slice(0, 2).map((o) => o.key)).toEqual(['shop', 'search']);
     expect(togglePin(hub, 'search')).toBe(true);
     expect(activeTabKey(hub, { name: 'today' })).toBe('today');
   });
@@ -36,10 +36,10 @@ describe('bottom bar pins', () => {
   it('drops duplicates and unknown keys, when reading and when saving', async () => {
     const hub = await guy();
     const todo = hub.lists().find((l) => l.name === 'To do')!;
-    hub.upsertMember('guy', { tabs: ['shop', 'shop', 'nope', `l:${todo.id}`, 'chores', `l:${todo.id}`] });
-    expect(pinsOf(hub)).toEqual(['shop', `l:${todo.id}`, 'chores']);
-    setPins(hub, ['chores', 'chores', 'bogus', 'search']);
-    expect(hub.me()!.tabs).toEqual(['chores', 'search']);
+    hub.upsertMember('guy', { tabs: ['shop', 'shop', 'nope', `l:${todo.id}`, 'search', `l:${todo.id}`] });
+    expect(pinsOf(hub)).toEqual(['shop', `l:${todo.id}`, 'search']);
+    setPins(hub, ['search', 'search', 'bogus', 'shop']);
+    expect(hub.me()!.tabs).toEqual(['search', 'shop']);
   });
 
   it("forgets a deleted project's pin", async () => {
@@ -54,12 +54,12 @@ describe('bottom bar pins', () => {
   it("keeps an archived project's pin through edits, in its place, so restoring brings it back", async () => {
     const hub = await guy();
     const [a, b] = hub.lists();
-    setPins(hub, ['shop', `l:${a.id}`, `l:${b.id}`, 'chores']);
+    setPins(hub, ['shop', `l:${a.id}`, `l:${b.id}`]);
     hub.updateList(a.id, { archived: true });
-    expect(pinsOf(hub)).toEqual(['shop', `l:${b.id}`, 'chores']);
+    expect(pinsOf(hub)).toEqual(['shop', `l:${b.id}`]);
     togglePin(hub, 'search');
     hub.updateList(a.id, { archived: false });
-    expect(pinsOf(hub)).toEqual(['shop', `l:${a.id}`, `l:${b.id}`, 'chores', 'search']);
+    expect(pinsOf(hub)).toEqual(['shop', `l:${a.id}`, `l:${b.id}`, 'search']);
   });
 
   it('keepDormant puts what it keeps back after its old neighbour', () => {
@@ -72,8 +72,8 @@ describe('bottom bar pins', () => {
   it('togglePin always works, even with a crowded bar, and says what it did', async () => {
     const hub = await guy();
     const projects = hub.lists().map((l) => `l:${l.id}`);
-    setPins(hub, ['shop', 'chores', 'search', ...projects.slice(0, 3)]);
-    expect(pinsOf(hub)).toHaveLength(6);
+    setPins(hub, ['shop', 'search', ...projects.slice(0, 3)]);
+    expect(pinsOf(hub)).toHaveLength(5);
     const last = projects[3];
     expect(togglePin(hub, last)).toBe(true);
     expect(pinsOf(hub).at(-1)).toBe(last);
@@ -81,28 +81,22 @@ describe('bottom bar pins', () => {
     expect(pinsOf(hub)).not.toContain(last);
   });
 
-  it('never names two tabs the same: a project called Chores makes the tab "All chores"', async () => {
+  it('never names two tabs the same', async () => {
     const hub = await guy();
-    // What the tray offers never repeats a name (the one Chores project is the Chores tab itself).
     const labels = () => pinOptions(hub).filter((o) => !o.key.startsWith('l:') || !coveredByTab(hub, o.key.slice(2))).map((o) => o.label);
     expect(new Set(labels()).size).toBe(labels().length);
-    const named = hub.createList({ name: 'chores', kind: 'chores' });
-    setPins(hub, [...pinsOf(hub), `l:${named}`]);
-    expect(tabsOf(hub).map((t) => t.label)).toEqual(['Today', 'Shopping', 'All chores', 'chores', 'Projects']);
   });
 
-  it('does not offer a project the Shopping or Chores tab already shows', async () => {
+  it('has no Chores tab: chores are a plain project, pinned like any other', async () => {
     const hub = await guy();
     const id = (name: string) => hub.lists().find((l) => l.name === name)!.id;
-    // The one chores project, with Chores in the bar; two shopping lists are each their own.
-    expect(coveredByTab(hub, id('Chores'))).toBe(true);
-    expect(coveredByTab(hub, id('Groceries'))).toBe(false);
-    expect(coveredByTab(hub, id('To do'))).toBe(false);
-    setPins(hub, ['shop']);
-    expect(coveredByTab(hub, id('Chores'))).toBe(false);
+    expect(pinOptions(hub).some((o) => o.key === 'chores')).toBe(false);
+    // An old bar with Chores in it just loses that tab.
     setPins(hub, ['shop', 'chores']);
-    hub.createList({ name: 'Garden', kind: 'chores' });
+    expect(pinsOf(hub)).toEqual(['shop']);
     expect(coveredByTab(hub, id('Chores'))).toBe(false);
+    setPins(hub, ['shop', `l:${id('Chores')}`]);
+    expect(tabsOf(hub).map((t) => t.label)).toEqual(['Today', 'Shopping', 'Chores', 'Projects']);
   });
 
   it('keeps a sanity cap', () => {
@@ -139,9 +133,9 @@ describe('bottom bar pins', () => {
     const todo = hub.lists().find((l) => l.name === 'To do')!;
     const before = pinAt(hub, `l:${todo.id}`, 1);
     expect(before).toEqual(DEFAULT_PINS);
-    expect(pinsOf(hub)).toEqual(['shop', `l:${todo.id}`, 'chores']);
-    pinAt(hub, 'chores', 0);
-    expect(pinsOf(hub)).toEqual(['chores', 'shop', `l:${todo.id}`]);
+    expect(pinsOf(hub)).toEqual(['shop', `l:${todo.id}`]);
+    pinAt(hub, 'search', 0);
+    expect(pinsOf(hub)).toEqual(['search', 'shop', `l:${todo.id}`]);
     setPins(hub, before);
     expect(pinsOf(hub)).toEqual(DEFAULT_PINS);
   });

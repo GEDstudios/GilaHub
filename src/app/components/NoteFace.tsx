@@ -623,14 +623,7 @@ function SizeRail({ value, color, min, max, onChange }: { value: number; color: 
 /** Pens: the app's own colours, plus black, white and a red. A custom one comes from the rainbow. */
 const BRAND = ['lemon', 'pink', 'sky', 'mint', 'lilac', 'amber'] as const;
 const PEN_FIXED = ['#0a0a04', '#ffffff', '#ff3b30', '#ff9500', '#34c759', '#007aff', '#af52de', '#8e8e93', '#a2845e'];
-const BRUSHES: Array<{ id: Brush | 'eraser'; label: string }> = [
-  { id: 'pen', label: 'Pen' },
-  { id: 'marker', label: 'Marker' },
-  { id: 'neon', label: 'Neon' },
-  { id: 'eraser', label: 'Eraser' },
-];
-/** A little squiggle in a brush: what the brush button shows. */
-const SQUIGGLE = '4,22 9,14 14,19 19,10 24,16 29,8';
+
 const brandHex = (c: string) => (typeof document === 'undefined' ? '#000' : getComputedStyle(document.documentElement).getPropertyValue(`--${c}`).trim() || '#000');
 
 /** The most ink a note keeps (it syncs as one small field). */
@@ -793,32 +786,25 @@ export function NoteEditor({
           {tool === 'pen' ? (
             <>
               <div className="draw__bar">
-                <div className="draw__brushes" role="radiogroup" aria-label="Brush">
-                  {BRUSHES.map((b) => (
-                    <button key={b.id} type="button" role="radio" aria-checked={brush === b.id} aria-label={b.label} title={b.label} className={`draw__brush ${brush === b.id ? 'is-on' : ''}`} onClick={() => { haptic('select'); setBrush(b.id); }}>
-                      {b.id === 'eraser' ? (
-                        <svg viewBox="0 0 32 32" aria-hidden="true">
-                          <g transform="rotate(-35 16 16)">
-                            <rect x="7" y="11" width="18" height="10" rx="2.5" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
-                            <rect x="7" y="11" width="7" height="10" rx="2.5" fill="var(--pink)" stroke="currentColor" strokeWidth="1.6" />
-                          </g>
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 32 32" aria-hidden="true">
-                          {b.id === 'neon' ? (
-                            <>
-                              <polyline points={SQUIGGLE} fill="none" stroke={pen} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.35" />
-                              <polyline points={SQUIGGLE} fill="none" stroke={pen} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
-                              <polyline points={SQUIGGLE} fill="none" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                            </>
-                          ) : (
-                            <polyline points={SQUIGGLE} fill="none" stroke={pen} strokeOpacity={b.id === 'marker' ? 0.5 : 1} strokeWidth={b.id === 'marker' ? 6 : 2.4} strokeLinecap="round" strokeLinejoin="round" />
-                          )}
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  className={`draw__eraser ${brush === 'eraser' ? 'is-on' : ''}`}
+                  aria-label="Eraser"
+                  aria-pressed={brush === 'eraser'}
+                  title="Eraser: wipe a line away"
+                  onClick={() => {
+                    haptic('select');
+                    setBrush(brush === 'eraser' ? 'pen' : 'eraser');
+                  }}
+                >
+                  <svg viewBox="0 0 32 32" aria-hidden="true">
+                    <g transform="rotate(-35 16 16)">
+                      <rect x="7" y="11" width="18" height="10" rx="2.5" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
+                      <rect x="7" y="11" width="7" height="10" rx="2.5" fill="var(--pink)" stroke="currentColor" strokeWidth="1.6" />
+                    </g>
+                  </svg>
+                  <span>Eraser</span>
+                </button>
                 <span className="noteedit__grow" />
                 <button type="button" className="draw__icon" aria-label="Undo" title="Undo" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
                   <Icon name="undo" />

@@ -183,13 +183,13 @@ describe('Today: requests between us', () => {
     expect([v.asked, v.outgoing, v.waitingTheirOk].flat()).toHaveLength(0);
   });
 
-  it('upcoming skips chores', async () => {
+  it('upcoming has chores too (they are plain tasks now)', async () => {
     const guy = await solo();
     const chore = guy.addItem(listNamed(guy, 'Chores').id, { title: 'Bins', due: addDays(today(), 1) });
     const task = guy.addItem(listNamed(guy, 'To do').id, { title: 'Dentist', due: addDays(today(), 1) });
     const up = todayView(guy, today()).upcoming.flatMap((g) => ids(g.items));
     expect(up).toContain(task);
-    expect(up).not.toContain(chore);
+    expect(up).toContain(chore);
   });
 
   it('counts what I finished today', async () => {

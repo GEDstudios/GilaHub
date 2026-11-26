@@ -176,10 +176,14 @@ export class Hub {
     });
   }
 
-  /** One-time rename of the old default "Housework" project to "Chores" (a renamed one is left alone). */
+  /**
+   * Old defaults, brought up to date: "Housework" was renamed "Chores", and chores projects are
+   * now ordinary projects (each chore keeps its repeat, "from when it's done" included).
+   */
   renameOldDefaults(): void {
     for (const l of this.store.all('list')) {
-      if (!l.deleted && l.kind === 'chores' && l.name === 'Housework' && this.store.get('list', l.id)) this.updateList(l.id, { name: 'Chores' });
+      if (l.deleted || !this.store.get('list', l.id)) continue;
+      if ((l.kind as string) === 'chores') this.store.mutate('list', l.id, { kind: 'tasks', ...(l.name === 'Housework' ? { name: 'Chores' } : {}) });
     }
   }
 
@@ -1440,8 +1444,7 @@ export interface ProjectTemplate {
 export const PROJECT_TEMPLATES: ProjectTemplate[] = [
   { key: 'groceries', name: 'Groceries', icon: 'i:cart', kind: 'shopping', flavor: 'grocery', blurb: 'Sorted by aisle, for both of you' },
   { key: 'home', name: 'Home shopping', icon: 'i:bag', kind: 'shopping', flavor: 'home', blurb: 'Bulbs, towels, a new pan' },
-  // Not "Chores": that's the tab that gathers every chores project.
-  { key: 'chores', name: 'Chores', icon: 'i:broom', kind: 'chores', blurb: 'Things that repeat, shared fairly' },
+  { key: 'chores', name: 'Chores', icon: 'i:broom', kind: 'tasks', blurb: 'Things that repeat, shared fairly' },
   { key: 'todo', name: 'To do', icon: 'i:lines', kind: 'tasks', blurb: 'Everything else, with dates and steps' },
   { key: 'trip', name: 'Next trip', icon: 'i:suitcase', kind: 'tasks', blurb: 'Plans and packing' },
   { key: 'gifts', name: 'Gift ideas', icon: 'i:gift', kind: 'tasks', visibility: 'private', blurb: 'Only you can see it' },

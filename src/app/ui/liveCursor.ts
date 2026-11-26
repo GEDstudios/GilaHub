@@ -66,13 +66,16 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   timer.className = 'livecursor__timer';
   timer.innerHTML = `<svg viewBox="0 0 24 24"><circle class="livecursor__track" cx="12" cy="12" r="9"/><circle class="livecursor__pie" cx="12" cy="12" r="4.25"/><circle class="livecursor__fill" cx="12" cy="12" r="9"/></svg>`;
   timer.style.setProperty('--hold', `${MOUSE_HOLD_MS}ms`);
-  el.append(body, beam, timer);
+  // Our own tooltip: the browser's (a `title`) brings the system's pointer back on a Mac while
+  // it shows, so titles are taken in hand here and shown by us instead.
+  const tip = document.createElement('div');
+  tip.className = 'livecursor__tip';
+  el.append(body, beam, timer, tip);
   document.body.append(el);
   document.documentElement.classList.add('has-livecursor');
 
   let x = -100;
   let y = -100;
-  let lastX = x;
   let kind: CursorKind | 'text' = 'arrow';
   let shown: CursorKind | null = null;
   let waving = false;
@@ -84,6 +87,11 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   let rot = 0;
   let rotV = 0;
   let vel = 0;
+  // Speed as the mouse reports it (px/s), and when it last did.
+  let evVel = 0;
+  let movedAt = 0;
+  let lastEvX = 0;
+  let lastEvT = 0;
   let lastT = 0;
   // The size (1 = still): a little spring for the click squash and the pop of a new shape.
   let sc = 1;
@@ -118,7 +126,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     kick();
   };
 
-  const OMEGA = 2 * Math.PI * 2.4; // how fast it swings
+  const OMEGA = 2 * Math.PI * 3; // how fast it swings
   const ZETA = 0.3; // how soon it settles: one clear swing back, by as much as the move was quick, then still
   const LEAN = 20; // the most it ever trails, in degrees
   const V0 = 1500; // px/s for about three quarters of that
@@ -130,10 +138,10 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
       kick();
       return;
     }
-    // Sideways speed, smoothed over a few hundredths of a second (mice report unevenly).
-    const v = (x - lastX) / dt;
-    lastX = x;
-    vel += (v - vel) * (1 - Math.exp(-dt / 0.06));
+    // Sideways speed, from the mouse's own reports (not frames, which mice don't keep pace
+    // with). The moment the reports stop, it has stopped: the swing back starts right away.
+    if (now - movedAt > 25) evVel *= Math.exp(-dt / 0.008);
+    vel = evVel;
     // It trails behind the way it's going: a soft limit, so a flick leans further than a nudge.
     const target = LEAN * Math.tanh(vel / V0);
     // Spring towards that, lightly damped (semi-implicit Euler: steady at any frame rate).
@@ -161,12 +169,10 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
       hide();
       return;
     }
-    // It stays the open hand for as long as the mouse rests, waving now and then.
-    if (!waving) {
-      waving = true;
-      shown = null;
-      setKind(kind);
-    }
+    // The open hand waves, then it's the arrow again; resting on, it waves again now and then.
+    waving = true;
+    shown = null;
+    setKind(kind);
     body.classList.remove('is-waving');
     void body.offsetWidth;
     body.classList.add('is-waving');
@@ -179,11 +185,34 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     shown = null;
     setKind(kind);
   };
-  // A wave ends: the hand stays (it's still resting), ready for the next one.
-  body.addEventListener('animationend', () => body.classList.remove('is-waving'));
+  // A wave ends: back to the arrow (the next wave is already timed).
+  body.addEventListener('animationend', stopWave);
   const restartIdle = () => {
     clearTimeout(idle);
     idle = setTimeout(wave, IDLE_MS);
+  };
+
+  let tipT: ReturnType<typeof setTimeout> | undefined;
+  const hideTip = () => {
+    clearTimeout(tipT);
+    tip.classList.remove('is-on');
+  };
+  /** Under the mouse: anything with a title gives it to us (kept as data-tip), and after a rest we show it. */
+  const tipFor = (target: EventTarget | null) => {
+    hideTip();
+    const t = target instanceof Element ? target.closest('[title], [data-tip]') : null;
+    if (!t) return;
+    const title = t.getAttribute('title');
+    if (title !== null) {
+      if (title) t.setAttribute('data-tip', title);
+      t.removeAttribute('title');
+    }
+    const text = t.getAttribute('data-tip');
+    if (!text) return;
+    tipT = setTimeout(() => {
+      tip.textContent = text;
+      tip.classList.add('is-on');
+    }, 650);
   };
 
   const onMove = (e: PointerEvent) => {
@@ -191,14 +220,22 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
       hide();
       return;
     }
+    tipFor(e.target);
     x = e.clientX;
     y = e.clientY;
+    const t = e.timeStamp || performance.now();
+    const gap = (t - lastEvT) / 1000;
+    if (lastEvT && gap > 0.002 && gap < 0.1) evVel += ((x - lastEvX) / gap - evVel) * 0.5;
+    else if (!lastEvT || gap >= 0.1) evVel = 0;
+    lastEvX = x;
+    lastEvT = t;
+    movedAt = performance.now();
+    kick();
     // Moved off before the hold landed: no hold.
     if (holdAt && Math.hypot(x - holdAt[0], y - holdAt[1]) > 8) endHold();
     if (!visible) {
       visible = true;
-      lastX = x;
-      vel = 0;
+      evVel = 0;
     }
     stopWave();
     setKind(kindAt(e.target));
@@ -222,6 +259,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
       el.classList.add('is-holding');
       setTimeout(() => holdAt && endHold(), MOUSE_HOLD_MS + 120);
     }
+    hideTip();
     scTarget = 0.86;
     pressed = e.button === 0;
     setKind(kindAt(e.target));
@@ -235,6 +273,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     setKind(kindAt(e.target));
   };
   const hide = () => {
+    hideTip();
     visible = false;
     pressed = false;
     clearTimeout(idle);
@@ -272,6 +311,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   return () => {
     cancelAnimationFrame(raf);
     clearTimeout(idle);
+    hideTip();
     watch.disconnect();
     window.removeEventListener('pointermove', onMove, { capture: true });
     window.removeEventListener('pointerdown', onDown, { capture: true });

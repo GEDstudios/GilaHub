@@ -38,7 +38,6 @@ const BY_WORD: Array<[RegExp, string[]]> = [
 const BY_KIND: Partial<Record<ListKind | 'home', string[]>> = {
   shopping: ['cart', 'basket'],
   home: ['bag', 'basket'],
-  chores: ['broom', 'sparkle'],
 };
 
 /** Neither says anything: plain marks, so a bar of such projects isn't a row of folders. */

@@ -6611,3 +6611,46 @@ textarea.nf__write {
 .noteedit__desk.is-drawing {
   padding-left: 46px;
 }
+
+/* A note with the focus (clicked, or tabbed to) shows the same dashed edge, never the black ring */
+.stuck:focus-visible {
+  outline: none;
+}
+
+.stuck:focus-visible .sticky::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 1.5px dashed rgb(10 10 4 / 0.35);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* The eraser: one toggle beside Undo (the line itself is always the pen) */
+.draw__eraser {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px 0 8px;
+  border-radius: 19px;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: transform 200ms var(--spring);
+}
+
+.draw__eraser svg {
+  width: 26px;
+  height: 26px;
+}
+
+.draw__eraser:active {
+  transform: scale(0.94);
+}
+
+.draw__eraser.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}

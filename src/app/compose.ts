@@ -3,24 +3,22 @@
  * (docs/03-DESIGN-SYSTEM.md, "Adding"): what the typed words mean, what a chip
  * overrides, and which mode a project puts the add in.
  */
-import type { ListKind, RepeatRule } from '../core/model';
+import type { ListKind } from '../core/model';
 import type { ParseResult, TokenKind } from '../smart/parse';
 import type { Draft } from './components/editors';
 import type { VisChoice } from './privacy';
 
-export type AddMode = 'task' | 'chore' | 'shopping';
+export type AddMode = 'task' | 'shopping';
 
-export const modeOf = (kind: ListKind | undefined): AddMode => (kind === 'shopping' ? 'shopping' : kind === 'chores' ? 'chore' : 'task');
+export const modeOf = (kind: ListKind | undefined): AddMode => (kind === 'shopping' ? 'shopping' : 'task');
 
-/** A new chore comes back every week, counted from when it's done, unless the words say otherwise. */
-export const CHORE_REPEAT: RepeatRule = { type: 'interval', every: 1, unit: 'week', from: 'done' };
 
 /** What the words say before any chip is touched: parsed fields over the screen's defaults. */
 export function parsedDraft(p: ParseResult, d: { mode: AddMode; defaultDue?: string | null; visibility: VisChoice }): Draft {
   return {
     due: p.due ?? d.defaultDue ?? null,
     dueTime: p.dueTime ?? null,
-    repeat: p.repeat ?? (d.mode === 'chore' ? CHORE_REPEAT : null),
+    repeat: p.repeat ?? null,
     // A date in the words (or the screen's day) turns the notification on, "When due".
     remind: (p.due ?? d.defaultDue) ? 0 : null,
     nag: null,
@@ -62,7 +60,6 @@ export function overriddenTokens(p: ParseResult, draft: Draft, patch: Partial<Dr
 /** A sentence to type, as the composer's placeholder: one at random per open. */
 export function composerPlaceholder(mode: AddMode, partnerName: string | null | undefined, rand = Math.random()): string {
   if (mode === 'shopping') return 'milk x2';
-  if (mode === 'chore') return 'Water plants every 3 days';
   const all = ['Call mom tomorrow 6pm', 'Pay rent every 1st', ...(partnerName ? [`Fix the tap @${partnerName}`] : [])];
   return all[Math.min(all.length - 1, Math.floor(rand * all.length))];
 }

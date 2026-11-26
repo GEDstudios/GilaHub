@@ -1,10 +1,9 @@
 import type { Hub } from '../core/actions';
-import { addDays, diffDays, fromDateStr, today as todayStr } from '../core/dates';
+import { addDays, fromDateStr, today as todayStr } from '../core/dates';
 import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
 import type { Flavor } from '../smart/categorize';
 import { itemKey } from '../smart/normalize';
-import { freshness, periodDays, type Freshness } from '../smart/recurrence';
 import { buyAgain, purchaseStats, type BuyAgainSuggestion, type PurchaseStats } from '../smart/suggest';
 
 /** Cache a derived view per store version (and args). */
@@ -64,10 +63,8 @@ const byDueThenTime = (a: Item, b: Item) => (a.due ?? '9999').localeCompare(b.du
 
 export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const lists = new Map(hub.lists().map((l) => [l.id, l]));
-  const away = hub.isAway();
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
-    if (away && l?.kind === 'chores') return false;
     return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
@@ -107,7 +104,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const end = addDays(ref, 7);
   const upcomingMap = new Map<string, Item[]>();
   for (const i of mine) {
-    if (lists.get(i.listId)?.kind === 'chores' || askedIds.has(i.id)) continue;
+    if (askedIds.has(i.id)) continue;
     if (i.due! > ref && i.due! <= end) {
       const arr = upcomingMap.get(i.due!) ?? [];
       arr.push(i);
@@ -257,46 +254,6 @@ export const shoppingView = memo((hub: Hub, filter: string, dismissed: Record<st
 
 // ---------------------------------------------------------------- Chores
 
-export interface ChoreRow {
-  item: Item;
-  list: List;
-  fresh: Freshness;
-  level: number;
-}
-
-export interface ChoresView {
-  now: ChoreRow[];
-  soon: ChoreRow[];
-  fresh: ChoreRow[];
-  paused: ChoreRow[];
-  lists: List[];
-  total: number;
-}
-
-export const choresView = memo((hub: Hub, ref: string): ChoresView => {
-  const lists = hub.lists().filter((l) => l.kind === 'chores');
-  const ids = new Map(lists.map((l) => [l.id, l]));
-  const rows: ChoreRow[] = [];
-  for (const i of hub.store.all('item')) {
-    const list = ids.get(i.listId);
-    if (!list || i.parentId || i.archived) continue;
-    if (!i.repeat && i.done) continue;
-    const fresh = freshness(i.due, ref);
-    const period = i.repeat ? periodDays(i.repeat) : 7;
-    const level = i.due ? Math.max(0, Math.min(1, diffDays(ref, i.due) / period)) : 1;
-    rows.push({ item: i, list, fresh, level });
-  }
-  const byDue = (a: ChoreRow, b: ChoreRow) => (a.item.due ?? '9999').localeCompare(b.item.due ?? '9999') || byOrder(a.item, b.item);
-  const active = rows.filter((r) => !r.item.paused);
-  return {
-    now: active.filter((r) => r.fresh === 'today' || r.fresh === 'whenever').sort(byDue),
-    soon: active.filter((r) => r.fresh === 'soon').sort(byDue),
-    fresh: active.filter((r) => r.fresh === 'fresh').sort(byDue),
-    paused: rows.filter((r) => r.item.paused).sort(byDue),
-    lists,
-    total: rows.length,
-  };
-});
 
 // ---------------------------------------------------------------- Ideas
 
@@ -350,10 +307,6 @@ export function openCount(hub: Hub, listId: string): number {
  * are ready ("2 ready", "All fresh"), anything else what's open ("4 open").
  */
 export function projectCount(hub: Hub, list: List): { n: number; text: string } {
-  if (list.kind === 'chores') {
-    const n = choresView(hub, todayStr()).now.filter((r) => r.list.id === list.id).length;
-    return { n, text: n ? `${n} ready` : 'All fresh' };
-  }
   const n = openCount(hub, list.id);
   return { n, text: n ? `${n} open` : 'All clear' };
 }

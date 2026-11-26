@@ -68,7 +68,6 @@ describe('new project icons', () => {
     expect(suggestIcon('Recipes', 'tasks')).toBe('i:cooking-pot');
     expect(suggestIcon('Apartment', 'tasks')).toBe('i:home');
     expect(suggestIcon('Stuff', 'shopping', 'home')).toBe('i:bag');
-    expect(suggestIcon('Stuff', 'chores')).toBe('i:broom');
     // Nothing to go on: a plain mark, the same every time, and one nobody else has.
     expect(parseGlyph(suggestIcon('Misc', 'tasks'))?.kind).toBe('icon');
     expect(suggestIcon('Misc', 'tasks')).toBe(suggestIcon('misc', 'tasks'));

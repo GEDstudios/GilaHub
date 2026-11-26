@@ -23,7 +23,7 @@ import { coveredByTab, MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin }
 import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
 
-const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
+const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping' };
 
 /** A name on a card of its color, then the same chips as a project's page. */
 export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () => void; initial?: Partial<{ visibility: Visibility; kind: ListKind }>; parentId?: string }) {
@@ -296,7 +296,7 @@ export function Lists() {
     return of.length === 1 && pins.includes(`l:${of[0].id}`);
   };
   const missing = arranging
-    ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key) && !(o.key === 'chores' && onlyOf('chores')) && !(o.key === 'shop' && onlyOf('shopping')))
+    ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key) && !(o.key === 'shop' && onlyOf('shopping')))
     : [];
 
   return (

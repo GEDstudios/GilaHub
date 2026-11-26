@@ -188,6 +188,34 @@ html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *::after {
   opacity: 0;
 }
 
+/* Our tooltip (instead of the browser's): a small ink label under and right of the pointer */
+.livecursor__tip {
+  position: absolute;
+  top: 26px;
+  left: 14px;
+  max-width: 240px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #0a0a04;
+  color: #fff;
+  font: 500 12.5px/1.3 var(--font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 14px rgb(10 10 4 / 0.25);
+  opacity: 0;
+  transform: translateY(-3px);
+  transition:
+    opacity 140ms ease,
+    transform 160ms ease;
+  pointer-events: none;
+}
+
+.livecursor__tip.is-on {
+  opacity: 1;
+  transform: none;
+}
+
 /* Over words you can type in: our own I-beam, centred on the pointer */
 .livecursor__beam {
   position: absolute;

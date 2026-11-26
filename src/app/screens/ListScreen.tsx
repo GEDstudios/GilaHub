@@ -18,7 +18,6 @@ import { folderLean, NewProjectSheet, ProjectCard, SortableProject } from './Lis
 import { coveredByTab, pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { openCount } from '../views';
-import { Chores } from './Chores';
 import { Shopping } from './Shopping';
 
 /** The project's "…": the rare things only. Everything else is edited in place on its page. */
@@ -187,8 +186,8 @@ export const heroVis = (hub: ReturnType<typeof useHub>, list: List): string => (
 export function ProjectChips({ list }: { list: List }) {
   const hub = useHub();
   const { toast } = useOverlays();
-  // The one Chores (or Shopping) project is its tab: in the bar when that tab is.
-  const tab = list.kind === 'shopping' ? 'shop' : list.kind === 'chores' ? 'chores' : null;
+  // The one Shopping project is its tab: in the bar when that tab is.
+  const tab = list.kind === 'shopping' ? 'shop' : null;
   const covered = !!tab && coveredByTab(hub, list.id, pinsOf(hub));
   const pinned = covered || pinsOf(hub).includes(`l:${list.id}`);
   const partner = hub.partner();
@@ -213,7 +212,6 @@ export function ListScreen({ id }: { id: string }) {
   const hub = useHub();
   const list = hub.list(id);
   if (list?.kind === 'shopping') return <Shopping listId={id} />;
-  if (list?.kind === 'chores') return <Chores listId={id} />;
   return <TaskProject id={id} />;
 }
 

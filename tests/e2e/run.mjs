@@ -289,10 +289,13 @@ try {
   });
 
   // ---------- Chores
-  await check('Chores: add one, tick it, it rolls forward', async () => {
+  await check('Chores: a plain project; a repeating chore rolls forward when ticked', async () => {
+    // An old /chores link lands on Projects; Chores is a folder like any other.
     await guy.goto(`${url}/chores`);
+    await guy.getByRole('heading', { name: 'Projects', level: 1 }).waitFor();
+    await guy.locator('.projcard', { hasText: /^Chores/ }).first().click();
     await guy.getByRole('heading', { name: 'Chores', exact: true, level: 1 }).waitFor();
-    await addVia(guy, ['Water the plants']);
+    await addVia(guy, ['Water the plants every week']);
     await shot(guy, '10-chores');
     const row = guy.locator('li.row', { hasText: 'Water the plants' });
     await row.getByRole('checkbox').click();
@@ -322,9 +325,12 @@ try {
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
     await shot(guy, '13-composer-ask');
     await guy.getByRole('button', { name: 'Add', exact: true }).click();
-    await guy.getByText(/^Added to /).waitFor({ timeout: 5000 });
+    // It goes to the last project added to (here Chores, from the chores check): follow the toast there.
+    const added = guy.getByText(/^Added to /);
+    await added.waitFor({ timeout: 5000 });
+    const where = (await added.innerText()).replace(/^Added to /, '').trim();
     await guy.goto(`${url}/lists`);
-    await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await guy.locator('.projcard__name', { hasText: new RegExp(`^${where}$`) }).click();
     await guy.locator('li.row', { hasText: 'Return the library books' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
   });
 
@@ -429,8 +435,8 @@ try {
     await touch('touchStart', from.x, from.y);
     await guy.waitForTimeout(450);
     if (!(await guy.locator('nav.tabbar.is-receiving').count())) throw new Error('the bar did not rise to meet the folder');
-    const chores = await guy.locator('nav.tabbar [data-key="chores"]').boundingBox();
-    const to = { x: chores.x + chores.width - 3, y: chores.y + chores.height / 2 };
+    const shop = await guy.locator('nav.tabbar [data-key="shop"]').boundingBox();
+    const to = { x: shop.x + shop.width - 3, y: shop.y + shop.height / 2 };
     for (let i = 1; i <= 30; i++) {
       await touch('touchMove', from.x + ((to.x - from.x) * i) / 30, from.y + ((to.y - from.y) * i) / 30);
       await guy.waitForTimeout(16);
@@ -441,7 +447,7 @@ try {
     await touch('touchEnd', to.x, to.y);
     await guy.getByText('To do is in the bar').waitFor({ timeout: 3000 });
     const mine = await keys(guy);
-    if (mine.length !== 5 || mine[2] !== 'chores' || !mine[3].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);
+    if (mine.length !== 4 || mine[1] !== 'shop' || !mine[2].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);
     await hila.waitForTimeout(1500);
     await hila.reload();
     await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();
@@ -573,23 +579,21 @@ try {
     for (let i = 1; i <= 8; i++) await guy.mouse.move(pad.x + pad.width * (0.15 + i * 0.07), pad.y + pad.height * (0.85 - Math.sin(i / 2.5) * 0.1));
     await guy.mouse.up();
     await guy.locator('.sheet .nf__ink path').waitFor({ timeout: 3000 });
-    // The brushes: a neon line too, then one wiped off with the eraser.
-    await guy.getByRole('radio', { name: 'Neon' }).click();
+    // A second line in another colour, then the eraser wipes it away.
     await guy.getByRole('radio', { name: 'sky' }).click();
     await guy.mouse.move(pad.x + pad.width * 0.2, pad.y + pad.height * 0.3);
     await guy.mouse.down();
     for (let i = 1; i <= 6; i++) await guy.mouse.move(pad.x + pad.width * (0.2 + i * 0.08), pad.y + pad.height * 0.3 + (i % 2) * 12);
     await guy.mouse.up();
     await shot(guy, '28a-note-pen');
-    // The pen line is one path; the neon one three (glow, colour, white core).
     const paths = () => guy.locator('.sheet .sticky .nf__ink').first().locator('path').count();
-    if ((await paths()) !== 4) throw new Error(`expected a pen and a neon line, found ${await paths()} paths`);
-    await guy.getByRole('radio', { name: 'Eraser' }).click();
+    if ((await paths()) !== 2) throw new Error(`expected two lines, found ${await paths()} paths`);
+    await guy.getByRole('button', { name: 'Eraser' }).click();
     await guy.mouse.move(pad.x + pad.width * 0.35, pad.y + pad.height * 0.22);
     await guy.mouse.down();
     await guy.mouse.move(pad.x + pad.width * 0.35, pad.y + pad.height * 0.4, { steps: 6 });
     await guy.mouse.up();
-    if ((await paths()) !== 1) throw new Error(`the eraser should have left just the pen line, found ${await paths()} paths`);
+    if ((await paths()) !== 1) throw new Error(`the eraser should have left just the first line, found ${await paths()} paths`);
     await guy.getByRole('button', { name: 'Done drawing' }).click();
     await shot(guy, '28b-note-drawn');
     await guy.getByRole('button', { name: 'Stick it' }).click();
@@ -699,7 +703,7 @@ try {
     // With the app open, the next one rings in from the top.
     await hila.goto(`${url}/`);
     await hila.waitForTimeout(800);
-    await guy.goto(`${url}/chores`);
+    await guy.goto(`${url}/lists`);
     await guy.locator('.notebtn').click();
     await guy.getByRole('textbox', { name: 'Your note' }).fill('Your turn for the bins 🗑️');
     await guy.getByRole('button', { name: 'Stick it' }).click();
