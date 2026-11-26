@@ -1134,6 +1134,27 @@ export class Hub {
     return this.store.create('note', { text: t, by: this.meId, to: this.partner()?.id ?? null, place, color, createdAt: Date.now() });
   }
 
+  /** Move or turn a note on its screen (both of us see it there). */
+  placeNote(id: string, at: { x: number; y: number; rot: number }): void {
+    if (!this.store.get('note', id)) return;
+    this.store.mutate('note', id, { x: Math.round(at.x * 1000) / 1000, y: Math.round(at.y), rot: Math.round(at.rot * 10) / 10 });
+  }
+
+  /** The notes we've read and ticked off, kept together (Projects), newest first. */
+  collectedNotes(): Note[] {
+    return this.store
+      .all('note')
+      .filter((n) => !n.deleted && n.peeledAt)
+      .sort((a, b) => (b.peeledAt ?? 0) - (a.peeledAt ?? 0));
+  }
+
+  /** Throw a note away for good (from the collection). */
+  deleteNote(id: string): Undo {
+    if (!this.store.get('note', id)) return () => {};
+    this.store.mutate('note', id, { deleted: true });
+    return () => this.store.mutate('note', id, { deleted: false });
+  }
+
   /** Read it, peel it off (the one it was for); the one who left it takes it down. Returns the way back. */
   peelNote(id: string): Undo {
     const n = this.store.get('note', id);

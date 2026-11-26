@@ -21,6 +21,7 @@ import { listVisLabel } from '../privacy';
 import { coveredByTab, MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
 import { backlogOf, projectCount } from '../views';
 import { ItemRow } from '../components/ItemRow';
+import { CollectedNotes } from '../components/Notes';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
 
@@ -347,6 +348,8 @@ export function Lists() {
             </button>
           </p>
         )}
+
+        {arranging ? null : <CollectedNotes />}
 
         {backlog.length ? (
           <Disclosure title="Backlog" count={backlog.length}>

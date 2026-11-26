@@ -523,7 +523,7 @@ try {
     await guy.getByRole('radio', { name: 'pink' }).click();
     await shot(guy, '28-note-write');
     await guy.getByRole('button', { name: 'Stick it' }).click();
-    await guy.locator('.stickies').waitFor({ timeout: 3000 });
+    await guy.locator('.stuck').waitFor({ timeout: 3000 });
     await shot(guy, '29-note-guy-shop');
 
     await hila.goto(`${url}/`);
@@ -532,15 +532,40 @@ try {
     if (!/Guy left you a note on Shopping/.test(await notice.innerText())) throw new Error(`Today says: ${await notice.innerText()}`);
     await shot(hila, '30-note-hila-today');
     await notice.click();
-    await hila.locator('.stickies').waitFor({ timeout: 3000 });
+    const stuck = hila.locator('.stuck');
+    await stuck.waitFor({ timeout: 3000 });
+    await hila.waitForTimeout(700);
     await shot(hila, '31-note-hila-shop');
-    await hila.locator('.stickies').click();
+    // A tap reads it.
+    await stuck.locator('.sticky__text').click();
     await hila.getByRole('dialog', { name: 'A note' }).getByText(NOTE).waitFor({ timeout: 3000 });
     await shot(hila, '32-note-hila-read');
-    await hila.getByRole('button', { name: 'Peel it off' }).click();
+    await hila.keyboard.press('Escape');
     await hila.getByRole('dialog').waitFor({ state: 'detached', timeout: 3000 });
-    await hila.locator('.stickies').waitFor({ state: 'detached', timeout: 3000 });
-    await guy.locator('.stickies').waitFor({ state: 'detached', timeout: 15000 });
+    // Hold it, then drag it down and left; Guy sees it there too.
+    const box = await stuck.boundingBox();
+    await hila.mouse.move(box.x + 40, box.y + 30);
+    await hila.mouse.down();
+    await hila.waitForTimeout(550);
+    await hila.mouse.move(box.x - 120, box.y + 260, { steps: 10 });
+    await hila.mouse.up();
+    await hila.locator('.stuck.is-lifted .sticky__turn').waitFor({ timeout: 3000 });
+    await shot(hila, '32b-note-moved');
+    const moved = await stuck.boundingBox();
+    if (moved.y < box.y + 200) throw new Error(`the note didn't move: ${box.y} → ${moved.y}`);
+    await guy.waitForFunction(() => {
+      const n = document.querySelector('.stuck');
+      return n && parseFloat(n.style.top) > 250;
+    }, null, { timeout: 15000 });
+    // The tick: read, collected.
+    await hila.mouse.click(5, 400);
+    await stuck.locator('.sticky__check').click();
+    await stuck.waitFor({ state: 'detached', timeout: 3000 });
+    await guy.locator('.stuck').waitFor({ state: 'detached', timeout: 15000 });
+    await hila.goto(`${url}/lists`);
+    await hila.locator('.pinboard .sticky', { hasText: NOTE }).waitFor({ timeout: 5000 });
+    await hila.locator('.collected').scrollIntoViewIfNeeded();
+    await shot(hila, '32c-notes-collected');
 
     // With the app open, the next one rings in from the top.
     await hila.goto(`${url}/`);
@@ -555,7 +580,7 @@ try {
     await hila.waitForTimeout(700);
     await shot(hila, '33-arrival');
     await card.locator('.arrival__main').click();
-    await hila.locator('.stickies').waitFor({ timeout: 3000 });
+    await hila.locator('.stuck').waitFor({ timeout: 3000 });
   });
 
   // ---------- Desktop

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { shortAgo } from '../../core/dates';
 import type { LineColor, Note } from '../../core/model';
 import { useHub, useRt } from '../context';
@@ -137,48 +137,198 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
 
 // ---------------------------------------------------------------- finding one
 
-/** The notes stuck on this screen, up by the top corner: the newest on top, the rest peeking. */
+/** How wide a note is on the page (px); the layer works out where that leaves it. */
+const NOTE_W = 124;
+
+/**
+ * The notes stuck on this screen. Each sits where it was left (both of us see the same spot),
+ * new ones up by the top corner, a little fanned. A tap reads it; the one it's for ticks it off
+ * (it goes to the collected notes, on Projects). Hold one to pick it up: drag it anywhere, turn
+ * it by the round handle on its corner; tap anywhere else to put it down.
+ */
 export function NotesLayer() {
   const hub = useHub();
   const route = useRoute();
-  const { openSheet } = useOverlays();
   const place = placeOf(route);
+  const [lifted, setLifted] = useState<string | null>(null);
+  const board = useRef<HTMLDivElement>(null);
+  // Tap anywhere else: put it down.
+  useEffect(() => {
+    if (!lifted) return;
+    const off = (e: PointerEvent) => {
+      if (!(e.target as Element)?.closest?.(`[data-note="${lifted}"]`)) setLifted(null);
+    };
+    document.addEventListener('pointerdown', off, true);
+    return () => document.removeEventListener('pointerdown', off, true);
+  }, [lifted]);
   if (!place) return null;
-  const notes = hub.notesOn(place);
+  const notes = hub.notesOn(place).slice(0, 8).reverse();
   if (!notes.length) return null;
-  const top = notes[0];
   return (
-    <button
-      type="button"
-      className="stickies"
-      aria-label={`${notes.length > 1 ? `${notes.length} notes` : 'A note'} from ${hub.member(top.by)?.name ?? 'your person'}: ${top.text}`}
-      onClick={() => {
-        haptic('select');
-        openSheet((close) => <NoteSheet ids={notes.map((n) => n.id)} onClose={close} />);
-      }}
-    >
-      {notes.slice(0, 3).reverse().map((n, i, shown) => (
-        <StickyFace key={n.id} note={n} under={shown.length - 1 - i} />
+    <div className={`stickyboard ${lifted ? 'is-arranging' : ''}`} ref={board}>
+      {notes.map((n, i) => (
+        <StuckNote key={n.id} note={n} index={notes.length - 1 - i} board={board} lifted={lifted === n.id} onLift={(on) => setLifted(on ? n.id : null)} />
       ))}
-      {notes.length > 1 ? <span className="stickies__n num">{notes.length}</span> : null}
-    </button>
+    </div>
   );
 }
 
-function StickyFace({ note, under }: { note: Note; under: number }) {
+function StuckNote({
+  note,
+  index,
+  board,
+  lifted,
+  onLift,
+}: {
+  note: Note;
+  index: number;
+  board: React.RefObject<HTMLDivElement | null>;
+  lifted: boolean;
+  onLift: (on: boolean) => void;
+}) {
   const hub = useHub();
+  const { openSheet, toast } = useOverlays();
+  const el = useRef<HTMLDivElement>(null);
   const mine = note.by === hub.meId;
+  const forMe = note.to === hub.meId;
+  const width = () => board.current?.getBoundingClientRect().width || 360;
+  // Where it is: where it was left, else up by the top corner, fanned by age.
+  const home = () => ({
+    x: note.x ?? Math.max(0, (width() - NOTE_W - 16 - index * 14) / width()),
+    y: note.y ?? 62 + index * 22,
+    rot: note.rot ?? tiltOf(note.id),
+  });
+  const [live, setLive] = useState<{ x: number; y: number; rot: number } | null>(null);
+  const at = live ?? home();
+  const [peeling, setPeeling] = useState(false);
+
+  // One gesture at a time: a hold lifts it, then a drag moves it (or, from the handle, turns it).
+  const g = useRef<{ mode: 'wait' | 'move' | 'turn' | 'tap'; sx: number; sy: number; start: { x: number; y: number; rot: number }; timer?: ReturnType<typeof setTimeout>; cx?: number; cy?: number; a0?: number } | null>(null);
+  // While a note is held, the page mustn't scroll under the finger.
+  useEffect(() => {
+    const n = el.current;
+    if (!n) return;
+    const stop = (e: TouchEvent) => {
+      if (g.current && (g.current.mode === 'move' || g.current.mode === 'turn')) e.preventDefault();
+    };
+    n.addEventListener('touchmove', stop, { passive: false });
+    return () => n.removeEventListener('touchmove', stop);
+  }, []);
+
+  const down = (e: React.PointerEvent, turn = false) => {
+    if ((e.target as Element).closest('.sticky__check')) return;
+    e.stopPropagation();
+    const start = home();
+    if (turn) {
+      const r = el.current!.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      g.current = { mode: 'turn', sx: e.clientX, sy: e.clientY, start, cx, cy, a0: Math.atan2(e.clientY - cy, e.clientX - cx) };
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      return;
+    }
+    g.current = { mode: lifted ? 'move' : 'wait', sx: e.clientX, sy: e.clientY, start };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    if (!lifted)
+      g.current.timer = setTimeout(() => {
+        if (g.current?.mode !== 'wait') return;
+        g.current.mode = 'move';
+        haptic('select');
+        onLift(true);
+      }, 380);
+  };
+  const move = (e: React.PointerEvent) => {
+    const s = g.current;
+    if (!s) return;
+    const dx = e.clientX - s.sx;
+    const dy = e.clientY - s.sy;
+    if (s.mode === 'wait') {
+      // Moving before the hold lands: it was a scroll, not for the note.
+      if (Math.hypot(dx, dy) > 8) {
+        clearTimeout(s.timer);
+        g.current = null;
+      }
+      return;
+    }
+    if (s.mode === 'move') {
+      const w = width();
+      setLive({ x: Math.min(1 - 40 / w, Math.max(-60 / w, s.start.x + dx / w)), y: Math.max(8, s.start.y + dy), rot: s.start.rot });
+    } else if (s.mode === 'turn') {
+      const a = Math.atan2(e.clientY - s.cy!, e.clientX - s.cx!);
+      let rot = s.start.rot + ((a - s.a0!) * 180) / Math.PI;
+      rot = ((rot + 540) % 360) - 180;
+      // A little snap to straight.
+      if (Math.abs(rot) < 2.5) rot = 0;
+      setLive({ ...s.start, rot });
+    }
+  };
+  const up = (e: React.PointerEvent) => {
+    const s = g.current;
+    g.current = null;
+    if (!s) return;
+    clearTimeout(s.timer);
+    const moved = Math.hypot(e.clientX - s.sx, e.clientY - s.sy) > 8;
+    if ((s.mode === 'move' || s.mode === 'turn') && live) {
+      hub.placeNote(note.id, live);
+      haptic('drop');
+      setLive(null);
+      return;
+    }
+    // A plain tap: read it.
+    if (s.mode === 'wait' && !moved) {
+      haptic('select');
+      openSheet((close) => <NoteSheet ids={[note.id]} onClose={close} />);
+    }
+  };
+
+  const tick = () => {
+    haptic('success');
+    setPeeling(true);
+    setTimeout(() => {
+      const undo = hub.peelNote(note.id);
+      toast('Collected · it’s with your notes in Projects', { action: { label: 'Undo', run: undo } });
+    }, 420);
+  };
+
   return (
-    <span
-      className={`sticky ${under ? 'is-under' : ''} ${mine ? 'is-mine' : ''}`}
-      style={{ ...lineVars(note.color), '--tilt': `${tiltOf(note.id) + under * 4}deg`, '--under': under } as CSSProperties}
-      aria-hidden="true"
+    <div
+      ref={el}
+      data-note={note.id}
+      className={`stuck ${lifted ? 'is-lifted' : ''} ${live ? 'is-moving' : ''} ${peeling ? 'is-peeling' : ''}`}
+      style={{ left: `${at.x * 100}%`, top: at.y, '--rot': `${at.rot}deg` } as CSSProperties}
+      role="button"
+      tabIndex={0}
+      aria-label={`A note ${mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `from ${hub.member(note.by)?.name ?? 'your person'}`}: ${note.text}. Hold to move it.`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') openSheet((close) => <NoteSheet ids={[note.id]} onClose={close} />);
+      }}
+      onPointerDown={(e) => down(e)}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={() => {
+        clearTimeout(g.current?.timer);
+        g.current = null;
+        setLive(null);
+      }}
+      onContextMenu={(e) => e.preventDefault()}
     >
-      <span className="sticky__text" dir="auto">
-        {note.text}
+      <span className="sticky" style={lineVars(note.color)}>
+        <span className="sticky__text" dir="auto">
+          {note.text}
+        </span>
+        <span className="sticky__by">{mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `— ${hub.member(note.by)?.name ?? ''}`}</span>
       </span>
-      <span className="sticky__by">{mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `— ${hub.member(note.by)?.name ?? ''}`}</span>
-    </span>
+      {forMe ? (
+        <button type="button" className="sticky__check" aria-label="Read it: tick it off" onClick={tick} onPointerDown={(e) => e.stopPropagation()}>
+          <Icon name="check" className="icon--sm" />
+        </button>
+      ) : null}
+      {lifted ? (
+        <span className="sticky__turn" aria-hidden="true" onPointerDown={(e) => down(e, true)} onPointerMove={move} onPointerUp={up}>
+          <Icon name="refresh" className="icon--xs" />
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -194,7 +344,7 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
     setPeeling(n.id);
     setTimeout(() => {
       const undo = hub.peelNote(n.id);
-      toast(n.by === hub.meId ? 'Taken down' : 'Peeled off', { action: { label: 'Undo', run: undo } });
+      toast(n.by === hub.meId ? 'Taken down' : 'Collected · it’s with your notes in Projects', { action: { label: 'Undo', run: undo } });
       setPeeling(null);
       if (notes.length === 1) onClose();
     }, 380);
@@ -216,7 +366,7 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
                 </span>
               </div>
               <button type="button" className={`btn btn--block ${mine ? 'btn--quiet' : ''}`} onClick={() => peel(n)}>
-                {mine ? 'Take it down' : 'Peel it off'}
+                {mine ? 'Take it down' : (<><Icon name="check" className="icon--sm" /> Got it</>)}
               </button>
             </div>
           );
@@ -250,5 +400,75 @@ export function NotesElsewhere() {
         );
       })}
     </>
+  );
+}
+
+// ---------------------------------------------------------------- the collected ones
+
+/**
+ * Every note we've read and ticked off, kept together on Projects like a corkboard: a little
+ * of us to look back on. A tap shows it big, with where it was and when; it can be thrown away.
+ */
+export function CollectedNotes() {
+  const hub = useHub();
+  const { openSheet } = useOverlays();
+  const notes = hub.collectedNotes();
+  if (!notes.length) return null;
+  return (
+    <section className="collected" aria-label="Our notes">
+      <h2 className="collected__head">
+        <span className="collected__pin" aria-hidden="true" />
+        Our notes <span className="collected__n num">{notes.length}</span>
+      </h2>
+      <div className="pinboard">
+        {notes.map((n) => (
+          <button
+            key={n.id}
+            type="button"
+            className="sticky sticky--mini"
+            style={{ ...lineVars(n.color), '--tilt': `${tiltOf(n.id) * 0.8}deg` } as CSSProperties}
+            onClick={() => openSheet((close) => <CollectedSheet id={n.id} onClose={close} />)}
+          >
+            <span className="sticky__text" dir="auto">
+              {n.text}
+            </span>
+            <span className="sticky__by">— {hub.member(n.by)?.name ?? ''}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CollectedSheet({ id, onClose }: { id: string; onClose: () => void }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const n = hub.store.get('note', id);
+  if (!n) return null;
+  const day = new Date(n.createdAt).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return (
+    <Sheet onClose={onClose} title="A note">
+      <div className="sticky sticky--big" style={{ ...lineVars(n.color), '--tilt': `${tiltOf(n.id) / 2}deg` } as CSSProperties}>
+        <span className="sticky__text" dir="auto">
+          {n.text}
+        </span>
+        <span className="sticky__by">
+          — {hub.member(n.by)?.name ?? ''} · on <span dir="auto">{placeName(hub, n.place)}</span> · {day}
+        </span>
+      </div>
+      <div className="shotview__actions">
+        <button
+          type="button"
+          className="textbtn"
+          onClick={() => {
+            const undo = hub.deleteNote(id);
+            onClose();
+            toast('Thrown away', { action: { label: 'Undo', run: undo } });
+          }}
+        >
+          Throw it away
+        </button>
+      </div>
+    </Sheet>
   );
 }

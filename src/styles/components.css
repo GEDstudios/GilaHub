@@ -4379,59 +4379,181 @@ html:has(.iconlib) .fab {
   opacity: 0.62;
 }
 
-/* Stuck up by the top corner of the screen, over the header; it scrolls away with it. */
-.stickies {
+/* The notes on a screen sit on a board laid over the page (it scrolls with it), each where it was left. */
+.stickyboard {
   position: absolute;
   z-index: 18;
-  top: calc(var(--safe-top) + 62px);
-  right: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) - 4px);
-  display: grid;
-  -webkit-tap-highlight-color: transparent;
-  animation: sticky-in 620ms var(--spring) both;
+  top: var(--safe-top);
+  left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter));
+  width: min(var(--column), calc(100% - 2 * var(--gutter)));
+  height: 0;
 }
 
-.stickies > .sticky {
-  grid-area: 1 / 1;
-}
-
-.stickies > .sticky.is-under {
-  transform: rotate(var(--tilt)) translate(calc(var(--under) * 5px), calc(var(--under) * 4px));
-  filter: brightness(0.94);
-}
-
-.stickies:active > .sticky:last-of-type {
-  transform: rotate(0deg) scale(0.97);
-}
-
-.stickies__n {
+.stuck {
+  --rot: 3deg;
   position: absolute;
-  top: -6px;
-  right: -6px;
+  width: 124px;
+  transform: rotate(var(--rot));
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  animation: sticky-in 620ms var(--spring) both;
+  transition:
+    transform 260ms var(--spring),
+    filter 200ms var(--ease);
+}
+
+.stuck > .sticky {
+  --tilt: 0deg;
+}
+
+/* Picked up: it lifts off the page; the page can't scroll under it */
+.stuck.is-lifted {
+  z-index: 2;
+  touch-action: none;
+  transform: rotate(var(--rot)) scale(1.07);
+  filter: drop-shadow(0 18px 18px rgb(10 10 4 / 0.28));
+  cursor: grab;
+}
+
+.stuck.is-moving {
+  transition: none;
+  cursor: grabbing;
+}
+
+.stuck.is-lifted > .sticky::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 1.5px dashed rgb(10 10 4 / 0.35);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* The tick: read it, and it goes to the collected notes */
+.sticky__check {
+  position: absolute;
+  right: -9px;
+  bottom: -9px;
   z-index: 1;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1.5px var(--ink),
+    0 4px 10px -3px rgb(10 10 4 / 0.35);
+  transition: transform 220ms var(--spring), background 160ms var(--ease);
+}
+
+.sticky__check:active {
+  transform: scale(0.88);
+  background: var(--me-light, var(--lemon));
+}
+
+/* Turn it: drag the handle round */
+.sticky__turn {
+  position: absolute;
+  left: -14px;
+  bottom: -14px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   background: var(--ink);
-  color: var(--white, #fff);
-  font-size: 12px;
-  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 4px 10px -3px rgb(10 10 4 / 0.4);
+  touch-action: none;
+  cursor: alias;
+  animation: pop 220ms var(--spring) both;
+}
+
+.stuck.is-peeling {
+  transition:
+    transform 420ms var(--ease),
+    opacity 420ms var(--ease);
+  transform-origin: 0% 0%;
+  transform: rotate(calc(var(--rot) - 20deg)) translate(-20px, -80px) scale(0.8);
+  opacity: 0;
+  pointer-events: none;
 }
 
 @keyframes sticky-in {
   0% {
     opacity: 0;
-    transform: translateY(-18px) rotate(-10deg) scale(0.9);
+    translate: 0 -18px;
+    scale: 0.9;
   }
   60% {
     opacity: 1;
-    transform: translateY(2px) rotate(3deg) scale(1.02);
+    translate: 0 2px;
+    scale: 1.02;
   }
   100% {
-    transform: none;
+    translate: 0 0;
+    scale: 1;
   }
+}
+
+/* Our notes, on Projects: a corkboard of the ones we've read */
+.collected {
+  margin-top: 34px;
+}
+
+.collected__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.collected__pin {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a80, #e53935 70%);
+  box-shadow: 0 2px 3px rgb(10 10 4 / 0.3);
+}
+
+.collected__n {
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.pinboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(98px, 118px));
+  justify-content: space-evenly;
+  gap: 22px 14px;
+  padding: 18px 14px 20px;
+  border-radius: 22px;
+  background:
+    radial-gradient(rgb(10 10 4 / 0.05) 1px, transparent 1.4px) 0 0 / 10px 10px,
+    var(--tile);
+}
+
+.sticky--mini {
+  width: auto;
+  min-height: 96px;
+  padding: 14px 10px 8px;
+  transition: transform 220ms var(--spring);
+}
+
+.sticky--mini .sticky__text {
+  font-size: 14px;
+}
+
+.sticky--mini:active {
+  transform: rotate(0deg) scale(0.96);
 }
 
 /* Big, in its sheet: to write on, and to read */
@@ -4525,9 +4647,9 @@ html:has(.iconlib) .fab {
   box-shadow: 0 2px 4px -1px rgb(10 10 4 / 0.25);
 }
 
-html:has(.sheet) .stickies,
-html.is-searching .stickies,
-html.is-editing .stickies {
+html:has(.sheet) .stickyboard,
+html.is-searching .stickyboard,
+html.is-editing .stickyboard {
   visibility: hidden;
 }
 

@@ -117,3 +117,24 @@ describe('pictures on ideas', () => {
     expect(hub.ideaShot(id)).toBeNull();
   });
 });
+
+describe('sticky notes', () => {
+  it('stays where it was put, and a ticked one joins the collection', async () => {
+    const hub = await person('guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    hub.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    const id = hub.addNote('shop', 'Milk 💛', 'lemon')!;
+    hub.placeNote(id, { x: 0.41234, y: 300.7, rot: -12.345 });
+    expect(hub.store.get('note', id)).toMatchObject({ x: 0.412, y: 301, rot: -12.3 });
+    expect(hub.notesOn('shop')).toHaveLength(1);
+    // Hila ticks it (same store, her eyes)
+    const hila = new Hub(hub.store, 'hila');
+    hila.peelNote(id);
+    expect(hub.notesOn('shop')).toHaveLength(0);
+    expect(hub.collectedNotes().map((n) => n.text)).toEqual(['Milk 💛']);
+    const undo = hub.deleteNote(id);
+    expect(hub.collectedNotes()).toEqual([]);
+    undo();
+    expect(hub.collectedNotes()).toHaveLength(1);
+  });
+});

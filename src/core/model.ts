@@ -284,7 +284,11 @@ export interface Note {
   place: string;
   color: LineColor;
   createdAt: number;
-  /** Read and peeled off by the one it was for. */
+  /** Where it's stuck, once someone moved it: left edge as a share of the page's width, top in px, and its turn in degrees. */
+  x?: number | null;
+  y?: number | null;
+  rot?: number | null;
+  /** Read and peeled off (ticked) by the one it was for: it goes to the collected notes. */
   peeledAt?: number | null;
   deleted?: boolean;
 }
