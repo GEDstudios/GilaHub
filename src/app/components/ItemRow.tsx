@@ -208,7 +208,7 @@ export const ItemRow = memo(function ItemRow({
           <Icon name="x" className="row__swipeicon" />
         </span>
       ) : null}
-      <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />
+      {item.stock != null ? <StockCount item={item} readonly={readonly} /> : <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />}
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
@@ -237,28 +237,10 @@ export const ItemRow = memo(function ItemRow({
             ) : null}
             {req ? <ReqTag state={req} /> : null}
             {item.stock != null ? (
-              <span className={`meta meta--stock ${item.stockUrgentAt != null && item.stock <= item.stockUrgentAt ? 'is-out' : item.stock <= (item.stockAddAt ?? 1) ? 'is-low' : ''}`}>
+              <span className={`meta meta--stock ${item.stockUrgentAt != null && item.stock <= item.stockUrgentAt ? 'is-out' : hub.stockLow(item) ? 'is-low' : ''}`}>
                 <Icon name="package" />
-                {item.stock} in stock
-                {item.stock > 0 && !readonly ? (
-                  <button
-                    type="button"
-                    className="meta__use"
-                    aria-label={`Used one ${item.title}`}
-                    title="Used one"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      haptic('select');
-                      const before = item.stockLink ?? null;
-                      const undo = hub.useOne(item.id);
-                      const now = hub.item(item.id);
-                      const added = now?.stockLink && now.stockLink !== before;
-                      toast(added ? `${item.title}: ${now?.stock} left, on ${hub.list(hub.item(now!.stockLink)?.listId)?.name ?? 'the list'}` : `${item.title}: ${now?.stock ?? 0} left`, { ms: 2400, action: { label: 'Undo', run: undo } });
-                    }}
-                  >
-                    −1
-                  </button>
-                ) : null}
+                {item.stock === 0 ? 'None left' : 'In stock'}
+                {item.stockLink && hub.item(item.stockLink) && !hub.item(item.stockLink)!.done ? ` · on ${hub.list(hub.item(item.stockLink)!.listId)?.name ?? 'the list'}` : ''}
               </span>
             ) : null}
             {vis ? <VisTag item={item} /> : null}
@@ -332,6 +314,38 @@ export const ItemRow = memo(function ItemRow({
     </li>
   );
 });
+
+/**
+ * Where a task's tick would be, something we count shows how many are in: tap it when one is
+ * used (it goes on the list by itself when it runs low). Never "done", so never cleared away.
+ */
+export function StockCount({ item, readonly }: { item: Item; readonly?: boolean }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const n = item.stock ?? 0;
+  const out = item.stockUrgentAt != null && n <= item.stockUrgentAt;
+  const low = hub.stockLow(item);
+  return (
+    <button
+      type="button"
+      className={`stockcount num ${out ? 'is-out' : low ? 'is-low' : ''}`}
+      aria-label={`${item.title}: ${n} in stock. Used one`}
+      title="Used one"
+      disabled={readonly || n === 0}
+      onClick={(e) => {
+        e.stopPropagation();
+        haptic('select');
+        const before = item.stockLink ?? null;
+        const undo = hub.useOne(item.id);
+        const now = hub.item(item.id);
+        const added = now?.stockLink && now.stockLink !== before;
+        toast(added ? `${item.title}: ${now?.stock} left, on ${hub.list(hub.item(now!.stockLink)?.listId)?.name ?? 'the list'}` : `${item.title}: ${now?.stock ?? 0} left`, { ms: 2400, action: { label: 'Undo', run: undo } });
+      }}
+    >
+      {n}
+    </button>
+  );
+}
 
 /** "since Tue" → quick catch-up actions, for the From earlier group. */
 export function catchUpDays(due: string, ref: string): number {

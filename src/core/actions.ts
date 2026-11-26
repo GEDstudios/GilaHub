@@ -669,7 +669,8 @@ export class Hub {
 
   toggle(id: string, opts: { withChildren?: boolean } = {}): Undo {
     const item = this.item(id);
-    if (!item) return () => {};
+    // Something we count the stock of is never "done": it stays, counted (it's never cleared away).
+    if (!item || item.stock != null) return () => {};
     const kind = this.tickKind(item);
     if (kind === 'roll') {
       // A repeating one done this time is out of Ongoing (it's back for its next time).
@@ -749,6 +750,17 @@ export class Hub {
   }
 
   // ---------- kept stocked ----------
+
+  /** Everything we count the stock of, from every folder. */
+  stockItems(): Item[] {
+    const lists = new Set(this.lists().map((l) => l.id));
+    return this.store.all('item').filter((i) => i.stock != null && !i.archived && lists.has(i.listId));
+  }
+
+  /** It's running low (at or under where it goes on the list). */
+  stockLow(item: Item): boolean {
+    return item.stock != null && item.stock <= (item.stockAddAt ?? 1);
+  }
 
   /** Where a kept-stocked thing goes when it runs low: its own choice, else Shopping, else its folder. */
   stockList(item: Item): string {

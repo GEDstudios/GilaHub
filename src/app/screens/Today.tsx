@@ -4,13 +4,14 @@ import { flushSync } from 'react-dom';
 import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
+import { SavedListWidget } from '../components/SavedList';
 import { HomeNotices, InviteCard, ProjectWidget, QuickView } from '../components/HomeWidgets';
 import { DayCard, TodayList, UsTile, WeekStrip } from '../components/Home';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
 import { useHub } from '../context';
-import { listIdOf, visibleHome } from '../home';
+import { listIdOf, visibleHome, queryIdOf } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -136,6 +137,8 @@ export function Today() {
   const slots = visibleHome(hub);
 
   const block = (key: string) => {
+    const savedId = queryIdOf(key);
+    if (savedId) return <SavedListWidget key={key} id={savedId} settle={settle} />;
     const listId = listIdOf(key);
     if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} show={filter.active ? (i) => filter.test(i, true) : undefined} />;
     switch (key) {

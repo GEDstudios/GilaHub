@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fold } from '../../smart/normalize';
+import { hasFilters, parseSearch, runQuery } from '../query';
 import { useHub } from '../context';
 import { navigate, useRoute } from '../router';
 import { clearRecentSearches, closeSearch, recentSearches, rememberSearch, searchEverywhere, useSearchOpen, useSearchScope } from '../search';
@@ -52,8 +53,23 @@ function Layer() {
 
   const scope = hub.list(useSearchScope());
   const term = q.trim();
-  const items = term ? hub.search(term, scope ? 200 : 30).filter((i) => !scope || i.listId === scope.id).slice(0, 30) : [];
-  const lists = term && !scope ? hub.lists().filter((l) => fold(l.name).includes(fold(term))) : [];
+  // "#work urgent this week report": tags, urgency and days are filters; the rest, words.
+  const parsed = term ? parseSearch(hub, term) : null;
+  const filtered = !!parsed && hasFilters(parsed.query);
+  const items = !term
+    ? []
+    : filtered
+      ? runQuery(hub, { ...parsed!.query, listId: scope?.id ?? parsed!.query.listId }).slice(0, 60)
+      : hub.search(term, scope ? 200 : 30).filter((i) => !scope || i.listId === scope.id || hub.listPath(i.listId).some((l) => l.id === scope.id)).slice(0, 30);
+  const lists = term && !scope && !filtered ? hub.lists().filter((l) => fold(l.name).includes(fold(term))) : [];
+  // Ways to narrow, a tap away: urgent, the days, whose, and our tags (the ones used last first).
+  const add = (word: string) => {
+    setQ((x) => `${x.trim()} ${word}`.trim() + ' ');
+    input.current?.focus();
+  };
+  const drop = (token: string) => setQ((x) => x.replace(token, '').replace(/\s+/g, ' ').trimStart());
+  const tagIdeas = [...new Set([...hub.recentTags(), ...hub.tags().map((t) => t.id)])].map((id) => hub.tag(id)).filter((t): t is NonNullable<typeof t> => !!t).slice(0, 8);
+  const ideas = ['urgent', 'today', 'overdue', 'this week', 'next week', ...(hub.partner() ? ['mine', 'ours'] : [])];
   const keep = () => rememberSearch(term);
 
   return (
@@ -68,7 +84,7 @@ function Layer() {
               value={q}
               dir="auto"
               onChange={(e) => setQ(e.target.value)}
-              placeholder={scope ? `Search ${scope.name}` : 'Search everything'}
+              placeholder={scope ? `Search ${scope.name}` : 'Search, or #tag, urgent, this week…'}
               aria-label="Search"
               enterKeyHint="search"
               autoComplete="off"
@@ -93,6 +109,36 @@ function Layer() {
               <span dir="auto">In {scope.name}</span>
               <Icon name="x" className="token__x" />
             </button>
+          </div>
+        ) : null}
+        {parsed?.parts.length ? (
+          <div className="tokens searchlayer__parts" aria-label="Filters">
+            {parsed.parts.map((pt) => (
+              <button key={pt.token} type="button" className="token is-on" onClick={() => drop(pt.token)} aria-label={`Remove ${pt.label}`}>
+                {pt.kind === 'tag' ? <Icon name="tag" /> : <Icon name="funnel" />}
+                <span dir="auto">{pt.label}</span>
+                <Icon name="x" className="token__x" />
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {!term ? (
+          <div className="searchlayer__card searchlayer__ideas">
+            <p className="searchlayer__label">Narrow it down</p>
+            <div className="tokens">
+              {ideas.map((w) => (
+                <button key={w} type="button" className="token" onClick={() => add(w)}>
+                  <Icon name={w === 'urgent' ? 'urgent' : w === 'mine' ? 'mine' : w === 'ours' ? 'ours' : 'calendar'} />
+                  <span>{w[0].toUpperCase() + w.slice(1)}</span>
+                </button>
+              ))}
+              {tagIdeas.map((t) => (
+                <button key={t.id} type="button" className="token" onClick={() => add(`#${t.name.replace(/\s+/g, '')}`)}>
+                  <Icon name="tag" />
+                  <span dir="auto">{t.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
         {!term && recent.length ? (
@@ -144,7 +190,12 @@ function Layer() {
                 ))}
               </ul>
             ) : null}
-            {!items.length && !lists.length ? (
+            {filtered && !items.length ? (
+              <div className="searchlayer__none">
+                <p>Nothing open matches that</p>
+              </div>
+            ) : null}
+            {!filtered && !items.length && !lists.length ? (
               // Nothing by that name: make it, a task (here, when searching in a folder) or a folder.
               <div className="searchlayer__none">
                 <p>Nothing matches “{term}”</p>

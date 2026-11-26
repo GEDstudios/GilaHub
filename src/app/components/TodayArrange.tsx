@@ -21,7 +21,8 @@ import {
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { ListBullet } from '../ui/primitives';
+import { FolderTree } from './FolderTree';
+import { SavedListSheet } from './SavedList';
 import { ProjectMark } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { todayView } from '../views';
@@ -34,7 +35,7 @@ import { todayView } from '../views';
  */
 export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const { toast, openSheet } = useOverlays();
   const [picking, setPicking] = useState(false);
   const ref = todayStr();
   const v = todayView(hub, ref);
@@ -95,26 +96,31 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
             </span>
           </button>
           {picking && !full ? (
-            <div className="tokens homeghost__tokens">
-              {free.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  className="token"
-                  onClick={() => {
-                    haptic('tick');
-                    setPicking(false);
-                    showHome(hub, projectKey(l.id));
-                  }}
-                >
-                  <ListBullet list={l} size="xs" />
-                  <span dir="auto">{l.name}</span>
-                </button>
-              ))}
+            // The usual folder tree, folded: open a folder to reach the ones inside.
+            <div className="homeghost__tree">
+              <FolderTree
+                marked={(l) => pins.includes(l.id)}
+                hint={(l) => (pins.includes(l.id) ? 'on Today' : null)}
+                onPick={(id) => {
+                  setPicking(false);
+                  showHome(hub, projectKey(id));
+                }}
+              />
             </div>
           ) : null}
         </div>
       ) : null}
+
+      {/* A list of my own: by tag, folder, due, urgent, whose */}
+      <button type="button" className="homeghost hatch" onClick={() => openSheet((close) => <SavedListSheet onClose={close} />)}>
+        <span className="homeghost__add">
+          <Icon name="funnel" className="icon--sm" />
+        </span>
+        <span className="homeghost__text">
+          <span className="homeghost__title">Add a filtered list</span>
+          <span className="homeghost__sub">A tag, a folder, what’s due next week…</span>
+        </span>
+      </button>
 
       {isDefaultHome(hub) ? null : (
         <div className="homereset">
@@ -167,7 +173,7 @@ function CardHead({ k, title, children }: { k: string; title: string; children: 
   return (
     <header className="homecard__head">
       <span className="homecard__mark">
-        {list ? <ProjectMark color={list.color} icon={list.icon} size="sm" /> : isWidget(k) ? <Icon name={WIDGETS[k].icon} /> : null}
+        {list ? <ProjectMark color={list.color} icon={list.icon} size="sm" /> : isWidget(k) ? <Icon name={WIDGETS[k].icon} /> : k.startsWith('q:') ? <Icon name="funnel" /> : null}
       </span>
       <span className="homecard__title" dir="auto">
         {title}

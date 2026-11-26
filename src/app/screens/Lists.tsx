@@ -357,6 +357,8 @@ export function Lists() {
           </div>
         </Sortable>
 
+        {arranging ? null : <StockLink />}
+
         {arranging ? null : <CollectedNotes />}
 
         {arranging ? null : (
@@ -411,5 +413,24 @@ export function Lists() {
         </div>
       ) : null}
     </>
+  );
+}
+
+/** Under the folders: the way to Stock (everything we count, from every folder). */
+function StockLink() {
+  const hub = useHub();
+  const all = hub.stockItems();
+  const low = all.filter((i) => hub.stockLow(i)).length;
+  return (
+    <button type="button" className="stocklink" onClick={() => navigate({ name: 'stock' })}>
+      <span className="stocklink__mark">
+        <Icon name="package" />
+      </span>
+      <span className="stocklink__text">
+        <span className="stocklink__title">Stock</span>
+        <span className="stocklink__sub">{all.length ? `${all.length} counted${low ? ` · ${low} running low` : ''}` : 'Count what you keep at home'}</span>
+      </span>
+      <Icon name="chevron-right" className="icon--sm" />
+    </button>
   );
 }

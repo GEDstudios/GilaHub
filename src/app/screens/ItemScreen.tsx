@@ -3,6 +3,7 @@ import { addPhotoTo, Photos } from '../components/Photos';
 import { haptic } from '../ui/haptics';
 import { useBackGuard } from '../ui/backGuard';
 import { PlacePicker } from '../components/PlacePicker';
+import { StockCount } from '../components/ItemRow';
 import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
 import { useEffect, useRef, useState } from 'react';
@@ -581,7 +582,7 @@ export function ItemScreen({ id }: { id: string }) {
         <div className={`hero hero--item ${item.done ? 'is-done' : ''}`} style={lineVars(list?.color)}>
           <div className="hero__top">
             <AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} onDraft={setTitleDraft} />
-            <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />
+            {item.stock != null ? <StockCount item={item} readonly={!editable} /> : <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />}
           </div>
           <p className="hero__sub">
             {item.submittedAt && !item.done

@@ -4,6 +4,8 @@ import { onThisDay } from './moments';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';
 import { keepDormant } from './tabs';
 import { quickItems } from './quick';
+import { getPrefs } from './prefs';
+import { runQuery } from './query';
 import type { IconName } from './ui/Icon';
 import { openCount, type TodayView } from './views';
 
@@ -43,11 +45,19 @@ export const WIDGETS: Record<WidgetKey, WidgetDef> = {
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);
 export const projectKey = (listId: string) => `l:${listId}`;
 export const listIdOf = (key: string): string | null => (key.startsWith('l:') ? key.slice(2) : null);
+/** A filtered list of mine ("q:<id>", its definition in my prefs). */
+export const queryKey = (id: string) => `q:${id}`;
+export const queryIdOf = (key: string): string | null => (key.startsWith('q:') ? key.slice(2) : null);
+const savedList = (key: string) => {
+  const id = queryIdOf(key);
+  return id ? (getPrefs().savedLists[id] ?? null) : null;
+};
 
 /** A slot's title: the widget's name, or the pinned project's. */
 export function slotTitle(hub: Hub, key: string): string {
   const id = listIdOf(key);
   if (id) return hub.list(id)?.name ?? 'A folder';
+  if (queryIdOf(key)) return savedList(key)?.name ?? 'A filtered list';
   return isWidget(key) ? WIDGETS[key].title(hub) : key;
 }
 
@@ -69,6 +79,8 @@ export function homeOf(hub: Hub): HomeSlot[] {
       // Deleted, archived, or now out of my sight (made Only me by the partner).
       if (!lists.has(id) || pins >= MAX_HOME_PROJECTS) continue;
       pins++;
+    } else if (queryIdOf(s.key)) {
+      if (!savedList(s.key)) continue; // deleted (or not here yet from my other device)
     } else if (!isWidget(s.key)) continue; // from an older or newer build
     seen.add(s.key);
     out.push({ key: s.key, on: s.on !== false });
@@ -150,7 +162,7 @@ export function reorderHome(hub: Hub, visibleKeys: readonly string[]): void {
 /** Hide a widget (it stays, off) or unpin a project (it goes). */
 export function hideHome(hub: Hub, key: string): void {
   const all = homeOf(hub);
-  setHome(hub, listIdOf(key) ? all.filter((s) => s.key !== key) : all.map((s) => (s.key === key ? { ...s, on: false } : s)));
+  setHome(hub, listIdOf(key) || queryIdOf(key) ? all.filter((s) => s.key !== key) : all.map((s) => (s.key === key ? { ...s, on: false } : s)));
 }
 
 /** Bring a widget back, or pin a project: it goes right after the last visible block. Returns whether it's shown now. */
@@ -160,6 +172,8 @@ export function showHome(hub: Hub, key: string): boolean {
   if (id) {
     if (!hub.lists().some((l) => l.id === id)) return false;
     if (!all.some((s) => s.key === key) && pinnedProjects(hub).length >= MAX_HOME_PROJECTS) return false;
+  } else if (queryIdOf(key)) {
+    if (!savedList(key)) return false;
   } else if (!isWidget(key)) return false;
   const shown = new Set(visibleHome(hub).map((s) => s.key));
   const rest = all.filter((s) => s.key !== key);
@@ -297,6 +311,11 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
   if (id) {
     const n = openCount(hub, id);
     return join([n > 0 && `${n} open`], 'Nothing open');
+  }
+  const saved = savedList(key);
+  if (saved) {
+    const n = runQuery(hub, saved.query).length;
+    return join([n > 0 && `${n} ${n === 1 ? 'task' : 'tasks'}`], 'Nothing right now');
   }
   switch (key) {
     case 'today': {

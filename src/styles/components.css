@@ -8692,3 +8692,227 @@ section.aisle.is-settling-in > .rows {
     text-underline-offset: 3px;
   }
 }
+
+/* Search: what it understood (tap to drop), and ways to narrow it down */
+.searchlayer__parts {
+  margin: 2px 0 10px;
+}
+
+.searchlayer__label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.searchlayer__ideas .tokens {
+  gap: 6px;
+}
+
+/* Edit Today: picking a folder from the tree */
+.homeghost__tree {
+  padding: 4px 8px 10px;
+}
+
+/* A filtered list: making it, and its block on Today */
+.savedlist__name {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.savedlist__rows {
+  margin-bottom: 18px;
+}
+
+.savedlist__row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  padding: 0 14px;
+  text-align: start;
+}
+
+.savedlist__row + .savedlist__row,
+.savedlist__rows .place + .savedlist__row {
+  border-top: 1px solid var(--line);
+}
+
+.savedlist__rows .place,
+.savedlist__rows .tagpick {
+  padding: 4px 10px 12px;
+}
+
+.savedlist__switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 2px 0;
+  font-weight: 500;
+}
+
+.savedlist__count {
+  margin: 20px 0 10px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-3);
+}
+
+.savedlist__remove {
+  display: block;
+  margin: 14px auto 0;
+  color: var(--text-3);
+}
+
+.savedlist__more {
+  margin: 8px 4px 0;
+}
+
+/* Where a tick would be: how many are in (tap: used one) */
+.stockcount {
+  flex: none;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--tile-2);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  transition: transform 140ms var(--spring), background 140ms var(--ease);
+}
+
+.stockcount:active:not(:disabled) {
+  transform: scale(0.88);
+}
+
+.stockcount.is-low {
+  background: #ffe7a8;
+}
+
+.stockcount.is-out {
+  background: var(--danger);
+  color: #fff;
+}
+
+.stockcount:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.hero .stockcount {
+  min-width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  font-size: 22px;
+  background: rgb(255 255 255 / 0.55);
+}
+
+/* ============================================================ Stock: the page */
+.stockadd {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.stockadd__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.stockadd__btn {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.stockadd__where {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 4px 0;
+  color: var(--text-3);
+}
+
+.stock .section:first-of-type {
+  margin-top: var(--space-4);
+}
+
+.stockrow {
+  gap: 12px;
+}
+
+.stockrow__step {
+  flex: none;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.stockrow.is-low .stockline__n {
+  color: #9a6a00;
+}
+
+.stockrow.is-out .stockline__n {
+  color: var(--danger);
+}
+
+.stock__empty {
+  margin-top: var(--space-5);
+  text-align: center;
+}
+
+/* On Folders: the way to Stock */
+.stocklink {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: var(--space-4);
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--tile);
+  text-align: start;
+  color: var(--text);
+  transition: background 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.stocklink:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) {
+  .stocklink:hover {
+    background: var(--tile-2);
+  }
+}
+
+.stocklink__mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.stocklink__text {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.stocklink__title {
+  font-weight: 600;
+}
+
+.stocklink__sub {
+  font-size: 13px;
+  color: var(--text-3);
+}

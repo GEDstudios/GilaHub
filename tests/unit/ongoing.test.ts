@@ -328,3 +328,33 @@ describe('Stock going under a task', () => {
     expect(guy.stockPlace(guy.item(cups)!)).toEqual({ listId: party, parentId: shopFor });
   });
 });
+
+describe('Counted things stay', () => {
+  it('a counted thing is never ticked done (so never cleared away)', async () => {
+    const guy = await person('guy');
+    const l = guy.createList({ name: 'Pantry' });
+    const id = guy.addItem(l, { title: 'Rice' });
+    guy.setStock(id, { stock: 4 });
+    guy.toggle(id);
+    expect(guy.item(id)?.done).toBe(false);
+    guy.clearDone([l]);
+    expect(guy.item(id)?.archived ?? false).toBe(false);
+    expect(guy.stockItems().map((i) => i.title)).toEqual(['Rice']);
+  });
+});
+
+describe('A filtered list on Today', () => {
+  it('shows as a block while it exists, and goes when it is deleted', async () => {
+    const { setPrefs, getPrefs } = await import('../../src/app/prefs');
+    const { showHome, visibleHome, queryKey } = await import('../../src/app/home');
+    const guy = await person('guy');
+    guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    setPrefs({ savedLists: { a1: { name: 'Work, next week', query: { due: 'nextweek' } } } });
+    expect(showHome(guy, queryKey('a1'))).toBe(true);
+    expect(visibleHome(guy).map((s) => s.key)).toContain('q:a1');
+    setPrefs({ savedLists: {} });
+    expect(visibleHome(guy).map((s) => s.key)).not.toContain('q:a1');
+    expect(showHome(guy, queryKey('nope'))).toBe(false);
+    void getPrefs;
+  });
+});
