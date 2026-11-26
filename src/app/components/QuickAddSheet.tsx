@@ -19,8 +19,7 @@ import { listChip, ParsedToken, tagChip, useCompose, type ComposeSeed } from './
  * colour card, with every option right under it: the project, subtasks (typed in a list, or in
  * the words: "Pack: towels, hats"), date, repeat, notification, who, who sees it, urgent. It opens pointed at where you
  * are: `listId` (any kind of project), `parentId` (a step of this item), `defaultDue` (a
- * day), else the last project you added to, else To do. Shopping stays open for the next
- * item until Done.
+ * day), else the last folder you added to, else To do. Add puts it there and closes.
  */
 /**
  * A thing half-written in New is kept on this device while the sheet is open, so a reload (an
@@ -110,7 +109,7 @@ export function QuickAddSheet({
       {initial ? (
         <Composer listId={initial.id} parentId={parentId ?? null} defaultDue={defaultDue} route={route && !!listId} initialText={text} onDone={onClose} />
       ) : (
-        <p className="hint">Make a project first. Everything you add lives in one.</p>
+        <p className="hint">Make a folder first. Everything you add lives in one.</p>
       )}
     </Sheet>
   );
@@ -144,7 +143,6 @@ function Composer({
   const [text, setText] = useState(initialText);
   const [roll] = useState(Math.random);
   const [asStep, setAsStep] = useState(restore ? restore.asStep : !!parentId);
-  const [added, setAdded] = useState<string[]>([]);
   const [own, setOwn] = useState<string[]>(restore?.own ?? []);
   const [stepText, setStepText] = useState('');
   const field = useRef<HTMLTextAreaElement>(null);
@@ -186,23 +184,18 @@ function Composer({
     field.current?.focus({ preventScroll: true });
   }, []);
 
-  const clear = () => {
-    setText('');
-    setOwn([]);
-    c.reset();
-    field.current?.focus();
-  };
-
-  /** Add it and stay for the next one (Done closes). "Already there" and "brought back" still say so. */
+  /** Add it and close. "Already there" and "brought back" still say so. */
   const submit = (raw?: string) => {
     if (raw === undefined && !title) return;
-    if (save(raw)) setAdded((a) => [...a, (raw ?? title).trim()]);
-    clear();
+    // The card closes; the toast says where it went when that isn't in sight.
+    if (!save(raw, false)) return;
+    saveDraft(null);
+    onDone();
   };
 
   /** Save the task and its subtasks; returns the new ids (the task, then each subtask). */
-  const save = (raw?: string): { id: string; kids: string[] } | null => {
-    const id = c.commit(raw === undefined ? undefined : raw, { listed: true });
+  const save = (raw?: string, listed = true): { id: string; kids: string[] } | null => {
+    const id = c.commit(raw === undefined ? undefined : raw, { listed });
     if (!id) return null;
     const made = hub.item(id);
     const kids = made
@@ -421,17 +414,8 @@ function Composer({
         </div>
       ) : null}
 
-      {added.length ? (
-        <p className="composer__added" aria-live="polite">
-          <Icon name="check" className="icon--sm" /> <span dir="auto">{added.slice(-4).join(', ')}</span>
-        </p>
-      ) : null}
-
       <div className="composer__foot">
-        <button type="button" className="btn btn--quiet composer__done" onClick={onDone}>
-          Done
-        </button>
-        <button type="submit" className="btn composer__add" disabled={!title}>
+        <button type="submit" className="btn btn--block composer__add" disabled={!title}>
           Add
         </button>
       </div>

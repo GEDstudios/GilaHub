@@ -172,7 +172,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
           <button type="button" className="btn btn--block onboard__cta" disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked, colors })}>
-            {busy ? 'Setting up…' : picked.length ? `Start with ${picked.length} project${picked.length > 1 ? 's' : ''}` : 'Start empty'}
+            {busy ? 'Setting up…' : picked.length ? `Start with ${picked.length} folder${picked.length > 1 ? 's' : ''}` : 'Start empty'}
           </button>
         </div>
       </main>

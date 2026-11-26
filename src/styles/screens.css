@@ -947,16 +947,6 @@ button.projcard:active {
   margin-top: 16px;
 }
 
-.composer__added {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 14px 2px 0;
-  font-size: 14px;
-  color: var(--text-2);
-  animation: row-in 220ms var(--ease) both;
-}
-
 .composer__foot {
   display: flex;
   gap: 10px;
@@ -965,11 +955,6 @@ button.projcard:active {
 
 .composer__foot .composer__add:not(.btn--block) {
   flex: 1;
-}
-
-.composer__done {
-  flex: 0 0 auto;
-  min-width: 96px;
 }
 
 .composer__steps {

@@ -671,7 +671,7 @@ function About({ me, partner }: { me: Member; partner: Member | undefined }) {
           <OptRow
             icon="sparkle"
             title="Show me around"
-            sub="Start here: a few things to try, in a project of your own"
+            sub="Start here: a few things to try, in a folder of your own"
             chev
             onClick={() => navigate({ name: 'list', id: startTour(hub) })}
           />

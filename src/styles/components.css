@@ -3450,27 +3450,27 @@ html.is-dragging * {
   font-weight: 400;
 }
 
-/* Mixed Hebrew/English: each string keeps its direction but lines up with its neighbours. */
+/* Mixed Hebrew/English: each string lines up by its own direction (Hebrew from the right). */
 .row__title,
 .band__title,
 .hero__title,
 .hero__titleinput,
 .optrow__text,
 .ccard__input,
+.ccard__title,
 .addrow input,
-.searchlayer__box input {
-  text-align: left;
-}
-
-:root[dir='rtl'] .row__title,
-:root[dir='rtl'] .band__title,
-:root[dir='rtl'] .hero__title,
-:root[dir='rtl'] .hero__titleinput,
-:root[dir='rtl'] .optrow__text,
-:root[dir='rtl'] .ccard__input,
-:root[dir='rtl'] .addrow input,
-:root[dir='rtl'] .searchlayer__box input {
-  text-align: right;
+.searchlayer__box input,
+.notes,
+.bigfield,
+textarea[dir='auto'],
+input[dir='auto'],
+p[dir='auto'],
+h1[dir='auto'],
+h2[dir='auto'],
+h3[dir='auto'],
+div[dir='auto'] {
+  text-align: start;
+  unicode-bidi: plaintext;
 }
 
 .addrow input:focus-visible,
@@ -7300,24 +7300,24 @@ textarea.nf__write {
   box-shadow: 0 0 0 3px rgb(10 10 4 / 0.85);
 }
 
-/* Something landed here (a note kept, into Projects): a squash, a bounce, a little glow. */
+/* Something landed here (a note kept, into Folders): a squash, a bounce. */
 .tab.is-catch,
 .topnav__tab.is-catch {
-  animation: tab-catch 620ms var(--spring);
+  animation: tab-catch 700ms var(--spring);
 }
 
 @keyframes tab-catch {
   0% {
     transform: scale(1);
   }
-  18% {
-    transform: scale(1.18, 0.82) translateY(3px);
+  16% {
+    transform: scale(1.2, 0.8) translateY(3px);
   }
-  42% {
-    transform: scale(0.92, 1.1) translateY(-5px);
+  40% {
+    transform: scale(0.9, 1.12) translateY(-6px);
   }
-  66% {
-    transform: scale(1.05, 0.96);
+  64% {
+    transform: scale(1.06, 0.95);
   }
   100% {
     transform: scale(1);
@@ -7327,7 +7327,108 @@ textarea.nf__write {
 .tab.is-catch .icon,
 .topnav__tab.is-catch .icon {
   color: var(--ink);
-  filter: drop-shadow(0 0 6px var(--me-light, var(--lemon)));
+}
+
+/* The flight's trail: the dashed ink line a held note wears, drawn along its arc. */
+.flytrail {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147482999;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.flytrail__line {
+  fill: none;
+  stroke: rgb(10 10 4 / 0.38);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 1 7;
+}
+
+.flytrail__reveal {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 8;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+}
+
+/* The catch: a small note in its colour pops up out of the folder and tucks back in; ink strokes burst. */
+.catchfx {
+  position: fixed;
+  width: 0;
+  height: 0;
+  z-index: 2147483001;
+  pointer-events: none;
+}
+
+.catchfx__note {
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--c, var(--lemon));
+  box-shadow:
+    0 0 0 1.5px var(--ink),
+    0 3px 6px -2px rgb(10 10 4 / 0.3);
+  animation: catch-note 760ms var(--spring) both;
+}
+
+@keyframes catch-note {
+  0% {
+    transform: translateY(2px) rotate(-8deg) scale(0.4);
+    opacity: 0;
+  }
+  22% {
+    transform: translateY(-22px) rotate(10deg) scale(1.1);
+    opacity: 1;
+  }
+  48% {
+    transform: translateY(-18px) rotate(-6deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(2px) rotate(0deg) scale(0.35);
+    opacity: 0;
+  }
+}
+
+.catchfx i {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 2px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: rotate(var(--a)) translateY(-14px);
+  transform-origin: 1px 1px;
+  opacity: 0;
+  animation: catch-ink 520ms 60ms var(--ease) both;
+}
+
+.catchfx i:nth-child(odd) {
+  background: var(--c, var(--lemon));
+  box-shadow: 0 0 0 1px rgb(10 10 4 / 0.55);
+}
+
+@keyframes catch-ink {
+  0% {
+    transform: rotate(var(--a)) translateY(-12px) scaleY(0.3);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateY(-26px) scaleY(1);
+    opacity: 0;
+  }
 }
 
 /* A flying copy: no hover, no transition of its own. */

@@ -403,7 +403,7 @@ export function ItemScreen({ id }: { id: string }) {
           // Where it lives, from the top: every step goes there; its ⌄ moves the task there (asked first).
           <PathCrumbs
             steps={[
-              { key: 'projects', label: 'Projects', go: () => navigate({ name: 'lists' }) },
+              { key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }) },
               ...[...(list ? hub.listPath(list.id) : []), ...(list ? [list] : [])].map((l) => ({
                 key: l.id,
                 label: l.name,

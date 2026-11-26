@@ -4,8 +4,8 @@ import { GLYPHS } from './icons.gen';
 
 /**
  * My person's cursor, as the computer's live cursor draws mine: the Gila Duo arrow, its light in
- * their colour, a white edge. It isn't still for long: now and then it waves (the open hand),
- * hops, wiggles, loops, clicks or peeks; a tap asks it for one. Calm when motion is turned down.
+ * their colour, a white edge. Now and then, quietly, it hops, wiggles, loops, clicks or peeks;
+ * tap it and it waves (the open hand) back. Calm when motion is turned down.
  */
 type Trick = 'wave' | 'hop' | 'wiggle' | 'loop' | 'click' | 'peek';
 const TRICKS: Trick[] = ['wave', 'hop', 'wiggle', 'loop', 'click', 'peek'];
@@ -32,9 +32,9 @@ export function PersonCursor({ color, className = '' }: { color: LineColor; clas
 
   const play = (t?: Trick) => {
     if (calm()) return;
-    // Never the same one twice in a row; a wave more often than the rest.
-    const pool = TRICKS.filter((x) => x !== last.current);
-    const next = t ?? (last.current !== 'wave' && Math.random() < 0.35 ? 'wave' : pool[Math.floor(Math.random() * pool.length)]);
+    // Never the same one twice in a row; a wave only when it's tapped.
+    const pool = TRICKS.filter((x) => x !== last.current && x !== 'wave');
+    const next = t ?? pool[Math.floor(Math.random() * pool.length)];
     last.current = next;
     setTrick(null);
     requestAnimationFrame(() => setTrick(next));
@@ -44,18 +44,16 @@ export function PersonCursor({ color, className = '' }: { color: LineColor; clas
 
   useEffect(() => {
     if (calm()) return;
-    // A wave hello soon after it shows, then something every few seconds.
-    const hello = window.setTimeout(() => play('wave'), 900);
+    // Something small every while; never a wave by itself.
     let loop = 0;
     const again = () => {
       loop = window.setTimeout(() => {
         if (document.visibilityState === 'visible') play();
         again();
-      }, 3200 + Math.random() * 3200);
+      }, 7000 + Math.random() * 7000);
     };
     again();
     return () => {
-      window.clearTimeout(hello);
       window.clearTimeout(loop);
       window.clearTimeout(timer.current);
     };
@@ -68,8 +66,10 @@ export function PersonCursor({ color, className = '' }: { color: LineColor; clas
       aria-hidden="true"
       onPointerDown={(e) => {
         e.stopPropagation();
-        play();
+        play('wave');
       }}
+      // A tap on the cursor is for it (a wave), not for what it sits on.
+      onClick={(e) => e.stopPropagation()}
     >
       <svg viewBox="-12 -12 280 280" className="pcursor__svg">
         {trick === 'wave' ? <Glyph name="hand" light={light} /> : <Glyph name="cursor-arrow" light={light} turn="translate(34 34) rotate(22) scale(0.84) translate(-34 -34)" />}

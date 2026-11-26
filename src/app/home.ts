@@ -43,7 +43,7 @@ export const listIdOf = (key: string): string | null => (key.startsWith('l:') ? 
 /** A slot's title: the widget's name, or the pinned project's. */
 export function slotTitle(hub: Hub, key: string): string {
   const id = listIdOf(key);
-  if (id) return hub.list(id)?.name ?? 'A project';
+  if (id) return hub.list(id)?.name ?? 'A folder';
   return isWidget(key) ? WIDGETS[key].title(hub) : key;
 }
 

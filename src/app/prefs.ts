@@ -17,6 +17,8 @@ export interface Prefs {
   haptics: boolean;
   /** Today: "n from earlier" is open. */
   earlierOpen: boolean;
+  /** Today: what my person asked of me is open (it waits folded; it's rarely for right now). */
+  asksOpen: boolean;
   /** Today: the invite card stays away until then (ms; 0 = shown). */
   inviteHiddenUntil: number;
   /** When this device last downloaded a backup (ms), for Settings and the reset nudge. */
@@ -49,6 +51,7 @@ const DEFAULTS: Prefs = {
   showDone: {},
   haptics: true,
   earlierOpen: false,
+  asksOpen: false,
   inviteHiddenUntil: 0,
   lastBackupAt: null,
   ideasTag: true,

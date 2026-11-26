@@ -84,13 +84,13 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
             disabled={full}
             aria-expanded={picking}
             onClick={() => setPicking(!picking)}
-            title={full ? `Up to ${MAX_HOME_PROJECTS} projects` : undefined}
+            title={full ? `Up to ${MAX_HOME_PROJECTS} folders` : undefined}
           >
             <span className="homeghost__add">
               <Icon name="folder" className="icon--sm" />
             </span>
             <span className="homeghost__text">
-              <span className="homeghost__title">Pin a project</span>
+              <span className="homeghost__title">Pin a folder</span>
               <span className="homeghost__sub">{full ? `Up to ${MAX_HOME_PROJECTS}` : 'Its open things, right here'}</span>
             </span>
           </button>

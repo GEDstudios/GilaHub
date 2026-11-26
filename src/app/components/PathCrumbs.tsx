@@ -44,7 +44,7 @@ export function PathCrumbs({ steps }: { steps: Crumb[] }) {
 /** A project's way here from the top: Projects, then each folder it sits in. */
 export function projectPath(hub: Hub, id: string): Crumb[] {
   return [
-    { key: 'projects', label: 'Projects', go: () => navigate({ name: 'lists' }) },
+    { key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }) },
     ...hub.listPath(id).map((l) => ({ key: l.id, label: l.name, go: () => navigate({ name: 'list', id: l.id }), drop: l.id })),
   ];
 }

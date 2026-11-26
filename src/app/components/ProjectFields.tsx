@@ -33,7 +33,7 @@ export function ListVisOptions({ value, owner, onPick }: { value: Visibility; ow
         onPick={(v) => onPick(listVisOf(hub, v))}
         options={choices.map((v) => ({ value: v, label: visLabel(v, partner?.name), icon: VIS_ICON[v] }))}
       />
-      <p className="panel__hint">{now === 'theirs' && partner ? `${partner.name}’s project. You both see it and can help.` : visHint(now, partner?.name ?? null)}</p>
+      <p className="panel__hint">{now === 'theirs' && partner ? `${partner.name}’s folder. You both see it and can help.` : visHint(now, partner?.name ?? null)}</p>
     </>
   );
 }

@@ -4,7 +4,7 @@ import type { Item } from '../../core/model';
 import { useHub, usePartnerHere } from '../context';
 import { summaryOf, weekBy, weekCounts } from '../home';
 import { onThisDay } from '../moments';
-import { use24h, usePrefs } from '../prefs';
+import { setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -28,6 +28,8 @@ const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 /** Asks that are mine to do now: undated, or due by today (a later one waits in the week, on its day). */
 const asksNow = (v: TodayView, day: string) => v.asked.filter((i) => !i.due || i.due <= day);
+/** Of those, the ones that wait folded under Today (an urgent one is in the list itself). */
+const asksFolded = (v: TodayView, day: string) => asksNow(v, day).filter((i) => !i.urgent);
 
 // ---------------------------------------------------------------- the day's card
 
@@ -43,12 +45,13 @@ export function DayCard({ v, day }: { v: TodayView; day: string }) {
   const partner = hub.partner();
   const here = usePartnerHere();
   const h24 = use24h(usePrefs());
-  const left = summaryOf(hub, v).n;
+  // What's mine today; what my person asked waits folded (unless it's urgent), so it isn't counted.
+  const left = summaryOf(hub, v).n - asksFolded(v, day).length;
   const done = v.doneToday;
   const total = left + done;
   const now = new Date();
   const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const next = v.today.find((i) => i.dueTime && i.dueTime >= hm) ?? v.today[0] ?? v.earlier[0] ?? asksNow(v, day)[0];
+  const next = v.today.find((i) => i.dueTime && i.dueTime >= hm) ?? v.today[0] ?? v.earlier[0] ?? asksNow(v, day).find((i) => i.urgent);
   const tomorrow = v.upcoming.find((g) => g.date === addDays(day, 1))?.items.length ?? 0;
   const asks = v.awaitingOk.length + asksNow(v, day).length;
   const on = here?.listId ? hub.list(here.listId) : undefined;
@@ -62,14 +65,21 @@ export function DayCard({ v, day }: { v: TodayView; day: string }) {
       ? `Tomorrow: ${things(tomorrow)}.`
       : 'Nothing due. Enjoy it.';
 
+  // To what they asked: unfold it, then bring it into view.
   const toAsks = () => {
-    const row = document.querySelector('#today li.is-ask');
-    row?.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'center' });
-    if (row) {
-      row.classList.remove('row--flash');
-      void (row as HTMLElement).offsetWidth;
-      row.classList.add('row--flash');
-    }
+    setPrefs({ asksOpen: true });
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const at = document.querySelector('#today .homeasks') ?? document.querySelector('#today li.is-ask');
+        at?.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'center' });
+        const row = document.querySelector('#today li.is-ask');
+        if (row) {
+          row.classList.remove('row--flash');
+          void (row as HTMLElement).offsetWidth;
+          row.classList.add('row--flash');
+        }
+      }),
+    );
   };
 
   return (
@@ -112,43 +122,72 @@ export function DayCard({ v, day }: { v: TodayView; day: string }) {
 
 /**
  * Everything I have to do now, as one list in the order to do it: an OK I owe my person (OK /
- * Not yet under it), what's from earlier ("since Tue"), today's in time order, then what my
- * person asked of me ("Hila asked"). Ticked rows strike and fold.
+ * Not yet under it), what's from earlier ("since Tue"), today's in time order. What my person
+ * asked of me waits under it, folded in one quiet line ("Hila asked you for 2 things"): it's
+ * rarely for right now. An urgent ask is in the list itself. Ticked rows strike and fold.
  */
 export function TodayList({ v, day, settle }: { v: TodayView; day: string; settle: Settle<Item> }) {
   const hub = useHub();
+  const prefs = usePrefs();
+  const partner = hub.partner();
   const ok = settle.view('ok', v.awaitingOk);
   const late = settle.view('earlier', v.earlier);
   const rows = settle.view('today', v.today);
-  const asked = settle.view('asked', asksNow(v, day));
-  const n = v.awaitingOk.length + v.earlier.length + v.today.length + asksNow(v, day).length;
-  if (!ok.length && !late.length && !rows.length && !asked.length) return null;
+  const loud = settle.view('asked!', asksNow(v, day).filter((i) => i.urgent));
+  const folded = asksFolded(v, day);
+  const quiet = settle.view('asked', folded);
+  const open = prefs.asksOpen;
+  const n = v.awaitingOk.length + v.earlier.length + v.today.length + loud.length;
+  if (!ok.length && !late.length && !rows.length && !loud.length && !quiet.length) return null;
+  const who = partner?.name ?? 'Your partner';
   return (
     <section className="section homelist" id="today">
       <div className="section__head">
         <h2 className="section__title">
           Today
-          <span className="section__count num">{n}</span>
+          {n ? <span className="section__count num">{n}</span> : null}
         </h2>
       </div>
-      <ul className="rows">
-        {ok.map(({ row: i, settling }) =>
-          i.submittedAt && i.requestedBy === hub.meId ? (
-            <ItemRow key={i.id} item={i} settling={settling} showList dateMode="none" liClass="is-ask" below={<RequestActions item={i} className="row__acts" />} />
-          ) : (
-            <ItemRow key={i.id} item={i} settling={settling} showList liClass="is-ask" />
-          ),
-        )}
-        {late.map(({ row: i, settling }) => (
-          <ItemRow key={i.id} item={i} showList settling={settling} />
-        ))}
-        {rows.map(({ row: i, settling }) => (
-          <ItemRow key={i.id} item={i} showList settling={settling} />
-        ))}
-        {asked.map(({ row: i, settling }) => (
-          <ItemRow key={i.id} item={i} showList settling={settling} liClass="is-ask" />
-        ))}
-      </ul>
+      {ok.length || late.length || rows.length || loud.length ? (
+        <ul className="rows">
+          {ok.map(({ row: i, settling }) =>
+            i.submittedAt && i.requestedBy === hub.meId ? (
+              <ItemRow key={i.id} item={i} settling={settling} showList dateMode="none" liClass="is-ask" below={<RequestActions item={i} className="row__acts" />} />
+            ) : (
+              <ItemRow key={i.id} item={i} settling={settling} showList liClass="is-ask" />
+            ),
+          )}
+          {loud.map(({ row: i, settling }) => (
+            <ItemRow key={i.id} item={i} showList settling={settling} liClass="is-ask" />
+          ))}
+          {late.map(({ row: i, settling }) => (
+            <ItemRow key={i.id} item={i} showList settling={settling} />
+          ))}
+          {rows.map(({ row: i, settling }) => (
+            <ItemRow key={i.id} item={i} showList settling={settling} />
+          ))}
+        </ul>
+      ) : null}
+      {quiet.length ? (
+        <div className="homeasks">
+          <button type="button" className="quietline" aria-expanded={open} onClick={() => setPrefs({ asksOpen: !open })}>
+            {partner ? <Avatar member={partner} size="xs" /> : null}
+            <span dir="auto">
+              {who} asked you for {things(folded.length || quiet.length)}
+            </span>
+            <span className="quietline__end">
+              <Icon name="chevron-down" />
+            </span>
+          </button>
+          {open ? (
+            <ul className="rows quietline__rows">
+              {quiet.map(({ row: i, settling }) => (
+                <ItemRow key={i.id} item={i} showList settling={settling} liClass="is-ask" />
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -127,7 +127,7 @@ function Layer() {
                         {l.name}
                       </span>
                       <span className="row__meta">
-                        <span className="meta">Project</span>
+                        <span className="meta">Folder</span>
                       </span>
                     </div>
                   </li>

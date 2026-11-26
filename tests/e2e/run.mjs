@@ -82,17 +82,26 @@ async function plus(p, what = 'task') {
   await p.locator(`.addmenu__item--${what}`).click();
 }
 
-/** Add through the black + (the only way to add): write on the card, Enter, the next; Done closes it. The same in every project. */
+/** Add through the black + (the only way to add): write on the card, Enter adds it and closes. The same in every folder. */
 async function addVia(p, lines) {
-  await plus(p);
-  await p.locator('.composer__input').waitFor({ timeout: 5000 });
   for (const line of lines) {
+    await plus(p);
+    await p.locator('.composer__input').waitFor({ timeout: 5000 });
     await p.locator('.composer__input').fill(line);
     await p.locator('.composer__input').press('Enter');
+    await p.locator('.composer').waitFor({ state: 'detached', timeout: 5000 });
     await p.waitForTimeout(250);
   }
-  await p.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
-  await p.waitForTimeout(300);
+}
+/** On Today, what my person asked waits folded: open it (if it's there and shut). */
+async function openAsks(p) {
+  const fold = p.locator('#today .homeasks .quietline[aria-expanded="false"]');
+  try {
+    await fold.waitFor({ timeout: 8000 });
+    await fold.click();
+  } catch {
+    // Nothing folded (or already open).
+  }
 }
 let failures = 0;
 const check = async (label, fn) => {
@@ -119,7 +128,7 @@ try {
   await guy.getByRole('button', { name: /^next/i }).click();
   await guy.getByRole('button', { name: /home shopping/i }).click();
   await shot(guy, '02b-projects');
-  await guy.getByRole('button', { name: /start with 4 projects/i }).click();
+  await guy.getByRole('button', { name: /start with 4 folders/i }).click();
   await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
   await waitFor(() => guy.locator('.syncdot--synced').count(), 20000, 'guy synced');
   await shot(guy, '03-today-guy');
@@ -187,7 +196,7 @@ try {
     await hila.locator('.composer__input').fill('Milk');
     await hila.locator('.composer__input').press('Enter');
     await hila.getByText(/is already in/).waitFor({ timeout: 5000 });
-    await hila.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
+    await hila.locator('.composer').waitFor({ state: 'detached', timeout: 5000 });
     const n = await hila.locator('.row__title', { hasText: /^milk/i }).count();
     if (n !== 1) throw new Error(`expected 1 milk row, found ${n}`);
   });
@@ -247,18 +256,24 @@ try {
     await addVia(hila, ['Fix the kettle @guy']);
     await hila.locator('li.row', { hasText: 'Fix the kettle' }).getByText('Asked Guy').waitFor({ timeout: 5000 });
     await guy.goto(`${url}/`);
-    const row = guy.locator('#today li.row', { hasText: 'Fix the kettle' });
+    // It isn't for right now: it waits folded under Today, one quiet line, and Hila's tag on the card says so.
+    const fold = guy.locator('#today .homeasks .quietline', { hasText: 'Hila asked you for 1 thing' });
     try {
-      await row.waitFor({ timeout: 10000 });
+      await fold.waitFor({ timeout: 10000 });
     } catch {
       log('ask NOT live on guy; reloading');
       await guy.reload();
-      await row.waitFor({ timeout: 10000 });
+      await fold.waitFor({ timeout: 10000 });
     }
-    // One list of things to do: the ask is in Today, and Hila's tag on the card says so.
-    await row.getByText('Hila asked').waitFor({ timeout: 5000 });
     await guy.locator('.daycard__tag', { hasText: 'Hila asked 1' }).waitFor({ timeout: 5000 });
+    if (await guy.locator('#today li.row', { hasText: 'Fix the kettle' }).count()) throw new Error('the ask is open before it was asked for');
     await shot(guy, '09a-waiting-on-you');
+    // The tag opens it.
+    await guy.locator('.daycard__tag').click();
+    const row = guy.locator('#today li.row', { hasText: 'Fix the kettle' });
+    await row.waitFor({ timeout: 5000 });
+    await row.getByText('Hila asked').waitFor({ timeout: 5000 });
+    await shot(guy, '09a1-asks-open');
   });
 
   await check('Requests: Guy asks Hila; it shows under "You asked Hila…" on his Today', async () => {
@@ -280,12 +295,14 @@ try {
   await check('Requests: Hila does it, Guy OKs it', async () => {
     await hila.goto(`${url}/`);
     const row = hila.locator('li.row', { hasText: 'Water the balcony plants' });
+    await openAsks(hila);
     try {
       await row.waitFor({ timeout: 8000 });
       log('request row appeared live');
     } catch {
       log('request row NOT live; reloading');
       await hila.reload();
+      await openAsks(hila);
       await row.waitFor({ timeout: 8000 });
       log('request row appeared after reload');
     }
@@ -307,7 +324,7 @@ try {
   await check('Chores: a plain project; a repeating chore rolls forward when ticked', async () => {
     // An old /chores link lands on Projects; Chores is a folder like any other.
     await guy.goto(`${url}/chores`);
-    await guy.getByRole('heading', { name: 'Projects', level: 1 }).waitFor();
+    await guy.getByRole('heading', { name: 'Folders', level: 1 }).waitFor();
     await guy.locator('.projcard', { hasText: /^Chores/ }).first().click();
     await guy.getByRole('heading', { name: 'Chores', exact: true, level: 1 }).waitFor();
     await addVia(guy, ['Water the plants every week']);
@@ -327,7 +344,7 @@ try {
     if (new URL(guy.url()).pathname !== '/lists') throw new Error(`Back left Projects: ${guy.url()}`);
     await guy.locator('.projcard--new').first().click();
     await guy.locator('.sheet .ccard__input').fill('Next trip');
-    await guy.getByRole('button', { name: /create project/i }).click();
+    await guy.getByRole('button', { name: /create folder/i }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
     await shot(guy, '12-project');
   });
@@ -343,8 +360,8 @@ try {
     // It goes to the last project added to (the composer's project chip says which): go there.
     const where = (await guy.locator('.sheet .echip').first().innerText()).trim();
     await guy.getByRole('button', { name: 'Add', exact: true }).click();
-    await guy.locator('.composer__added', { hasText: 'Return the library books' }).waitFor({ timeout: 5000 });
-    await guy.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
+    // Add puts it there and closes.
+    await guy.locator('.composer').waitFor({ state: 'detached', timeout: 5000 });
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: new RegExp(`^${where}$`) }).click();
     await guy.locator('li.row', { hasText: 'Return the library books' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
@@ -431,7 +448,7 @@ try {
     await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();
     const hilaBefore = (await keys(hila)).join();
     await guy.goto(`${url}/lists`);
-    await guy.getByRole('heading', { name: 'Projects', level: 1 }).waitFor();
+    await guy.getByRole('heading', { name: 'Folders', level: 1 }).waitFor();
     const cdp = await guyCtx.newCDPSession(guy);
     const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
     const folder = guy.locator('.projslot', { has: guy.locator('.projcard__name', { hasText: /^To do$/ }) });
@@ -465,7 +482,8 @@ try {
   await check('Settings: Hila sees Guy on her card and can turn request alerts off', async () => {
     await hila.goto(`${url}/settings`);
     await hila.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
-    // Guy's cursor on her card is alive: it waves hello.
+    // Guy's cursor on her card is alive: tap it and it waves.
+    await hila.locator('.mecard__tag .pcursor').click();
     await hila.locator('.mecard__tag .pcursor.is-wave').waitFor({ timeout: 4000 });
     await shot(hila, '23a-settings-guy-waves');
     await hila.locator('.mecard__tag', { hasText: 'Guy' }).waitFor({ timeout: 5000 });
@@ -771,12 +789,12 @@ try {
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
     // The + makes a project inside this one.
     await guy.locator('.fab').first().click();
-    await guy.getByRole('menuitem', { name: 'Project inside Next trip' }).click();
+    await guy.getByRole('menuitem', { name: 'Folder inside Next trip' }).click();
     await guy.locator('.sheet .ccard__input').fill('Packing');
-    await guy.getByRole('button', { name: /create project/i }).click();
+    await guy.getByRole('button', { name: /create folder/i }).click();
     await guy.getByRole('heading', { name: 'Packing', level: 1 }).waitFor({ timeout: 5000 });
     const path = () => guy.locator('.crumbs--path').innerText().then((t) => t.replace(/\s+/g, ' ').trim());
-    if ((await path()) !== 'Projects Next trip') throw new Error(`Packing's path: ${await path()}`);
+    if ((await path()) !== 'Folders Next trip') throw new Error(`Packing's path: ${await path()}`);
     await addVia(guy, ['Passport']);
     // A new task can go under one: pick Passport in the composer's tree, and it's a subtask.
     await plus(guy);
@@ -786,13 +804,13 @@ try {
     await guy.locator('.sheet .echip', { hasText: '↳ Passport' }).waitFor({ timeout: 3000 });
     await shot(guy, '12a-subtask-pick');
     await guy.locator('.composer__input').press('Enter');
-    await guy.keyboard.press('Escape');
+    await guy.locator('.composer').waitFor({ state: 'detached', timeout: 5000 });
     await guy.locator('li.row', { hasText: 'Passport' }).locator('.row__title').click();
     await guy.locator('li.row', { hasText: 'Visa photos' }).waitFor({ timeout: 3000 });
     await addVia(guy, ['Check the expiry']);
     await guy.locator('li.row', { hasText: 'Check the expiry' }).locator('.row__title').click();
     await guy.waitForTimeout(300);
-    if ((await path()) !== 'Projects Next trip Packing Passport') throw new Error(`the task's path: ${await path()}`);
+    if ((await path()) !== 'Folders Next trip Packing Passport') throw new Error(`the task's path: ${await path()}`);
     await shot(guy, '12b-path');
     await guy.locator('.crumbs__go', { hasText: 'Next trip' }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 3000 });

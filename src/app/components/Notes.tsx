@@ -39,9 +39,9 @@ export const placeUrl = (place: string): string => href(routeOf(place));
 /** "Shopping", "Projects", a project's name, a task's title. */
 export function placeName(hub: ReturnType<typeof useHub>, place: string): string {
   const [kind, id] = place.split(':');
-  if (kind === 'list') return hub.list(id)?.name ?? 'a project';
+  if (kind === 'list') return hub.list(id)?.name ?? 'a folder';
   if (kind === 'item') return hub.item(id)?.title ?? 'a task';
-  return { today: 'Today', shop: 'Shopping', chores: 'Chores', lists: 'Projects' }[kind] ?? 'Today';
+  return { today: 'Today', shop: 'Shopping', chores: 'Chores', lists: 'Folders' }[kind] ?? 'Today';
 }
 
 /** A small, stable tilt per note. */
@@ -476,14 +476,15 @@ function StuckNote({
     openSheet((close) => <NoteSheet ids={[note.id]} onClose={close} />);
   };
 
-  // Kept: it flies off the page into Projects (where our notes are kept), which catches it.
+  // Kept: picked up, it glides into Folders (where our notes are kept), which catches it.
   const tick = () => {
-    haptic('success');
-    const flight = flyInto(el.current, tabTarget('projects'));
+    haptic('select');
+    const flight = flyInto(el.current, tabTarget('projects'), { color: `var(--${note.color})` });
     setPeeling(true);
     void flight.then(() => {
+      haptic('success');
       const undo = hub.peelNote(note.id);
-      toast('Kept in our notes 💛 (on Projects)', { action: { label: 'Undo', run: undo } });
+      toast('Kept in our notes 💛 (in Folders)', { action: { label: 'Undo', run: undo } });
     });
   };
 
@@ -552,12 +553,12 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
   if (!notes.length) return null;
   const peel = (n: Note, away = false, from?: Element | null) => {
     haptic('tick');
-    // Kept: the note flies out of the sheet into Projects, as the sheet goes.
-    if (!away) void flyInto(from?.closest('.notesheet__one')?.querySelector('.nf-wrap') ?? null, tabTarget('projects'));
+    // Kept: the note flies out of the sheet into Folders, as the sheet goes.
+    if (!away) void flyInto(from?.closest('.notesheet__one')?.querySelector('.nf-wrap') ?? null, tabTarget('projects'), { color: `var(--${n.color})` }).then(() => haptic('success'));
     setPeeling(n.id);
     setTimeout(() => {
       const undo = away ? hub.deleteNote(n.id) : hub.peelNote(n.id);
-      toast(away ? 'Deleted' : 'Kept in our notes 💛 (on Projects)', { action: { label: 'Undo', run: undo } });
+      toast(away ? 'Deleted' : 'Kept in our notes 💛 (in Folders)', { action: { label: 'Undo', run: undo } });
       setPeeling(null);
       if (notes.length === 1) onClose();
     }, away ? 380 : 120);

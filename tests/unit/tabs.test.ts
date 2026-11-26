@@ -99,7 +99,7 @@ describe('bottom bar pins', () => {
     setPins(hub, ['shop', 'chores']);
     expect(pinsOf(hub)).toEqual([S(hub)]);
     setPins(hub, ['shop', `l:${id('Chores')}`]);
-    expect(tabsOf(hub).map((t) => t.label)).toEqual(['Today', 'Shopping', 'Chores', 'Projects']);
+    expect(tabsOf(hub).map((t) => t.label)).toEqual(['Today', 'Shopping', 'Chores', 'Folders']);
   });
 
   it('keeps a sanity cap', () => {

@@ -149,7 +149,7 @@ export function tabsOf(hub: Hub): TabDef[] {
   return [
     { key: 'today', label: 'Today', path: '/', icon: 'sun' },
     ...pinsOf(hub).map((k) => opts.get(k)!),
-    { key: 'projects', label: 'Projects', path: '/lists', icon: 'folders' },
+    { key: 'projects', label: 'Folders', path: '/lists', icon: 'folders' },
   ];
 }
 

@@ -34,9 +34,10 @@ The first two must be answered in two seconds, without scrolling, every time.
 
 ## 3 · Principles for this page
 
-1. **One list of things to do.** Asks, things from earlier and today's are all *things I have
-   to do*: one list, in the order to do them. An ask wears its "Hila asked" tag; a late thing
-   says "since Tue"; an OK I owe shows OK / Not yet. No second list.
+1. **One list of things to do.** Things from earlier and today's are *things I have to do*: one
+   list, in the order to do them. A late thing says "since Tue"; an OK I owe shows OK / Not yet.
+   What my person asked of me is rarely for right now, so it waits under the list, folded in one
+   quiet line ("Hila asked you for 2 things ›"); an urgent ask is in the list itself.
 2. **The card is the sentence.** One colour card, the brand's device (serif title, one plain
    sentence, a black badge), says the day in words: how many, what's next, what's late. It's in
    *my* colour: my day.
@@ -78,7 +79,7 @@ Morning, Guy!                         (screen title, date under it)
  │ You asked Hila for 1 thing ›              │
  │ ✦ Keep a moment ›                         │
  └───────────────────────────────────────────┘
- Pinned projects…
+ Pinned folders…
  Edit Today
 ```
 
@@ -88,4 +89,4 @@ On a computer: the card and Today on the left (the doing), the week and Us on th
 ## 5 · Blocks (Edit Today)
 
 `today` (always first; holds asks, OKs, late and today's), `upcoming` ("The week"), `week`
-("Us" / "Your week"), and up to 3 pinned projects. The summary card is fixed above them.
+("Us" / "Your week"), and up to 3 pinned folders. The summary card is fixed above them.

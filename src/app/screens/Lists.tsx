@@ -33,7 +33,9 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
     color: hub.freshColor(),
     // Unset until picked: the name suggests one as it's typed.
     icon: undefined,
-    visibility: initial?.visibility ?? 'shared',
+    // Inside a folder that's Mine or Only me, a new one is too (and whose it is).
+    visibility: initial?.visibility ?? parent?.visibility ?? 'shared',
+    owner: initial?.visibility ? undefined : parent && parent.visibility !== 'shared' ? (parent.owner ?? hub.meId) : undefined,
     pinned: false,
   }));
   const [picking, setPicking] = useState(false);
@@ -50,7 +52,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
 
   return (
     // No title: the card says it, its placeholder asking for the name.
-    <Sheet onClose={onClose} label={parent ? `New project in ${parent.name}` : 'New project'}>
+    <Sheet onClose={onClose} label={parent ? `New folder in ${parent.name}` : 'New folder'}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -60,11 +62,11 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
         {/* A folder from the start: the same tab on top as on Projects. */}
         <div className="ccard ccard--lg ccard--edit ccard--folder" style={lineVars(look.color)}>
           <span className="ccard__top">
-            <GrowField className="ccard__input" placeholder={parent ? `Name a project in ${parent.name}` : 'Name your new project'} value={name} onChange={setName} label="Project name" />
+            <GrowField className="ccard__input" placeholder={parent ? `Name a folder in ${parent.name}` : 'Name your new folder'} value={name} onChange={setName} label="Folder name" />
           </span>
           <span className="ccard__sub projcard__foot">
             <span>
-              {parent ? `In ${parent.name}` : 'Project'} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
+              {parent ? `In ${parent.name}` : 'Folder'} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
             </span>
             {/* Its icon, right on the card (low, as on the folders): tap it to pick another. */}
             <CardIcon icon={icon} open={picking} onToggle={() => setPicking(!picking)} />
@@ -88,7 +90,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
         <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis noIcon />
 
         <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim()}>
-          Create project
+          Create folder
         </button>
       </form>
     </Sheet>
@@ -205,7 +207,7 @@ export function ProjectCard({ list, onClick }: { list: List; onClick?: () => voi
 
 /** "+ New project" for the header, N and the sidebar; not while the bar is being arranged. */
 function NewProjectAction({ run }: { run: () => void }) {
-  useAddAction(run, 'New project');
+  useAddAction(run, 'New folder');
   return null;
 }
 
@@ -290,8 +292,8 @@ export function Lists() {
       {arranging ? null : <NewProjectAction run={newProject} />}
       <Band
         top={<SyncBadge />}
-        actions={arranging ? <DoneButton ref={doneRef} onClick={stop} /> : <NewButton label="New project" onClick={newProject} />}
-        title="Projects"
+        actions={arranging ? <DoneButton ref={doneRef} onClick={stop} /> : <NewButton label="New folder" onClick={newProject} />}
+        title="Folders"
         sub={arranging ? 'Drag folders into the bar, or tabs out of it.' : undefined}
       />
       <div className={`column${arranging ? ' is-arranging' : ''}`}>
@@ -317,7 +319,7 @@ export function Lists() {
                 <span className="projcard__plus">
                   <Icon name="plus" />
                 </span>
-                <span>New project</span>
+                <span>New folder</span>
               </button>
             )}
           </div>

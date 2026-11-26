@@ -114,7 +114,7 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
     },
     {
       key: 'project',
-      label: inside ? `Project inside ${inside.name}` : 'Project',
+      label: inside ? `Folder inside ${inside.name}` : 'Folder',
       face: <MenuGlyph kind="project" />,
       run: () => openSheet((close) => <NewProjectSheet onClose={close} parentId={inside?.id} />),
     },
@@ -152,7 +152,7 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
         aria-label={open ? 'Close' : 'New'}
         aria-expanded={open}
         aria-haspopup="menu"
-        title={open ? 'Close' : 'New: a task, a project or a note'}
+        title={open ? 'Close' : 'New: a task, a folder or a note'}
         aria-keyshortcuts="N"
         onClick={() => {
           haptic('select');

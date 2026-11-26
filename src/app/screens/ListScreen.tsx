@@ -71,7 +71,7 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
         {mineToChange ? (
           <OptRow
             icon="trash"
-            title="Delete project"
+            title="Delete folder"
             danger
             onClick={() => {
               const undo = hub.deleteList(listId);
@@ -108,7 +108,7 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
     const was = here;
     hub.setListParent(listId, to);
     onClose();
-    toast(to ? `${list.name} is in ${hub.list(to)?.name ?? 'there'}` : `${list.name} is back in Projects`, {
+    toast(to ? `${list.name} is in ${hub.list(to)?.name ?? 'there'}` : `${list.name} is back in Folders`, {
       action: { label: 'Undo', run: () => hub.setListParent(listId, was) },
     });
   };
@@ -119,7 +119,7 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
           <div className="place__row">
             <button type="button" className="place__pick" aria-current={here === null || undefined} disabled={here === null} onClick={() => go(null)}>
               <Icon name="folders" className="icon--sm" />
-              <span>Projects</span>
+              <span>Folders</span>
               <span className="place__hint">the top</span>
             </button>
           </div>
@@ -143,7 +143,7 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
 /** The project's settings button. */
 export function ProjectMenuButton({ listId }: { listId: string }) {
   const { openSheet } = useOverlays();
-  return <IconButton icon="more" label="Project settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
+  return <IconButton icon="more" label="Folder settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
 }
 
 /**
@@ -182,7 +182,7 @@ export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
       <div className={`hero hero--project hero--folder ${open === 'color' ? 'is-picking' : ''}`} style={lineVars(list.color)} onClick={onCard}>
         <div className="hero__top">
           <h1 className="hero__title">
-            <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Project name" />
+            <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Folder name" />
           </h1>
         </div>
         <div className="hero__foot">
@@ -248,7 +248,7 @@ export function ListScreen({ id }: { id: string }) {
 export function ProjectActions({ listId, label, onNew, focus }: { listId: string; label: string; onNew: () => void; focus?: { on: boolean; toggle: () => void } }) {
   return (
     <>
-      {focus?.on ? null : <IconButton icon="search" label="Search this project" onClick={() => openSearch(listId)} />}
+      {focus?.on ? null : <IconButton icon="search" label="Search this folder" onClick={() => openSearch(listId)} />}
       {focus ? <IconButton icon={focus.on ? 'pause' : 'play'} label={focus.on ? 'Pause' : 'Start'} onClick={focus.toggle} /> : null}
       {focus?.on ? null : <ProjectMenuButton listId={listId} />}
       <NewButton label={label} onClick={onNew} />
@@ -372,7 +372,7 @@ function ProjectPage({ id }: { id: string }) {
   useOnIt(focus, id, list?.name ?? '');
   const flash = usePartnerNews(v.open, focus);
   const partnerHere = usePartnerHere();
-  const label = `Add to ${list?.name ?? 'project'}`;
+  const label = `Add to ${list?.name ?? 'folder'}`;
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={id} route={inside} />);
   useAddAction(openNew, label);
 
@@ -380,7 +380,7 @@ function ProjectPage({ id }: { id: string }) {
     return (
       <>
         <Band title="Not here" onBack={() => back({ name: 'lists' })} />
-        <Empty title="This project is gone" text="It may have been deleted or made private." />
+        <Empty title="This folder is gone" text="It may have been deleted or made private." />
       </>
     );
   }
@@ -519,7 +519,7 @@ function SubProjects({ list }: { list: List }) {
             <span className="projcard__plus">
               <Icon name="plus" />
             </span>
-            <span>Project inside</span>
+            <span>Folder inside</span>
           </button>
         </div>
       </Sortable>
