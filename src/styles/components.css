@@ -4950,3 +4950,15 @@ html.is-editing .stickyboard {
 .arrival__act:active {
   transform: scale(0.97);
 }
+
+/* "Waiting on you": Urgent only, on its header */
+.section__head > .echip {
+  align-self: center;
+  flex: none;
+}
+
+.asks__filter {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 10px;
+}

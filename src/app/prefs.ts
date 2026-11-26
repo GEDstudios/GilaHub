@@ -25,6 +25,8 @@ export interface Prefs {
   ideasTag: boolean;
   /** Small sounds on ticks, adds, drops and finished moments (this device only). */
   sounds: boolean;
+  /** Today's "Waiting on you": only what's urgent (the rest one tap away). */
+  asksUrgentOnly: boolean;
 }
 
 const KEY = 'gila-hub:prefs';
@@ -43,6 +45,7 @@ const DEFAULTS: Prefs = {
   lastBackupAt: null,
   ideasTag: true,
   sounds: true,
+  asksUrgentOnly: false,
 };
 
 function read(): Prefs {

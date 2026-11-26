@@ -583,6 +583,23 @@ try {
     await hila.locator('.stuck').waitFor({ timeout: 3000 });
   });
 
+  await check('Today: Waiting on you can show only what’s urgent, the rest a tap away', async () => {
+    await hila.goto(`${url}/`);
+    const asks = hila.locator('#home-asks');
+    await asks.getByText('Return the library books').waitFor({ timeout: 5000 });
+    await asks.getByRole('button', { name: 'Urgent only' }).click();
+    await asks.getByText('Return the library books').waitFor({ state: 'detached', timeout: 3000 });
+    await asks.getByRole('button', { name: /1 not urgent/ }).waitFor({ timeout: 3000 });
+    await shot(hila, '34-asks-urgent-only');
+    await asks.getByRole('button', { name: /1 not urgent/ }).click();
+    await asks.getByText('Return the library books').waitFor({ timeout: 3000 });
+    // It stays as picked (this phone).
+    await hila.reload();
+    await hila.locator('#home-asks').getByRole('button', { name: 'Urgent only', pressed: true }).waitFor({ timeout: 5000 });
+    await hila.locator('#home-asks').getByRole('button', { name: 'Urgent only' }).click();
+    await hila.locator('#home-asks').getByText('Return the library books').waitFor({ timeout: 3000 });
+  });
+
   // ---------- Desktop
   const desk = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const deskPage = await desk.newPage();

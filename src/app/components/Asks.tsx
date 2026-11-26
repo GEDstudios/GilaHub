@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Item } from '../../core/model';
 import { useHub } from '../context';
+import { setPrefs, usePrefs } from '../prefs';
+import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Avatar, Section } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
@@ -21,11 +23,41 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
   const hub = useHub();
   const partner = hub.partner();
   const [more, setMore] = useState(!!bare);
+  const prefs = usePrefs();
+  const [peek, setPeek] = useState(false);
   if (!partner) return null;
-  const rows = [...settle.view('ok', v.awaitingOk), ...settle.view('asked', v.asked)];
+  // Urgent only: what's urgent (and anything waiting for my OK, a quick yes); the rest a tap away.
+  const only = prefs.asksUrgentOnly && !peek;
+  const calm = v.asked.filter((i) => !i.urgent);
+  const asked = only ? v.asked.filter((i) => i.urgent) : v.asked;
+  const rows = [...settle.view('ok', v.awaitingOk), ...settle.view('asked', asked)];
+  const hidden = only ? calm.length : 0;
+  const urgentToggle = v.asked.length ? (
+    <button
+      type="button"
+      className={`echip echip--toggle echip--sm ${prefs.asksUrgentOnly ? 'is-on' : 'echip--ghost'}`}
+      aria-pressed={prefs.asksUrgentOnly}
+      onClick={() => {
+        haptic('select');
+        setPeek(false);
+        setPrefs({ asksUrgentOnly: !prefs.asksUrgentOnly });
+      }}
+    >
+      <Icon name="urgent" className="icon--sm" />
+      <span>Urgent only</span>
+    </button>
+  ) : null;
+  const calmLine = hidden ? (
+    <button type="button" className="quietline" onClick={() => setPeek(true)}>
+      {hidden} not urgent
+      <span className="quietline__end">
+        <Icon name="chevron-down" />
+      </span>
+    </button>
+  ) : null;
   const shown = more ? rows : rows.slice(0, CAP);
   const line = <AskedLine v={v} settle={settle} />;
-  if (!rows.length) return <div className="asks-quiet">{line}</div>;
+  if (!rows.length && !hidden) return <div className="asks-quiet">{line}</div>;
   const body = (
     <>
       <ul className="rows">
@@ -45,13 +77,20 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
           </span>
         </button>
       ) : null}
+      {calmLine}
       {line}
     </>
   );
   // In a sheet (the summary's person tag, when this block is off), the sheet's title says it.
-  if (bare) return body;
+  if (bare)
+    return (
+      <>
+        {urgentToggle ? <div className="asks__filter">{urgentToggle}</div> : null}
+        {body}
+      </>
+    );
   return (
-    <Section title="Waiting on you" count={v.awaitingOk.length + v.asked.length} id="home-asks">
+    <Section title="Waiting on you" count={v.awaitingOk.length + asked.length} id="home-asks" action={urgentToggle}>
       {body}
     </Section>
   );
