@@ -204,7 +204,7 @@
 
 .miniband {
   position: fixed;
-  z-index: 30;
+  z-index: var(--z-band);
   top: 0;
   left: 0;
   right: 0;
@@ -2471,7 +2471,7 @@ html.is-dragging * {
 .sheet {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: var(--z-sheet);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -2667,7 +2667,7 @@ html.is-dragging * {
  */
 .tabbar {
   position: fixed;
-  z-index: 40;
+  z-index: var(--z-bar);
   left: 12px;
   right: 12px;
   bottom: calc(var(--safe-bottom) + 10px);
@@ -3302,7 +3302,7 @@ html.is-dragging * {
 /* Above the tab bar and whatever floats on it (the shopbar sets --float-h). */
 .toasts {
   position: fixed;
-  z-index: 80;
+  z-index: var(--z-toast);
   left: 0;
   right: 0;
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px + var(--float-h, 0px));
@@ -3744,7 +3744,7 @@ div[dir='auto'] {
 .ideatag {
   /* Placed against the page, not the screen: it leaves with the header when you scroll. */
   position: absolute;
-  z-index: 19;
+  z-index: calc(var(--z-raised) - 1);
   top: calc(var(--safe-top) + 12px);
   left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) + 50px);
   min-width: 44px;
@@ -4037,7 +4037,7 @@ html:has(.sheet) .ideatag {
  */
 .fab {
   position: fixed;
-  z-index: 36;
+  z-index: calc(var(--z-fab) + 1);
   right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px);
   width: 64px;
@@ -4291,7 +4291,7 @@ html:has(.iconlib) .fab {
 /* The notes on a screen sit on a board laid over the page (it scrolls with it), each where it was left. */
 .stickyboard {
   position: absolute;
-  z-index: 18;
+  z-index: calc(var(--z-raised) - 2);
   top: var(--safe-top);
   left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter));
   width: min(var(--column), calc(100% - 2 * var(--gutter)));
@@ -4695,7 +4695,7 @@ html:has(.home--editing, .aislearr) .stickyboard {
 /* ============================================================ Arrivals (in-app notifications) */
 .arrival {
   position: fixed;
-  z-index: 80;
+  z-index: var(--z-toast);
   top: calc(var(--safe-top) + 10px);
   left: 50%;
   width: min(calc(100% - 24px), 440px);
@@ -5885,13 +5885,13 @@ textarea.nf__write {
 /* Touched: it comes off the board a little, to the top. */
 @media (hover: hover) {
   .pinboard__note:hover {
-    z-index: 20;
+    z-index: var(--z-raised);
     transform: scale(1.06) rotate(-2deg);
   }
 }
 
 .pinboard__note:active {
-  z-index: 20;
+  z-index: var(--z-raised);
   transform: scale(1.04);
 }
 
@@ -6827,7 +6827,7 @@ textarea.nf__write {
 
 .addmenu__veil {
   position: fixed;
-  z-index: 35;
+  z-index: var(--z-fab);
   inset: 0;
   background: rgb(250 250 248 / 0.72);
   backdrop-filter: blur(3px);
@@ -6838,7 +6838,7 @@ textarea.nf__write {
 /* The choices stand on the + : right-aligned, the nearest first */
 .addmenu {
   position: fixed;
-  z-index: 36;
+  z-index: calc(var(--z-fab) + 1);
   right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px + 76px);
   display: flex;
@@ -7437,7 +7437,7 @@ textarea.nf__write {
   position: fixed;
   width: 0;
   height: 0;
-  z-index: 2147483001;
+  z-index: calc(var(--z-fx) + 1);
   pointer-events: none;
 }
 
@@ -8496,7 +8496,7 @@ textarea.nf__write {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 200;
+  z-index: var(--z-drag);
   pointer-events: none;
   will-change: transform;
 }
@@ -8534,7 +8534,7 @@ textarea.nf__write {
 /* Held like a task: it leans and lifts; the others slide out of its way, and it settles into the gap */
 section.aisle.is-moving {
   position: relative;
-  z-index: 20;
+  z-index: var(--z-raised);
   transition: none;
   transform-origin: 50% 20%;
 }
@@ -8607,7 +8607,7 @@ section.aisle.is-settling-in > .rows {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 200;
+  z-index: var(--z-drag);
   pointer-events: none;
   will-change: transform;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { haptic } from './haptics';
+import { CLICK_SWALLOW_MS, HOLD, SLOP } from './tokens';
 
 export interface Point {
   x: number;
@@ -78,10 +79,10 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
         const far = Math.hypot(p.x - start.x, p.y - start.y);
         // A finger that moves before the hold is the page scrolling.
         if (start.touch) {
-          if (far > 8) end();
+          if (far > SLOP.hold) end();
           return;
         }
-        if (far > 6) lift(p);
+        if (far > SLOP.mouse) lift(p);
         return;
       }
       move(p);
@@ -90,7 +91,7 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
       if (!start || e.pointerId !== start.id) return;
       if (dragging) {
         swallow = true;
-        setTimeout(() => (swallow = false), 350);
+        setTimeout(() => (swallow = false), CLICK_SWALLOW_MS);
         latest.current.drop({ x: e.clientX, y: e.clientY }, origin);
       }
       end();
@@ -101,7 +102,7 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
       e.stopPropagation();
       start = { x: e.clientX, y: e.clientY, id: e.pointerId, touch: e.pointerType === 'touch' };
       origin = { x: e.clientX, y: e.clientY };
-      if (start.touch) hold = setTimeout(() => start && lift({ x: start.x, y: start.y }), 380);
+      if (start.touch) hold = setTimeout(() => start && lift({ x: start.x, y: start.y }), HOLD.press);
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', end);

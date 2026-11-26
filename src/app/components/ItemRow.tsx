@@ -1,7 +1,7 @@
 import { useDragOut } from '../ui/dragOut';
 import { movedTo } from './TemplateAsk';
 import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
-import { diffDays, humanDate, humanTime, sinceDate, weekdayName } from '../../core/dates';
+import { humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
 import { useHub } from '../context';
@@ -19,14 +19,16 @@ import { useSettleHold } from '../ui/useSettle';
 import { useSwipe } from '../ui/swipe';
 import { TagPills } from './Tags';
 import { stepProgress, todayRef } from '../views';
+import { TOAST } from '../ui/tokens';
+import { isOpen } from '../../core/model';
+import { whenText } from '../labels';
 
 export function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
   if (!item.due) return null;
   const time = item.dueTime ? humanTime(item.dueTime, h24) : '';
   if (item.due < ref) return { text: sinceDate(item.due, ref), soft: true };
   if (item.due === ref) return time ? { text: time, soft: false } : null;
-  const d = humanDate(item.due, ref);
-  return { text: time ? `${d} · ${time}` : d, soft: false };
+  return { text: whenText(item.due, item.dueTime, ref, h24), soft: false };
 }
 
 /** Who does it, for a row's avatar (see doerOf): never the owner, never someone asked. */
@@ -70,8 +72,6 @@ export const ItemRow = memo(function ItemRow({
   liStyle?: CSSProperties;
   liClass?: string;
   dragProps?: Record<string, unknown>;
-  /** In the Ongoing card: swipe it left to take it out (no "Ongoing" pill: it's where it says). */
-  inTray?: boolean;
   /** A subtask unfolded under its task: no swipe, no unfolding of its own. */
   nested?: boolean;
   /** Its folder's name goes to the folder (off where a tap anywhere should open the task: Today). */
@@ -82,7 +82,7 @@ export const ItemRow = memo(function ItemRow({
   const { toast } = useOverlays();
   const list = hub.list(item.listId);
   const ref = todayRef();
-  const canTick = hub.canTick(item);
+  const canTick = hub.canEdit(item);
   const steps = stepProgress(hub, item.id);
   const doer = useDoer(item);
   const req = requestState(hub, item);
@@ -107,7 +107,7 @@ export const ItemRow = memo(function ItemRow({
 
   // A counted thing that's on the shopping list now (it says where; the count says the rest).
   const stockLinked = item.stock != null && item.stockLink ? hub.item(item.stockLink) : undefined;
-  const stockOn = stockLinked && !stockLinked.done && !stockLinked.archived ? stockLinked : undefined;
+  const stockOn = stockLinked && isOpen(stockLinked) ? stockLinked : undefined;
   const twin = hub.linked(item);
   const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
 
@@ -134,7 +134,7 @@ export const ItemRow = memo(function ItemRow({
       if ((p.x > box.left + edge && p.x < box.right - edge) || Math.abs(p.x - from.x) < 40) return null;
       const parent = hub.item(item.parentId);
       if (!parent) return null;
-      const sisters = parent.parentId ? hub.childrenOf(parent.parentId) : hub.children(parent.listId, null);
+      const sisters = hub.siblings(parent.listId, parent.parentId ?? null);
       const after = sisters[sisters.findIndex((x) => x.id === parent.id) + 1]?.id ?? null;
       return { el: own, listId: parent.listId, parentId: parent.parentId ?? null, before: after };
     }
@@ -324,7 +324,7 @@ export function StockCount({ item, readonly }: { item: Item; readonly?: boolean 
     haptic('select');
     linger();
     const now = hub.item(item.id);
-    if (now?.stockLink && now.stockLink !== before) toast(`${item.title}: on ${hub.list(hub.item(now.stockLink)?.listId)?.name ?? 'the list'}`, { ms: 2000 });
+    if (now?.stockLink && now.stockLink !== before) toast(`${item.title}: on ${hub.list(hub.item(now.stockLink)?.listId)?.name ?? 'the list'}`, { ms: TOAST.short });
   };
   if (open && !readonly)
     return (
@@ -354,11 +354,6 @@ export function StockCount({ item, readonly }: { item: Item; readonly?: boolean 
       {n}
     </button>
   );
-}
-
-/** "since Tue" → quick catch-up actions, for the From earlier group. */
-export function catchUpDays(due: string, ref: string): number {
-  return diffDays(due, ref);
 }
 
 /** "Also on Home shopping": the same thing lives there too; tap to go to it. */

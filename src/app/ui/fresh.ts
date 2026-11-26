@@ -1,11 +1,12 @@
 import { useSyncExternalStore } from 'react';
+import { DUR } from './tokens';
 
 /**
  * "Just added": the row you made fades in and glows for a moment wherever it shows
  * (row--fresh row--flash). After an add from the New sheet the page also brings that
  * row into view, if it is on screen at all. Rows carry data-id for that.
  */
-const FLASH_MS = 2200;
+const FLASH_MS = DUR.flash;
 let freshId: string | null = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
 const listeners = new Set<() => void>();
@@ -40,10 +41,6 @@ export function ifNotInView(id: string, fn: () => void): void {
       if (!r || r.bottom < 0 || r.top > innerHeight) fn();
     }),
   );
-}
-
-export function isFresh(id: string): boolean {
-  return freshId === id;
 }
 
 /** Is this row the one just added? */

@@ -60,7 +60,7 @@ function Layer() {
     ? []
     : filtered
       ? runQuery(hub, { ...parsed!.query, listId: scope?.id ?? parsed!.query.listId }).slice(0, 60)
-      : hub.search(term, scope ? 200 : 30).filter((i) => !scope || i.listId === scope.id || hub.listPath(i.listId).some((l) => l.id === scope.id)).slice(0, 30);
+      : hub.search(term, scope ? 200 : 30).filter((i) => !scope || hub.isWithin(i.listId, scope.id)).slice(0, 30);
   const lists = term && !scope && !filtered ? hub.lists().filter((l) => fold(l.name).includes(fold(term))) : [];
   // Ways to narrow, a tap away: urgent, the days, whose, and our tags (the ones used last first).
   const add = (word: string) => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addMonths } from '../../src/core/dates';
 import { itemKey, parseQuantity, splitPasted } from '../../src/smart/normalize';
 import { parseQuickAdd, type ParseContext } from '../../src/smart/parse';
-import { describeRule, firstDue, freshness, nextDue, shiftForAway, skipDue } from '../../src/smart/recurrence';
+import { describeRule, firstDue, nextDue, shiftForAway, skipDue } from '../../src/smart/recurrence';
 import { buyAgain, purchaseStats } from '../../src/smart/suggest';
 import type { LogEntry, RepeatRule } from '../../src/core/model';
 
@@ -41,7 +41,7 @@ describe('quick add parser', () => {
     expect(parseQuickAdd('tomorrow at the bank', ctx).title).toBe('the bank');
   });
 
-    it('parses weekdays, assignees and urgency', () => {
+  it('parses weekdays, assignees and urgency', () => {
     const r = parseQuickAdd('Book dinner friday @hila !', ctx);
     expect(r).toMatchObject({ title: 'Book dinner', due: '2026-11-27', assignee: 'h', urgent: true });
   });
@@ -171,14 +171,7 @@ describe('recurrence (two repeat types)', () => {
     expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
   });
 
-  it('uses words for freshness', () => {
-    expect(freshness('2026-12-05', '2026-11-25')).toBe('fresh');
-    expect(freshness('2026-11-27', '2026-11-25')).toBe('soon');
-    expect(freshness('2026-11-25', '2026-11-25')).toBe('today');
-    expect(freshness('2026-11-20', '2026-11-25')).toBe('whenever');
-  });
-
-  it('away mode shifts flexible chores and collapses fixed ones', () => {
+  it('shifting by a pause moves a flexible chore by the days missed; a fixed one only catches up to its next day', () => {
     expect(shiftForAway(flexible, '2026-11-20', 10, '2026-11-30')).toBe('2026-11-30');
     expect(shiftForAway(thursdays, '2026-11-12', 10, '2026-11-25')).toBe('2026-11-26');
   });

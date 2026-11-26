@@ -1,20 +1,15 @@
 /**
  * Adding, as pure rules behind the New composer
  * (docs/03-DESIGN-SYSTEM.md, "Adding"): what the typed words mean, what a chip
- * overrides, and which mode a project puts the add in.
+ * overrides.
  */
 import type { ParseResult, TokenKind } from '../smart/parse';
-import type { Draft } from './components/editors';
+
 import type { VisChoice } from './privacy';
-
-export type AddMode = 'task' | 'shopping';
-
-/** A shopping list's composer reads quantities and stays open for the next thing. */
-export const modeOf = (shop: boolean | 'shopping' | 'tasks' | undefined): AddMode => (shop === true || shop === 'shopping' ? 'shopping' : 'task');
-
+import type { Draft } from './draft';
 
 /** What the words say before any chip is touched: parsed fields over the screen's defaults. */
-export function parsedDraft(p: ParseResult, d: { mode: AddMode; defaultDue?: string | null; visibility: VisChoice }): Draft {
+export function parsedDraft(p: ParseResult, d: { defaultDue?: string | null; visibility: VisChoice }): Draft {
   return {
     due: p.due ?? d.defaultDue ?? null,
     dueTime: p.dueTime ?? null,
@@ -58,8 +53,7 @@ export function overriddenTokens(p: ParseResult, draft: Draft, patch: Partial<Dr
 }
 
 /** A sentence to type, as the composer's placeholder: one at random per open. */
-export function composerPlaceholder(mode: AddMode, partnerName: string | null | undefined, rand = Math.random()): string {
-  if (mode === 'shopping') return 'milk x2';
+export function composerPlaceholder(partnerName: string | null | undefined, rand = Math.random()): string {
   const all = ['Call mom tomorrow 6pm', 'Pay rent every 1st', ...(partnerName ? [`Fix the tap @${partnerName}`] : [])];
   return all[Math.min(all.length - 1, Math.floor(rand * all.length))];
 }

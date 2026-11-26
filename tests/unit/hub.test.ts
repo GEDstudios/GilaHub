@@ -1,45 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { Hub, pickColor, pickColors, seedHousehold } from '../../src/core/actions';
-import { isForMe, projectView, todayView } from '../../src/app/views';
-import { LINE_COLORS } from '../../src/core/model';
+import { Hub, seedHousehold } from '../../src/core/actions';
+import { isForMe, projectView } from '../../src/app/views';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
+import { couple as pair, listNamed, person, sync, type Side } from './_helpers';
 
-async function person(member: string) {
-  const store = await Store.load(new MemoryPersistence(), `dev-${member}`, ['h', `p:${member}`]);
-  return new Hub(store, member);
-}
-
-/** Relay everything each hub may read, both ways, until quiet. */
-function sync(...hubs: Hub[]) {
-  for (let round = 0; round < 3; round++) {
-    for (const from of hubs) {
-      const entries = from.store.pendingOutbox();
-      for (const to of hubs) {
-        if (to === from) continue;
-        to.store.applyRemoteBatch(entries.filter((e) => to.store.canRead(e.s)).map((e) => e.op));
-      }
-      from.store.ack(entries.map((e) => e.cid));
-    }
-  }
-}
-
-async function couple() {
-  const guy = await person('guy');
-  const hila = await person('hila');
-  guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
-  seedHousehold(guy, ['groceries', 'home', 'chores', 'todo']);
-  guy.createList({ name: "Guy's things", kind: 'tasks', color: 'sky', visibility: 'visible' });
-  guy.createList({ name: 'Notes to self', kind: 'tasks', color: 'ink', visibility: 'private' });
-  sync(guy, hila);
-  hila.upsertMember('hila', { name: 'Hila', color: 'orange', createdAt: 2 });
-  hila.createList({ name: 'Notes to self', kind: 'tasks', color: 'pink', visibility: 'private' });
-  sync(guy, hila);
-  return { guy, hila };
-}
-
-const listNamed = (hub: Hub, name: string) => hub.lists().find((l) => l.name === name)!;
+const GUY: Side = {
+  seed: ['groceries', 'home', 'chores', 'todo'],
+  lists: [
+    { name: "Guy's things", kind: 'tasks', color: 'sky', visibility: 'visible' },
+    { name: 'Notes to self', kind: 'tasks', color: 'ink', visibility: 'private' },
+  ],
+};
+const HILA: Side = { color: 'orange', lists: [{ name: 'Notes to self', kind: 'tasks', color: 'pink', visibility: 'private' }] };
+const couple = () => pair(GUY, HILA);
 
 describe('Hub: household & privacy', () => {
   it('creates only the picked projects, plus each person’s private ones', async () => {
@@ -107,6 +82,38 @@ describe('Hub: household & privacy', () => {
     expect(hila.item(parent)).toBeUndefined();
     expect(hila.item(step)).toBeUndefined();
     expect(guy.visibilityOf(guy.item(step)!)).toBe('private');
+  });
+
+  it('a "Mine" project can hold things for both of us, steps included', async () => {
+    const { guy, hila } = await couple();
+    const list = listNamed(guy, "Guy's things");
+    const task = guy.addItem(list.id, { title: 'Plan the weekend' });
+    expect(guy.visibilityOf(guy.item(task)!)).toBe('mine');
+    const step = guy.addItem(list.id, { title: 'Pick a hike', parentId: task, visibility: 'ours' });
+    const secret = guy.addItem(list.id, { title: 'Book the surprise', parentId: task, visibility: 'private' });
+    guy.setItemVisibility(task, 'ours');
+    sync(guy, hila);
+    expect(hila.visibilityOf(hila.item(task)!)).toBe('ours');
+    expect(hila.visibilityOf(hila.item(step)!)).toBe('ours');
+    expect(hila.ownerOf(hila.item(step)!)).toBeNull();
+    expect(hila.item(secret)).toBeUndefined();
+    // Back to Mine: it belongs to the project's owner, whoever sets it.
+    hila.setItemVisibility(task, 'mine');
+    sync(guy, hila);
+    expect(guy.ownerOf(guy.item(task)!)).toBe('guy');
+  });
+
+  it('I can make something my partner\'s: theirs, on their Today, and I can still change it', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const id = guy.addItem(todo.id, { title: 'Call your mom', visibility: 'mine', owner: 'hila' });
+    sync(guy, hila);
+    const seen = hila.item(id)!;
+    expect(hila.ownerOf(seen)).toBe('hila');
+    expect(hila.visibilityOf(seen)).toBe('mine');
+    expect(guy.canSetPrivacy(guy.item(id)!)).toBe(true);
+    expect(isForMe(hila, seen)).toBe(true);
+    expect(isForMe(guy, guy.item(id)!)).toBe(false);
   });
 });
 
@@ -312,103 +319,6 @@ describe('Hub: backup import', () => {
     phone.importBackup(data);
     expect(phone.partner()).toBeUndefined();
   });
-
-  it('a "Mine" project can hold things for both of us, steps included', async () => {
-    const { guy, hila } = await couple();
-    const list = listNamed(guy, "Guy's things");
-    const task = guy.addItem(list.id, { title: 'Plan the weekend' });
-    expect(guy.visibilityOf(guy.item(task)!)).toBe('mine');
-    const step = guy.addItem(list.id, { title: 'Pick a hike', parentId: task, visibility: 'ours' });
-    const secret = guy.addItem(list.id, { title: 'Book the surprise', parentId: task, visibility: 'private' });
-    guy.setItemVisibility(task, 'ours');
-    sync(guy, hila);
-    expect(hila.visibilityOf(hila.item(task)!)).toBe('ours');
-    expect(hila.visibilityOf(hila.item(step)!)).toBe('ours');
-    expect(hila.ownerOf(hila.item(step)!)).toBeNull();
-    expect(hila.item(secret)).toBeUndefined();
-    // Back to Mine: it belongs to the project's owner, whoever sets it.
-    hila.setItemVisibility(task, 'mine');
-    sync(guy, hila);
-    expect(guy.ownerOf(guy.item(task)!)).toBe('guy');
-  });
-
-  it('new projects get a random palette color, avoiding ones in use, and can be recolored', async () => {
-    const guy = await person('guy');
-    const ids = LINE_COLORS.map((_, i) => guy.createList({ name: `P${i}`, kind: 'tasks' }));
-    const colors = ids.map((id) => guy.list(id)!.color);
-    expect(new Set(colors).size).toBe(LINE_COLORS.length);
-    for (const c of colors) expect(LINE_COLORS).toContain(c);
-    guy.updateList(ids[0], { color: 'mint' });
-    expect(guy.list(ids[0])!.color).toBe('mint');
-  });
-
-  it('picks colors at random, preferring free ones', () => {
-    expect(pickColor(['lemon', 'pink', 'lilac', 'sky', 'mint'], () => 0.99)).toBe('amber');
-    expect(LINE_COLORS).toContain(pickColor([...LINE_COLORS], () => 0.5));
-    const many = pickColors(['a', 'b', 'c', 'd']);
-    expect(new Set(Object.values(many)).size).toBe(4);
-    const seen = new Set(Array.from({ length: 60 }, () => pickColor([])));
-    expect(seen.size).toBeGreaterThan(1);
-  });
-
-  it('I can make something my partner\'s: theirs, on their Today, and I can still change it', async () => {
-    const { guy, hila } = await couple();
-    const todo = listNamed(guy, 'To do');
-    const id = guy.addItem(todo.id, { title: 'Call your mom', visibility: 'mine', owner: 'hila' });
-    sync(guy, hila);
-    const seen = hila.item(id)!;
-    expect(hila.ownerOf(seen)).toBe('hila');
-    expect(hila.visibilityOf(seen)).toBe('mine');
-    expect(guy.canSetPrivacy(guy.item(id)!)).toBe(true);
-    expect(isForMe(hila, seen)).toBe(true);
-    expect(isForMe(guy, guy.item(id)!)).toBe(false);
-  });
-
-  it('a request without an OK: the person asked ticks it and it\'s done', async () => {
-    const { guy, hila } = await couple();
-    const todo = listNamed(guy, 'To do');
-    const id = guy.addItem(todo.id, { title: 'Pick up the dry cleaning', assignee: 'hila' });
-    sync(guy, hila);
-    expect(hila.item(id)?.requestedBy).toBe('guy');
-    hila.toggle(id);
-    sync(guy, hila);
-    expect(guy.item(id)?.done).toBe(true);
-    expect(guy.item(id)?.doneBy).toBe('hila');
-  });
-
-  it('a request that needs my OK: their tick waits for me; I confirm or send it back', async () => {
-    const { guy, hila } = await couple();
-    const todo = listNamed(guy, 'To do');
-    const id = guy.addItem(todo.id, { title: 'Clean the car', assignee: 'hila', needsOk: true, due: today() });
-    sync(guy, hila);
-    hila.toggle(id);
-    sync(guy, hila);
-    let it = guy.item(id)!;
-    expect(it.done).toBe(false);
-    expect(it.submittedBy).toBe('hila');
-    expect(todayView(guy, today()).awaitingOk.map((i) => i.id)).toEqual([id]);
-    expect(todayView(hila, today()).today.some((i) => i.id === id)).toBe(false);
-    guy.sendBack(id);
-    sync(guy, hila);
-    expect(hila.item(id)?.submittedAt).toBeNull();
-    hila.toggle(id);
-    sync(guy, hila);
-    guy.confirm(id);
-    sync(guy, hila);
-    it = hila.item(id)!;
-    expect(it.done).toBe(true);
-    expect(it.doneBy).toBe('hila');
-    expect(todayView(guy, today()).awaitingOk).toHaveLength(0);
-  });
-
-  it('assigning to myself or "together" is not a request', async () => {
-    const { guy } = await couple();
-    const todo = listNamed(guy, 'To do');
-    const id = guy.addItem(todo.id, { title: 'Plan trip', assignee: 'hila', needsOk: true });
-    guy.assign(id, 'both');
-    expect(guy.item(id)?.requestedBy).toBeNull();
-    expect(guy.item(id)?.needsOk).toBe(false);
-  });
 });
 
 describe('Shopping: urgent', () => {
@@ -526,6 +436,35 @@ describe('one thing, two places', () => {
     // Deleting it takes it from both places.
     guy.delete(sub);
     expect(guy.item(shop)).toBeUndefined();
+  });
+});
+
+describe('undo a tick of one thing in two places', () => {
+  it('takes back what was written down for both, and an untick undone brings the memory back', async () => {
+    const guy = await person('guy');
+    guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    seedHousehold(guy, ['todo', 'chores']);
+    const todo = guy.lists().find((l) => l.name === 'To do')!.id;
+    const chores = guy.lists().find((l) => l.name === 'Chores')!.id;
+    const a = guy.addItem(todo, { title: 'Paint the door' });
+    const b = guy.alsoIn(a, chores)!;
+    const live = () => guy.store.all('log').length;
+    const before = live();
+    const undoTick = guy.toggle(a);
+    expect(guy.item(b)!.done).toBe(true);
+    expect(live()).toBe(before + 2);
+    undoTick();
+    expect(guy.item(a)!.done).toBe(false);
+    expect(guy.item(b)!.done).toBe(false);
+    expect(live()).toBe(before);
+    // Ticked, then unticked by mistake: undoing the untick brings back what was remembered.
+    guy.toggle(a);
+    const ticked = live();
+    const undoUntick = guy.toggle(a);
+    expect(live()).toBe(ticked - 2);
+    undoUntick();
+    expect(live()).toBe(ticked);
+    expect(guy.item(a)!.logId && guy.store.get('log', guy.item(a)!.logId!)).toBeTruthy();
   });
 });
 

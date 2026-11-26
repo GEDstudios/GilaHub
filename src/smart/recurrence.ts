@@ -1,4 +1,4 @@
-import { addDays, addMonths, diffDays, fromDateStr, today, weekday, type DateStr } from '../core/dates';
+import { addDays, addMonths, fromDateStr, today, weekday, type DateStr } from '../core/dates';
 import type { RepeatRule } from '../core/model';
 
 /**
@@ -57,14 +57,6 @@ function step(date: DateStr, rule: Extract<RepeatRule, { type: 'interval' }>, ti
     case 'year':
       return addMonths(date, 12 * n);
   }
-}
-
-/** Approximate period in days, for freshness bars and "usually every…" copy. */
-export function periodDays(rule: RepeatRule): number {
-  if (rule.type === 'weekdays') return Math.max(1, Math.round((7 * (rule.every ?? 1)) / Math.max(1, rule.days.length)));
-  if (rule.type === 'monthdays') return Math.max(1, Math.round(30 / Math.max(1, rule.days.length)));
-  const per = { day: 1, week: 7, month: 30, year: 365 }[rule.unit];
-  return per * rule.every;
 }
 
 /** First weekday occurrence on or after `from`. */
@@ -129,29 +121,6 @@ export function skipDue(rule: RepeatRule, due: DateStr | null | undefined, ref: 
   return step(current, rule);
 }
 
-export type Freshness = 'fresh' | 'soon' | 'today' | 'whenever';
-
-/** Words, not counters: Fresh → Soon → Today → When you can. */
-export function freshness(due: DateStr | null | undefined, ref: DateStr = today()): Freshness {
-  if (!due) return 'fresh';
-  const d = diffDays(ref, due);
-  if (d < 0) return 'whenever';
-  if (d === 0) return 'today';
-  if (d <= 2) return 'soon';
-  return 'fresh';
-}
-
-/**
- * 0..1 — how much "freshness" is left (1 = just done, 0 = due). Clamped.
- * Drives the draining bar on chore rows.
- */
-export function freshnessLevel(rule: RepeatRule, due: DateStr | null | undefined, ref: DateStr = today()): number {
-  if (!due) return 1;
-  const period = periodDays(rule);
-  const left = diffDays(ref, due);
-  return Math.max(0, Math.min(1, left / period));
-}
-
 /** Plain-language description: "Every 3 days after it's done", "Sun & Wed", "Every month on the 1st". */
 export function describeRule(rule: RepeatRule, weekdayShort: (n: number) => string): string {
   if (rule.type === 'weekdays') {
@@ -181,8 +150,4 @@ export function shiftForAway(rule: RepeatRule, due: DateStr | null | undefined, 
   let guard = 0;
   while (next < ref && guard++ < 10_000) next = skipDue(rule, next, ref);
   return next;
-}
-
-export function isValidDate(s: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(fromDateStr(s).getTime());
 }

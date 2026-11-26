@@ -1,27 +1,22 @@
 import { NotesElsewhere } from './Notes';
 import { useState } from 'react';
-import { addDays, humanTime, relativeAgo } from '../../core/dates';
-import type { Item, LineColor } from '../../core/model';
+import type { Item } from '../../core/model';
 import { byOrder } from '../../core/order';
 import { useHub, usePartnerHere } from '../context';
-import { AHEAD_MAX, aheadDay, aheadOf, summaryOf, things, weekBands } from '../home';
-import { setPrefs, use24h, usePrefs } from '../prefs';
+import { setPrefs, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { quickItems } from '../quick';
-import { useLater } from '../tick';
-import { useFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { ProjectMark } from '../ui/ProjectMark';
-import { Avatar, lineVars, Section } from '../ui/primitives';
-import { UrgentTag } from '../ui/tags';
+import { Avatar, Section } from '../ui/primitives';
 import { SettleContext, useSettle, type Settle } from '../ui/useSettle';
-import { todayView, type TodayView } from '../views';
+import { todayView } from '../views';
 import { AsksWidget } from './Asks';
 import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
-import { MomentsSheet } from './Moments';
-import { QuickAddSheet } from './QuickAddSheet';
+import { isOpen } from '../../core/model';
+import { listKey } from '../../core/keys';
 
 /**
  * The blocks of the Today page (HOME §2–3). Today.tsx draws the summary and notices, then
@@ -30,18 +25,6 @@ import { QuickAddSheet } from './QuickAddSheet';
  */
 
 const idOf = (i: Item) => i.id;
-const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// ---------------------------------------------------------------- summary and notices
-
-/** Tasky's cursor, as on a name tag. */
-function Cursor() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 3l15 7.5-6.5 1.8L10.5 19z" fill="currentColor" />
-    </svg>
-  );
-}
 
 /** The partner's asks in a sheet, when Waiting on you isn't on the page. */
 export function AsksSheet({ onClose, day }: { onClose: () => void; day: string }) {
@@ -54,68 +37,6 @@ export function AsksSheet({ onClose, day }: { onClose: () => void; day: string }
         <AsksWidget v={v} settle={settle} bare />
       </SettleContext.Provider>
     </Sheet>
-  );
-}
-
-/** Always first: how much today holds, the projects it's in, and who's waiting on me. */
-export function SummaryCard({ v, day, asksShown }: { v: TodayView; day: string; asksShown: boolean }) {
-  const hub = useHub();
-  const { openSheet } = useOverlays();
-  const partner = hub.partner();
-  const s = summaryOf(hub, v);
-  const prefs = usePrefs();
-  // What's next: the next thing with a time still ahead today, else the first thing left.
-  const now = new Date();
-  const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const next = v.today.find((i) => i.dueTime && i.dueTime >= hm) ?? v.today[0] ?? v.earlier[0];
-  const openAsks = () => {
-    const el = asksShown ? document.getElementById('home-asks') : null;
-    if (el) el.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'start' });
-    else openSheet((close) => <AsksSheet onClose={close} day={day} />);
-  };
-  return (
-    <div className="summary">
-      <p className="summary__text">
-        {s.mood === 'busy' ? (
-          <>
-            You have {things(s.n)}{' '}
-            <br />
-            to tackle today
-          </>
-        ) : (
-          <>
-            {s.mood === 'done' ? 'All done for today.' : 'Nothing due today.'}{' '}
-            <br />
-            Enjoy it.
-          </>
-        )}
-      </p>
-      {s.lists.length || s.person ? (
-        <span className="tags">
-          {s.lists.map((l) => (
-            <button key={l.id} type="button" className="tag tag--link" style={lineVars(l.color)} onClick={() => navigate({ name: 'list', id: l.id })}>
-              <span dir="auto">{l.name}</span>
-            </button>
-          ))}
-          {s.person && partner ? (
-            <button type="button" className="tag tag--link tag--person" style={lineVars(partner.color)} onClick={openAsks} aria-label={`Waiting on you, from ${partner.name}`}>
-              <Cursor />
-              <span dir="auto">{partner.name}</span>
-            </button>
-          ) : null}
-        </span>
-      ) : null}
-      {next ? (
-        <button type="button" className="summary__next" onClick={() => navigate({ name: 'item', id: next.id })}>
-          <span className="summary__nextlabel">Next</span>
-          <span className="summary__nexttitle" dir="auto">
-            {next.title}
-          </span>
-          {next.dueTime && v.today.includes(next) ? <span className="summary__nexttime num">{humanTime(next.dueTime, use24h(prefs))}</span> : null}
-          <Icon name="chevron-right" className="icon--sm" />
-        </button>
-      ) : null}
-    </div>
   );
 }
 
@@ -141,215 +62,6 @@ export function HomeNotices() {
         </button>
       ) : null}
     </>
-  );
-}
-
-// ---------------------------------------------------------------- today
-
-/**
- * Today's rows and "n from earlier" folded under them. With nothing due and nothing from
- * earlier it isn't drawn at all (the summary already says the day is clear; + adds).
- * With nothing above it, it drops its label.
- */
-export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: string; settle: Settle<Item>; bare: boolean }) {
-  const hub = useHub();
-  const prefs = usePrefs();
-  const later = useLater();
-  const rows = settle.view('today', v.today);
-  const earlier = settle.view('earlier', v.earlier);
-  const head = !bare || rows.length > 0;
-  const open = prefs.earlierOpen;
-  if (!rows.length && !earlier.length) return null;
-
-  return (
-    <section className={`section ${head ? '' : 'section--bare'}`} id="today">
-      {head ? (
-        <div className="section__head">
-          <h2 className="section__title">
-            Today
-            {v.today.length ? <span className="section__count num">{v.today.length}</span> : null}
-          </h2>
-        </div>
-      ) : null}
-      {rows.length ? (
-        <ul className="rows">
-          {rows.map(({ row: i, settling }) => (
-            <ItemRow key={i.id} item={i} showList listLink={false} settling={settling} />
-          ))}
-        </ul>
-      ) : null}
-      {earlier.length ? (
-        <>
-          <button type="button" className="quietline" aria-expanded={open} onClick={() => setPrefs({ earlierOpen: !open })}>
-            {v.earlier.length} from earlier
-            <span className="quietline__end">
-              {open ? 'Hide' : 'Show'}
-              <Icon name="chevron-down" />
-            </span>
-          </button>
-          {open ? (
-            <ul className="rows quietline__rows">
-              {earlier.map(({ row: i, settling }) => (
-                <ItemRow
-                  key={i.id}
-                  item={i}
-                  showList
-                  settling={settling}
-                  below={
-                    hub.canEdit(i) ? (
-                      <span className="catchup row__acts" onClick={(e) => e.stopPropagation()}>
-                        {/* Today needs no word: the row moves up into Today. */}
-                        {!i.repeat ? (
-                          <button type="button" className="mini" onClick={() => hub.snooze(i.id, day)}>
-                            Today
-                          </button>
-                        ) : null}
-                        <button type="button" className="mini" onClick={() => later.run(i)}>
-                          {later.label(i)}
-                        </button>
-                      </span>
-                    ) : null
-                  }
-                />
-              ))}
-            </ul>
-          ) : null}
-        </>
-      ) : null}
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------- this week
-
-function Strip({ color, num, label, detail, onClick }: { color: LineColor; num: number | string; label: string; detail?: string; onClick?: () => void }) {
-  return (
-    <button type="button" className="strip" style={lineVars(color)} onClick={onClick} aria-label={`${num} ${label}${detail ? `. ${detail}` : ''}`} disabled={!onClick}>
-      <span className="strip__num num">{num}</span>
-      <span className="strip__text">
-        <span className="strip__label" dir="auto">
-          {label}
-        </span>
-        {detail ? (
-          <span className="strip__detail" dir="auto">
-            {detail}
-          </span>
-        ) : null}
-      </span>
-    </button>
-  );
-}
-
-/** The one colour moment: to buy, how the week went (vs the last), and Moments. */
-export function WeekStrips({ v, shown }: { v: TodayView; shown: ReadonlySet<string> }) {
-  const hub = useHub();
-  const { openSheet } = useOverlays();
-  const bands = weekBands(hub, v, shown);
-  if (!bands.length) return null;
-  const go = {
-    done: undefined,
-    moments: () => openSheet((close) => <MomentsSheet onClose={close} />),
-  };
-  return (
-    <Section title="This week">
-      <div className="stack">
-        {bands.map((b) => (
-          <Strip key={b.key} color={b.color} num={b.num} label={b.label} detail={b.detail} onClick={go[b.key]} />
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-// ---------------------------------------------------------------- coming up
-
-function AheadTile({ item, day }: { item: Item; day: string }) {
-  const hub = useHub();
-  const prefs = usePrefs();
-  const list = hub.list(item.listId);
-  const fresh = useFresh(item.id);
-  const when = `${aheadDay(item.due!, day)}${item.dueTime ? ` · ${humanTime(item.dueTime, use24h(prefs))}` : ''}`;
-  return (
-    <button type="button" className={`ahead__tile ${fresh ? 'row--flash' : ''}`} data-id={item.id} onClick={() => navigate({ name: 'item', id: item.id })}>
-      <span className="ahead__when">
-        <span>{when}</span>
-        {item.urgent ? <UrgentTag short /> : null}
-      </span>
-      <span className="ahead__title" dir="auto">
-        {item.title}
-      </span>
-      {list ? (
-        <span className="tag" style={lineVars(list.color)} dir="auto">
-          {list.name}
-        </span>
-      ) : null}
-    </button>
-  );
-}
-
-/** The next 7 days as Tasky's tiles, a glance (no ticking), ending in a hatched "plan something". */
-export function ComingUp({ v, day }: { v: TodayView; day: string }) {
-  const { openSheet } = useOverlays();
-  const tiles = aheadOf(v).slice(0, AHEAD_MAX);
-  if (!tiles.length) return null;
-  return (
-    <Section title="Coming up" id="upcoming">
-      <div className="ahead">
-        {tiles.map((i) => (
-          <AheadTile key={i.id} item={i} day={day} />
-        ))}
-        <button
-          type="button"
-          className="ahead__free"
-          aria-label="Plan something"
-          title="Plan something"
-          onClick={() => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={addDays(day, 1)} />)}
-        >
-          <span>
-            <Icon name="plus" />
-          </span>
-        </button>
-      </div>
-    </Section>
-  );
-}
-
-// ---------------------------------------------------------------- partner
-
-/** What my person finished since yesterday, with a ♡ to thank them. */
-export function PartnerDid({ v }: { v: TodayView }) {
-  const hub = useHub();
-  const partner = hub.partner();
-  if (!partner || !v.recent.length) return null;
-  return (
-    <Section title={`${partner.name} did`}>
-      <ul className="rows">
-        {v.recent.map((r) => (
-          <li key={r.log?.id ?? r.item.id} className="row">
-            <Avatar member={partner} size="sm" />
-            <div className="row__body">
-              <span className="row__title" dir="auto">
-                {r.item.title}
-              </span>
-              <span className="row__meta">
-                <span className="meta">{relativeAgo(r.at)}</span>
-              </span>
-            </div>
-            {r.log ? (
-              <button
-                type="button"
-                className={`heart ${r.log.thankedBy ? 'is-on' : ''}`}
-                onClick={() => hub.thank(r.log!.id)}
-                aria-label={`Thank ${partner.name}`}
-                aria-pressed={!!r.log.thankedBy}
-              >
-                <Icon name={r.log.thankedBy ? 'heart-fill' : 'heart'} />
-              </button>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </Section>
   );
 }
 
@@ -389,8 +101,8 @@ export function ProjectWidget({ listId, settle, show }: { listId: string; day?: 
   const list = hub.list(listId);
   if (!list) return null;
   // What's open in it, and in the projects inside it.
-  const ids = new Set([listId, ...hub.nestedLists(listId).map((l) => l.id)]);
-  const open = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId && !i.done && !i.archived && (!show || show(i)));
+  const ids = new Set(hub.treeIds(listId));
+  const open = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId && isOpen(i) && (!show || show(i)));
   // Its name is the way in.
   const head = (
     <button type="button" className="section__go" onClick={() => navigate({ name: 'list', id: listId })}>
@@ -400,7 +112,7 @@ export function ProjectWidget({ listId, settle, show }: { listId: string; day?: 
     </button>
   );
   // Urgent first, then in the project's order: the first five.
-  const rows = settle.view(`l:${listId}`, [...open].sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent) || byOrder(a, b)).slice(0, 5));
+  const rows = settle.view(listKey(listId), [...open].sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent) || byOrder(a, b)).slice(0, 5));
   const body = rows.length ? (
     <ul className="rows">
       {rows.map(({ row: i, settling }) => (

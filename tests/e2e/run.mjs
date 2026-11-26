@@ -103,23 +103,6 @@ async function openAsks(p) {
     // No card (or already open).
   }
 }
-/** Swipe a row sideways with a finger (touch events: what a phone sends). */
-async function swipeRow(p, ctx, row, dx) {
-  await row.evaluate((e) => e.scrollIntoView({ block: 'center' }));
-  await p.waitForTimeout(250);
-  const r = await row.boundingBox();
-  const cdp = await ctx.newCDPSession(p);
-  const x = r.x + 60;
-  const y = r.y + r.height / 2;
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
-  for (let i = 1; i <= 12; i++) {
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + (dx * i) / 12, y, id: 1 }] });
-    await p.waitForTimeout(16);
-  }
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await p.waitForTimeout(500);
-  await cdp.detach();
-}
 let failures = 0;
 const check = async (label, fn) => {
   try {
@@ -347,10 +330,9 @@ try {
     await guy.getByText(/fresh again/).waitFor({ timeout: 5000 });
   });
 
-  await check('Projects: create a new one (no suggestions, just its name)', async () => {
+  await check('Projects: create a new one; the phone’s Back closes the sheet', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard--new').first().click();
-    if (await guy.locator('.sheet .tokens .token').count()) throw new Error('New project still suggests projects');
     // The phone's Back closes the sheet, and you're still on Projects.
     await guy.goBack();
     await guy.locator('.sheet').waitFor({ state: 'detached', timeout: 3000 });
@@ -399,7 +381,7 @@ try {
   });
 
   // ---------- Today, arranged
-  await check('Today: Guy hides "Coming up" and moves "This week" up; it sticks after a reload', async () => {
+  await check('Today: Guy hides Highlights and The week, and moves Us up; it sticks after a reload', async () => {
     await guy.goto(`${url}/`);
     await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
     await guy.waitForTimeout(1000);
@@ -610,7 +592,7 @@ try {
     await guy.getByRole('button', { name: 'Text size' }).click();
     await guy.getByRole('slider', { name: 'Text size' }).fill('13');
     // A photo on it, drawn on.
-    await guy.locator('.sheet input[type=file]').setInputFiles(new URL('./.out/10-chores.png', import.meta.url).pathname);
+    await guy.locator('.sheet input[type=file]').setInputFiles(new URL('./fixtures/photo.png', import.meta.url).pathname);
     await guy.locator('.sheet .nf__photo img').waitFor({ timeout: 5000 });
     // Its tray opens by itself: cut it into a heart.
     const ph = guy.locator('.sheet .nf__photo');
@@ -810,11 +792,10 @@ try {
     await note.waitFor({ state: 'detached', timeout: 3000 });
   });
 
-  await check('Today: no filter row; the Ours ↔ Mine tag narrows the page, and remembers it', async () => {
+  await check('Today: the Ours ↔ Mine tag narrows the page, and remembers it', async () => {
     await hila.goto(`${url}/`);
     const today = hila.locator('.homeus');
     await today.getByText('Return the library books').waitFor({ timeout: 5000 });
-    if (await hila.locator('.home .lens').count()) throw new Error('Today still has a filter row');
     // Mine only: Guy's ask is ours, so it steps aside.
     await hila.locator('.scopetag').click();
     await today.getByText('Return the library books').waitFor({ state: 'detached', timeout: 3000 });

@@ -37,7 +37,7 @@
   .topnav {
     display: block;
     position: sticky;
-    z-index: 40;
+    z-index: var(--z-bar);
     top: 0;
     background: rgb(255 255 255 / 0.92);
     backdrop-filter: saturate(1.5) blur(18px);

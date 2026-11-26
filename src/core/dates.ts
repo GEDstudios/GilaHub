@@ -71,10 +71,6 @@ export function weekdayName(n: number, long = false): string {
   return (long ? WEEKDAYS_LONG : WEEKDAYS_SHORT)[n];
 }
 
-export function monthShort(n: number): string {
-  return MONTHS_SHORT[n];
-}
-
 /** "Today", "Tomorrow", "Yesterday", "Thursday", "Mon 30 Nov", "12 Jan 2027". */
 export function humanDate(s: DateStr, ref: DateStr = today()): string {
   const delta = diffDays(ref, s);

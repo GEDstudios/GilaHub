@@ -1,23 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { today as todayStr } from '../../core/dates';
 import { useHub } from '../context';
-import {
-  hiddenWidgets,
-  hideHome,
-  homePreview,
-  isDefaultHome,
-  isWidget,
-  listIdOf,
-  MAX_HOME_PROJECTS,
-  pinnedProjects,
-  projectKey,
-  reorderHome,
-  resetHome,
-  showHome,
-  slotTitle,
-  visibleHome,
-  WIDGETS,
-} from '../home';
+import { hiddenWidgets, hideHome, homePreview, isDefaultHome, isWidget, MAX_HOME_PROJECTS, pinnedProjects, reorderHome, resetHome, showHome, slotTitle, visibleHome, WIDGETS } from '../home';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
@@ -26,6 +10,7 @@ import { SavedListSheet } from './SavedList';
 import { ProjectMark } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { todayView } from '../views';
+import { listKey, listIdOf } from '../../core/keys';
 
 /**
  * Edit Today, on Today itself: every block shows as itself (a short, still peek of what it
@@ -103,7 +88,7 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
                 hint={(l) => (pins.includes(l.id) ? 'on Today' : null)}
                 onPick={(id) => {
                   setPicking(false);
-                  showHome(hub, projectKey(id));
+                  showHome(hub, listKey(id));
                 }}
               />
             </div>

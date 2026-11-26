@@ -10,6 +10,8 @@ import { CANCEL_LIFT, centerScroll, clampBubble, EDGE_DWELL, EDGE_STEP_MS, edgeD
 import { useOnce } from '../ui/useOnce';
 import { BarEdit, useFresh } from './BarEdit';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
+import { calm, CLICK_SWALLOW_MS } from '../ui/tokens';
+import { listKey, listIdOf } from '../../core/keys';
 
 /** One finger on the bar: waiting for the hold, then scrubbing (`live`). */
 interface Gesture {
@@ -29,7 +31,6 @@ interface Gesture {
   edge: { dir: number; next: number };
 }
 
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const onPhone = () => typeof matchMedia === 'function' && matchMedia('(max-width: 959px)').matches;
 
 /**
@@ -153,7 +154,7 @@ export function useBarScrub({
     if (!nav.hasPointerCapture(s.id)) return end();
     s.live = true;
     s.key = undefined;
-    s.still = reducedMotion();
+    s.still = calm();
     haptic('lift');
     s.raf = requestAnimationFrame(frame);
   }, [navRef, frame, end]);
@@ -192,7 +193,7 @@ export function useBarScrub({
     if (!s.live) return end();
     // The release must not also click the tab the gesture began on.
     swallow.current = true;
-    setTimeout(() => (swallow.current = false), 400);
+    setTimeout(() => (swallow.current = false), CLICK_SWALLOW_MS);
     const t = s.key ? tabsRef.current.find((tab) => tab.key === s.key) : undefined;
     end();
     if (t) {
@@ -254,10 +255,11 @@ export function useBarScrub({
 
 /** Arranging from Projects: tapping a project's tab finds its folder; Shopping and Chores just stay. */
 function findFolder(t: TabDef) {
-  if (!t.key.startsWith('l:')) return;
-  const el = document.querySelector<HTMLElement>(`.projslot[data-id="${CSS.escape(t.key.slice(2))}"]`);
+  const listId = listIdOf(t.key);
+  if (!listId) return;
+  const el = document.querySelector<HTMLElement>(`.projslot[data-id="${CSS.escape(listId)}"]`);
   if (!el) return;
-  el.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
+  el.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
   replay(el, 'is-flash');
 }
 
@@ -302,7 +304,7 @@ export function TabBar() {
       return;
     }
     const el = sc.querySelector<HTMLElement>('.tab.is-on');
-    if (el) sc.scrollTo({ left: centerScroll(el.offsetLeft, el.offsetWidth, sc.clientWidth, sc.scrollWidth), behavior: first.current || reducedMotion() ? 'auto' : 'smooth' });
+    if (el) sc.scrollTo({ left: centerScroll(el.offsetLeft, el.offsetWidth, sc.clientWidth, sc.scrollWidth), behavior: first.current || calm() ? 'auto' : 'smooth' });
     first.current = false;
     markEdges(sc);
   }, [on, tabKeys, density, arranging, receiving]);
@@ -356,7 +358,7 @@ export function TabBar() {
       gap={gap}
       slotClass={(k) => (k === fresh ? 'is-new' : undefined)}
       // My partner is on a project now: its tab (or the pinned one it's inside) glows.
-      live={here?.listId ? new Set([`l:${here.listId}`, ...hub.listPath(here.listId).map((l) => `l:${l.id}`)]) : undefined}
+      live={here?.listId ? new Set([listKey(here.listId), ...hub.listPath(here.listId).map((l) => listKey(l.id))]) : undefined}
       navRef={navRef}
       scrollRef={scrollRef}
       onTab={(t, e) => {

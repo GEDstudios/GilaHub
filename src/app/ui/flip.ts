@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
+import { calm, EASE } from './tokens';
 
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Where each [data-key] child sits across its row, in px from the container's start (scrollers unrolled). */
 function positions(root: HTMLElement): Map<string, number> {
@@ -32,7 +32,7 @@ export function useFlip(ref: RefObject<HTMLElement | null>, layout: string, mode
       const from = prev.at.get(el.dataset.key!);
       const to = at.get(el.dataset.key!);
       if (from === undefined || to === undefined || Math.abs(from - to) < 0.5) return;
-      el.animate?.([{ transform: `translateX(${from - to}px)` }, { transform: 'none' }], { duration: ms, easing: 'cubic-bezier(.34,1.4,.64,1)' });
+      el.animate?.([{ transform: `translateX(${from - to}px)` }, { transform: 'none' }], { duration: ms, easing: EASE.springSoft });
     });
     // The keys, compared by value.
     // eslint-disable-next-line react-hooks/exhaustive-deps

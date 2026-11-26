@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LineColor } from '../../core/model';
 import { GLYPHS } from './icons.gen';
+import { calm } from './tokens';
 
 /**
  * My person's cursor, as the computer's live cursor draws mine: the Gila Duo arrow, its light in
@@ -11,7 +12,6 @@ type Trick = 'wave' | 'hop' | 'wiggle' | 'loop' | 'click' | 'peek';
 const TRICKS: Trick[] = ['wave', 'hop', 'wiggle', 'loop', 'click', 'peek'];
 const LENGTH: Record<Trick, number> = { wave: 1400, hop: 700, wiggle: 700, loop: 1100, click: 650, peek: 1200 };
 
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function Glyph({ name, light, turn }: { name: keyof typeof GLYPHS; light: string; turn?: string }) {
   const [glyphLight, line] = GLYPHS[name];

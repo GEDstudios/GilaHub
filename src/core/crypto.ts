@@ -117,7 +117,3 @@ export async function deriveRecoverySecrets(code: string): Promise<{ recoveryId:
   );
   return { key: toB64u(bits.subarray(0, 32)), recoveryId: toB64u(bits.subarray(32, 48)) };
 }
-
-export async function sha256B64u(text: string): Promise<string> {
-  return toB64u(await crypto.subtle.digest('SHA-256', enc.encode(text)));
-}

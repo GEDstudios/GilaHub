@@ -8,6 +8,7 @@ import { SyncClient } from '../core/sync';
 import { pinsOf, setPins, MAX_PINS } from './tabs';
 import { bindUserPrefs } from './userPrefs';
 import { quietly } from '../core/history';
+import { listKey } from '../core/keys';
 
 /** Everything the running app needs, created once per session. */
 export interface Runtime {
@@ -53,7 +54,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
         const made = hub.ensurePersonalFolder();
         if (!made) return;
         const pins = pinsOf(hub);
-        if (pins.length < MAX_PINS) setPins(hub, [`l:${made}`, ...pins]);
+        if (pins.length < MAX_PINS) setPins(hub, [listKey(made), ...pins]);
       });
     // A brand-new me (onboarding) isn't written yet: wait for it.
     if (hub.me()) personal();

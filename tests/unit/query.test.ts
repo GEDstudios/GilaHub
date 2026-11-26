@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Hub } from '../../src/core/actions';
 import { addDays, today } from '../../src/core/dates';
-import { MemoryPersistence } from '../../src/core/db';
-import { Store } from '../../src/core/store';
 import { dueMatches, parseSearch, runQuery } from '../../src/app/query';
-
-async function person(member: string) {
-  const store = await Store.load(new MemoryPersistence(), `dev-${member}`, ['h', `p:${member}`]);
-  return new Hub(store, member);
-}
+import { person } from './_helpers';
 
 describe('Search words and filters', () => {
   it('reads #tags, urgent, due words and the rest as words', async () => {

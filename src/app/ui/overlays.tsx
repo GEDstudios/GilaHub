@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Icon } from './Icon';
 import { currentPath, sheetOpened } from '../router';
 import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastAction } from './motion';
+import { calm, EASE, TOAST } from './tokens';
 
 /**
  * The page under a sheet (or search) doesn't scroll. Counted, so sheets that open over one
@@ -82,7 +83,6 @@ interface ToastEntry {
 
 /** At most this many toasts show at once; older ones step aside. */
 const MAX_TOASTS = 2;
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let seq = 1;
 
@@ -141,7 +141,7 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
   const toast = useCallback<OverlayApi['toast']>(
     (message, opts = {}) => {
       const actions = opts.action ? [opts.action].flat() : [];
-      const ms = opts.ms ?? (actions.length ? 5500 : 3200);
+      const ms = opts.ms ?? (actions.length ? TOAST.withAction : TOAST.normal);
       const route = currentPath();
       const next = { message, actions, route, group: opts.group, many: opts.many, onExpire: opts.onExpire };
       // A toast from a screen you've left steps aside: its Undo would reach where you can't see.
@@ -377,7 +377,7 @@ function useSheetPull(panel: React.RefObject<HTMLDivElement | null>, scrim: Reac
       if (!d?.on) return;
       el.classList.remove('is-pulling');
       if (sheetCloses(d.dy, el.offsetHeight, flickSpeed(d.samples))) return close.current();
-      const spring = calm() ? 'none' : 'transform 420ms cubic-bezier(.34,1.4,.64,1)';
+      const spring = calm() ? 'none' : `transform 420ms ${EASE.springSoft}`;
       el.style.transition = spring;
       el.style.transform = '';
       if (scrim.current) {

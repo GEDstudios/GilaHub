@@ -1,3 +1,4 @@
+import { calm } from './ui/tokens';
 import { useSyncExternalStore } from 'react';
 import { MAX_PINS, type TabDef } from './tabs';
 import { haptic } from './ui/haptics';
@@ -136,7 +137,6 @@ export function stepDock(nav: Element | null, x: number, now: number, st: DockSt
   }
 }
 
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * Drop onto a bar from a list (Sortable's `outside`): folders on Projects, tokens in a tray.

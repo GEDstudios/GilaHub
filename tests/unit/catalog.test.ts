@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { categorize, routeFlavor, suggestFromCatalog } from '../../src/smart/categorize';
+import { GLYPHS } from '../../src/app/ui/icons.gen';
+import { aisleGlyph as aisleIcon, categorize, GROCERY_ORDER, HOME_ORDER, routeFlavor, suggestFromCatalog } from '../../src/smart/categorize';
 import { GROCERY_CATALOG } from '../../src/smart/dictionary/grocery';
 import { HOME_CATALOG } from '../../src/smart/dictionary/home';
 import type { CatalogEntry } from '../../src/smart/dictionary/types';
@@ -93,5 +94,20 @@ describe('spices aisle', () => {
       expect([n, categorize(n, 'grocery', none).category]).toEqual([n, 'spices']);
     for (const n of ['pasta', 'אורז', 'olive oil']) expect([n, categorize(n, 'grocery', none).category]).toEqual([n, 'pantry']);
     expect(categorize('rosemary', 'grocery', none).category).toBe('produce');
+  });
+});
+
+describe('aisle icons', () => {
+  it('draw every aisle and department as an icon, none shared between the two, and leave custom ones to their emoji', () => {
+    expect(aisleIcon('grocery', 'dairy')).toBe('cheese');
+    expect(aisleIcon('grocery', 'nope')).toBeUndefined();
+    expect(aisleIcon('home', 'dairy')).toBeUndefined();
+    const home = HOME_ORDER.filter((c) => c !== 'other').map((c) => aisleIcon('home', c));
+    expect(home.every(Boolean)).toBe(true);
+    expect(new Set(home).size).toBe(home.length);
+    const grocery = new Set(GROCERY_ORDER.filter((c) => c !== 'other').map((c) => aisleIcon('grocery', c)));
+    expect(home.filter((i) => grocery.has(i))).toEqual([]);
+    // Each is an icon the app draws.
+    for (const g of [...home, ...grocery]) expect(GLYPHS).toHaveProperty(g!);
   });
 });

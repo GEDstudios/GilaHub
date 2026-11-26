@@ -1,38 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Hub } from '../../src/core/actions';
+import type { Hub } from '../../src/core/actions';
 import { shortAgo, shortDay } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { encodeHlc } from '../../src/core/hlc';
 import { Store } from '../../src/core/store';
 import { ideasMarkdown, ideasUnseen, ideasView } from '../../src/app/views';
-
-async function person(member: string) {
-  const store = await Store.load(new MemoryPersistence(), `dev-${member}`, ['h', `p:${member}`]);
-  return new Hub(store, member);
-}
-
-/** Relay everything each hub may read, both ways, until quiet. */
-function sync(...hubs: Hub[]) {
-  for (let round = 0; round < 3; round++) {
-    for (const from of hubs) {
-      const entries = from.store.pendingOutbox();
-      for (const to of hubs) {
-        if (to === from) continue;
-        to.store.applyRemoteBatch(entries.filter((e) => to.store.canRead(e.s)).map((e) => e.op));
-      }
-      from.store.ack(entries.map((e) => e.cid));
-    }
-  }
-}
-
-async function couple() {
-  const guy = await person('guy');
-  const hila = await person('hila');
-  guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
-  hila.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
-  sync(guy, hila);
-  return { guy, hila };
-}
+import { couple, person, sync } from './_helpers';
 
 const texts = (hub: Hub) => ideasView(hub).open.map((i) => i.text);
 

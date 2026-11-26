@@ -24,6 +24,7 @@ import { listVisLabel } from '../privacy';
 import { MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
 import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
+import { listKey, listIdOf } from '../../core/keys';
 
 /** A name on a card of its color, then the same chips as a project's page. */
 export function NewProjectSheet({
@@ -57,7 +58,7 @@ export function NewProjectSheet({
     if (!name.trim()) return;
     // A project made inside another is looked at the way that one is (by tag, inside Shopping).
     const id = hub.createList({ name, color: look.color, icon, visibility: look.visibility, owner: look.owner, parentId: parent?.id, view: parent?.view });
-    if (look.pinned) togglePin(hub, `l:${id}`);
+    if (look.pinned) togglePin(hub, listKey(id));
     onClose();
     navigate({ name: 'list', id });
   };
@@ -132,7 +133,7 @@ const tabOf = (hub: Hub, key: string) => pinOptions(hub).find((o) => o.key === k
  */
 function tapPin(hub: Hub, list: List) {
   const pins = pinsOf(hub);
-  const key = `l:${list.id}`;
+  const key = listKey(list.id);
   if (!pins.includes(key) && pins.length >= MAX_PINS) {
     haptic('warn');
     return replay(liveBar(), 'is-refusing');
@@ -161,7 +162,7 @@ export function useBarDrop(arranging = false) {
       if (!was && name && !arrangingRef.current) toast(`${name} is in the bar`, { action: { label: 'Undo', run: () => setPins(hub, before) } });
     };
     const common = { nav: liveBar, tabOf: (key: string) => tabOf(hub, key), pinned: () => pinsOf(hub), get: getAim, set: setAim, place };
-    return { folders: barTarget({ ...common, keyOf: (id) => `l:${id}` }), tokens: barTarget(common) };
+    return { folders: barTarget({ ...common, keyOf: (id) => listKey(id) }), tokens: barTarget(common) };
   }, [hub, toast]);
 }
 
@@ -172,7 +173,7 @@ export const barTabOf = tabOf;
 function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: number }) {
   const hub = useHub();
   const covered = undefined as { label: string } | undefined;
-  const on = pins.includes(`l:${list.id}`);
+  const on = pins.includes(listKey(list.id));
   const label = covered ? `In the bar as ${covered.label}` : on ? `${list.name} is in the bar` : `Put ${list.name} in the bar`;
   return (
     <button
@@ -317,7 +318,7 @@ export function Lists() {
   const toBar = useBarDrop(arranging);
 
   // Out of the bar, waiting in the tray: Search, and the folders inside folders (the top ones are on the page).
-  const missing = arranging ? pinOptions(hub).filter((o) => !pins.includes(o.key) && (!o.key.startsWith('l:') || !!hub.parentOf(o.key.slice(2)))) : [];
+  const missing = arranging ? pinOptions(hub).filter((o) => !pins.includes(o.key) && (!listIdOf(o.key) || !!hub.parentOf(listIdOf(o.key)!))) : [];
 
   return (
     <>
@@ -338,7 +339,7 @@ export function Lists() {
           outside={toBar.folders}
           renderOverlay={(id, { outside }) => {
             const l = hub.list(id);
-            const t = outside ? tabOf(hub, `l:${id}`) : undefined;
+            const t = outside ? tabOf(hub, listKey(id)) : undefined;
             return t ? <TabChip t={t} /> : l ? <ProjectCard list={l} /> : null;
           }}
         >

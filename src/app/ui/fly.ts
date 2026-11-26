@@ -1,3 +1,4 @@
+import { calm } from './tokens';
 /**
  * A thing on its way somewhere, in the app's own hand: a sticky note kept from a screen is picked
  * up the way a held note is (it lifts, its shadow deepens, it leans), then glides along an arc
@@ -6,7 +7,6 @@
  * once (it may vanish); a copy does the flying.
  */
 
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** The bar's (or the computer's top bar's) place for a tab, if it's on screen. */
 export function tabTarget(key: string): HTMLElement | null {
@@ -97,7 +97,7 @@ export function flyInto(from: Element | null, to: HTMLElement | null, opts: { co
     width: `${w}px`,
     height: `${h}px`,
     margin: '0',
-    zIndex: '2147483000',
+    zIndex: 'var(--z-fx)',
     pointerEvents: 'none',
     transformOrigin: '50% 50%',
     translate: 'none',

@@ -1,5 +1,4 @@
 import type { LogEntry } from '../core/model';
-import { fold } from './normalize';
 
 const DAY = 86_400_000;
 
@@ -77,23 +76,6 @@ export function buyAgain(stats: Map<string, PurchaseStats>, onList: Set<string>,
   }
   out.sort((a, b) => b.due - a.due || b.count - a.count);
   return out.slice(0, opts.limit ?? 6);
-}
-
-/** Autocomplete from the household's own purchase history (most frequent first). */
-export function historyMatches(stats: Map<string, PurchaseStats>, query: string, limit = 5): PurchaseStats[] {
-  const q = fold(query);
-  if (!q) return [];
-  const hits: Array<{ s: PurchaseStats; rank: number }> = [];
-  for (const s of stats.values()) {
-    const f = fold(s.name);
-    let rank = -1;
-    if (f.startsWith(q)) rank = 0;
-    else if (f.split(' ').some((w) => w.startsWith(q))) rank = 1;
-    else if (q.length >= 3 && f.includes(q)) rank = 2;
-    if (rank >= 0) hits.push({ s, rank });
-  }
-  hits.sort((a, b) => a.rank - b.rank || b.s.count - a.s.count || b.s.lastAt - a.s.lastAt);
-  return hits.slice(0, limit).map((h) => h.s);
 }
 
 /** "usually every 5 days" */

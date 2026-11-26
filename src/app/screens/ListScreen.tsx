@@ -8,7 +8,7 @@ import { OptRow } from '../components/pickers';
 import { ListVisOptions } from '../components/ProjectFields';
 import { Swatches } from '../components/pickers';
 import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
-import { InlineEditor, Options, Panel, RepeatPanel, ruleShort, TimeField, type Draft } from '../components/editors';
+import { InlineEditor, Options, Panel, RepeatPanel, TimeField } from '../components/editors';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
@@ -29,7 +29,7 @@ import { TabChip } from '../components/BarEdit';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { projectView } from '../views';
-import { hideHome, MAX_HOME_PROJECTS, pinnedProjects, projectKey, showHome, visibleHome } from '../home';
+import { hideHome, MAX_HOME_PROJECTS, pinnedProjects, showHome, visibleHome } from '../home';
 import { notifyMembers } from '../runtime';
 import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
@@ -37,6 +37,10 @@ import { haptic } from '../ui/haptics';
 import { cadenceLabel } from '../../smart/suggest';
 import { dayIn, hasTemplate } from '../template';
 import { humanTime } from '../../core/dates';
+import { DUR } from '../ui/tokens';
+import { listKey } from '../../core/keys';
+import type { Draft } from '../draft';
+import { ruleShort } from '../labels';
 
 /** The folder's own settings, in place under its card: a photo, on Today, its task template, the tasks it shows from elsewhere, where it sits. Each says what it's set to. */
 const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, assignee: null, urgent: false, visibility: 'ours' };
@@ -427,7 +431,7 @@ export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
   const { toast } = useOverlays();
   const [open, setOpen] = useState<'icon' | 'color' | 'vis' | null>(null);
   const toggle = (k: 'icon' | 'color' | 'vis') => setOpen(open === k ? null : k);
-  const pinned = pinsOf(hub).includes(`l:${list.id}`);
+  const pinned = pinsOf(hub).includes(listKey(list.id));
   const partner = hub.partner();
   const canVis = canSetListVis(hub, list);
   const vis = listDefaultVis(hub, list);
@@ -438,7 +442,7 @@ export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
   };
   const pin = () => {
     const before = pinsOf(hub);
-    const now = togglePin(hub, `l:${list.id}`);
+    const now = togglePin(hub, listKey(list.id));
     haptic(now ? 'tick' : 'select');
     toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
   };
@@ -527,7 +531,7 @@ export function ListScreen({ id }: { id: string }) {
 function TodayStar({ listId }: { listId: string }) {
   const hub = useHub();
   const { toast } = useOverlays();
-  const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === projectKey(listId));
+  const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === listKey(listId));
   return (
     <button
       type="button"
@@ -538,9 +542,9 @@ function TodayStar({ listId }: { listId: string }) {
       onClick={() => {
         haptic('select');
         if (onHome) {
-          hideHome(hub, projectKey(listId));
-          toast('Off your Today', { action: { label: 'Undo', run: () => showHome(hub, projectKey(listId)) } });
-        } else if (showHome(hub, projectKey(listId))) toast('On your Today', { action: { label: 'Undo', run: () => hideHome(hub, projectKey(listId)) } });
+          hideHome(hub, listKey(listId));
+          toast('Off your Today', { action: { label: 'Undo', run: () => showHome(hub, listKey(listId)) } });
+        } else if (showHome(hub, listKey(listId))) toast('On your Today', { action: { label: 'Undo', run: () => hideHome(hub, listKey(listId)) } });
         else toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
       }}
     >
@@ -562,7 +566,7 @@ export function ProjectActions({ listId, label, onNew }: { listId: string; label
 }
 
 /**
- * On it: something of mine here is ongoing and I'm looking at it (in the store, cleaning the
+ * On it: I'm looking at this folder (in the store, cleaning the
  * flat). My partner's phone knows (and once in a while hears: "Guy is on Shopping. Need
  * anything?"), and what they add or mark urgent here shows up as it happens.
  */
@@ -619,7 +623,7 @@ function usePartnerNews(open: Item[], saying: boolean): Set<string> {
     const who = hub.member(fresh.length ? (first.addedBy ?? first.createdBy) : first.urgentBy);
     const more = fresh.length + urged.length - 1;
     if (saying && who) toast(`${who.name} ${fresh.length ? 'added' : 'marked urgent'} ${first.title}${more > 0 ? ` +${more}` : ''}`);
-    const t = setTimeout(() => setFlash(new Set()), 2200);
+    const t = setTimeout(() => setFlash(new Set()), DUR.flash);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sig]);
@@ -643,7 +647,7 @@ function ProjectPage({ id }: { id: string }) {
   const inside = nested.length > 0;
   const view = hub.viewOf(list);
   const v = projectView(hub, id, inside, view, prefs.dismissed);
-  const filter = useFilter(`l:${id}`);
+  const filter = useFilter(listKey(id));
   const focus = false;
   useOnIt(focus, id, list?.name ?? '');
   const flash = usePartnerNews(v.open, focus);
@@ -875,7 +879,7 @@ function SubProjects({ list }: { list: List }) {
                 <span dir="auto">{l.name}</span>
               </span>
             );
-          const t = away ? barTabOf(hub, `l:${id}`) : undefined;
+          const t = away ? barTabOf(hub, listKey(id)) : undefined;
           return t ? <TabChip t={t} /> : l ? <ProjectCard list={l} /> : null;
         }}
       >

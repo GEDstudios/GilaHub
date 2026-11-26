@@ -1,48 +1,20 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { addMonths, daysInMonth, fromDateStr, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
-import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
+import type { Draft, Field } from '../draft';
+import { REMIND_OPTIONS, remindText, ruleShort, whenText, whoInSentence, whoText } from '../labels';
+import { firstDue, ordinalDay } from '../../smart/recurrence';
 import { useHub } from '../context';
 import { sheetOpened } from '../router';
 import { use24h, usePrefs, weekStart } from '../prefs';
 import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { withNotification } from '../compose';
-import { REMIND_OPTIONS } from '../reminders';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Avatar, lightVar, Switch } from '../ui/primitives';
 import { PairSheet } from './PairSheet';
 
-/** Everything the inline editor can change about an item. */
-export interface Draft {
-  due: string | null;
-  dueTime: string | null;
-  repeat: RepeatRule | null;
-  remind: number | null;
-  /** Notify again until done (with a notification, on a thing that doesn't repeat). */
-  nag?: RepeatRule | null;
-  assignee: Assignee;
-  urgent: boolean;
-  visibility: VisChoice;
-  /** For a request to the partner: I OK it before it counts as done. */
-  needsOk?: boolean;
-}
 
-export type Field = 'when' | 'repeat' | 'remind' | 'who' | 'vis' | 'urgent';
-
-export const ruleShort = (r: RepeatRule) => describeRule(r, (n) => weekdayName(n)).replace(" after it's done", '');
-
-export function remindText(v: number | null | undefined): string | null {
-  if (v === null || v === undefined) return null;
-  return REMIND_OPTIONS.find((o) => o.value === v)?.label ?? `${v} min before`;
-}
-
-export function whoText(hub: ReturnType<typeof useHub>, a: Assignee | undefined, turn?: string | null): string {
-  if (!a) return 'Either of us';
-  if (a === 'both') return 'Together';
-  if (a === 'turns') return turn ? `Turns · ${turn === hub.meId ? 'you' : (hub.member(turn)?.name ?? '')} next` : 'Taking turns';
-  return a === hub.meId ? 'Me' : (hub.member(a)?.name ?? 'Someone');
-}
 
 /** One calm sentence that says what the item is set to, like Tasky's card subtitle. */
 export function useSummary() {
@@ -52,15 +24,9 @@ export function useSummary() {
   return (d: Partial<Draft>, opts: { listName?: string } = {}): string => {
     const ref = todayStr();
     const parts: string[] = [];
-    if (d.due) {
-      const day = humanDate(d.due, ref);
-      parts.push(d.dueTime ? `${day} at ${humanTime(d.dueTime, h24)}` : day);
-    }
+    if (d.due) parts.push(whenText(d.due, d.dueTime, ref, h24, 'sentence'));
     if (d.repeat) parts.push(ruleShort(d.repeat).toLowerCase().replace(/^every/, d.due ? 'then every' : 'every'));
-    if (d.assignee) {
-      const who = whoText(hub, d.assignee);
-      parts.push(d.assignee === 'both' ? 'together' : d.assignee === 'turns' ? 'taking turns' : who === 'Me' ? 'for you' : `for ${who}`);
-    }
+    if (d.assignee) parts.push(whoInSentence(hub, d.assignee));
     const r = remindText(d.remind);
     if (r) parts.push(`notify ${r.toLowerCase()}${d.nag ? `, then ${ruleShort(d.nag).toLowerCase()} until done` : ''}`);
     if (!parts.length) return opts.listName ? `In ${opts.listName}` : 'No date';
@@ -375,7 +341,7 @@ export function InlineEditor({
     const repeatInside = inWhen && fields.includes('repeat');
     const remindInside = inWhen && fields.includes('remind');
     if (f === 'when') {
-      const text = value.due ? `${humanDate(value.due, ref)}${value.dueTime ? `, ${humanTime(value.dueTime, h24)}` : ''}` : repeatInside && value.repeat ? ruleShort(value.repeat) : 'Date';
+      const text = value.due ? whenText(value.due, value.dueTime, ref, h24) : repeatInside && value.repeat ? ruleShort(value.repeat) : 'Date';
       const marks = (
         <>
           {text}
@@ -779,21 +745,6 @@ function useMouse(): boolean {
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
-
-/** "9", "930", "9:30", "18.30", "6pm", "6:15 am" → "HH:MM" (null if it isn't a time). */
-export function parseTime(text: string): string | null {
-  const m = text.trim().toLowerCase().match(/^(\d{1,2})(?:[:.\s]?(\d{2}))?\s*(a|am|p|pm)?$/);
-  if (!m) return null;
-  let h = Number(m[1]);
-  const min = m[2] ? Number(m[2]) : 0;
-  if (min > 59) return null;
-  if (m[3]) {
-    if (h < 1 || h > 12) return null;
-    h = (h % 12) + (m[3].startsWith('p') ? 12 : 0);
-  }
-  if (h > 23) return null;
-  return `${pad2(h)}:${pad2(min)}`;
-}
 
 /**
  * The time on a computer, entered: an hour box and a minute box (type, or ↑ ↓), AM / PM on a

@@ -117,11 +117,12 @@ import { createPortal } from 'react-dom';
 import { stepDock, type DockStep } from '../barEdit';
 import { haptic } from './haptics';
 import { leanOf, moveId, rubber, tiltStep } from './motion';
+import { DUR, EASE, HOLD, SLOP, Z } from './tokens';
 
 // ---------------------------------------------------------------- timing
 
 const NEIGHBOURS = { duration: 260, easing: 'cubic-bezier(.25,1.25,.5,1)' };
-const DROP = { duration: 320, easing: 'cubic-bezier(.34,1.4,.64,1)' };
+const DROP = { duration: DUR.slow, easing: EASE.springSoft };
 const CALM = { duration: 120, easing: 'ease' };
 /** Rows follow the finger sideways only a little, and bar tabs up and down. */
 const ROW_X = 0.15;
@@ -182,7 +183,7 @@ class GripSensor extends PointerSensor {
 }
 
 /** On a grip, a touch lifts after this short press; moving sooner is a scroll. */
-const GRIP_TOUCH = { delay: 120, tolerance: 6 };
+const GRIP_TOUCH = { delay: HOLD.handle, tolerance: SLOP.hold };
 
 /**
  * Touch: a long-press on the row body, or a short press on its grip. One sensor for both, since
@@ -414,9 +415,9 @@ export function Sortable({
   children,
 }: SortableProps) {
   const sensors = useSensors(
-    useSensor(GripSensor, { activationConstraint: { distance: 3 } }),
-    useSensor(RowTouchSensor, { activationConstraint: { delay: 320, tolerance: 6 } }),
-    useSensor(RowMouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(GripSensor, { activationConstraint: { distance: SLOP.mouse } }),
+    useSensor(RowTouchSensor, { activationConstraint: { delay: HOLD.press, tolerance: SLOP.hold } }),
+    useSensor(RowMouseSensor, { activationConstraint: { distance: SLOP.mouse } }),
     useSensor(GripKeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -646,7 +647,7 @@ export function Sortable({
       </SortCtx.Provider>
       {createPortal(
         <DragOverlay
-          zIndex={70}
+          zIndex={Z.drag}
           dropAnimation={drop}
           className="dragwrap"
           style={{ '--gx': `${grab.x}px`, '--gy': `${grab.y}px` } as CSSProperties}

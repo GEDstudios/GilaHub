@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, Panel, useSummary, type Draft } from '../components/editors';
+import { InlineEditor, Panel, useSummary } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
 import { OptRow } from '../components/pickers';
@@ -28,6 +28,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Check, Empty, IconButton, lineVars, ListBullet, NewButton, Section } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
 import { AutoTitle } from '../ui/AutoTitle';
+import type { Draft } from '../draft';
 
 function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; onGone: () => void }) {
   const hub = useHub();
@@ -327,7 +328,7 @@ export function ItemScreen({ id }: { id: string }) {
       /* sandboxed */
     }
     if (act === 'done' && !it.done) {
-      if (hub.canTick(it)) tick(it);
+      if (hub.canEdit(it)) tick(it);
     } else if (act === 'later') {
       hub.snooze(id, addDays(todayStr(), 1));
       toast(`${it.title}: tomorrow`);
@@ -359,7 +360,7 @@ export function ItemScreen({ id }: { id: string }) {
       const it = hub.item(id);
       if (it && snap) {
         const privacy = it.private !== snap.private || it.owner !== snap.owner;
-        hub.store.mutate('item', id, snap as never);
+        hub.updateItem(id, snap as Parameters<typeof hub.updateItem>[1]);
         if (privacy) hub.rescope(id);
         setNotes((snap.notes as string | null) ?? '');
       }
@@ -491,7 +492,7 @@ export function ItemScreen({ id }: { id: string }) {
   };
 
   const onToggle = () => {
-    if (hub.canTick(item)) tick(item);
+    if (hub.canEdit(item)) tick(item);
   };
 
   const draft: Draft = {

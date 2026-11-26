@@ -2,6 +2,7 @@ import type { Hub } from '../core/actions';
 import type { LineColor } from '../core/model';
 import type { Route } from './router';
 import type { IconName } from './ui/Icon';
+import { listKey, listIdOf } from '../core/keys';
 
 /**
  * Between Today and Projects you pin as many as you like: Search or any project. Past 5 tabs the
@@ -44,7 +45,7 @@ export function pinOptions(hub: Hub): TabDef[] {
   const lists = hub.lists();
   return [
     { key: 'search', label: 'Search', path: '/search', icon: 'search' },
-    ...lists.map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
+    ...lists.map((l) => ({ key: listKey(l.id), label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
 }
 
@@ -64,16 +65,11 @@ const validKeys = (hub: Hub) => new Set(pinOptions(hub).map((t) => t.key));
 /** A stored 'shop' (the old Shopping tab) is the Shopping project's pin. */
 const resolved = (hub: Hub, raw: readonly string[]): string[] => {
   const root = hub.shopRoot();
-  return raw.map((k) => (k === 'shop' ? (root ? `l:${root.id}` : '') : k));
+  return raw.map((k) => (k === 'shop' ? (root ? listKey(root.id) : '') : k));
 };
 
 export function pinsOf(hub: Hub): string[] {
   return cleanPins(resolved(hub, hub.me()?.tabs ?? DEFAULT_PINS), validKeys(hub));
-}
-
-/** Is the bar as it came? (Settings offers "Back to the default" only when not.) */
-export function isDefaultPins(pins: readonly string[]): boolean {
-  return pins.join() === DEFAULT_PINS.join();
 }
 
 /**
@@ -100,18 +96,11 @@ export function keepDormant<T>(raw: readonly T[], next: readonly T[], key: (t: T
   return out;
 }
 
-const dormantKey = (hub: Hub) => (k: string) => k.startsWith('l:') && hub.listDormant(k.slice(2));
+const dormantKey = (hub: Hub) => (k: string) => { const id = listIdOf(k); return !!id && hub.listDormant(id); };
 
 export function setPins(hub: Hub, pins: string[]): void {
   const raw = resolved(hub, (hub.me()?.tabs ?? []).filter((k): k is string => typeof k === 'string'));
   hub.upsertMember(hub.meId, { tabs: keepDormant(raw, cleanPins(resolved(hub, pins), validKeys(hub)), (k) => k, dormantKey(hub)) });
-}
-
-/** "Back to the default": really the default, archived pins and all. Undo puts back what was stored. */
-export function resetPins(hub: Hub): () => void {
-  const raw = hub.me()?.tabs;
-  hub.upsertMember(hub.meId, { tabs: [...DEFAULT_PINS] });
-  return () => hub.upsertMember(hub.meId, { tabs: raw });
 }
 
 /**
@@ -159,7 +148,7 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
   const forList = (listId: string | undefined): string => {
     if (!listId) return 'projects';
     // Itself, or the nearest project it's inside that's in the bar.
-    for (const l of [hub.list(listId), ...[...hub.listPath(listId)].reverse()]) if (l && pins.includes(`l:${l.id}`)) return `l:${l.id}`;
+    for (const l of [hub.list(listId), ...[...hub.listPath(listId)].reverse()]) if (l && pins.includes(listKey(l.id))) return listKey(l.id);
     return 'projects';
   };
   switch (r.name) {

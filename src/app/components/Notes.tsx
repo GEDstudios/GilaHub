@@ -12,6 +12,7 @@ import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { NoteEditor, NoteFace, PAPER, PHOTO_HOME, type NoteLook, type PhotoPos, type PhotoShape, type Stroke } from './NoteFace';
 import { lineVars } from '../ui/primitives';
+import { HOLD } from '../ui/tokens';
 
 /**
  * Sticky notes: one of us leaves a note on a screen for the other ("Don't forget the milk 💛"
@@ -437,8 +438,7 @@ function StuckNote({
         g.current.mode = 'finger';
         followFingers(start, g.current.sx, g.current.sy);
       } else g.current.mode = 'mouse';
-      // A finger picks it up a touch sooner than the mouse.
-    }, finger ? 300 : 380);
+    }, HOLD.press);
   };
 
   const move = (e: React.PointerEvent) => {

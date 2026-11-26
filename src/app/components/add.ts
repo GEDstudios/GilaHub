@@ -12,7 +12,7 @@ export function usePingUrgent() {
   const rt = useRt();
   const here = usePartnerHere();
   return (item: Item, added: boolean) => {
-    if (!here || (here.listId && here.listId !== item.listId && !hub.listPath(item.listId).some((l) => l.id === here.listId))) return;
+    if (!here || (here.listId && here.listId !== item.listId && !hub.isWithin(item.listId, here.listId))) return;
     const me = hub.me()?.name ?? 'Your partner';
     void notifyMembers(rt, [here.member], {
       title: added ? `${me} added ${item.title}` : `${me} marked ${item.title} urgent`,

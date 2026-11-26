@@ -12,8 +12,9 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { useBackGuard } from '../ui/backGuard';
 import { lineVars } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
-import { EChip, InlineEditor, useSummary, type Field } from './editors';
+import { EChip, InlineEditor, useSummary } from './editors';
 import { listChip, ParsedToken, tagChip, useCompose, type ComposeSeed } from './QuickAdd';
+import type { Field } from '../draft';
 
 /**
  * New: the one way to add, from the black + on every screen. You write straight onto the
@@ -348,7 +349,7 @@ function Composer({
               }
             }}
             onPaste={onPaste}
-            placeholder={c.parent ? 'A subtask' : composerPlaceholder('task', hub.partner()?.name, roll) || 'A new thing'}
+            placeholder={c.parent ? 'A subtask' : composerPlaceholder(hub.partner()?.name, roll) || 'A new thing'}
             aria-label={c.parent ? 'A subtask' : 'What needs doing?'}
             enterKeyHint="enter"
             autoComplete="off"

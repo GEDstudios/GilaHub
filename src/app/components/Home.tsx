@@ -15,13 +15,13 @@ import type { Settle } from '../ui/useSettle';
 import type { TodayView } from '../views';
 import { ItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
+import { calm } from '../ui/tokens';
 
 /*
  * Today, as docs/07-HOME.md has it: the day's card (my colour, a sentence, my person's tag on its
  * edge), one list of what I have to do, the week as a strip of days opened in place, and us.
  */
 
-const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 /** Open one of Us's colour cards from elsewhere on the page ('asks', 'week', 'did', 'asked'). */

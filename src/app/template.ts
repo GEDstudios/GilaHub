@@ -1,11 +1,11 @@
 import type { Hub } from '../core/actions';
 import type { List, TaskTemplate } from '../core/model';
-import type { Draft } from './components/editors';
 import { getPrefs, use24h } from './prefs';
 import { firstDue } from '../smart/recurrence';
 import { addDays, humanTime, today } from '../core/dates';
-import { remindText, ruleShort } from './components/editors';
-import { allowedVis, itemVisChoice, setItemVis } from './privacy';
+import { allowedVis, itemVisChoice, setItemVis, visLabel } from './privacy';
+import type { Draft } from './draft';
+import { capital, remindText, ruleShort, whoInSentence } from './labels';
 
 /** Whether a folder's template sets anything at all. */
 export function hasTemplate(list: List | undefined | null): list is List & { template: TaskTemplate } {
@@ -17,7 +17,7 @@ export function hasTemplate(list: List | undefined | null): list is List & { tem
 export function templateSummary(hub: Hub, t: TaskTemplate): string {
   const bits: string[] = [];
   if (t.urgent) bits.push('Urgent');
-  if (t.assignee) bits.push(t.assignee === 'both' ? 'Both of you' : t.assignee === hub.meId ? 'For you' : `For ${hub.member(t.assignee)?.name ?? 'them'}`);
+  if (t.assignee) bits.push(capital(whoInSentence(hub, t.assignee)));
   if (t.needsOk) bits.push('Needs your OK');
   const tags = (t.tags ?? []).map((x) => hub.tag(x)?.name).filter(Boolean);
   if (tags.length) bits.push(tags.join(', '));
@@ -28,7 +28,7 @@ export function templateSummary(hub: Hub, t: TaskTemplate): string {
   if (t.nag) bits.push(`Again ${ruleShort(t.nag).toLowerCase()} until done`);
   if (t.steps?.length) bits.push(`${t.steps.length} ${t.steps.length === 1 ? 'subtask' : 'subtasks'}`);
   if (t.notes) bits.push('A note');
-    if (t.visibility) bits.push(t.visibility === 'ours' ? 'Ours' : t.visibility === 'mine' ? 'Mine' : t.visibility === 'private' ? 'Private' : 'Theirs');
+  if (t.visibility) bits.push(visLabel(t.visibility, hub.partner()?.name));
   return bits.join(' · ');
 }
 

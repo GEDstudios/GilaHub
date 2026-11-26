@@ -4,7 +4,7 @@
  * Pure functions over the Hub, so rows, chips, sheets and tests all agree.
  */
 import type { Hub, ItemVisibility } from '../core/actions';
-import type { Item, List, Member, Visibility } from '../core/model';
+import type { Item, List, Member } from '../core/model';
 import type { IconName } from './ui/icons.gen';
 
 /** "theirs" = Mine, but my partner's. */
@@ -18,9 +18,6 @@ export function listDefaultVis(hub: Hub, list: Pick<List, 'visibility' | 'owner'
   if (list.visibility === 'private') return 'private';
   return !list.owner || list.owner === hub.meId ? 'mine' : 'theirs';
 }
-
-/** A project's own setting, as a choice (a project is never "theirs" to the person setting it). */
-export const LIST_VIS: Record<Visibility, VisChoice> = { shared: 'ours', visible: 'mine', private: 'private' };
 
 /** "Ours", "Mine", "Hila’s" or "Private", for a project. */
 export function listVisLabel(hub: Hub, list: Pick<List, 'visibility' | 'owner'>): string {
@@ -44,6 +41,12 @@ export function itemVisChoice(hub: Hub, item: Item): VisChoice {
   if (v !== 'mine') return v;
   const owner = hub.ownerOf(item);
   return owner && owner !== hub.meId ? 'theirs' : 'mine';
+}
+
+/** Is it on my side: my own (Mine) or only mine to see (Private), not the house's or my person's. */
+export function isMineSide(hub: Hub, item: Item): boolean {
+  const c = itemVisChoice(hub, item);
+  return c === 'mine' || c === 'private';
 }
 
 /** What a row's privacy tag says, or null when it matches its project (or its parent, for steps). */

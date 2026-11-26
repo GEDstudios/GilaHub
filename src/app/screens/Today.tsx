@@ -11,16 +11,18 @@ import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
 import { useHub } from '../context';
-import { listIdOf, visibleHome, queryIdOf } from '../home';
+import { visibleHome, queryIdOf } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { Band, IconButton, lightVar, NewButton } from '../ui/primitives';
 import { haptic } from '../ui/haptics';
 import { setPrefs, usePrefs } from '../prefs';
-import { itemVisChoice } from '../privacy';
+import { isMineSide } from '../privacy';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { todayView, type TodayView } from '../views';
+import { calm } from '../ui/tokens';
+import { listIdOf } from '../../core/keys';
 
 const idOf = (i: Item) => i.id;
 
@@ -53,7 +55,7 @@ function filterToday(v: TodayView, keep: (i: Item) => boolean): TodayView {
 /** Cross-fade between the page and its editor, where the browser can. */
 function swap(fn: () => void) {
   const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
-  if (!doc.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return fn();
+  if (!doc.startViewTransition || calm()) return fn();
   doc.startViewTransition(() => flushSync(fn));
 }
 
@@ -64,22 +66,13 @@ export function Today() {
   const hub = useHub();
   const { openSheet } = useOverlays();
   const ref = todayStr();
-  // No filter row here: the Ours ↔ Mine tag is the one way to narrow Today.
-  const filter = { active: false, test: (_i: Item, _deep?: boolean) => true };
   const prefs = usePrefs();
   const partner = hub.partner();
   const me = hub.me();
-  // All · Mine · Ours: my own things (Mine, Private) or the house's (Ours, and my person's).
-  const scope = partner && prefs.todayScope === 'mine' ? 'mine' : 'all';
-  const isMine = (i: Item) => {
-    const c = itemVisChoice(hub, i);
-    return c === 'mine' || c === 'private';
-  };
-  const inScope = (i: Item) => scope === 'all' || (scope === 'mine' ? isMine(i) : !isMine(i));
+  // The one way to narrow Today, a tag beside search: Ours (everything) ↔ Mine (just my own: Mine and Private).
+  const mineOnly = !!partner && prefs.todayScope === 'mine';
   const all = todayView(hub, ref);
-  const v = filter.active || scope !== 'all' ? filterToday(all, (i) => inScope(i) && (!filter.active || filter.test(i))) : all;
-  // One tag beside search: Ours (everything) ↔ Mine (just my own: Mine and Private).
-  const mineOnly = scope === 'mine';
+  const v = mineOnly ? filterToday(all, (i) => isMineSide(hub, i)) : all;
   const scopeTag = partner ? (
     <button
       type="button"
@@ -140,13 +133,13 @@ export function Today() {
     const savedId = queryIdOf(key);
     if (savedId) return <SavedListWidget key={key} id={savedId} settle={settle} />;
     const listId = listIdOf(key);
-    if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} show={filter.active ? (i) => filter.test(i, true) : undefined} />;
+    if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} />;
     switch (key) {
       case 'today':
         // What my person asked waits in Us's cards; with Us hidden, folded under the list.
         return <TodayList key={key} v={v} day={ref} settle={settle} asksHere={!slots.some((x) => x.key === 'week')} />;
       case 'quick':
-        return <QuickView key={key} settle={settle} show={filter.active ? (i) => filter.test(i, true) : undefined} />;
+        return <QuickView key={key} settle={settle} />;
       case 'upcoming':
         return <WeekStrip key={key} v={v} day={ref} />;
       case 'week':

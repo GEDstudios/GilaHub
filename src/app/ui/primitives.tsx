@@ -173,41 +173,6 @@ export function Band({
   );
 }
 
-/** Tasky's signature: a big rounded card of one color, a serif title, a quiet line under it. */
-export function ColorCard({
-  color,
-  title,
-  sub,
-  badge,
-  children,
-  onClick,
-  className,
-  size = 'lg',
-}: {
-  color: LineColor | undefined;
-  title: ReactNode;
-  sub?: ReactNode;
-  badge?: ReactNode;
-  children?: ReactNode;
-  onClick?: () => void;
-  className?: string;
-  size?: 'md' | 'lg';
-}) {
-  const Tag = onClick ? 'button' : 'div';
-  return (
-    <Tag type={onClick ? 'button' : undefined} className={`ccard ccard--${size} ${className ?? ''}`} style={lineVars(color)} onClick={onClick}>
-      <span className="ccard__top">
-        <span className="ccard__title" dir="auto">
-          {title}
-        </span>
-        {badge ? <span className="ccard__badge">{badge}</span> : null}
-      </span>
-      {children}
-      {sub ? <span className="ccard__sub">{sub}</span> : null}
-    </Tag>
-  );
-}
-
 /** A name tag with a cursor — two people working in the same space. */
 export function NameTag({ name, color, style, flip }: { name: string; color: LineColor; style?: CSSProperties; flip?: boolean }) {
   return (
@@ -343,18 +308,5 @@ export function Logo({ size = 28 }: { size?: number }) {
     <span className="wordmark" style={{ fontSize: size }} aria-label="Gila Hub" role="img">
       gila<span className="wordmark__hub">hub</span>
     </span>
-  );
-}
-
-/** Small ring showing step progress, e.g. 3 of 5. */
-export function StepRing({ done, total }: { done: number; total: number }) {
-  const r = 5.5;
-  const c = 2 * Math.PI * r;
-  const p = total ? done / total : 0;
-  return (
-    <svg className="ring" viewBox="0 0 14 14" aria-hidden="true">
-      <circle cx="7" cy="7" r={r} fill="none" stroke="var(--tile-2)" strokeWidth="2" />
-      <circle cx="7" cy="7" r={r} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray={`${c * p} ${c}`} strokeLinecap="round" transform="rotate(-90 7 7)" />
-    </svg>
   );
 }

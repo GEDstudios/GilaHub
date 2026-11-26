@@ -1,10 +1,11 @@
 import type { Hub } from '../core/actions';
-import { atLocal, humanDate, humanTime } from '../core/dates';
+import { atLocal, humanDate, today } from '../core/dates';
 import type { Item, List, Scope } from '../core/model';
 import { api } from '../core/session';
 import { isFlexible, nextDue } from '../smart/recurrence';
 import { use24h } from './prefs';
 import { sealNote, type NotePayload, type Runtime } from './runtime';
+import { whenText } from './labels';
 
 export interface ReminderSpec {
   id: string;
@@ -13,13 +14,6 @@ export interface ReminderSpec {
   scope: Scope;
   note: NotePayload;
 }
-
-export const REMIND_OPTIONS: Array<{ value: number; label: string }> = [
-  { value: 0, label: 'When due' },
-  { value: 15, label: '15 min before' },
-  { value: 60, label: '1 hour before' },
-  { value: 24 * 60, label: '1 day before' },
-];
 
 /** Who should hear about this item? Never the partner for private things. */
 export function whoToRemind(hub: Hub, item: Item, scope: Scope): string[] {
@@ -71,7 +65,7 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
       dues.forEach((due, i) => {
         const at = reminderTime(item, due, dayTime || DEFAULT_REMIND_AT);
         if (at < now - 60_000) return;
-        const when = item.dueTime ? `${humanDate(due)} · ${humanTime(item.dueTime, use24h())}` : humanDate(due);
+        const when = whenText(due, item.dueTime, today(), use24h());
         out.push({
           id: `${item.id}.${i}${sfx}`,
           at,

@@ -5,6 +5,7 @@ import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
 import { useShotPicker } from './Sketch';
+import { HOLD } from '../ui/tokens';
 
 /**
  * One note, drawn the same everywhere: stuck on a screen, big while you write it, small on Our
@@ -138,12 +139,6 @@ export const SHAPES: Array<{ id: PhotoShape; label: string }> = [
   { id: 'heart', label: 'Heart' },
   { id: 'star', label: 'Star' },
   { id: 'flower', label: 'Flower' },
-];
-export const BORDERS: Array<{ id: PhotoBorder; label: string }> = [
-  { id: 'none', label: 'None' },
-  { id: 'white', label: 'White' },
-  { id: 'ink', label: 'Black' },
-  { id: 'tape', label: 'Tape' },
 ];
 
 /** The photo, cut to its shape, in its border, where it sits on the paper. */
@@ -473,7 +468,7 @@ function usePhotoGesture({
                 followFingers(start, g.current.sx, g.current.sy);
               } else g.current.mode = 'mouse';
             },
-            finger ? 300 : 380,
+            HOLD.press,
           );
         },
         onPointerMove: (e: React.PointerEvent) => {

@@ -9,6 +9,7 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, ListBullet, Section } from '../ui/primitives';
+import { TOAST } from '../ui/tokens';
 
 /**
  * Stock: everything we count, from every folder, in one place. What's running low first (and
@@ -43,7 +44,7 @@ export function StockScreen() {
     hub.setStock(id, { stock: 2, stockFull: 4, stockAddAt: 1, stockUrgentAt: 0 });
     setName('');
     haptic('tick');
-    toast(`${title}: 2 of 4`, { ms: 1800 });
+    toast(`${title}: 2 of 4`, { ms: TOAST.short });
   };
   const pickHome = () =>
     openSheet((close) => (

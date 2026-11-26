@@ -100,7 +100,7 @@ export function Children({
 }) {
   const hub = useHub();
   const settle = useSettle(idOf);
-  const all = (parentId ? hub.childrenOf(parentId) : hub.children(listId, null)).filter((i) => !show || show(i));
+  const all = hub.siblings(listId, parentId).filter((i) => !show || show(i));
   const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
   const rows = settle.view('open', open);

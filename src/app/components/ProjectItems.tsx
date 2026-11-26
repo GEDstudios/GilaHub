@@ -15,6 +15,7 @@ import { movedTo } from './TemplateAsk';
 import { getPrefs, setPrefs, usePrefs } from '../prefs';
 import { useGroupDrag } from '../ui/groupDrag';
 import { TagMark } from './Tags';
+import { listIdOf } from '../../core/keys';
 
 const idOf = (i: Item) => i.id;
 
@@ -23,7 +24,7 @@ function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
   for (const e of document.elementsFromPoint(p.x, p.y)) {
     const t = e.closest<HTMLElement>('[data-drop-list], .tabbar [data-key^="l:"]');
     if (!t) continue;
-    const listId = t.dataset.dropList ?? t.dataset.key?.slice(2);
+    const listId = t.dataset.dropList ?? (t.dataset.key ? listIdOf(t.dataset.key) : null) ?? undefined;
     if (listId) return { el: t, listId };
   }
   return null;
@@ -130,7 +131,7 @@ export function ProjectItems({
     const ok = (id: string) => {
       const it = hub.item(id);
       // Never under itself or one of its own subtasks.
-      return !!it && !it.parentId && !it.done && hub.canEdit(it) && !hub.descendants(from).some((d) => d.id === id);
+      return !!it && !it.parentId && !it.done && hub.canEdit(it) && !hub.isUnder(id, from);
     };
     const rows = [...document.querySelectorAll<HTMLElement>('.aisle li.row:not(.row--nested)[data-id]')]
       .filter((li) => li.dataset.id !== from && !li.closest('.dragwrap'))
@@ -380,63 +381,6 @@ export function ProjectItems({
       ) : (
         body
       )}
-    </SettleContext.Provider>
-  );
-}
-
-/**
- * Ongoing: what's being done now. A task swiped right comes in here (it leaves the list below),
- * ticked it stays as a chip (tap puts it back to doing), and Clear files the done ones away
- * (Again? remembers them). Swipe one left to take it out: not now. The same in every folder.
- */
-export function OngoingTray({ open, done, onOut, onClear }: { open: Item[]; done: Item[]; onOut: (i: Item) => void; onClear: () => void }) {
-  const hub = useHub();
-  const total = open.length + done.length;
-  const pct = total ? Math.round((done.length / total) * 100) : 0;
-  const settle = useSettle(idOf);
-  const rows = settle.view('ongoing', open);
-  return (
-    <SettleContext.Provider value={settle}>
-      <section className={`cartcard ${open.length === 0 ? 'is-full' : ''}`} aria-label={`Ongoing: ${done.length} of ${total} done`}>
-        <div className="cartcard__head">
-          <span className="cartcard__basket" key={done.length}>
-            <Icon name="play-circle" />
-            {open.length ? <span className="cartcard__n num">{open.length}</span> : null}
-          </span>
-          <span className="cartcard__title">Ongoing</span>
-          <span className="cartcard__bar" aria-hidden="true">
-            <span style={{ width: `${pct}%` }} />
-          </span>
-          <span className="cartcard__of num">
-            {done.length}/{total}
-          </span>
-        </div>
-        {rows.length ? (
-          <ul className="rows cartcard__rows">
-            {rows.map(({ row: i, settling }) => (
-              <ItemRow key={i.id} item={i} inTray settling={settling} />
-            ))}
-          </ul>
-        ) : null}
-        {done.length ? (
-          <div className="cartcard__items">
-            {done.map((i) => {
-              const e = hub.emojiOf(i);
-              return (
-                <button key={i.id} type="button" className="cartchip" onClick={() => onOut(i)} aria-label={`Put ${i.title} back`}>
-                  {e ? <span className="cartchip__e">{e}</span> : <Icon name="check" className="icon--xs" />}
-                  <span dir="auto">{i.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-        {done.length ? (
-          <button type="button" className={`btn btn--sm cartcard__pay ${open.length === 0 ? '' : 'btn--quiet'}`} onClick={onClear}>
-            Clear
-          </button>
-        ) : null}
-      </section>
     </SettleContext.Provider>
   );
 }

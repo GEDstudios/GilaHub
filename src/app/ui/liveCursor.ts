@@ -1,4 +1,5 @@
 import { cursorImage, type CursorKind } from './cursors';
+import { HOLD as HOLD_TIME } from './tokens';
 
 /**
  * The mouse, alive (a computer only, and not when motion is turned down): our cursor drawn by
@@ -38,7 +39,7 @@ function waveAngle(t: number): number {
 }
 /** Things that need a hold to pick up (with the mouse: a note, a note's photo), and how long. */
 const HOLD = '.stuck:not(.is-lifted), .nf__photo.is-editable:not(.is-lifted)';
-export const MOUSE_HOLD_MS = 380;
+const MOUSE_HOLD_MS = HOLD_TIME.press;
 
 function kindAt(target: EventTarget | null): CursorKind | 'text' {
   const root = document.documentElement;

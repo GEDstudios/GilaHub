@@ -5,6 +5,7 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { shrinkImage } from './Sketch';
+import { TOAST } from '../ui/tokens';
 
 /**
  * Photos on a task or a folder: a strip of little prints (each a touch turned, like the notes),
@@ -50,7 +51,7 @@ export async function addPhotoTo(hub: Hub, toast: (text: string, opts?: { ms?: n
   if (!url) return;
   hub.addPhoto(on, url);
   haptic('success');
-  toast('Photo added', { ms: 1600 });
+  toast('Photo added', { ms: TOAST.short });
 }
 
 export function useAddPhoto(on: string) {

@@ -1,11 +1,9 @@
 import type { ReactNode } from 'react';
-import { LINE_COLORS, type LineColor, type List } from '../../core/model';
-import { useHub } from '../context';
+import { LINE_COLORS, type LineColor } from '../../core/model';
 import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
-import { Sheet } from '../ui/overlays';
-import { ListBullet, lineVars } from '../ui/primitives';
+import { lineVars } from '../ui/primitives';
 
 /**
  * A quiet row inside a grouped card (settings, lists to pick from). `chev`: it opens something.
@@ -59,42 +57,6 @@ export function OptRow({
     </button>
   ) : (
     <div className={`optrow ${danger ? 'optrow--danger' : ''}`}>{body}</div>
-  );
-}
-
-export function ListPickerSheet({
-  onClose,
-  onPick,
-  current,
-  filter,
-  title = 'Move to',
-}: {
-  onClose: () => void;
-  onPick: (l: List) => void;
-  current?: string;
-  filter?: (l: List) => boolean;
-  title?: string;
-}) {
-  const hub = useHub();
-  const lists = hub.lists().filter((l) => (filter ? filter(l) : true));
-  return (
-    <Sheet onClose={onClose} title={title}>
-      <div className="group">
-        {lists.map((l) => (
-          <OptRow
-            key={l.id}
-            lead={<ListBullet list={l} size="md" />}
-            title={l.name}
-            sub={l.visibility === 'private' ? 'Private' : l.visibility === 'visible' ? `${hub.member(l.owner)?.name ?? ''}’s` : undefined}
-            on={l.id === current}
-            onClick={() => {
-              onPick(l);
-              onClose();
-            }}
-          />
-        ))}
-      </div>
-    </Sheet>
   );
 }
 

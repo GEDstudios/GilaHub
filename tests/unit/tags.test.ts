@@ -1,26 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Hub, seedHousehold } from '../../src/core/actions';
+import { seedHousehold } from '../../src/core/actions';
 import { projectView } from '../../src/app/views';
-import { MemoryPersistence } from '../../src/core/db';
-import { Store } from '../../src/core/store';
-
-async function person(member: string) {
-  const store = await Store.load(new MemoryPersistence(), `dev-${member}`, ['h', `p:${member}`]);
-  return new Hub(store, member);
-}
-
-function sync(...hubs: Hub[]) {
-  for (let round = 0; round < 3; round++) {
-    for (const from of hubs) {
-      const entries = from.store.pendingOutbox();
-      for (const to of hubs) {
-        if (to === from) continue;
-        to.store.applyRemoteBatch(entries.filter((e) => to.store.canRead(e.s)).map((e) => e.op));
-      }
-      from.store.ack(entries.map((e) => e.cid));
-    }
-  }
-}
+import { person, sync } from './_helpers';
 
 /** A household from before: two shopping lists of their own kind, aisles renamed, one taken away, one of ours. */
 async function oldHousehold() {
@@ -210,5 +191,22 @@ describe('One kind of project', () => {
     guy.store.mutate('list', root, { shopRoot: true });
     guy.uniformProjects();
     expect([guy.list(root)!.view, guy.list(g)!.view]).toEqual(['tags', 'tags']);
+  });
+});
+
+describe('Recent tags', () => {
+  it('lists the tags set last first', async () => {
+    const guy = await person('guy');
+    const l = guy.createList({ name: 'To do' });
+    const work = guy.createTag('Work')!;
+    const garden = guy.createTag('Garden')!;
+    const fun = guy.createTag('Fun')!;
+    const a = guy.addItem(l, { title: 'Report' });
+    const b = guy.addItem(l, { title: 'Weeds' });
+    guy.setTags(a, [work]);
+    guy.setTags(b, [garden]);
+    expect(guy.recentTags().slice(0, 2)).toEqual([garden, work]);
+    guy.setTags(a, [fun, work]);
+    expect(guy.recentTags().slice(0, 3)).toEqual([fun, work, garden]);
   });
 });

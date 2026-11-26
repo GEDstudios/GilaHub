@@ -169,7 +169,7 @@ html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *::after {
 
 .livecursor {
   position: fixed;
-  z-index: 2147483647;
+  z-index: var(--z-cursor);
   top: 0;
   left: 0;
   width: 0;

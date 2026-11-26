@@ -4,6 +4,8 @@ import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { ListBullet } from '../ui/primitives';
+import { HOLD } from '../ui/tokens';
+import { isOpen } from '../../core/model';
 
 /**
  * Where else should this live? Tap a project to put it there. Long-press a project (or tap its
@@ -45,7 +47,7 @@ export function PlacePicker({
   const subsOf = (id: string) => hub.subLists(id).filter((x) => offered(x) || hub.nestedLists(x.id).some(offered));
   const folder = (l: List, depth: number): ReactNode => {
     const subs = subsOf(l.id);
-    const tasks = offered(l) && hub.children(l.id, null).some((i) => !i.done && !i.archived && !banned.has(i.id));
+    const tasks = offered(l) && hub.children(l.id, null).some((i) => isOpen(i) && !banned.has(i.id));
     return (
       <PlaceRow
         key={l.id}
@@ -105,7 +107,7 @@ function Tasks({
   current?: string | null;
 }) {
   const hub = useHub();
-  const rows: Item[] = (parentId ? hub.childrenOf(parentId) : hub.children(list.id, null)).filter((i) => !i.done && !banned.has(i.id));
+  const rows: Item[] = hub.siblings(list.id, parentId).filter((i) => !i.done && !banned.has(i.id));
   return (
     <>
       {rows.map((t) => (
@@ -158,7 +160,7 @@ function PlaceRow({
     timer.current = setTimeout(() => {
       held.current = true;
       onExpand();
-    }, 450);
+    }, HOLD.press);
   };
   const stop = () => clearTimeout(timer.current);
   return (

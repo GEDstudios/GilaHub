@@ -18,5 +18,5 @@ export function setQuick(id: string, on: boolean): () => void {
 
 /** What's in it now: live, open and in my sight (a ticked one comes back if it's unticked, or when it repeats). */
 export function quickItems(hub: Hub, quick: readonly string[] = getPrefs().quick): Item[] {
-  return quick.map((id) => hub.item(id)).filter((i): i is Item => !!i && !i.archived && !i.done && !!hub.list(i.listId));
+  return quick.map((id) => hub.item(id)).filter((i): i is Item => !!i && !i.archived && !i.done && hub.isLive(i.listId));
 }

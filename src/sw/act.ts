@@ -27,7 +27,7 @@ export async function act(kind: Act, itemId: string, opts: { send?: boolean; fac
   const item = hub.item(itemId);
   if (!item) return null;
   let did = false;
-  if (kind === 'done' && !item.done && hub.canTick(item)) {
+  if (kind === 'done' && !item.done && hub.canEdit(item)) {
     hub.toggle(itemId);
     did = true;
   } else if (kind === 'later') {

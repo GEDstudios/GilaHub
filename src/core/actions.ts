@@ -1,12 +1,13 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type AisleConf, type Idea, type Tag, type TaskTemplate, type Item, type Photo, type Moment, type Note, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { type AisleConf, type Idea, isOpen, type Item, LINE_COLORS, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Moment, type Note, type Photo, type Scope, type ShoppingFlavor, type Tag, type TaskTemplate, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
-import { aisleGlyph, categorize, categoryMeta, categoryOrder, emojiFor, lookup, routeFlavor, type Flavor } from '../smart/categorize';
+import { aisleGlyph, categorize, categoryMeta, categoryOrder, lookup, routeFlavor, type Flavor } from '../smart/categorize';
 import { fold, itemKey, parseQuantity } from '../smart/normalize';
 import { suggestIcon } from './projectIcons';
 import { firstDue, isFlexible, nextDue, shiftForAway, skipDue } from '../smart/recurrence';
+import { listKey, listIdOf } from './keys';
 
 export type ItemVisibility = 'ours' | 'mine' | 'private';
 export type Undo = () => void;
@@ -46,6 +47,9 @@ export type AddResult =
 /**
  * Domain API: user intents → store writes. Keeps every privacy rule in one place.
  */
+/** What one tick wrote to the log, and what it struck out. */
+type TickLogs = { made: string[]; dropped: string[] };
+
 export class Hub {
   constructor(
     readonly store: Store,
@@ -89,13 +93,19 @@ export class Hub {
    * partner. Pins to it (bar, Today) are kept, not shown, so a restore brings them back.
    */
   listDormant(id: string): boolean {
-    if (this.lists().some((l) => l.id === id)) return false;
+    if (this.isLive(id)) return false;
     if (this.store.all('list').some((l) => l.id === id)) return true;
     return !!this.store.record('list', id) && !this.store.canRead(this.store.scopeOf('list', id));
   }
 
   list(id: string | null | undefined): List | undefined {
     return id ? this.store.get('list', id) : undefined;
+  }
+
+  /** A folder I can see and haven't archived. */
+  isLive(listId: string | null | undefined): boolean {
+    const l = this.list(listId);
+    return !!l && !l.archived;
   }
 
   listScope(list: Pick<List, 'visibility' | 'owner'>): Scope {
@@ -203,8 +213,8 @@ export class Hub {
    */
   freshColor(rand: () => number = Math.random): LineColor {
     const lists = this.lists();
-    const pinned = (this.me()?.tabs ?? []).filter((k) => k.startsWith('l:')).slice(-2);
-    const near = [...lists.slice(-2), ...pinned.map((k) => this.list(k.slice(2)))].flatMap((l) => (l ? [l.color] : []));
+    const pinned = (this.me()?.tabs ?? []).filter((k) => listIdOf(k)).slice(-2);
+    const near = [...lists.slice(-2), ...pinned.map((k) => this.list(listIdOf(k)))].flatMap((l) => (l ? [l.color] : []));
     return pickColor(
       lists.map((l) => l.color),
       rand,
@@ -278,6 +288,16 @@ export class Hub {
     };
     walk(id, new Set([id]));
     return out;
+  }
+
+  /** This folder and everything inside it, all the way down (ids). */
+  treeIds(id: string): string[] {
+    return [id, ...this.nestedLists(id).map((l) => l.id)];
+  }
+
+  /** Is this folder `ancestorId` itself, or somewhere inside it? */
+  isWithin(listId: string, ancestorId: string): boolean {
+    return listId === ancestorId || this.listPath(listId).some((l) => l.id === ancestorId);
   }
 
   /** The way down from the top to here: [grandparent, parent]. */
@@ -374,6 +394,16 @@ export class Hub {
     return out;
   }
 
+  /** Is this item somewhere under `ancestorId` (a task, at any depth)? */
+  isUnder(id: string, ancestorId: string): boolean {
+    return this.descendants(ancestorId).some((d) => d.id === id);
+  }
+
+  /** What sits alongside, in order: a task's subtasks, or a folder's top-level tasks. */
+  siblings(listId: string, parentId: string | null): Item[] {
+    return parentId ? this.childrenOf(parentId) : this.children(listId, null);
+  }
+
   ancestors(item: Item): Item[] {
     const out: Item[] = [];
     let cur = this.item(item.parentId);
@@ -444,11 +474,6 @@ export class Hub {
     });
   }
 
-  /** Waiting for the asker's OK? */
-  isAwaitingOk(item: Item): boolean {
-    return !!item.submittedAt && !item.done;
-  }
-
   /** The asker approves: it's done, credited to whoever did it. */
   confirm(id: string): Undo {
     const item = this.item(id);
@@ -475,10 +500,6 @@ export class Hub {
     const said = item.requestedBy === this.meId ? { sentBackAt: Date.now(), sentBackBy: this.meId } : {};
     this.store.mutate('item', id, { submittedAt: null, submittedBy: null, ...said });
     return () => this.store.mutate('item', id, prev);
-  }
-
-  canTick(item: Item): boolean {
-    return this.canEdit(item);
   }
 
   private scopeForItem(item: Item): Scope {
@@ -513,7 +534,7 @@ export class Hub {
   addItem(listId: string, input: NewItem): string {
     const list = this.list(listId);
     const parentId = input.parentId ?? null;
-    const siblings = parentId ? this.childrenOf(parentId) : this.children(listId, null);
+    const siblings = this.siblings(listId, parentId);
     let order: string;
     if (input.before) {
       const idx = siblings.findIndex((s) => s.id === input.before);
@@ -574,11 +595,18 @@ export class Hub {
     // Renamed: its twin in a task project follows (a shopping twin keeps its shopping name).
     const twin = this.linked(before);
     // Renamed: its twin follows when it reads the same ("doorknob" stays, under "Buy a doorknob").
-    if (twin && fields.title && twin.title === before!.title) this.store.mutate('item', twin.id, { title: fields.title });
+    const twinFollows = !!twin && !!fields.title && twin.title === before!.title;
     const prev: Record<string, unknown> = {};
     if (before) for (const k of Object.keys(fields)) prev[k] = (before as unknown as Record<string, unknown>)[k] ?? null;
-    this.store.mutate('item', id, fields);
-    return () => this.store.mutate('item', id, prev as Partial<Item>);
+    this.store.batch(() => {
+      if (twinFollows) this.store.mutate('item', twin!.id, { title: fields.title });
+      this.store.mutate('item', id, fields);
+    });
+    return () =>
+      this.store.batch(() => {
+        if (twinFollows) this.store.mutate('item', twin!.id, { title: before!.title });
+        this.store.mutate('item', id, prev as Partial<Item>);
+      });
   }
 
   setItemVisibility(id: string, vis: ItemVisibility, owner?: string): void {
@@ -639,7 +667,7 @@ export class Hub {
     const list = this.list(listId);
     if (!item || !list || this.linked(item)) return null;
     // Not inside itself, nor next to itself in the same spot.
-    if (parentId && (parentId === id || this.descendants(id).some((d) => d.id === parentId))) return null;
+    if (parentId && (parentId === id || this.isUnder(parentId, id))) return null;
     if (!parentId && list.id === item.listId && !item.parentId) return null;
     return this.store.batch(() => {
       const other =
@@ -658,31 +686,12 @@ export class Hub {
     return this.alsoIn(id, this.placeFor(toBuy(item.title), root.id));
   }
 
-  unlink(id: string): void {
-    const item = this.item(id);
-    const other = this.linked(item);
-    this.store.batch(() => {
-      if (item) this.store.mutate('item', id, { linkId: null });
-      if (other) this.store.mutate('item', other.id, { linkId: null });
-    });
-  }
-
   toggle(id: string, opts: { withChildren?: boolean } = {}): Undo {
     const item = this.item(id);
     // Something we count the stock of is never "done": it stays, counted (it's never cleared away).
     if (!item || item.stock != null) return () => {};
     const kind = this.tickKind(item);
-    if (kind === 'roll') {
-      // A repeating one done this time is out of Ongoing (it's back for its next time).
-      const was = item.ongoingAt ?? null;
-      const undo = this.completeRepeating(id);
-      if (!was) return undo;
-      this.store.mutate('item', id, { ongoingAt: null, ongoingBy: null });
-      return () => {
-        undo();
-        this.store.mutate('item', id, { ongoingAt: was, ongoingBy: item.ongoingBy ?? null });
-      };
-    }
+    if (kind === 'roll') return this.completeRepeating(id);
     if (kind === 'confirm') return this.confirm(id);
     if (kind === 'take-back') return this.sendBack(id);
     if (kind === 'submit') {
@@ -693,19 +702,9 @@ export class Hub {
     const done = !item.done;
     const now = Date.now();
     const touched: Array<[string, Partial<Item>]> = [];
+    const logs: TickLogs = { made: [], dropped: [] };
     this.store.batch(() => {
-      const fields: Partial<Item> = { done, doneAt: done ? now : null, doneBy: done ? this.meId : null };
-      // A one-off ticked is remembered (Again?): its words, where, when.
-      if (!item.parentId && !item.repeat) {
-        if (done) {
-          const logId = newId();
-          this.writeLog(item, { id: logId, kind: 'bought', key: itemKey(item.title), name: item.title, listId: item.listId, at: now });
-          fields.logId = logId;
-        } else if (item.logId) {
-          this.store.mutate('log', item.logId, { deleted: true });
-          fields.logId = null;
-        }
-      }
+      const fields = this.tickFields(item, done, now, logs);
       touched.push([id, { done: item.done, doneAt: item.doneAt ?? null, doneBy: item.doneBy ?? null, logId: item.logId ?? null }]);
       this.store.mutate('item', id, fields);
       // Bought what a kept-stocked thing put on the list: it's stocked up by that many.
@@ -719,17 +718,7 @@ export class Hub {
       // The same thing elsewhere goes with it (bought on Shopping = done on the chore, and back).
       const twin = this.linked(item);
       if (twin && !twin.repeat && twin.done !== done) {
-        const tf: Partial<Item> = { done, doneAt: done ? now : null, doneBy: done ? this.meId : null };
-        if (!twin.parentId) {
-          if (done) {
-            const logId = newId();
-            this.writeLog(twin, { id: logId, kind: 'bought', key: itemKey(twin.title), name: twin.title, listId: twin.listId, at: now });
-            tf.logId = logId;
-          } else if (twin.logId) {
-            this.store.mutate('log', twin.logId, { deleted: true });
-            tf.logId = null;
-          }
-        }
+        const tf = this.tickFields(twin, done, now, logs);
         touched.push([twin.id, { done: twin.done, doneAt: twin.doneAt ?? null, doneBy: twin.doneBy ?? null, logId: twin.logId ?? null, archived: twin.archived ?? false }]);
         this.store.mutate('item', twin.id, tf);
       }
@@ -743,10 +732,32 @@ export class Hub {
     });
     return () =>
       this.store.batch(() => {
-        const cur = this.item(id);
-        if (cur?.logId && !item.parentId) this.store.mutate('log', cur.logId, { deleted: true });
+        // What the tick wrote down (for it and its twin) is taken back, and what it struck out returns.
+        for (const l of logs.made) this.store.mutate('log', l, { deleted: true });
+        for (const l of logs.dropped) this.store.mutate('log', l, { deleted: false });
         for (const [tid, prev] of touched) this.store.mutate('item', tid, prev);
       });
+  }
+
+  /**
+   * The fields a tick (or untick) sets on one item. A one-off top-level task ticked is remembered
+   * (Again?): its words, where, when; unticked, that memory is struck out. `logs` collects both,
+   * so an undo can put them back.
+   */
+  private tickFields(item: Item, done: boolean, now: number, logs: TickLogs): Partial<Item> {
+    const fields: Partial<Item> = { done, doneAt: done ? now : null, doneBy: done ? this.meId : null };
+    if (item.parentId || item.repeat) return fields;
+    if (done) {
+      const logId = newId();
+      this.writeLog(item, { id: logId, kind: 'bought', key: itemKey(item.title), name: item.title, listId: item.listId, at: now });
+      logs.made.push(logId);
+      fields.logId = logId;
+    } else if (item.logId) {
+      this.store.mutate('log', item.logId, { deleted: true });
+      logs.dropped.push(item.logId);
+      fields.logId = null;
+    }
+    return fields;
   }
 
   // ---------- kept stocked ----------
@@ -760,11 +771,6 @@ export class Hub {
   /** It's running low (at or under where it goes on the list). */
   stockLow(item: Item): boolean {
     return item.stock != null && item.stock <= (item.stockAddAt ?? 1);
-  }
-
-  /** Where a kept-stocked thing goes when it runs low: its own choice, else Shopping, else its folder. */
-  stockList(item: Item): string {
-    return this.stockPlace(item).listId;
   }
 
   /** Where exactly: a folder, or under a task in one (the tree picker's choice). */
@@ -785,12 +791,6 @@ export class Hub {
       if (typeof f.stock === 'number') f.stock = Math.max(0, Math.round(f.stock));
       this.store.mutate('item', id, f);
     });
-  }
-
-  /** One used up (the row's −1). */
-  useOne(id: string): Undo {
-    const it = this.item(id);
-    return it?.stock != null ? this.setStock(id, { stock: Math.max(0, it.stock - 1) }) : () => {};
   }
 
   private stockChange(id: string, fn: () => void): Undo {
@@ -817,7 +817,7 @@ export class Hub {
     const it = this.item(id);
     if (!it) return null;
     const link = it.stockLink ? this.item(it.stockLink) : undefined;
-    const open = link && !link.done && !link.archived ? link : undefined;
+    const open = link && isOpen(link) ? link : undefined;
     if (it.stock == null) return null;
     const low = it.stock <= (it.stockAddAt ?? 1);
     const urgent = it.stockUrgentAt != null && it.stock <= it.stockUrgentAt;
@@ -835,7 +835,7 @@ export class Hub {
       let res: AddResult;
       if (place.parentId) {
         // Under a task: one there by that name already will do.
-        const there = this.childrenOf(place.parentId).find((c) => !c.done && !c.archived && c.title.trim().toLowerCase() === it.title.trim().toLowerCase());
+        const there = this.childrenOf(place.parentId).find((c) => isOpen(c) && c.title.trim().toLowerCase() === it.title.trim().toLowerCase());
         res = there ? { kind: 'exists', id: there.id, listId: place.listId } : { kind: 'added', id: this.addItem(place.listId, { title: it.title, urgent, qty: missing, parentId: place.parentId }), listId: place.listId };
       } else res = this.add(place.listId, { title: it.title, urgent, qty: missing });
       if (res.kind === 'exists' && urgent) this.store.mutate('item', res.id, { urgent: true });
@@ -900,8 +900,8 @@ export class Hub {
     if (!item) return;
     const listId = to.listId ?? item.listId;
     const parentId = to.parentId === undefined ? (to.listId && to.listId !== item.listId ? null : (item.parentId ?? null)) : to.parentId;
-    if (parentId === id || (parentId && this.descendants(id).some((d) => d.id === parentId))) return;
-    const siblings = (parentId ? this.childrenOf(parentId) : this.children(listId, null)).filter((s) => s.id !== id);
+    if (parentId === id || (parentId && this.isUnder(parentId, id))) return;
+    const siblings = this.siblings(listId, parentId).filter((s) => s.id !== id);
     let order: string;
     if (to.before) {
       const idx = siblings.findIndex((s) => s.id === to.before);
@@ -997,18 +997,6 @@ export class Hub {
     return this.store.batch(() => copy(item, item.parentId ?? null));
   }
 
-  /** Reusable checklists (packing): untick everything in a list. */
-  uncheckAll(listId: string): Undo {
-    const done = this.store.all('item').filter((i) => i.listId === listId && i.done);
-    this.store.batch(() => {
-      for (const i of done) this.store.mutate('item', i.id, { done: false, doneAt: null, doneBy: null });
-    });
-    return () =>
-      this.store.batch(() => {
-        for (const i of done) this.store.mutate('item', i.id, { done: true, doneAt: i.doneAt ?? Date.now(), doneBy: i.doneBy ?? this.meId });
-      });
-  }
-
   // ---------- adding, and the tray of things just done ----------
 
   /** The Shopping project (from the move from before, or a shopping template): where "Buy a doorknob" also goes. */
@@ -1057,11 +1045,6 @@ export class Hub {
   learned = (key: string): { category: string; emoji?: string } | undefined =>
     this.store.get('memory', `p:${this.meId}:${key}`) ?? this.store.get('memory', key);
 
-  /** Its emoji, from the catalog (the tray's chips). */
-  emojiOf(item: Pick<Item, 'title'>): string {
-    return emojiFor(item.title);
-  }
-
   findOnList(listIds: string[], name: string): Item | undefined {
     const key = itemKey(name);
     const ids = new Set(listIds);
@@ -1079,7 +1062,7 @@ export class Hub {
    * else the project itself.
    */
   placeFor(title: string, listId: string): string {
-    const tree = [listId, ...this.nestedLists(listId).map((l) => l.id)];
+    const tree = this.treeIds(listId);
     if (tree.length === 1 || !title.trim()) return listId;
     const same = this.findOnList(tree, title);
     if (same) return same.listId;
@@ -1110,7 +1093,7 @@ export class Hub {
   add(listId: string, input: NewItem): AddResult {
     if (input.parentId) return { kind: 'added', id: this.addItem(listId, input), listId };
     const existing = this.findOnList([listId], input.title);
-    if (existing && !existing.done && !existing.archived) {
+    if (existing && isOpen(existing)) {
       if (input.qty || input.urgent) this.updateItem(existing.id, { qty: input.qty ?? existing.qty, urgent: input.urgent || existing.urgent });
       return { kind: 'exists', id: existing.id, listId };
     }
@@ -1156,18 +1139,6 @@ export class Hub {
     if (!item) return;
     const n = item.qty && /^\d+$/.test(item.qty) ? +item.qty : 1;
     this.updateItem(id, { qty: String(n + 1) });
-  }
-
-  /**
-   * Ongoing: put a task in (I'm doing it now: swiped right) or take it out. Only a top-level task
-   * that's still open goes in; one already ticked stays until it's cleared.
-   */
-  setOngoing(id: string, on: boolean): Undo {
-    const item = this.item(id);
-    if (!item || item.parentId || (on && item.done) || !!item.ongoingAt === on) return () => {};
-    const prev = { ongoingAt: item.ongoingAt ?? null, ongoingBy: item.ongoingBy ?? null };
-    this.store.mutate('item', id, on ? { ongoingAt: Date.now(), ongoingBy: this.meId } : { ongoingAt: null, ongoingBy: null });
-    return () => this.store.mutate('item', id, prev);
   }
 
   /** Clear: what was done here (or just these) is filed away (Again? remembers it). */
@@ -1467,7 +1438,7 @@ export class Hub {
         root = this.store.get('list', 'shopping');
       }
       for (const l of legacy) {
-        const inside = !!root && (l.id === root.id || this.listPath(l.id).some((p) => p.id === root!.id));
+        const inside = !!root && this.isWithin(l.id, root.id);
         this.store.mutate('list', l.id, { kind: 'tasks', flavor: l.flavor ?? 'grocery', view: 'tags', ...(root && !inside ? { parentId: root.id } : {}) });
       }
       if (root && !root.view) this.store.mutate('list', root.id, { view: 'tags' });
@@ -1839,7 +1810,10 @@ export class Hub {
       if (twin && !this.store.record('list', l.id)) lists.set(l.id, twin.id);
     }
     const listOf = (v: unknown) => (typeof v === 'string' ? (lists.get(v) ?? v) : v);
-    const keyOf = (k: unknown) => (typeof k === 'string' && k.startsWith('l:') ? `l:${listOf(k.slice(2))}` : k);
+    const keyOf = (k: unknown) => {
+      const id = typeof k === 'string' ? listIdOf(k) : null;
+      return id ? listKey(lists.get(id) ?? id) : k;
+    };
     /** Person fields, and list references, through the maps. */
     const fix = (row: { id: string } & Record<string, unknown>) => {
       const out: { id: string } & Record<string, unknown> = { ...row };

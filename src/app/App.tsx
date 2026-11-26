@@ -41,6 +41,7 @@ import { startLiveCursor } from './ui/liveCursor';
 import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, pinsOf, tabsOf } from './tabs';
 import { projectCount, todayRef, todayView } from './views';
+import { listIdOf } from '../core/keys';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
 
@@ -180,7 +181,7 @@ function TopNav() {
   // Today's due, and each pinned project's open things (with what's inside it).
   const counts: Record<string, number> = { today: v.dueCount };
   for (const k of pinsOf(hub)) {
-    const l = k.startsWith('l:') ? hub.list(k.slice(2)) : undefined;
+    const l = hub.list(listIdOf(k));
     if (l) counts[k] = projectCount(hub, l).n;
   }
   const tabs = tabsOf(hub).filter((t) => t.key !== 'search');
@@ -206,7 +207,7 @@ function TopNav() {
               className={`topnav__tab ${on === t.key ? 'is-on' : ''} ${anchor ? 'is-anchor' : ''} ${aim && !aim.refusing && aim.at !== null && !anchor && aim.at === pinAt ? 'is-before' : ''} ${aim && !aim.refusing && aim.at !== null && t.key === 'projects' && aim.at >= tabs.length - 2 ? 'is-before' : ''}`}
               aria-current={on === t.key ? 'page' : undefined}
               onClick={() => navigate(t.path)}
-              data-drop-list={t.key.startsWith('l:') ? t.key.slice(2) : undefined}
+              data-drop-list={listIdOf(t.key) ?? undefined}
               data-tab={t.key}
               data-key={t.key}
             >
@@ -362,7 +363,7 @@ function Duties() {
       // A notification's Done / Tomorrow, tapped while the app sits in the background: done here, quietly.
       if (e.data?.type === 'act' && typeof e.data.id === 'string') {
         const it = rt.hub.item(e.data.id);
-        if (it && e.data.act === 'done' && !it.done && rt.hub.canTick(it)) {
+        if (it && e.data.act === 'done' && !it.done && rt.hub.canEdit(it)) {
           rt.hub.toggle(it.id);
           afterTick(rt, rt.hub, it.id);
           toast(`✓ ${it.title}`);

@@ -3,7 +3,7 @@ import { addDays, today as todayStr, weekday } from '../core/dates';
 import type { Item } from '../core/model';
 import { fold } from '../smart/normalize';
 import { getPrefs, weekStart } from './prefs';
-import { itemVisChoice } from './privacy';
+import { isMineSide } from './privacy';
 
 /**
  * Which tasks: the one filter behind search (typed: "#work urgent this week") and the filtered
@@ -58,7 +58,7 @@ export function dueMatches(item: Item, w: DueWindow, ref = todayStr(), start: 0 
 
 /** The tasks it lets through (top-level and subtasks alike), the open ones first, the newest first. */
 export function runQuery(hub: Hub, q: TaskQuery, ref = todayStr()): Item[] {
-  const lists = new Set((q.listId ? [q.listId, ...hub.nestedLists(q.listId).map((l) => l.id)] : hub.lists().map((l) => l.id)));
+  const lists = new Set((q.listId ? hub.treeIds(q.listId) : hub.lists().map((l) => l.id)));
   const words = q.text ? fold(q.text).split(/\s+/).filter(Boolean) : [];
   const start = weekStart(getPrefs());
   const out: Item[] = [];
@@ -72,9 +72,7 @@ export function runQuery(hub: Hub, q: TaskQuery, ref = todayStr()): Item[] {
       if (!q.tags.every((t) => own.includes(t))) continue;
     }
     if (q.side) {
-      const c = itemVisChoice(hub, it);
-      const mine = c === 'mine' || c === 'private';
-      if ((q.side === 'mine') !== mine) continue;
+      if ((q.side === 'mine') !== isMineSide(hub, it)) continue;
     }
     if (words.length) {
       const hay = fold(`${it.title} ${it.notes ?? ''}`);

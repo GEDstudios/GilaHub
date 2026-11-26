@@ -7,8 +7,8 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem, type Outside } from '../ui/Sortable';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
+import { calm } from '../ui/tokens';
 
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const TAB_LEAN = () => ({ rest: -4, land: 0 });
 const LEAVE_MS = 200;
 

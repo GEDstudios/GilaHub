@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Hub, seedHousehold } from '../../src/core/actions';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
@@ -7,11 +7,9 @@ import { addLabel, registerAdd, runAdd } from '../../src/app/addAction';
 import {
   composeDraft,
   composerPlaceholder,
-  modeOf,
   overriddenTokens,
   parsedDraft,
 } from '../../src/app/compose';
-import { isFresh, markFresh } from '../../src/app/ui/fresh';
 import { itemVisChoice, visFields } from '../../src/app/privacy';
 
 const ctx: ParseContext = {
@@ -52,25 +50,19 @@ describe('New: one action per screen', () => {
 });
 
 describe('Adding: words, chips and modes', () => {
-  it('the project kind picks the mode', () => {
-    expect(modeOf('tasks')).toBe('task');
-    expect(modeOf('shopping')).toBe('shopping');
-    expect(modeOf(undefined)).toBe('task');
-  });
-
   it('repeats only when the words say so (chores are plain tasks now)', () => {
-    const said = parsedDraft(parse('Water plants every 3 days'), { mode: 'task', visibility: 'ours' });
+    const said = parsedDraft(parse('Water plants every 3 days'), { visibility: 'ours' });
     expect(said.repeat).toMatchObject({ type: 'interval', every: 3, unit: 'day' });
-    expect(parsedDraft(parse('Call mom'), { mode: 'task', visibility: 'ours' }).repeat).toBeNull();
+    expect(parsedDraft(parse('Call mom'), { visibility: 'ours' }).repeat).toBeNull();
   });
 
   it('a screen’s default date holds until the words name one', () => {
-    expect(parsedDraft(parse('Pay the bill'), { mode: 'task', defaultDue: '2026-11-25', visibility: 'ours' }).due).toBe('2026-11-25');
-    expect(parsedDraft(parse('Pay the bill friday'), { mode: 'task', defaultDue: '2026-11-25', visibility: 'ours' }).due).toBe('2026-11-27');
+    expect(parsedDraft(parse('Pay the bill'), { defaultDue: '2026-11-25', visibility: 'ours' }).due).toBe('2026-11-25');
+    expect(parsedDraft(parse('Pay the bill friday'), { defaultDue: '2026-11-25', visibility: 'ours' }).due).toBe('2026-11-27');
   });
 
   it('chips win over words; a privacy the project doesn’t allow falls back', () => {
-    const base = parsedDraft(parse('Call mom tomorrow'), { mode: 'task', visibility: 'ours' });
+    const base = parsedDraft(parse('Call mom tomorrow'), { visibility: 'ours' });
     const d = composeDraft(base, { due: '2026-12-01', visibility: 'private' }, ['ours', 'mine', 'private']);
     expect(d.due).toBe('2026-12-01');
     expect(d.visibility).toBe('private');
@@ -79,7 +71,7 @@ describe('Adding: words, chips and modes', () => {
 
   it('changing a chip the words also set turns those words back into text', () => {
     const p = parse('Call mom tomorrow 6pm @hila !');
-    const d = parsedDraft(p, { mode: 'task', visibility: 'ours' });
+    const d = parsedDraft(p, { visibility: 'ours' });
     // A new date: only the date word goes back to text (the time stays understood).
     const keys = overriddenTokens(p, d, { due: '2026-12-01', dueTime: d.dueTime });
     expect(keys).toHaveLength(1);
@@ -94,25 +86,9 @@ describe('Adding: words, chips and modes', () => {
   });
 
   it('placeholders: one sentence per mode, "@P" only when paired', () => {
-    expect(composerPlaceholder('shopping', 'Hila')).toBe('milk x2');
-    expect(composerPlaceholder('task', 'Hila', 0.99)).toBe('Fix the tap @Hila');
-    expect(composerPlaceholder('task', null, 0.99)).toBe('Pay rent every 1st');
-    expect(composerPlaceholder('task', null, 0)).toBe('Call mom tomorrow 6pm');
-  });
-});
-
-describe('Just added', () => {
-  afterEach(() => vi.useRealTimers());
-
-  it('a new row is fresh for a moment, then calm again', () => {
-    vi.useFakeTimers();
-    markFresh('a');
-    expect(isFresh('a')).toBe(true);
-    markFresh('b');
-    expect(isFresh('a')).toBe(false);
-    expect(isFresh('b')).toBe(true);
-    vi.advanceTimersByTime(2300);
-    expect(isFresh('b')).toBe(false);
+    expect(composerPlaceholder('Hila', 0.99)).toBe('Fix the tap @Hila');
+    expect(composerPlaceholder(null, 0.99)).toBe('Pay rent every 1st');
+    expect(composerPlaceholder(null, 0)).toBe('Call mom tomorrow 6pm');
   });
 });
 
@@ -137,9 +113,9 @@ describe('Shopping adds carry who it’s for', () => {
 describe('a date turns the notification on', () => {
   it('parsed or screen dates notify when due; undated stays off', async () => {
     const { withNotification } = await import('../../src/app/compose');
-    expect(parsedDraft(parseQuickAdd('Call mom tomorrow 6pm', ctx), { mode: 'task', visibility: 'ours' }).remind).toBe(0);
-    expect(parsedDraft(parseQuickAdd('Call mom', ctx), { mode: 'task', visibility: 'ours', defaultDue: '2026-11-25' }).remind).toBe(0);
-    expect(parsedDraft(parseQuickAdd('Call mom', ctx), { mode: 'task', visibility: 'ours' }).remind).toBeNull();
+    expect(parsedDraft(parseQuickAdd('Call mom tomorrow 6pm', ctx), { visibility: 'ours' }).remind).toBe(0);
+    expect(parsedDraft(parseQuickAdd('Call mom', ctx), { visibility: 'ours', defaultDue: '2026-11-25' }).remind).toBe(0);
+    expect(parsedDraft(parseQuickAdd('Call mom', ctx), { visibility: 'ours' }).remind).toBeNull();
     expect(withNotification({ remind: null }, '2026-11-26')).toEqual({ remind: 0 });
     expect(withNotification({ remind: 60 }, '2026-11-26')).toEqual({});
     expect(withNotification({ remind: null }, null)).toEqual({});

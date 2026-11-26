@@ -4,6 +4,8 @@ import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
 import { itemKey } from '../smart/normalize';
 import { buyAgain, purchaseStats, type BuyAgainSuggestion, type PurchaseStats } from '../smart/suggest';
+import { isOpen } from '../core/model';
+import { listKey } from '../core/keys';
 
 /** Cache a derived view per store version (and args). */
 function memo<A extends unknown[], R>(fn: (hub: Hub, ...args: A) => R): (hub: Hub, ...args: A) => R {
@@ -62,7 +64,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const lists = new Map(hub.lists().map((l) => [l.id, l]));
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
-    return l && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
+    return l && isOpen(i) && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
   const todayAll = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
@@ -72,7 +74,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const items = hub.store.all('item');
   const live = (i: Item) => {
     const l = lists.get(i.listId);
-    return !!l && !i.done && !i.archived && !i.repeat;
+    return !!l && isOpen(i) && !i.repeat;
   };
   const asked = partnerId
     ? items
@@ -94,7 +96,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     : [];
   const waitingTheirOk = partnerId
     ? items
-        .filter((i) => !i.done && !i.archived && lists.has(i.listId) && i.submittedAt && i.submittedBy === hub.meId && i.requestedBy === partnerId)
+        .filter((i) => isOpen(i) && lists.has(i.listId) && i.submittedAt && i.submittedBy === hub.meId && i.requestedBy === partnerId)
         .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0))
     : [];
 
@@ -137,7 +139,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     recent: recent.slice(0, 3),
     dueCount: today.length + earlier.length,
     awaitingOk: items
-      .filter((i) => i.submittedAt && !i.done && !i.archived && i.requestedBy === hub.meId && lists.has(i.listId))
+      .filter((i) => i.submittedAt && isOpen(i) && i.requestedBy === hub.meId && lists.has(i.listId))
       .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0)),
     asked,
     outgoing,
@@ -207,7 +209,7 @@ export const projectView = memo((hub: Hub, listId: string, inside: boolean, view
   const lists = [...own, ...hub.shownIn(listId).filter((l) => !own.some((o) => o.id === l.id))];
   const ids = new Set(lists.map((l) => l.id));
   const items = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
-  const open = items.filter((i) => !i.done && !i.archived);
+  const open = items.filter(isOpen);
   const groups: ProjectGroup[] = [];
   if (view === 'tags') {
     const rank = new Map(hub.tags().map((t, n) => [t.id, n]));
@@ -226,7 +228,7 @@ export const projectView = memo((hub: Hub, listId: string, inside: boolean, view
     const at = (g: ProjectGroup) => (g.tag ? (rank.get(g.tag) ?? 1e9) : 2e9);
     groups.push(...[...byKey.values()].sort((a, b) => at(a) - at(b)));
   } else if (lists.length > 1) {
-    for (const l of lists) groups.push({ key: `l:${l.id}`, listId: l.id, label: l.id === listId ? null : l.name, items: open.filter((i) => i.listId === l.id) });
+    for (const l of lists) groups.push({ key: listKey(l.id), listId: l.id, label: l.id === listId ? null : l.name, items: open.filter((i) => i.listId === l.id) });
   } else {
     groups.push({ key: 'all', label: null, items: open });
   }
@@ -298,7 +300,7 @@ export function ideasMarkdown(hub: Hub): string {
 
 export function openCount(hub: Hub, listId: string): number {
   let n = 0;
-  for (const i of hub.store.all('item')) if (i.listId === listId && !i.done && !i.archived && !i.parentId) n++;
+  for (const i of hub.store.all('item')) if (i.listId === listId && isOpen(i) && !i.parentId) n++;
   return n;
 }
 

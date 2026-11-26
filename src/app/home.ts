@@ -8,6 +8,7 @@ import { getPrefs } from './prefs';
 import { runQuery } from './query';
 import type { IconName } from './ui/Icon';
 import { openCount, type TodayView } from './views';
+import { listIdOf, listKey } from '../core/keys';
 
 /**
  * My Today page: a fixed summary, then widgets in my order. Only order and on/off are mine
@@ -43,8 +44,6 @@ export const WIDGETS: Record<WidgetKey, WidgetDef> = {
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);
-export const projectKey = (listId: string) => `l:${listId}`;
-export const listIdOf = (key: string): string | null => (key.startsWith('l:') ? key.slice(2) : null);
 /** A filtered list of mine ("q:<id>", its definition in my prefs). */
 export const queryKey = (id: string) => `q:${id}`;
 export const queryIdOf = (key: string): string | null => (key.startsWith('q:') ? key.slice(2) : null);
@@ -72,7 +71,7 @@ export function homeOf(hub: Hub): HomeSlot[] {
   for (const r of raw) {
     // "To buy" was a widget of its own: now it's the Shopping project, pinned like any other.
     const root = hub.shopRoot();
-    const s = r?.key === 'shop' ? (root && r.on !== false ? { key: projectKey(root.id), on: true } : null) : r;
+    const s = r?.key === 'shop' ? (root && r.on !== false ? { key: listKey(root.id), on: true } : null) : r;
     if (!s || typeof s.key !== 'string' || seen.has(s.key)) continue;
     const id = listIdOf(s.key);
     if (id) {
@@ -170,7 +169,7 @@ export function showHome(hub: Hub, key: string): boolean {
   const all = homeOf(hub);
   const id = listIdOf(key);
   if (id) {
-    if (!hub.lists().some((l) => l.id === id)) return false;
+    if (!hub.isLive(id)) return false;
     if (!all.some((s) => s.key === key) && pinnedProjects(hub).length >= MAX_HOME_PROJECTS) return false;
   } else if (queryIdOf(key)) {
     if (!savedList(key)) return false;

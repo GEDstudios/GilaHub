@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Hub, seedHousehold } from '../../src/core/actions';
+import { Hub } from '../../src/core/actions';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
@@ -24,43 +24,13 @@ import {
   weekBands,
 } from '../../src/app/home';
 import { todayView } from '../../src/app/views';
+import { couple as pair, listNamed, person, solo as alone, sync, type Side } from './_helpers';
 
-async function person(member: string) {
-  const store = await Store.load(new MemoryPersistence(), `dev-${member}`, ['h', `p:${member}`]);
-  return new Hub(store, member);
-}
-
-function sync(...hubs: Hub[]) {
-  for (let round = 0; round < 3; round++) {
-    for (const from of hubs) {
-      const entries = from.store.pendingOutbox();
-      for (const to of hubs) {
-        if (to === from) continue;
-        to.store.applyRemoteBatch(entries.filter((e) => to.store.canRead(e.s)).map((e) => e.op));
-      }
-      from.store.ack(entries.map((e) => e.cid));
-    }
-  }
-}
-
-async function solo() {
-  const guy = await person('guy');
-  guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
-  seedHousehold(guy, ['groceries', 'home', 'chores', 'todo']);
-  return guy;
-}
-
-async function couple() {
-  const guy = await solo();
-  const hila = await person('hila');
-  sync(guy, hila);
-  hila.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
-  sync(guy, hila);
-  return { guy, hila };
-}
+const GUY: Side = { seed: ['groceries', 'home', 'chores', 'todo'] };
+const solo = () => alone(GUY);
+const couple = () => pair(GUY);
 
 const keys = (slots: Array<{ key: string }>) => slots.map((s) => s.key);
-const listNamed = (hub: Hub, name: string) => hub.lists().find((l) => l.name === name)!;
 
 describe('home layout', () => {
   it('starts from the defaults, and hides what needs a partner while solo', async () => {
@@ -315,7 +285,6 @@ describe('home blocks', () => {
   });
 });
 
-
 describe('Start here', () => {
   it('teaches by doing: steps tick themselves off, then it bows out', async () => {
     const { startTour, tourList, tourItem, tourDone, tourOpened, tourWatch } = await import('../../src/app/tour');
@@ -343,6 +312,25 @@ describe('Start here', () => {
     expect(tourItem(hub, 'drag')!.done).toBe(true);
     for (const k of ['tick', 'share', 'bar', 'person'] as const) tourDone(hub, k);
     expect(tourWatch(hub)).toBe(true);
+  });
+});
+
+
+describe('My Highlights on Today', () => {
+  it('holds the tasks I put there, open ones only; Undo takes it out again', async () => {
+    const { setQuick, quickItems, isQuick } = await import('../../src/app/quick');
+    const guy = await person('guy');
+    const l = guy.createList({ name: 'Home' });
+    const a = guy.addItem(l, { title: 'Book the dentist' });
+    const b = guy.addItem(l, { title: 'Renew passport' });
+    setQuick(a, true);
+    const undo = setQuick(b, true);
+    expect(quickItems(guy).map((i) => i.title)).toEqual(['Book the dentist', 'Renew passport']);
+    undo();
+    expect(isQuick(b)).toBe(false);
+    guy.toggle(a);
+    expect(quickItems(guy)).toEqual([]);
+    setQuick(a, false);
   });
 });
 

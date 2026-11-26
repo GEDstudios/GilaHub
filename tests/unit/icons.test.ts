@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { GLYPHS, type IconName } from '../../src/app/ui/icons.gen';
 import { parseGlyph, PROJECT_ICONS } from '../../src/app/ui/ProjectMark';
 import { lightVar } from '../../src/app/ui/primitives';
-import { Hub, PROJECT_TEMPLATES } from '../../src/core/actions';
+import { Hub, pickColor, pickColors, PROJECT_TEMPLATES } from '../../src/core/actions';
 import { MemoryPersistence } from '../../src/core/db';
+import { LINE_COLORS } from '../../src/core/model';
 import { suggestIcon } from '../../src/core/projectIcons';
 import { Store } from '../../src/core/store';
+import { person } from './_helpers';
 
 const CONTROLS: IconName[] = ['plus', 'minus', 'check', 'x', 'chevron-right', 'chevron-left', 'chevron-down', 'chevron-up', 'arrow', 'arrow-back', 'more', 'grip', 'undo', 'refresh', 'swap'];
 
@@ -32,9 +34,9 @@ describe('Gila Duo glyphs', () => {
 });
 
 describe('project icons', () => {
-  it('offers 33 distinct icons that all exist (the last, the folder, is "No icon")', () => {
-    expect(PROJECT_ICONS).toHaveLength(33);
-    expect(new Set(PROJECT_ICONS).size).toBe(33);
+  it('offers distinct icons that all exist (the last, the folder, is "No icon")', () => {
+    expect(new Set(PROJECT_ICONS).size).toBe(PROJECT_ICONS.length);
+    expect(PROJECT_ICONS.at(-1)).toBe('folder');
     for (const n of PROJECT_ICONS) expect(GLYPHS[n as keyof typeof GLYPHS], n).toBeDefined();
   });
 
@@ -108,6 +110,27 @@ describe('new project icons', () => {
     expect(new Set(icons.slice(1)).size).toBe(6);
     for (const i of icons) expect(parseGlyph(i)?.kind).toBe('icon');
     expect(a.hub.list('lp')?.icon).toBe('i:folder');
+  });
+});
+
+describe('project colors', () => {
+  it('new projects get a random palette color, avoiding ones in use, and can be recolored', async () => {
+    const guy = await person('guy');
+    const ids = LINE_COLORS.map((_, i) => guy.createList({ name: `P${i}`, kind: 'tasks' }));
+    const colors = ids.map((id) => guy.list(id)!.color);
+    expect(new Set(colors).size).toBe(LINE_COLORS.length);
+    for (const c of colors) expect(LINE_COLORS).toContain(c);
+    guy.updateList(ids[0], { color: 'mint' });
+    expect(guy.list(ids[0])!.color).toBe('mint');
+  });
+
+  it('picks colors at random, preferring free ones', () => {
+    expect(pickColor(['lemon', 'pink', 'lilac', 'sky', 'mint'], () => 0.99)).toBe('amber');
+    expect(LINE_COLORS).toContain(pickColor([...LINE_COLORS], () => 0.5));
+    const many = pickColors(['a', 'b', 'c', 'd']);
+    expect(new Set(Object.values(many)).size).toBe(4);
+    const seen = new Set(Array.from({ length: 60 }, () => pickColor([])));
+    expect(seen.size).toBeGreaterThan(1);
   });
 });
 

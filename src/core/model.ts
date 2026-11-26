@@ -182,8 +182,6 @@ export interface Item {
   tags?: string[] | null;
   /** Older data: a thing to buy's aisle category id. Read only, as a tag (Hub.tagsOf). */
   category?: string | null;
-  /** Shopping: preferred store id. */
-  storeId?: string | null;
   /** Done and cleared from its project's tray ("Clear"; by itself after 12h). */
   archived?: boolean;
   /** Recurring: last completion. */
@@ -208,9 +206,6 @@ export interface Item {
    * "doorknob" on Home shopping): each points at the other, and ticking one ticks both.
    */
   linkId?: string | null;
-  /** In Ongoing (swiped right): being done now, since then, by whom. Stays on once ticked, until cleared. */
-  ongoingAt?: number | null;
-  ongoingBy?: string | null;
   createdAt: number;
   createdBy: string;
   deleted?: boolean;
@@ -423,4 +418,9 @@ export interface TableTypes {
   note: Note;
   tag: Tag;
   photo: Photo;
+}
+
+/** Still to do: not ticked, not cleared away. */
+export function isOpen(item: Pick<Item, 'done' | 'archived'>): boolean {
+  return !item.done && !item.archived;
 }

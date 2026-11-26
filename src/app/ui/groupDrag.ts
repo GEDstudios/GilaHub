@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { haptic } from './haptics';
+import { calm, CLICK_SWALLOW_MS, HOLD, SLOP } from './tokens';
 
 /**
  * Hold a group by its heading (`.aisle__head--drag` in a `section.aisle[data-sort]`) and move it
@@ -8,7 +9,6 @@ import { haptic } from './haptics';
  * lifts it after a few pixels; a finger after holding it still a moment. `onDrop` gets its key
  * and the key of the group it now goes before (null: last).
  */
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function useGroupDrag(enabled: boolean, onDrop: (key: string, before: string | null) => void): void {
   const latest = useRef(onDrop);
@@ -95,10 +95,10 @@ export function useGroupDrag(enabled: boolean, onDrop: (key: string, before: str
       if (!d.on) {
         const far = Math.hypot(e.clientX - d.x, dy);
         if (d.touch) {
-          if (far > 8) cancel();
+          if (far > SLOP.hold) cancel();
           return;
         }
-        if (far < 6) return;
+        if (far < SLOP.mouse) return;
         lift();
       }
       e.preventDefault();
@@ -109,7 +109,7 @@ export function useGroupDrag(enabled: boolean, onDrop: (key: string, before: str
       stop();
       if (!d.on) return cancel();
       swallow = true;
-      setTimeout(() => (swallow = false), 350);
+      setTimeout(() => (swallow = false), CLICK_SWALLOW_MS);
       const done = d;
       d = null;
       const rest = done.peers.filter((x) => x !== done.sec);
@@ -145,7 +145,7 @@ export function useGroupDrag(enabled: boolean, onDrop: (key: string, before: str
       const sec = head?.closest<HTMLElement>('section.aisle[data-sort]');
       if (!head || !sec || (e.target as Element).closest('button, a')) return;
       d = { sec, key: sec.dataset.sort!, x: e.clientX, y: e.clientY, id: e.pointerId, touch: e.pointerType === 'touch', on: false, peers: [], rects: [], self: 0, gap: 24, t: 0 };
-      if (d.touch) d.hold = setTimeout(lift, 380);
+      if (d.touch) d.hold = setTimeout(lift, HOLD.press);
       window.addEventListener('pointermove', move, { passive: false });
       window.addEventListener('pointerup', up);
       window.addEventListener('pointercancel', cancel);

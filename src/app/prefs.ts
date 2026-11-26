@@ -10,17 +10,11 @@ export interface Prefs {
   h24: boolean | null;
   weekStart: 0 | 1 | null;
   badge: boolean;
-  shoppingAlerts: boolean;
   lastList: string | null;
-  shopFilter: string;
   /** Buy-again dismissals: item key → lastAt it was dismissed for. */
   dismissed: Record<string, number>;
-  /** Show the done section in lists. */
-  showDone: Record<string, boolean>;
   /** Vibrate on ticks, drags and picks (this device only). */
   haptics: boolean;
-  /** Today: "n from earlier" is open. */
-  earlierOpen: boolean;
   /** Today: what my person asked of me is open (it waits folded; it's rarely for right now). */
   asksOpen: boolean;
   /** Tasks whose subtasks are unfolded in lists (this device). */
@@ -37,16 +31,12 @@ export interface Prefs {
   asksUrgentOnly: boolean;
   /** A computer's cursor that leans, bounces and waves (null: on, unless motion is turned down). */
   livelyCursor: boolean | null;
-  /** A project's tasks as a list, or as a grid of cards (this device). */
-  taskView: 'list' | 'cards';
-  /** The shopping as a list, or as cards (this device). */
-  shopView: 'list' | 'cards';
   /** Each screen's filter ("today", "shop", "l:<id>"): tags, for whom, urgent only. */
   filters: Record<string, { tags: string[]; who: 'me' | 'partner' | null; urgent: boolean; lists?: string[] }>;
   /** Where something new from Today (or anywhere not in a folder) goes: my To-Do, or our last shared folder. */
   todayNew: 'mine' | 'ours';
-  /** Today shows all of it, just mine, or just ours. */
-  todayScope: 'all' | 'mine' | 'ours';
+  /** Today shows all of it, or just mine. */
+  todayScope: 'all' | 'mine';
   /** My Highlights on Today: the tasks I put there, in the order I did. */
   quick: string[];
   /** Groups I folded on a folder's page ("<page>|<group>": a folder inside, a tag, one shown from elsewhere). */
@@ -67,13 +57,9 @@ const DEFAULTS: Prefs = {
   h24: null,
   weekStart: null,
   badge: false,
-  shoppingAlerts: true,
   lastList: null,
-  shopFilter: 'all',
   dismissed: {},
-  showDone: {},
   haptics: true,
-  earlierOpen: false,
   asksOpen: false,
   unfolded: [],
   inviteHiddenUntil: 0,
@@ -82,8 +68,6 @@ const DEFAULTS: Prefs = {
   sounds: true,
   asksUrgentOnly: false,
   livelyCursor: null,
-  taskView: 'list',
-  shopView: 'list',
   filters: {},
   todayNew: 'mine',
   todayScope: 'all',

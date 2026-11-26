@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { haptic } from './haptics';
+import { CLICK_SWALLOW_MS } from './tokens';
 
 /**
  * Swipe a row sideways (touch): it follows the finger, what's under it shows (a coloured band
@@ -87,7 +88,7 @@ export function useSwipe<T extends HTMLElement>(opts: { right?: () => void; left
     const up = () => {
       if (mode === 'swipe') {
         swallow = true;
-        setTimeout(() => (swallow = false), 350);
+        setTimeout(() => (swallow = false), CLICK_SWALLOW_MS);
         const go = armed ? (dx > 0 ? latest.current.right : latest.current.left) : undefined;
         reset();
         if (go) {

@@ -1225,7 +1225,7 @@ span.aislearr__name {
 
 .shopbar {
   position: fixed;
-  z-index: 35;
+  z-index: var(--z-fab);
   left: 0;
   right: 0;
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 22px);
@@ -1269,7 +1269,7 @@ span.aislearr__name {
 
 .searchlayer {
   position: fixed;
-  z-index: 70;
+  z-index: var(--z-search);
   inset: 0;
   display: flex;
   flex-direction: column;
@@ -2054,7 +2054,7 @@ html.is-searching :is(.tabbar:not(.tabbar--preview), .shopbar, .ideatag) {
 /* Shopping, Chores and Search, while they're out of the bar: just above it */
 .bartray {
   position: fixed;
-  z-index: 41;
+  z-index: calc(var(--z-bar) + 1);
   left: 0;
   right: 0;
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 26px);

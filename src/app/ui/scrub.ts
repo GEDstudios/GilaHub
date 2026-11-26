@@ -1,12 +1,14 @@
+import { HOLD, SLOP } from './tokens';
+
 /**
  * Hold-and-scrub maths for the bottom bar (pure, for tests). TabBar.tsx owns the gesture:
  * hold still for HOLD_MS, then slide along the bar to pick a tab and let go to go there.
  */
 
 /** How long a finger must rest on the bar before it scrubs. */
-export const HOLD_MS = 240;
+export const HOLD_MS = HOLD.bar;
 /** Moving further than this before the hold fires means a tap or a native scroll instead. */
-export const HOLD_SLOP = 10;
+export const HOLD_SLOP = SLOP.swipe;
 /** Lifting the finger this far above the bar turns the release into a cancel. */
 export const CANCEL_LIFT = 72;
 /** In dock mode, the outer strip of the scrolling middle (under the fade) that always steps it. */

@@ -3,7 +3,7 @@ import { playSound } from '../ui/sounds';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { List } from '../../core/model';
 import { parseQuickAdd, type ParseContext, type ParseResult } from '../../smart/parse';
-import { composeDraft, overriddenTokens, parsedDraft, type AddMode } from '../compose';
+import { composeDraft, overriddenTokens, parsedDraft } from '../compose';
 import { useHub, useRt } from '../context';
 import { notifyAbout, setUpReminders } from '../notify';
 import { dayFirst, getPrefs, setPrefs, use24h, usePrefs, weekStart, workdays } from '../prefs';
@@ -12,10 +12,14 @@ import { ifNotInView, markFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { ListBullet } from '../ui/primitives';
-import { type Draft } from './editors';
+
 import { TagMark, TagPicker, tagsLabel } from './Tags';
 import type { Hub } from '../../core/actions';
 import { usePingUrgent } from './add';
+import { TOAST } from '../ui/tokens';
+import { isOpen } from '../../core/model';
+import { listKey } from '../../core/keys';
+import type { Draft } from '../draft';
 
 /** What a composer had picked: kept with a draft so a reload brings it all back. */
 export interface ComposeSeed {
@@ -94,7 +98,6 @@ export function useCompose({
   const routed = (p: ParseResult) => (route && !target && base && !parent && p.title.trim() ? hub.list(hub.placeFor(p.title, base.id)) : undefined);
   const destOf = (p: ParseResult) => (p.listId && !parent ? hub.list(p.listId) : undefined) ?? routed(p) ?? base;
   const dest = destOf(parsed);
-  const mode: AddMode = 'task';
   const suggested = useMemo(() => (parsed.title.trim() ? hub.suggestTags(parsed.title, dest?.id) : { auto: [], more: [] }), [hub, parsed.title, dest?.id]);
   // The folder's task template: how a new task here starts (the words and the chips still win).
   // Its chip in New turns it off for this one.
@@ -118,7 +121,7 @@ export function useCompose({
           nag: d.nag ?? tpl.nag ?? null,
         }
       : d;
-  const draftOf = (p: ParseResult) => composeDraft(templated(p, parsedDraft(p, { mode, defaultDue, visibility: defVis })), over, allowed);
+  const draftOf = (p: ParseResult) => composeDraft(templated(p, parsedDraft(p, { defaultDue, visibility: defVis })), over, allowed);
   const draft = draftOf(parsed);
 
   /** A chip changed: it wins over the words, which go back to being plain text. */
@@ -199,14 +202,14 @@ export function useCompose({
     if (!opts.quiet) playSound('add');
     const said = res.kind === 'revived' ? `Brought back ${hub.item(id)?.title ?? ''}` : `Added to ${to.name}`;
     // In the composer, what was added is listed under the card: only news is said.
-    if (opts.announce || res.kind === 'revived') toast(said, { ms: 1800 });
-    else if (!opts.quiet && !opts.listed) ifNotInView(id, () => toast(said, { ms: 1800 }));
+    if (opts.announce || res.kind === 'revived') toast(said, { ms: TOAST.short });
+    else if (!opts.quiet && !opts.listed) ifNotInView(id, () => toast(said, { ms: TOAST.short }));
     return id;
   };
 
   /** What was picked, to keep through a reload. */
   const seedOut: ComposeSeed = { over, place, tags: picked, ignore: [...ignore], useTpl };
-  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, mode, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested, seed: seedOut, hasTpl, useTpl, setUseTpl };
+  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested, seed: seedOut, hasTpl, useTpl, setUseTpl };
 }
 
 export type Compose = ReturnType<typeof useCompose>;
@@ -258,7 +261,7 @@ function DestTree({ lists, listId, parentId, onPick }: { lists: List[]; listId: 
   // Unfolded at first: the way down to where it's going now.
   const [open, setOpen] = useState<Set<string>>(() => {
     const keys = new Set<string>();
-    if (listId) for (const l of [...hub.listPath(listId), hub.list(listId)]) if (l) keys.add(`l:${l.id}`);
+    if (listId) for (const l of [...hub.listPath(listId), hub.list(listId)]) if (l) keys.add(listKey(l.id));
     const p = hub.item(parentId);
     if (p) for (const a of [...hub.ancestors(p), p]) keys.add(`i:${a.id}`);
     return keys;
@@ -270,7 +273,7 @@ function DestTree({ lists, listId, parentId, onPick }: { lists: List[]; listId: 
       else n.add(key);
       return n;
     });
-  const tasksOf = (l: List, under: string | null) => (under ? hub.childrenOf(under) : hub.children(l.id, null)).filter((i) => !i.done && !i.archived);
+  const tasksOf = (l: List, under: string | null) => hub.siblings(l.id, under).filter(isOpen);
   const row = (key: string, depth: number, label: ReactNode, on: boolean, canOpen: boolean, pick: () => void) => (
     <div key={key} className={`desttree__row ${on ? 'is-on' : ''}`} style={{ paddingInlineStart: 6 + depth * 18 }}>
       {canOpen ? (
@@ -296,7 +299,7 @@ function DestTree({ lists, listId, parentId, onPick }: { lists: List[]; listId: 
       ];
     });
   const listRows = (l: List, depth: number): ReactNode[] => {
-    const key = `l:${l.id}`;
+    const key = listKey(l.id);
     const subs = hub.subLists(l.id).filter((x) => ids.has(x.id));
     const canOpen = subs.length > 0 || tasksOf(l, null).length > 0;
     return [
