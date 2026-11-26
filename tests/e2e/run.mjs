@@ -531,19 +531,32 @@ try {
     await guy.locator('.sheet input[type=file]').setInputFiles(new URL('./.out/10-chores.png', import.meta.url).pathname);
     await guy.getByRole('button', { name: 'Attach' }).click();
     await guy.locator('.sheet .nf__photo img').waitFor({ timeout: 5000 });
-    // Cut it to a heart, stick it on the corner…
+    // A tap on the photo opens its choices: a heart.
+    const ph = guy.locator('.sheet .nf__photo');
+    await ph.click();
     await guy.getByRole('radio', { name: 'Heart' }).click();
-    await guy.getByRole('radio', { name: 'Corner' }).click();
-    await guy.locator('.sheet .nf__photo--corner.nf__photo--heart').waitFor({ timeout: 3000 });
-    await shot(guy, '28-note-write');
-    // …and draw on the note itself.
-    await guy.getByRole('tab', { name: 'Draw' }).click();
-    const pad = await guy.locator('.sheet .nf__draw').boundingBox();
-    await guy.mouse.move(pad.x + pad.width * 0.15, pad.y + pad.height * 0.8);
+    await guy.locator('.sheet .nf__photo--heart').waitFor({ timeout: 3000 });
+    await guy.getByRole('button', { name: 'Done', exact: true }).click();
+    // Hold it and drag it down and left: it moves on the note.
+    const pb = await ph.boundingBox();
+    await guy.mouse.move(pb.x + pb.width / 2, pb.y + pb.height / 2);
     await guy.mouse.down();
-    for (let i = 1; i <= 8; i++) await guy.mouse.move(pad.x + pad.width * (0.15 + i * 0.07), pad.y + pad.height * (0.8 - Math.sin(i / 2.5) * 0.12));
+    await guy.waitForTimeout(520);
+    await guy.mouse.move(pb.x + pb.width / 2 - 120, pb.y + pb.height / 2 + 160, { steps: 8 });
+    await guy.mouse.up();
+    await guy.mouse.click(5, 300);
+    const pb2 = await ph.boundingBox();
+    if (!(pb2.y > pb.y + 100 && pb2.x < pb.x - 60)) throw new Error(`the photo didn't move: ${JSON.stringify(pb)} → ${JSON.stringify(pb2)}`);
+    await shot(guy, '28-note-write');
+    // The pencil: draw right on the note.
+    await guy.getByRole('button', { name: 'Draw on the note' }).click();
+    const pad = await guy.locator('.sheet .nf__draw').boundingBox();
+    await guy.mouse.move(pad.x + pad.width * 0.15, pad.y + pad.height * 0.85);
+    await guy.mouse.down();
+    for (let i = 1; i <= 8; i++) await guy.mouse.move(pad.x + pad.width * (0.15 + i * 0.07), pad.y + pad.height * (0.85 - Math.sin(i / 2.5) * 0.1));
     await guy.mouse.up();
     await guy.locator('.sheet .nf__ink polyline').waitFor({ timeout: 3000 });
+    await guy.getByRole('button', { name: 'Done drawing' }).click();
     await shot(guy, '28b-note-drawn');
     await guy.getByRole('button', { name: 'Stick it' }).click();
     await guy.locator('.stuck').waitFor({ timeout: 3000 });
@@ -558,7 +571,7 @@ try {
     const stuck = hila.locator('.stuck');
     await stuck.waitFor({ timeout: 3000 });
     await stuck.locator('.nf__photo img').waitFor({ timeout: 15000 });
-    await stuck.locator('.nf__photo--corner').waitFor({ timeout: 3000 });
+    await stuck.locator('.nf__photo--heart').waitFor({ timeout: 3000 });
     await stuck.locator('.nf__ink polyline').waitFor({ timeout: 3000 });
     await hila.waitForTimeout(700);
     await shot(hila, '31-note-hila-shop');

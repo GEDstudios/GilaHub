@@ -293,6 +293,8 @@ export interface Note {
   photoShape?: string | null;
   photoBorder?: string | null;
   photoAt?: string | null;
+  /** Where the photo sits, as "x,y,size,turn" on the 124-point paper (it may hang off a little). */
+  photoPos?: string | null;
   /** Drawn on the note itself: strokes as JSON [{c, w, p: "x,y x,y"}] on its 124-point paper. */
   ink?: string | null;
   /** A photo on it (drawn on), in parts like an idea's picture (Hub.setShot). */

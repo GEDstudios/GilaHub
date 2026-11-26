@@ -8,7 +8,7 @@ import { notifyMembers } from '../runtime';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { NoteEditor, NoteFace, PAPER, type NoteLook, type PhotoAt, type PhotoBorder, type PhotoShape, type Stroke } from './NoteFace';
+import { NoteEditor, NoteFace, PAPER, PHOTO_HOME, type NoteLook, type PhotoBorder, type PhotoPos, type PhotoShape, type Stroke } from './NoteFace';
 import { lineVars } from '../ui/primitives';
 
 /**
@@ -50,6 +50,25 @@ const tiltOf = (id: string) => {
   return [-5, -3, 3, 5, -4, 4][Math.abs(h) % 6];
 };
 
+/** Where a note's photo sits (older notes had a named place: top, bottom, behind, corner). */
+function posOf(n: Note): PhotoPos {
+  const v = (n.photoPos ?? '').split(',').map(Number);
+  if (v.length === 4 && v.every(Number.isFinite)) return { x: v[0], y: v[1], s: v[2], r: v[3] };
+  switch (n.photoAt) {
+    case 'bottom':
+      return { x: 62, y: 92, s: 52, r: -3 };
+    case 'behind':
+      return { x: 62, y: 62, s: 112, r: 0 };
+    case 'corner':
+      return { x: 108, y: 14, s: 54, r: 9 };
+    case 'top':
+      return { x: 62, y: 32, s: 52, r: 0 };
+    default:
+      return PHOTO_HOME;
+  }
+}
+const posText = (p: PhotoPos) => `${p.x},${p.y},${p.s},${p.r}`;
+
 /** A note as NoteFace draws it, signed `by`. */
 export function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): NoteLook {
   let ink: Stroke[] = [];
@@ -65,7 +84,7 @@ export function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): Not
     photo: hub.shotOf('note', n.id),
     shape: (n.photoShape as PhotoShape) || 'squircle',
     border: (n.photoBorder as PhotoBorder) || 'white',
-    at: (n.photoAt as PhotoAt) || 'top',
+    pos: posOf(n),
     ink,
   };
 }
@@ -103,7 +122,7 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
   const rt = useRt();
   const { toast } = useOverlays();
   const partner = hub.partner();
-  const [look, setLook] = useState<NoteLook>({ text: '', color: 'lemon', by: `— ${hub.me()?.name ?? ''}`, photo: null, shape: 'squircle', border: 'white', at: 'top', ink: [] });
+  const [look, setLook] = useState<NoteLook>({ text: '', color: 'lemon', by: `— ${hub.me()?.name ?? ''}`, photo: null, shape: 'squircle', border: 'white', pos: PHOTO_HOME, ink: [] });
   const set = (p: Partial<NoteLook>) => setLook((l) => ({ ...l, ...p }));
   const where = placeName(hub, place);
   const ready = !!look.text.trim() || !!look.photo || look.ink.length > 0;
@@ -111,7 +130,7 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
     const id = hub.addNote(place, look.text.trim() || (look.photo ? '📷' : look.ink.length ? '✏️' : ''), look.color);
     if (!id) return;
     if (look.photo) hub.setShot('note', id, look.photo);
-    hub.editNote(id, { photoShape: look.shape, photoBorder: look.border, photoAt: look.at, ink: look.ink.length ? JSON.stringify(look.ink) : null });
+    hub.editNote(id, { photoShape: look.shape, photoBorder: look.border, photoPos: posText(look.pos), ink: look.ink.length ? JSON.stringify(look.ink) : null });
     haptic('tick');
     onClose();
     toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.deleteNote(id) } });
@@ -569,7 +588,7 @@ function MyNote({ note, peeling }: { note: Note; peeling: boolean }) {
       color: p.color,
       photoShape: p.shape,
       photoBorder: p.border,
-      photoAt: p.at,
+      photoPos: p.pos ? posText(p.pos) : undefined,
       ink: p.ink === undefined ? undefined : p.ink.length ? JSON.stringify(p.ink) : null,
     });
   };
