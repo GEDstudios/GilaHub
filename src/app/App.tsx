@@ -57,11 +57,8 @@ function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
       <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
-        <rect x="4" y="9" width="32" height="23" rx="6" fill="#fff" stroke="rgb(10 10 4 / 0.14)" />
-        <circle cx="13" cy="20.5" r="5" fill="var(--lemon)" stroke="#0a0a04" strokeWidth="1.6" />
-        <path d="M10.6 20.6l1.7 1.8 3.2-3.6" fill="none" stroke="#0a0a04" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="21" y="16.6" width="10.5" height="2.6" rx="1.3" fill="#0a0a04" />
-        <rect x="21" y="22" width="7" height="2.2" rx="1.1" fill="rgb(10 10 4 / 0.3)" />
+        <circle cx="20" cy="20" r="15" fill="var(--lemon)" stroke="#0a0a04" strokeWidth="1.8" />
+        <path d="M13 20.5l4.6 4.6L27.5 15" fill="none" stroke="#0a0a04" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   if (kind === 'buy')
