@@ -29,6 +29,7 @@ import { TabChip } from '../components/BarEdit';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { projectView } from '../views';
+import { hideHome, MAX_HOME_PROJECTS, pinnedProjects, projectKey, showHome, visibleHome } from '../home';
 import { notifyMembers } from '../runtime';
 import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
@@ -41,6 +42,7 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   const { toast, openSheet } = useOverlays();
   const list = hub.list(listId);
   const addPhoto = useAddPhoto(`list:${listId}`);
+  const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === projectKey(listId));
   if (!list) return null;
   const mineToChange = !list.owner || list.owner === hub.meId;
   return (
@@ -64,6 +66,21 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
               toast('Everything unticked, ready to reuse', { action: { label: 'Undo', run: undo } });
             }}
           />
+        <OptRow
+          icon="home"
+          title="Visible on Today"
+          sub={onHome ? 'Its open tasks show on your Today' : `Show its open tasks on your Today (up to ${MAX_HOME_PROJECTS} folders)`}
+          trail={
+            <Switch
+              on={onHome}
+              label="Visible on Today"
+              onChange={(v) => {
+                if (!v) return hideHome(hub, projectKey(listId));
+                if (!showHome(hub, projectKey(listId))) toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
+              }}
+            />
+          }
+        />
         <OptRow
           icon="layout"
           title="Task template"
@@ -611,6 +628,7 @@ function ProjectPage({ id }: { id: string }) {
         {total ? <OngoingTray open={ongoingOpen} done={ongoingDone} onOut={(i) => hub.toggle(i.id)} onClear={clear} /> : null}
 
         <ProjectItems
+          pageId={id}
           groups={groups}
           urgent={urgent}
           cards={view === 'cards'}

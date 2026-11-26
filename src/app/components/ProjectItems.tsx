@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import type { Item } from '../../core/model';
+import { Fragment, useEffect, useRef } from 'react';
+import type { Item, List } from '../../core/model';
 import { useHub } from '../context';
 import { navigate } from '../router';
 import { haptic } from '../ui/haptics';
@@ -46,7 +46,10 @@ export function ProjectItems({
   draggable,
   showList,
   flash,
+  pageId,
 }: {
+  /** The folder this page is (its inner folders' headings show the way down from it). */
+  pageId?: string;
   groups: ProjectGroup[];
   urgent: Item[];
   cards: boolean;
@@ -66,6 +69,13 @@ export function ProjectItems({
   });
   last.current = live;
 
+  // A folder's way down from this page: the folders between, then itself (one shown from
+  // elsewhere is just itself).
+  const pathTo = (l: List): List[] => {
+    const up = hub.listPath(l.id);
+    const at = pageId ? up.findIndex((x) => x.id === pageId) : -1;
+    return at < 0 ? [l] : [...up.slice(at + 1), l];
+  };
   const ids = groups.flatMap((g) => g.items.map((i) => i.id));
   const groupOf = new Map(groups.flatMap((g) => g.items.map((i) => [i.id, g] as const)));
   const lastPt = useRef<[number, number] | null>(null);
@@ -157,11 +167,18 @@ export function ProjectItems({
                     {g.label}
                   </>
                 ) : list ? (
-                  // A folder inside: its name goes there.
-                  <button type="button" className="aisle__go aisle__golabel" onClick={() => navigate({ name: 'list', id: list.id })}>
-                    <ListBullet list={list} size="xs" />
-                    <span dir="auto">{g.label}</span>
-                  </button>
+                  // A folder inside: the way to it from this page (B › C), each step going there.
+                  <span className="aisle__path">
+                    {pathTo(list).map((l, i, all) => (
+                      <Fragment key={l.id}>
+                        {i ? <Icon name="chevron-right" className="aisle__sep" /> : null}
+                        <button type="button" className={`aisle__go aisle__golabel ${i < all.length - 1 ? 'is-up' : ''}`} onClick={() => navigate({ name: 'list', id: l.id })}>
+                          {i === all.length - 1 ? <ListBullet list={l} size="xs" /> : null}
+                          <span dir="auto">{l.name}</span>
+                        </button>
+                      </Fragment>
+                    ))}
+                  </span>
                 ) : (
                   g.label
                 )}

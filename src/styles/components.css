@@ -8070,3 +8070,22 @@ textarea.nf__write {
 .tagnew__pick {
   margin-top: 10px;
 }
+
+/* A folder inside, as a group's heading: the way down from this page, B › C. */
+.aisle__path {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aisle__sep {
+  --s: 13;
+  color: var(--text-3);
+}
+
+.aisle__golabel.is-up {
+  color: var(--text-3);
+  padding-right: 2px;
+}
