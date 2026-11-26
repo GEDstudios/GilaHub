@@ -4401,10 +4401,11 @@ html:has(.iconlib) .fab {
 }
 
 .pinboard {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(98px, 118px));
-  justify-content: space-evenly;
-  gap: 22px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 22px 18px;
   padding: 22px 14px 24px;
   border-radius: 22px;
   background:
@@ -7982,10 +7983,10 @@ textarea.nf__write {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 30px;
-  margin: 8px 0 0 auto;
-  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  margin: 8px 4px 0 auto;
+  border-radius: 50%;
   background: var(--card);
   color: var(--ink);
   box-shadow:
@@ -8036,4 +8037,33 @@ textarea.nf__write {
 .onboard__link--quiet {
   opacity: 0.7;
   margin-top: 2px;
+}
+
+/* A new tag: its icon (pick it first) beside "New tag …". */
+.tagnew {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tagnew__icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px dashed rgb(10 10 4 / 0.3);
+  color: var(--text-2);
+}
+
+.tagnew__icon.is-set,
+.tagnew__icon.is-open {
+  border-style: solid;
+  border-color: var(--ink);
+  color: var(--ink);
+  background: var(--me-light, var(--lemon));
+}
+
+.tagnew__pick {
+  margin-top: 10px;
 }

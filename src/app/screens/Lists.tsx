@@ -19,6 +19,7 @@ import { Band, Disclosure, lineVars, ListBullet, NewButton } from '../ui/primiti
 import { SyncBadge } from '../components/SyncBadge';
 import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
+import { useBackGuard } from '../ui/backGuard';
 import { listVisLabel } from '../privacy';
 import { MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
 import { projectCount } from '../views';
@@ -60,6 +61,8 @@ export function NewProjectSheet({
     onClose();
     navigate({ name: 'list', id });
   };
+  // The phone's Back with a name written: make it, or don't.
+  useBackGuard({ dirty: !!name.trim(), title: 'Create this folder?', saveLabel: 'Create it', discardLabel: 'Discard', onSave: create, onDiscard: onClose });
 
   return (
     // No title: the card says it, its placeholder asking for the name.
@@ -115,8 +118,12 @@ export function tilt(id: string): number {
   return [-2.2, -1.4, -0.6, 0.8, 1.5, 2.3][Math.abs(h) % 6];
 }
 
-/** The live bottom bar (hidden on a computer, where nothing can be dropped on it). */
-const liveBar = () => document.querySelector('.tabbar:not(.tabbar--preview)');
+/** Where a folder is dropped to pin it: the bottom bar, or on a computer the top bar's places. */
+const liveBar = () => {
+  const bar = document.querySelector<HTMLElement>('.tabbar:not(.tabbar--preview)');
+  if (bar && bar.getBoundingClientRect().width) return bar;
+  return document.querySelector('.topnav__tabs');
+};
 const tabOf = (hub: Hub, key: string) => pinOptions(hub).find((o) => o.key === key);
 
 /**

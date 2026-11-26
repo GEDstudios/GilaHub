@@ -76,14 +76,19 @@ function unwindClosed(): void {
 
 export function sheetOpened(close: () => void): { closed: () => void } {
   const step: SheetStep = { id: sheetSeq++, close, popped: false, pushed: false, done: false };
-  if (!memory && typeof history !== 'undefined') {
+  const push = () => {
+    if (step.done || memory || typeof history === 'undefined') return;
     try {
       history.pushState({ gilaSheet: step.id }, '', location.href);
       step.pushed = true;
     } catch {
       /* sandboxed: no step */
     }
-  }
+  };
+  // A sheet that just closed may still be taking its step back (that's async): add ours after,
+  // or the browser takes ours instead.
+  if (unwinding > 0) waiting.push(push);
+  else push();
   sheetSteps.push(step);
   return {
     closed: () => {
@@ -105,8 +110,7 @@ export const leavingByBack = (): boolean => Date.now() - backAt < 600;
 
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', () => {
-    backAt = Date.now();
-    // A sheet's own step, taken back out after it closed: nothing else moves.
+    // A sheet's own step, taken back out after it closed: nothing else moves (and it isn't Back).
     if (unwinding > 0) {
       unwinding--;
       if (!unwinding) {
@@ -116,6 +120,8 @@ if (typeof window !== 'undefined') {
       }
       return;
     }
+    // The phone's Back, for real.
+    backAt = Date.now();
     // Back with a sheet open: that sheet closes; the screen stays.
     const top = sheetSteps.pop();
     if (top) {

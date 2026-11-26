@@ -93,11 +93,24 @@ export function useCompose({
   const dest = destOf(parsed);
   const mode: AddMode = 'task';
   const suggested = useMemo(() => (parsed.title.trim() ? hub.suggestTags(parsed.title, dest?.id) : { auto: [], more: [] }), [hub, parsed.title, dest?.id]);
-  const tags = picked ?? suggested.auto;
+  // The folder's task template: how a new task here starts (the words and the chips still win).
+  const tpl = dest?.template ?? null;
+  const tags = picked ?? (tpl?.tags?.length ? [...new Set([...tpl.tags.filter((t) => !!hub.tag(t)), ...suggested.auto])] : suggested.auto);
   const allowed = allowedVis(hub, dest, parent);
-  const inherited: VisChoice = parent ? itemVisChoice(hub, parent) : allowed[0];
+  const inherited: VisChoice = parent ? itemVisChoice(hub, parent) : tpl?.visibility && allowed.includes(tpl.visibility) ? tpl.visibility : allowed[0];
   const defVis = allowed.includes(inherited) ? inherited : allowed[0];
-  const draftOf = (p: ParseResult) => composeDraft(parsedDraft(p, { mode, defaultDue, visibility: defVis }), over, allowed);
+  const templated = (p: ParseResult, d: Draft): Draft =>
+    tpl
+      ? {
+          ...d,
+          assignee: p.assignee ?? (tpl.assignee !== undefined ? tpl.assignee : d.assignee),
+          needsOk: tpl.needsOk ?? d.needsOk,
+          urgent: d.urgent || !!tpl.urgent,
+          remind: d.remind ?? tpl.remind ?? null,
+          repeat: d.repeat ?? tpl.repeat ?? null,
+        }
+      : d;
+  const draftOf = (p: ParseResult) => composeDraft(templated(p, parsedDraft(p, { mode, defaultDue, visibility: defVis })), over, allowed);
   const draft = draftOf(parsed);
 
   /** A chip changed: it wins over the words, which go back to being plain text. */
@@ -132,7 +145,13 @@ export function useCompose({
     const title = p.title.trim();
     if (!to || !title) return undefined;
     // Picked tags go on this one; other words (a pasted line, a suggestion) find their own.
-    const ownTags = raw === undefined && picked ? picked : undefined;
+    const tplTags = (to.template?.tags ?? []).filter((t) => !!hub.tag(t));
+    const ownTags =
+      raw === undefined
+        ? (picked ?? (tplTags.length ? tags : undefined))
+        : tplTags.length
+          ? [...new Set([...tplTags, ...hub.suggestTags(p.title, to.id).auto])]
+          : undefined;
     const asking = hub.isRequest(d.assignee);
     // Never twice: one already open says so (+1); one done before comes back.
     const res = hub.add(to.id, {

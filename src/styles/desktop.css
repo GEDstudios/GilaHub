@@ -767,3 +767,30 @@
     background: none;
   }
 }
+
+/* A folder held over the top bar: the places make room for it, a line where it'll land. */
+.topnav__tabs.is-receiving {
+  border-radius: 14px;
+  box-shadow: 0 0 0 2px var(--me-light, var(--lemon));
+  background: rgb(10 10 4 / 0.03);
+}
+
+.topnav__tabs.is-refusing {
+  box-shadow: 0 0 0 2px var(--danger, #c0392b);
+}
+
+.topnav__tab.is-before {
+  position: relative;
+  margin-left: 14px;
+}
+
+.topnav__tab.is-before::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ink);
+}

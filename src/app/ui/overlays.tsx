@@ -409,12 +409,15 @@ export function Sheet({
   children,
   label,
   wide,
+  onOutside,
 }: {
   onClose: () => void;
   title?: ReactNode;
   children: ReactNode;
   label?: string;
   wide?: boolean;
+  /** A tap outside it (on the scrim), when that means more than closing (New: keep what's written). */
+  onOutside?: () => void;
 }) {
   const closing = useContext(SheetClosingCtx);
   const panel = useRef<HTMLDivElement>(null);
@@ -443,7 +446,7 @@ export function Sheet({
 
   return createPortal(
     <div className={`sheet ${closing ? 'is-closing' : ''}`} role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}>
-      <div className="sheet__scrim" ref={scrim} onClick={onClose} />
+      <div className="sheet__scrim" ref={scrim} onClick={onOutside ?? onClose} />
       <div className="sheet__panel" ref={panel} style={wide ? { maxWidth: 760 } : undefined}>
         <div className="sheet__handle" aria-hidden="true" />
         <button type="button" className="iconbtn sheet__close" onClick={onClose} aria-label="Close">

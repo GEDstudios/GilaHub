@@ -1,13 +1,15 @@
 import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { openSearch } from '../search';
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import type { Item, List } from '../../core/model';
+import type { Item, List, TaskTemplate } from '../../core/model';
 import { Lens, useFilter } from '../components/Filter';
 import { useAddAction } from '../addAction';
 import { OptRow } from '../components/pickers';
 import { ListVisOptions } from '../components/ProjectFields';
 import { Swatches } from '../components/pickers';
-import { listDefaultVis, visLabel, VIS_ICON } from '../privacy';
+import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
+import { InlineEditor, type Draft } from '../components/editors';
+import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { OngoingTray, ProjectItems } from '../components/ProjectItems';
@@ -63,6 +65,15 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
             }}
           />
         <OptRow
+          icon="layout"
+          title="Task template"
+          sub={list.template && Object.values(list.template).some((v) => v !== null && v !== undefined && !(Array.isArray(v) && !v.length)) ? 'New tasks here start with it' : 'How new tasks here start: who, tags, notification…'}
+          onClick={() => {
+            onClose();
+            openSheet((close) => <TemplateSheet listId={listId} onClose={close} />);
+          }}
+        />
+        <OptRow
           icon="link"
           title="Show tasks from…"
           sub={hub.shownIn(listId).length ? hub.shownIn(listId).map((l) => l.name).join(', ') : 'Another folder’s tasks, here too'}
@@ -103,6 +114,74 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
           />
         ) : null}
       </div>
+    </Sheet>
+  );
+}
+
+/**
+ * A folder's task template: how every new task added here starts (who it's for, its tags, its
+ * notification, a repeat, urgent, who sees it). What's typed or picked when adding still wins.
+ */
+function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
+  const hub = useHub();
+  const list = hub.list(listId);
+  if (!list) return null;
+  const t = list.template ?? {};
+  const allowed = allowedVis(hub, list);
+  const value: Draft = {
+    due: null,
+    dueTime: null,
+    repeat: t.repeat ?? null,
+    remind: t.remind ?? null,
+    nag: null,
+    assignee: t.assignee ?? null,
+    urgent: !!t.urgent,
+    visibility: t.visibility && allowed.includes(t.visibility) ? t.visibility : allowed[0],
+    needsOk: !!t.needsOk,
+  };
+  const tags = (t.tags ?? []).filter((x) => !!hub.tag(x));
+  const tl = tagsLabel(hub, tags);
+  return (
+    <Sheet onClose={onClose} title={`New tasks in ${list.name}`}>
+      <p className="sheet__lede">Every task added here starts like this. What you type or pick when adding still wins.</p>
+      <InlineEditor
+        value={value}
+        onChange={(patch) => {
+          const next: Partial<TaskTemplate> = {};
+          if ('assignee' in patch) next.assignee = patch.assignee ?? null;
+          if ('needsOk' in patch) next.needsOk = !!patch.needsOk;
+          if ('urgent' in patch) next.urgent = !!patch.urgent;
+          if ('remind' in patch) next.remind = patch.remind ?? null;
+          if ('repeat' in patch) next.repeat = patch.repeat ?? null;
+          if ('visibility' in patch) next.visibility = patch.visibility ?? null;
+          hub.setListTemplate(listId, next);
+        }}
+        fields={['repeat', 'remind', 'who', 'vis', 'urgent']}
+        allowedVis={allowed}
+        whoMode="compose"
+        extras={[
+          {
+            key: 'tags',
+            label: tl.label,
+            icon: tl.lead ? undefined : ('tag' as const),
+            lead: tl.lead ? <TagMark icon={tl.lead} /> : undefined,
+            set: tags.length > 0,
+            panel: () => <TagPicker value={tags} onChange={(next) => hub.setListTemplate(listId, { tags: next })} />,
+          },
+        ]}
+      />
+      {list.template ? (
+        <button
+          type="button"
+          className="textbtn"
+          style={{ marginTop: 18 }}
+          onClick={() => {
+            hub.setListTemplate(listId, null);
+          }}
+        >
+          Start plain again
+        </button>
+      ) : null}
     </Sheet>
   );
 }

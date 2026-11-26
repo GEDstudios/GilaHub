@@ -62,6 +62,9 @@ export function pendingDraft(hub: ReturnType<typeof useHub>): ComposerDraft | nu
   }
 }
 
+/** What tapping outside New does: set by the composer (save what's written), else just close. */
+type Outside = { current: (() => void) | null };
+
 export function QuickAddSheet({
   onClose,
   defaultDue,
@@ -86,9 +89,12 @@ export function QuickAddSheet({
   const hub = useHub();
   const lists = hub.lists();
   const last = getPrefs().lastList;
+  const outside = useRef<() => void>(null) as Outside;
+  // A tap outside keeps what's written (it's added); with nothing written it just closes.
+  const onOutside = () => (outside.current ? outside.current() : onClose());
   if (restore && hub.list(restore.listId))
     return (
-      <Sheet onClose={onClose} label="New">
+      <Sheet onClose={onClose} label="New" onOutside={onOutside}>
         <Composer
           listId={restore.listId}
           parentId={restore.parentId}
@@ -97,6 +103,7 @@ export function QuickAddSheet({
           initialText={restore.text}
           restore={restore}
           onDone={onClose}
+          outside={outside}
         />
       </Sheet>
     );
@@ -112,9 +119,9 @@ export function QuickAddSheet({
     lists.find(shared) ||
     lists[0];
   return (
-    <Sheet onClose={onClose} label="New">
+    <Sheet onClose={onClose} label="New" onOutside={onOutside}>
       {initial ? (
-        <Composer listId={initial.id} parentId={parentId ?? null} defaultDue={defaultDue} route={route && !!listId} initialText={text} onDone={onClose} />
+        <Composer listId={initial.id} parentId={parentId ?? null} defaultDue={defaultDue} route={route && !!listId} initialText={text} onDone={onClose} outside={outside} />
       ) : (
         <p className="hint">Make a folder first. Everything you add lives in one.</p>
       )}
@@ -133,7 +140,9 @@ function Composer({
   initialText = '',
   restore,
   onDone,
+  outside,
 }: {
+  outside?: Outside;
   listId: string;
   parentId: string | null;
   defaultDue?: string | null;
@@ -163,6 +172,13 @@ function Composer({
     route,
     seed: restore?.seed,
   });
+
+  // A tap outside: what's written is added (and the sheet goes); nothing written, it just closes.
+  if (outside)
+    outside.current = () => {
+      if (c.parsed.title.trim() && save(undefined, false)) saveDraft(null);
+      onDone();
+    };
 
   // Back with something written: save it, or discard it (closing the question keeps writing).
   useBackGuard({

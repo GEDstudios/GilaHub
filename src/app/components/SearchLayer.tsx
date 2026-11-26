@@ -154,7 +154,12 @@ function Layer() {
                     className="token"
                     onClick={() => {
                       closeSearch();
-                      openSheet((close) => <QuickAddSheet onClose={close} text={term} listId={scope?.id} />);
+                      // Where the + would add it: this folder (and the ones inside), a task's
+                      // subtasks on its page, else where new things from Today go.
+                      const it = route.name === 'item' ? hub.item(route.id) : undefined;
+                      const here = scope?.id ?? (route.name === 'list' ? route.id : it?.listId);
+                      const inside = !!here && !it && hub.nestedLists(here).length > 0;
+                      openSheet((close) => <QuickAddSheet onClose={close} text={term} listId={here} parentId={it?.id} route={inside} />);
                     }}
                   >
                     <Icon name="plus" />

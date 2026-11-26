@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type AisleConf, type Idea, type Tag, type Item, type Photo, type Moment, type Note, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { LINE_COLORS, type AisleConf, type Idea, type Tag, type TaskTemplate, type Item, type Photo, type Moment, type Note, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { aisleGlyph, categorize, categoryMeta, categoryOrder, emojiFor, lookup, routeFlavor, type Flavor } from '../smart/categorize';
@@ -156,6 +156,16 @@ export class Hub {
     const next = on ? [...new Set([...was, from])] : was.filter((x) => x !== from);
     this.store.mutate('list', id, { shows: next });
     return () => this.store.mutate('list', id, { shows: was });
+  }
+
+  /** Change a folder's task template (merged; null clears a field). Undo puts it back. */
+  setListTemplate(id: string, patch: Partial<TaskTemplate> | null): Undo {
+    const l = this.list(id);
+    if (!l) return () => {};
+    const was = l.template ?? null;
+    const next = patch === null ? null : { ...(was ?? {}), ...patch };
+    this.store.mutate('list', id, { template: next });
+    return () => this.store.mutate('list', id, { template: was });
   }
 
   /** The folders whose tasks show in this one (the ones I can see). */

@@ -29,6 +29,7 @@ import { SyncDot } from './components/SyncBadge';
 import { Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
+import { useBarEdit } from './barEdit';
 import { Avatar, lightVar, lineVars, Logo } from './ui/primitives';
 import { primeKeyboard } from './ui/keyboard';
 import { haptic } from './ui/haptics';
@@ -180,6 +181,8 @@ function TopNav() {
     if (l) counts[k] = projectCount(hub, l).n;
   }
   const tabs = tabsOf(hub).filter((t) => t.key !== 'search');
+  // A folder held over this bar: where it would land.
+  const { aim } = useBarEdit();
   const me = hub.me();
   const partner = hub.partner();
   return (
@@ -188,22 +191,28 @@ function TopNav() {
         <button type="button" className="topnav__brand" onClick={() => navigate('/')} aria-label="Today">
           <Logo size={24} />
         </button>
-        <nav className="topnav__tabs" aria-label="Places">
-          {tabs.map((t) => (
+        {/* Also where a folder dragged up lands, pinned (barEdit: [data-key], ends are anchors). */}
+        <nav className={`topnav__tabs ${aim ? 'is-receiving' : ''} ${aim?.refusing ? 'is-refusing' : ''}`} aria-label="Places">
+          {tabs.map((t, i) => {
+            const anchor = t.key === 'today' || t.key === 'projects';
+            const pinAt = tabs.slice(0, i).filter((x) => x.key !== 'today' && x.key !== 'projects').length;
+            return (
             <button
               key={t.key}
               type="button"
-              className={`topnav__tab ${on === t.key ? 'is-on' : ''}`}
+              className={`topnav__tab ${on === t.key ? 'is-on' : ''} ${anchor ? 'is-anchor' : ''} ${aim && !aim.refusing && aim.at !== null && !anchor && aim.at === pinAt ? 'is-before' : ''} ${aim && !aim.refusing && aim.at !== null && t.key === 'projects' && aim.at >= tabs.length - 2 ? 'is-before' : ''}`}
               aria-current={on === t.key ? 'page' : undefined}
               onClick={() => navigate(t.path)}
               data-drop-list={t.key.startsWith('l:') ? t.key.slice(2) : undefined}
               data-tab={t.key}
+              data-key={t.key}
             >
               {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
               <span dir="auto">{t.label}</span>
               {counts[t.key] ? <span className="topnav__count num">{counts[t.key]}</span> : null}
             </button>
-          ))}
+            );
+          })}
         </nav>
         <div className="topnav__end">
           <button type="button" className="topnav__search" onClick={() => openSearch()} aria-label="Search" aria-keyshortcuts="/">

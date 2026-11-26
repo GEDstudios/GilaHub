@@ -7,6 +7,7 @@ import { href, navigate, useRoute, type Route } from '../router';
 import { notifyMembers } from '../runtime';
 import { haptic } from '../ui/haptics';
 import { flyInto, tabTarget } from '../ui/fly';
+import { useBackGuard } from '../ui/backGuard';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { NoteEditor, NoteFace, PAPER, PHOTO_HOME, type NoteLook, type PhotoPos, type PhotoShape, type Stroke } from './NoteFace';
@@ -140,6 +141,8 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
     toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.deleteNote(id) } });
     if (partner) void notifyMembers(rt, [partner.id], { title: `📝 ${hub.me()?.name ?? 'Your person'} left you a note`, body: look.text.trim() || (look.photo ? '📷 A photo' : '✏️ A drawing'), url: href(routeOf(place)), tag: `note-${id}` });
   };
+  // The phone's Back with something on it: stick it, or throw it away.
+  useBackGuard({ dirty: ready, title: 'Stick this note?', saveLabel: 'Stick it', discardLabel: 'Throw it away', onSave: stick, onDiscard: onClose });
   return (
     <Sheet onClose={onClose} title={`A note for ${partner?.name ?? 'your person'}`}>
       <p className="note__where">
@@ -683,7 +686,7 @@ export function CollectedNotes() {
             Notes you tick off land here, to look back on
           </p>
         )}
-        {/* An even grid, in a shuffled order (the same each time), each turned its own way. */}
+        {/* Even gaps, in a shuffled order (the same each time), each as it was stuck. */}
         {[...notes]
           .sort((a, b) => messOf(a.id).order - messOf(b.id).order)
           .map((n, i) => {
@@ -697,7 +700,8 @@ export function CollectedNotes() {
                 aria-label={n.text}
                 onClick={() => openSheet((close) => <CollectedSheet id={n.id} onClose={close} />)}
               >
-                <NoteFace look={lookOf(hub, n, `— ${hub.member(n.by)?.name ?? ''}`)} scale={0.8} tilt={tiltOf(n.id)} />
+                {/* As it was stuck on its screen: its own turn and size (the board's a bit smaller). */}
+                <NoteFace look={lookOf(hub, n, `— ${hub.member(n.by)?.name ?? ''}`)} scale={0.8 * clampScale(n.scale ?? 1)} tilt={n.rot ?? tiltOf(n.id)} />
               </button>
             );
           })}

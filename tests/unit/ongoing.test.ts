@@ -176,3 +176,18 @@ describe('My private To-Do', () => {
     expect(hila.ensurePersonalFolder()).toBe('todohila');
   });
 });
+
+describe('A folder’s task template', () => {
+  it('merges what’s set, clears with null, and has an Undo', async () => {
+    const guy = await person('guy');
+    const l = guy.createList({ name: 'Work' });
+    const tag = guy.createTag('Work')!;
+    guy.setListTemplate(l, { urgent: true, tags: [tag] });
+    const undo = guy.setListTemplate(l, { remind: 30 });
+    expect(guy.list(l)?.template).toEqual({ urgent: true, tags: [tag], remind: 30 });
+    undo();
+    expect(guy.list(l)?.template).toEqual({ urgent: true, tags: [tag] });
+    guy.setListTemplate(l, null);
+    expect(guy.list(l)?.template ?? null).toBeNull();
+  });
+});

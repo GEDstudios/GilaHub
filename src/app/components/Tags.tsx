@@ -52,6 +52,9 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
   const hub = useHub();
   const { openSheet } = useOverlays();
   const [q, setQ] = useState('');
+  // A new tag's icon, chosen before it's made.
+  const [newIcon, setNewIcon] = useState<string | undefined>(undefined);
+  const [picking, setPicking] = useState(false);
   const all = hub.tags();
   const on = new Set(value);
   const sugg = suggested.filter((t) => !on.has(t) && hub.tag(t));
@@ -74,10 +77,12 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
     if (exact) {
       if (!on.has(exact.id)) flip(exact.id);
     } else {
-      const id = hub.createTag(q);
+      const id = hub.createTag(q, newIcon ?? null);
       if (id) onChange([...value, id]);
     }
     setQ('');
+    setNewIcon(undefined);
+    setPicking(false);
   };
   return (
     <div className="tagpick">
@@ -113,12 +118,36 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
           </button>
         ))}
         {query && !exact ? (
-          <button type="button" className="tagtoken tagtoken--new" onClick={make}>
-            <Icon name="plus" className="icon--sm" />
-            <span dir="auto">New tag “{q.trim().replace(/^#/, '')}”</span>
-          </button>
+          <span className="tagnew">
+            {/* Its icon, picked right here before it's made (tap to choose). */}
+            <button
+              type="button"
+              className={`tagnew__icon ${newIcon ? 'is-set' : ''} ${picking ? 'is-open' : ''}`}
+              aria-label={newIcon ? 'Change the new tag’s icon' : 'Pick an icon for the new tag'}
+              aria-expanded={picking}
+              onClick={() => setPicking(!picking)}
+            >
+              <TagMark icon={newIcon ?? null} />
+            </button>
+            <button type="button" className="tagtoken tagtoken--new" onClick={make}>
+              <Icon name="plus" className="icon--sm" />
+              <span dir="auto">New tag “{q.trim().replace(/^#/, '')}”</span>
+            </button>
+          </span>
         ) : null}
       </div>
+      {picking && query && !exact ? (
+        <div className="panel tagnew__pick">
+          <IconPicker
+            value={newIcon}
+            color="lemon"
+            onChange={(v) => {
+              setNewIcon(v);
+              setPicking(false);
+            }}
+          />
+        </div>
+      ) : null}
       <button type="button" className="textbtn tagpick__manage" onClick={() => openSheet((close) => <TagManager onClose={close} />)}>
         <Icon name="edit" className="icon--sm" />
         Edit tags

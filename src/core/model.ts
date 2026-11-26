@@ -83,6 +83,8 @@ export interface List {
   order: string;
   /** A line or two about it, under its name. */
   description?: string | null;
+  /** How new tasks here start (a folder's task template); the words and chips still win. */
+  template?: TaskTemplate | null;
   /** Other folders whose tasks show here too (one way: theirs show here, ours don't show there). */
   shows?: string[] | null;
   /** My own private To-Do (one per person, made for them; Hub.ensurePersonalFolder). */
@@ -366,6 +368,19 @@ export interface Photo {
   shotV?: string | null;
   [part: `shot${number}`]: string | null | undefined;
   deleted?: boolean;
+}
+
+/** A folder's task template: what a new task added there starts with. */
+export interface TaskTemplate {
+  assignee?: Assignee | null;
+  needsOk?: boolean;
+  urgent?: boolean;
+  /** Minutes before due to notify (0 = when due), as Item.remind. */
+  remind?: number | null;
+  repeat?: RepeatRule | null;
+  /** Who sees it: 'ours' | 'mine' | 'theirs' | 'private'. */
+  visibility?: 'ours' | 'mine' | 'theirs' | 'private' | null;
+  tags?: string[];
 }
 
 export interface TableTypes {
