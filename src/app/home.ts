@@ -14,7 +14,7 @@ import { openCount, type TodayView } from './views';
  */
 export const MAX_HOME_PROJECTS = 3;
 
-export type WidgetKey = 'asks' | 'today' | 'week' | 'upcoming' | 'partner' | 'shop';
+export type WidgetKey = 'asks' | 'today' | 'week' | 'upcoming' | 'partner';
 
 export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'asks', on: true },
@@ -22,7 +22,6 @@ export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'week', on: true },
   { key: 'upcoming', on: true },
   { key: 'partner', on: true },
-  { key: 'shop', on: false },
 ];
 
 export interface WidgetDef {
@@ -38,7 +37,6 @@ export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   week: { title: () => 'This week', icon: 'stack' },
   upcoming: { title: () => 'Coming up', icon: 'calendar' },
   partner: { title: (hub) => `${hub.partner()?.name ?? 'Your person'} did`, icon: 'heart', needsPartner: true },
-  shop: { title: () => 'To buy', icon: 'basket' },
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);
@@ -60,7 +58,10 @@ export function homeOf(hub: Hub): HomeSlot[] {
   const seen = new Set<string>();
   const out: HomeSlot[] = [];
   let pins = 0;
-  for (const s of raw) {
+  for (const r of raw) {
+    // "To buy" was a widget of its own: now it's the Shopping project, pinned like any other.
+    const root = hub.shopRoot();
+    const s = r?.key === 'shop' ? (root && r.on !== false ? { key: projectKey(root.id), on: true } : null) : r;
     if (!s || typeof s.key !== 'string' || seen.has(s.key)) continue;
     const id = listIdOf(s.key);
     if (id) {
@@ -193,7 +194,7 @@ export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | '
 export const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 export interface WeekBand {
-  key: 'shop' | 'done' | 'moments';
+  key: 'done' | 'moments';
   color: LineColor;
   /** The big figure: a count, or a feeling. */
   num: number | string;
@@ -202,48 +203,32 @@ export interface WeekBand {
   detail?: string;
 }
 
-/** Who did how many this week (tasks and chores done, trips' items bought). */
+/** Who did how many this week: every tick (logged), and older ticks from before they were. */
 export function weekBy(hub: Hub, now = Date.now()): Map<string, number> {
   const since = now - 7 * 86_400_000;
-  const kinds = new Map(hub.lists().map((l) => [l.id, l.kind]));
   const out = new Map<string, number>();
   const add = (id: string | null | undefined) => id && out.set(id, (out.get(id) ?? 0) + 1);
   for (const l of hub.store.all('log')) if (l.at > since) add(l.by);
-  for (const i of hub.store.all('item')) if (i.done && i.doneAt && i.doneAt > since && !i.repeat && kinds.get(i.listId) !== 'shopping') add(i.doneBy);
+  for (const i of hub.store.all('item')) if (i.done && i.doneAt && i.doneAt > since && !i.repeat && !i.logId) add(i.doneBy);
   return out;
 }
 
-/** Done this week (tasks, chores, shopping trips), and the week before, for "more than last week". */
+/** Done this week, and the week before, for "more than last week". */
 export function weekCounts(hub: Hub, now = Date.now()): { week: number; last: number } {
   const day = 86_400_000;
-  const kinds = new Map(hub.lists().map((l) => [l.id, l.kind]));
   const at = [
     ...hub.store.all('log').map((l) => l.at),
     ...hub.store
       .all('item')
-      .filter((i) => i.done && i.doneAt && !i.repeat && kinds.get(i.listId) !== 'shopping')
+      .filter((i) => i.done && i.doneAt && !i.repeat && !i.logId)
       .map((i) => i.doneAt!),
   ];
   return { week: at.filter((t) => t > now - 7 * day).length, last: at.filter((t) => t > now - 14 * day && t <= now - 7 * day).length };
 }
 
-/**
- * This week's strips, each only when non-zero, and never twice on the page: the To buy widget
- * takes over its strip when it's on.
- */
-export function weekBands(hub: Hub, v: TodayView, shown: ReadonlySet<string> = new Set(visibleHome(hub).map((s) => s.key))): WeekBand[] {
+/** This week's strips, each only when there's something. */
+export function weekBands(hub: Hub, _v?: TodayView, _shown?: ReadonlySet<string>): WeekBand[] {
   const out: WeekBand[] = [];
-  if (v.shopping.count && !shown.has('shop'))
-    out.push({
-      key: 'shop',
-      color: 'lemon',
-      num: v.shopping.count,
-      label: 'to buy',
-      detail: (() => {
-        const shown = v.shopping.preview.slice(0, 3).map((i) => (i.urgent ? `${i.title}!` : i.title));
-        return v.shopping.count > shown.length ? `${shown.join(', ')} +${v.shopping.count - shown.length}` : shown.join(', ');
-      })(),
-    });
   // How the week went: who did what, against the week before.
   const { week, last } = weekCounts(hub);
   if (week) {
@@ -301,7 +286,7 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
       return join([v.today.length > 0 && `${v.today.length} today`, v.earlier.length > 0 && `${v.earlier.length} from earlier`], 'Nothing due today');
     case 'week': {
       const bands = weekBands(hub, v);
-      const short = (b: WeekBand) => (b.key === 'shop' ? `${b.num} to buy` : `${b.num} done`);
+      const short = (b: WeekBand) => `${b.num} done`;
       return join(bands.map(short), 'Shows up when there’s something');
     }
     case 'upcoming': {
@@ -310,8 +295,6 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
     }
     case 'partner':
       return join([v.recent.length > 0 && `${v.recent.length} since yesterday`], `Shows what ${p} finishes`);
-    case 'shop':
-      return join([v.shopping.count > 0 && `${v.shopping.count} to buy`, v.shopping.urgent > 0 && `${v.shopping.urgent} urgent`], 'Nothing to buy');
     default:
       return { text: '', empty: true };
   }

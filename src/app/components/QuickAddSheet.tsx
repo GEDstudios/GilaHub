@@ -3,10 +3,10 @@ import { useAlsoShop } from '../alsoShop';
 import { useEffect, useRef, useState } from 'react';
 import { suggestFromCatalog } from '../../smart/categorize';
 import { splitPasted } from '../../smart/normalize';
-import { composerPlaceholder, splitSteps, type AddMode } from '../compose';
+import { composerPlaceholder, splitSteps } from '../compose';
 import { useHub } from '../context';
 import { getPrefs, usePrefs } from '../prefs';
-import { shoppingView } from '../views';
+import { projectView } from '../views';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
@@ -47,7 +47,6 @@ export function QuickAddSheet({
     (listId && hub.list(listId)) ||
     (last && lists.find((l) => l.id === last)) ||
     lists.find((l) => l.name === 'To do') ||
-    lists.find((l) => !hub.isShop(l)) ||
     lists[0];
   return (
     <Sheet onClose={onClose} label="New">
@@ -60,16 +59,8 @@ export function QuickAddSheet({
   );
 }
 
-const GHOST: Record<AddMode, string> = {
-  task: 'A new thing',
-  shopping: 'Something to buy',
-};
-
-/** Every option, right there. */
-const FIELDS: Record<AddMode, Field[]> = {
-  task: ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'],
-  shopping: ['urgent', 'vis'],
-};
+/** Every option, right there: the same for every project. */
+const FIELDS: Field[] = ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'];
 
 function Composer({
   listId,
@@ -99,7 +90,7 @@ function Composer({
   const [stepText, setStepText] = useState('');
   const field = useRef<HTMLTextAreaElement>(null);
   // "Task: a, b and c" puts its steps in the words (not for shopping, nor for a step itself).
-  const words = asStep || hub.isShop(listId) ? { head: text, steps: [] } : splitSteps(text);
+  const words = asStep ? { head: text, steps: [] } : splitSteps(text);
   const c = useCompose({
     listId,
     parentId: asStep ? parentId : null,
@@ -107,11 +98,10 @@ function Composer({
     text: words.head,
     route,
   });
-  const { draft, dest, mode, parsed } = c;
+  const { draft, dest, parsed } = c;
   const title = parsed.title.trim();
-  const shopping = mode === 'shopping';
-  const fields = FIELDS[mode].filter((f) => f !== 'who' || draft.visibility !== 'private');
-  const steps = shopping || c.parent ? [] : [...words.steps, ...own];
+  const fields = FIELDS.filter((f) => f !== 'who' || draft.visibility !== 'private');
+  const steps = c.parent ? [] : [...words.steps, ...own];
   const parent = hub.item(parentId);
 
   // The card's text grows with what you write.
@@ -134,22 +124,16 @@ function Composer({
     field.current?.focus();
   };
 
+  /** Add it and stay for the next one (Done closes). "Already there" and "brought back" still say so. */
   const submit = (raw?: string) => {
     if (raw === undefined && !title) return;
-    if (shopping) {
-      // Shopping: add and stay for the next one.
-      // Not quiet: "already on the list" and "brought back" still say so; a plain add shows in the line below.
-      const id = c.commit(raw);
-      if (id) setAdded((a) => [...a, (raw ?? title).trim()]);
-      clear();
-      return;
-    }
-    if (save(raw)) onDone();
+    if (save(raw)) setAdded((a) => [...a, (raw ?? title).trim()]);
+    clear();
   };
 
   /** Save the task and its subtasks; returns the new ids (the task, then each subtask). */
   const save = (raw?: string): { id: string; kids: string[] } | null => {
-    const id = c.commit(raw === undefined ? undefined : raw, { announce: true });
+    const id = c.commit(raw === undefined ? undefined : raw, { listed: true });
     if (!id) return null;
     const made = hub.item(id);
     const kids = made
@@ -201,27 +185,19 @@ function Composer({
     onDone();
   };
 
-  let sub: string;
-  if (shopping) {
-    const aisle = title ? hub.tag(c.tags[0]) : undefined;
-    const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
-    sub = aisle ? [aisle.name, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
-  } else if (c.parent) {
-    sub = `A subtask of ${c.parent.title}`;
-  } else {
-    sub = summarize(draft, { listName: dest?.name });
-  }
+  const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
+  const sub = c.parent ? `A subtask of ${c.parent.title}` : [summarize(draft, { listName: dest?.name }), qty].filter(Boolean).join(' · ');
 
-  // Shopping: what you might mean (the catalog) while typing; buy-again when the card is empty.
-  const suggestions: string[] = shopping
-    ? title
-      ? suggestFromCatalog(title, dest ? hub.flavorOf(dest) : undefined, 4)
+  // While typing: what you might mean (the catalog); on an empty card: Again? (done here before, due again).
+  const suggestions: string[] = c.parent
+    ? []
+    : title
+      ? suggestFromCatalog(title, undefined, 4)
           .map((s) => s.label)
           .filter((s) => s.toLowerCase() !== title.toLowerCase())
-      : shoppingView(hub, route ? (hub.shopRoot()?.id ?? dest?.id ?? listId) : (dest?.id ?? listId), 'all', prefs.dismissed)
-          .buyAgain.slice(0, 5)
-          .map((s) => s.name)
-    : [];
+      : projectView(hub, dest?.id ?? listId, !!route, 'list', prefs.dismissed)
+          .again.slice(0, 5)
+          .map((s) => s.name);
 
   // Where it goes (a project, or a task in one): not when it's already a subtask being added in place.
   const extras = [
@@ -257,9 +233,9 @@ function Composer({
               }
             }}
             onPaste={onPaste}
-            placeholder={c.parent ? 'A subtask' : composerPlaceholder(mode, hub.partner()?.name, roll) || GHOST[mode]}
-            aria-label={shopping ? 'What do you need?' : c.parent ? 'A subtask' : 'What needs doing?'}
-            enterKeyHint={shopping ? 'enter' : 'done'}
+            placeholder={c.parent ? 'A subtask' : composerPlaceholder('task', hub.partner()?.name, roll) || 'A new thing'}
+            aria-label={c.parent ? 'A subtask' : 'What needs doing?'}
+            enterKeyHint="enter"
             autoComplete="off"
             data-autofocus=""
           />
@@ -267,7 +243,7 @@ function Composer({
             <span className="ccard__badge">
               <UrgentTag />
             </span>
-          ) : draft.repeat && !shopping ? (
+          ) : draft.repeat ? (
             <span className="ccard__badge">
               <Icon name="repeat" className="icon--sm" />
             </span>
@@ -318,7 +294,7 @@ function Composer({
         }
       />
 
-      {!shopping && !c.parent ? (
+      {!c.parent ? (
         <div className="composer__steps">
           {steps.length ? (
             <ul className="composer__steplist">
@@ -376,27 +352,19 @@ function Composer({
         </div>
       ) : null}
 
-      {shopping && added.length ? (
+      {added.length ? (
         <p className="composer__added" aria-live="polite">
           <Icon name="check" className="icon--sm" /> <span dir="auto">{added.slice(-4).join(', ')}</span>
         </p>
       ) : null}
 
       <div className="composer__foot">
-        {shopping ? (
-          <>
-            <button type="button" className="btn btn--quiet composer__done" onClick={onDone}>
-              Done
-            </button>
-            <button type="submit" className="btn composer__add" disabled={!title}>
-              Add
-            </button>
-          </>
-        ) : (
-          <button type="submit" className="btn btn--block composer__add" disabled={!title}>
-            Add
-          </button>
-        )}
+        <button type="button" className="btn btn--quiet composer__done" onClick={onDone}>
+          Done
+        </button>
+        <button type="submit" className="btn composer__add" disabled={!title}>
+          Add
+        </button>
       </div>
     </form>
   );

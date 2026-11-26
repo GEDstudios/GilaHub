@@ -43,10 +43,15 @@ export function useSync(): { status: SyncStatus; others: Presence[]; relay: bool
   };
 }
 
-/** Is my partner shopping right now? */
-export function usePartnerShopping(): { member: string } | null {
+/**
+ * Is my partner on a project right now (they pressed Start there)? Which one. An older app says
+ * "shopping": that's Shopping.
+ */
+export function usePartnerHere(): { member: string; listId: string | null } | null {
   const { others } = useSync();
   const rt = useRt();
-  const p = others.find((o) => o.state === 'shopping' && o.member !== rt.session.memberId);
-  return p ? { member: p.member } : null;
+  const hub = useHub();
+  const p = others.find((o) => (o.state === 'shopping' || o.state?.startsWith('on:')) && o.member !== rt.session.memberId);
+  if (!p) return null;
+  return { member: p.member, listId: p.state === 'shopping' ? (hub.shopRoot()?.id ?? null) : p.state!.slice(3) };
 }

@@ -20,7 +20,7 @@ import { SyncBadge } from '../components/SyncBadge';
 import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { listVisLabel } from '../privacy';
-import { coveredByTab, MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
+import { MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
 import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
 
@@ -37,13 +37,12 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
     pinned: false,
   }));
   const [picking, setPicking] = useState(false);
-  // Inside Shopping, it's a shopping list: its icon leans that way.
-  const shop = hub.isShop(parent);
-  const icon = look.icon ?? suggestIcon(name, shop ? 'shopping' : 'tasks', undefined, hub.lists().at(-1)?.icon, hub.iconsInUse());
+  const icon = look.icon ?? suggestIcon(name, 'tasks', undefined, hub.lists().at(-1)?.icon, hub.iconsInUse());
 
   const create = () => {
     if (!name.trim()) return;
-    const id = hub.createList({ name, color: look.color, icon, visibility: look.visibility, owner: look.owner, parentId: parent?.id });
+    // A project made inside another is looked at the way that one is (by tag, inside Shopping).
+    const id = hub.createList({ name, color: look.color, icon, visibility: look.visibility, owner: look.owner, parentId: parent?.id, view: parent?.view });
     if (look.pinned) togglePin(hub, `l:${id}`);
     onClose();
     navigate({ name: 'list', id });
@@ -65,7 +64,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
           </span>
           <span className="ccard__sub projcard__foot">
             <span>
-              {shop ? 'Shopping list' : parent ? `In ${parent.name}` : 'Project'} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
+              {parent ? `In ${parent.name}` : 'Project'} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
             </span>
             {/* Its icon, right on the card (low, as on the folders): tap it to pick another. */}
             <CardIcon icon={icon} open={picking} onToggle={() => setPicking(!picking)} />
@@ -114,7 +113,6 @@ const tabOf = (hub: Hub, key: string) => pinOptions(hub).find((o) => o.key === k
 function tapPin(hub: Hub, list: List) {
   const pins = pinsOf(hub);
   const key = `l:${list.id}`;
-  if (coveredByTab(hub, list.id, pins)) return replay(liveBar()?.querySelector('[data-key="shop"]'), 'is-flash');
   if (!pins.includes(key) && pins.length >= MAX_PINS) {
     haptic('warn');
     return replay(liveBar(), 'is-refusing');
@@ -126,8 +124,8 @@ function tapPin(hub: Hub, list: List) {
 /** A folder's pin while arranging: a white + when it's not in the bar, an ink pin when it is. */
 function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: number }) {
   const hub = useHub();
-  const covered = coveredByTab(hub, list.id, pins) ? tabOf(hub, 'shop') : undefined;
-  const on = !!covered || pins.includes(`l:${list.id}`);
+  const covered = undefined as { label: string } | undefined;
+  const on = pins.includes(`l:${list.id}`);
   const label = covered ? `In the bar as ${covered.label}` : on ? `${list.name} is in the bar` : `Put ${list.name} in the bar`;
   return (
     <button
@@ -275,10 +273,6 @@ export function Lists() {
     const place = (key: string, at: number | null, full: boolean) => {
       if (full) return toast('The bar is full');
       const before = pinsOf(hub);
-      // The one Chores (or Shopping) project is already there as its tab: move that instead.
-      const id = key.startsWith('l:') ? key.slice(2) : null;
-      const list = id ? hub.list(id) : undefined;
-      if (list && coveredByTab(hub, list.id, before)) key = 'shop';
       const was = before.includes(key);
       pinAt(hub, key, at ?? before.length);
       const name = tabOf(hub, key)?.label;
@@ -288,11 +282,7 @@ export function Lists() {
     return { folders: barTarget({ ...common, keyOf: (id) => `l:${id}` }), tokens: barTarget(common) };
   }, [hub, toast]);
 
-  // Never twice: a tab whose one project is already in the bar isn't offered again.
-  const root = hub.shopRoot();
-  const missing = arranging
-    ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key) && !(o.key === 'shop' && root && pins.includes(`l:${root.id}`)))
-    : [];
+  const missing = arranging ? pinOptions(hub).filter((o) => !o.key.startsWith('l:') && !pins.includes(o.key)) : [];
 
   return (
     <>

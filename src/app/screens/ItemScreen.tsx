@@ -327,7 +327,6 @@ export function ItemScreen({ id }: { id: string }) {
     set: tags.length > 0,
     panel: () => <TagPicker value={tags} onChange={(next) => hub.setTags(id, next)} suggested={[...suggest.auto, ...suggest.more]} />,
   };
-  const shop = hub.isShop(item.listId) && !item.parentId;
   const qtyNum = item.qty && /^\d+$/.test(item.qty) ? +item.qty : null;
   const qtyChip = {
     key: 'qty',
@@ -454,7 +453,7 @@ export function ItemScreen({ id }: { id: string }) {
                     },
                   ]
                 : []),
-              ...(shop ? [qtyChip] : []),
+              qtyChip,
               tagsChip,
               alsoChip,
             ]}

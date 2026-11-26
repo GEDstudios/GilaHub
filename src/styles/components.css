@@ -7070,83 +7070,119 @@ textarea.nf__write {
   margin: -4px 0 14px;
 }
 
-/* ---------------------------------------------------------------- filter */
+/* ---------------------------------------------------------------- the lens */
 
-/* The header's filter button wears a dot while something is filtered out. */
-.filterbtn {
-  position: relative;
-}
-
-.filterbtn.is-on {
-  background: var(--cta);
-  color: var(--cta-text);
-}
-
-.filterbtn.is-on::after {
-  content: '';
-  position: absolute;
-  top: 7px;
-  right: 7px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--lemon);
-  box-shadow: 0 0 0 2px var(--cta);
-}
-
-.filtersheet__part {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.filtersheet__part .tagpick__tags {
-  max-height: 260px;
-}
-
-.filtersheet__foot {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-/* While a filter is on: what it keeps, in one row under the header. */
-.filterbar {
+/*
+ * One quiet row over a screen's things: All, the people, Urgent, the tags that are here, each
+ * with its count. Unpicked chips are just text on the page; a picked one is ink. The row scrolls
+ * sideways under a soft fade; a project's view switch ends it.
+ */
+.lens {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin: 0 -16px 14px;
-  padding: 2px 16px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  padding: 0 16px;
 }
 
-.filterbar::-webkit-scrollbar {
+.lens--bare {
+  justify-content: flex-end;
+}
+
+.lens__chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: -4px 0;
+  padding: 4px 0;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+
+.lens__chips::-webkit-scrollbar {
   display: none;
 }
 
-.filterbar__lead {
+.lens__chip {
   flex: none;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 160ms var(--ease),
+    color 160ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.lens__chip:hover {
+  background: var(--tile);
+  color: var(--text);
+}
+
+.lens__chip:active {
+  transform: scale(0.95);
+}
+
+.lens__chip .icon {
+  --s: 15;
+  color: inherit;
+}
+
+.lens__chip .tagmark.icon {
+  color: var(--text-3);
+}
+
+.lens__chip .avatar {
+  margin-left: -4px;
+}
+
+.lens__n {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.lens__chip.is-on {
   background: var(--cta);
   color: var(--cta-text);
 }
 
-.filterbar .tagtoken {
-  flex: none;
+.lens__chip.is-on .lens__n,
+.lens__chip.is-on .tagmark.icon {
+  color: inherit;
+  opacity: 0.7;
 }
 
-.filterbar .tagtoken > .icon:last-child {
-  --s: 12;
-  opacity: 0.6;
+.lens .viewtoggle {
+  flex: none;
+  margin: 0;
 }
 
-.filterbar__clear {
-  flex: none;
+/* The tray's name, beside its count. */
+.cartcard__title {
+  font-weight: 600;
+  font-size: 14.5px;
   white-space: nowrap;
+}
+
+/* A group's project, as a link (Everything inside). */
+.aisle__go {
+  display: inline-grid;
+  place-items: center;
+}
+
+/* On Today, the lens sits under the summary card, a breath apart. */
+.summary + .lens,
+.home__lead .lens {
+  margin-top: 14px;
 }

@@ -2,9 +2,10 @@ import type { Hub } from '../../core/actions';
 import type { Item } from '../../core/model';
 import { useHub } from '../context';
 import { setPrefs, usePrefs } from '../prefs';
+import type { ReactNode } from 'react';
+import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
-import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Seg } from '../ui/primitives';
+import { Avatar } from '../ui/primitives';
 import { TagMark } from './Tags';
 
 /**
@@ -67,125 +68,74 @@ export function useFilter(key: string) {
 
 export type FilterState = ReturnType<typeof useFilter>;
 
-/** The header's filter button: a dot on it while something is filtered out. */
-export function FilterButton({ filter }: { filter: FilterState }) {
-  const { openSheet } = useOverlays();
-  return (
-    <button
-      type="button"
-      className={`iconbtn filterbtn ${filter.active ? 'is-on' : ''}`}
-      aria-label={filter.active ? 'Filter (on)' : 'Filter'}
-      title="Filter"
-      aria-pressed={filter.active}
-      onClick={() => openSheet((close) => <FilterSheet fkey={filter.key} onClose={close} />)}
-    >
-      <Icon name="sliders" />
-    </button>
-  );
-}
-
-/** What to show: for whom, urgent only, and tags (any of them). Changes apply as you tap. */
-function FilterSheet({ fkey, onClose }: { fkey: string; onClose: () => void }) {
+/**
+ * The lens: one quiet row of chips over a screen's things, so you narrow it in a tap and widen it
+ * in another. All (and how many), then the people, Urgent, and the tags that are actually here,
+ * each with its count, in our order. Tap to keep only those; tap again to let go. Several tags
+ * show what wears any of them; one person at a time. Nothing to narrow: no row at all. `children`
+ * end the row (a project's view switch).
+ */
+export function Lens({ filter, items, children }: { filter: FilterState; items: Item[]; children?: ReactNode }) {
   const hub = useHub();
-  // Its own read of the filter: the sheet outlives the screen's render that opened it.
-  const filter = useFilter(fkey);
-  const partner = hub.partner();
   const f = filter.f;
-  const counts = hub.tagCounts();
-  const tags = hub.tags();
-  const flip = (id: string) => filter.set({ ...f, tags: f.tags.includes(id) ? f.tags.filter((t) => t !== id) : [...f.tags, id] });
+  const partner = hub.partner();
+  const me = hub.me();
+  const count = (test: (i: Item) => boolean) => items.filter(test).length;
+  const people = partner
+    ? ([
+        ['me', me, count((i) => forWhom(hub, i, hub.meId))],
+        ['partner', partner, count((i) => forWhom(hub, i, partner.id))],
+      ] as const).filter(([who, , n]) => n > 0 || f.who === who)
+    : [];
+  const urgentN = count((i) => !!i.urgent);
+  const tagN = new Map<string, number>();
+  for (const i of items) for (const t of hub.tagsOf(i)) tagN.set(t, (tagN.get(t) ?? 0) + 1);
+  const tags = hub.tags().filter((t) => tagN.has(t.id) || f.tags.includes(t.id));
+  const facets = people.length + (urgentN || f.urgent ? 1 : 0) + tags.length;
+  const pick = (next: Filter) => {
+    haptic('select');
+    filter.set(next);
+  };
+  if (!facets && !filter.active) return children ? <div className="lens lens--bare">{children}</div> : null;
   return (
-    <Sheet onClose={onClose} title="Show only">
-      {partner ? (
-        <div className="filtersheet__part">
-          <p className="panel__head">For</p>
-          <Seg
-            label="For whom"
-            value={f.who ?? 'any'}
-            onChange={(v) => filter.set({ ...f, who: v === 'any' ? null : (v as 'me' | 'partner') })}
-            options={[
-              { value: 'any', label: 'Anyone' },
-              { value: 'me', label: 'Me' },
-              { value: 'partner', label: partner.name },
-            ]}
-          />
-        </div>
-      ) : null}
-      <div className="filtersheet__part">
-        <button type="button" className={`tagtoken ${f.urgent ? 'is-on' : ''}`} aria-pressed={f.urgent} onClick={() => filter.set({ ...f, urgent: !f.urgent })}>
-          <Icon name="urgent" className="icon--sm" />
-          <span>Urgent only</span>
-          {f.urgent ? <Icon name="check" className="icon--xs" /> : null}
+    <div className="lens">
+      <div className="lens__chips" role="toolbar" aria-label="Show only">
+        <button type="button" className={`lens__chip ${filter.active ? '' : 'is-on'}`} aria-pressed={!filter.active} onClick={() => filter.active && pick(NO_FILTER)}>
+          <span>All</span>
+          <span className="lens__n num">{items.length}</span>
         </button>
-      </div>
-      {tags.length ? (
-        <div className="filtersheet__part">
-          <p className="panel__head">Tags</p>
-          <div className="tagpick__tags" role="group" aria-label="Tags">
-            {tags.map((t) => (
-              <button key={t.id} type="button" className={`tagtoken ${f.tags.includes(t.id) ? 'is-on' : ''}`} aria-pressed={f.tags.includes(t.id)} onClick={() => flip(t.id)}>
-                <TagMark icon={t.icon} />
-                <span dir="auto">{t.name}</span>
-                {counts.get(t.id) ? <span className="tagtoken__n num">{counts.get(t.id)}</span> : null}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      <div className="filtersheet__foot">
-        {filter.active ? (
-          <button type="button" className="btn btn--quiet" onClick={() => filter.clear()}>
-            Show everything
+        {people.map(([who, m, n]) => (
+          <button
+            key={who}
+            type="button"
+            className={`lens__chip lens__chip--person ${f.who === who ? 'is-on' : ''}`}
+            aria-pressed={f.who === who}
+            onClick={() => pick({ ...f, who: f.who === who ? null : who })}
+          >
+            <Avatar member={m} size="xs" />
+            <span dir="auto">{who === 'me' ? 'Me' : m?.name}</span>
+            <span className="lens__n num">{n}</span>
+          </button>
+        ))}
+        {urgentN || f.urgent ? (
+          <button type="button" className={`lens__chip ${f.urgent ? 'is-on' : ''}`} aria-pressed={f.urgent} onClick={() => pick({ ...f, urgent: !f.urgent })}>
+            <Icon name="urgent" className="icon--sm" />
+            <span>Urgent</span>
+            <span className="lens__n num">{urgentN}</span>
           </button>
         ) : null}
-        <button type="button" className="btn" onClick={onClose}>
-          Done
-        </button>
+        {tags.map((t) => {
+          const on = f.tags.includes(t.id);
+          return (
+            <button key={t.id} type="button" className={`lens__chip ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => pick({ ...f, tags: on ? f.tags.filter((x) => x !== t.id) : [...f.tags, t.id] })}>
+              <TagMark icon={t.icon} />
+              <span dir="auto">{t.name}</span>
+              <span className="lens__n num">{tagN.get(t.id) ?? 0}</span>
+            </button>
+          );
+        })}
       </div>
-    </Sheet>
-  );
-}
-
-/** While a filter is on: what it keeps, each with its ×, and Clear. Under the header. */
-export function FilterBar({ filter, hidden }: { filter: FilterState; hidden?: number }) {
-  const hub = useHub();
-  const { openSheet } = useOverlays();
-  if (!filter.active) return null;
-  const f = filter.f;
-  const partner = hub.partner();
-  const whoName = f.who === 'me' ? 'Me' : partner?.name;
-  return (
-    <div className="filterbar" role="group" aria-label="Filtered">
-      <button type="button" className="filterbar__lead" onClick={() => openSheet((close) => <FilterSheet fkey={filter.key} onClose={close} />)} aria-label="Change the filter">
-        <Icon name="sliders" className="icon--sm" />
-      </button>
-      {f.who && whoName ? (
-        <button type="button" className="tagtoken is-on" onClick={() => filter.set({ ...f, who: null })} aria-label={`Stop showing only ${whoName}`}>
-          <Avatar member={f.who === 'me' ? hub.me() : partner} size="xs" />
-          <span dir="auto">{whoName}</span>
-          <Icon name="x" className="icon--xs" />
-        </button>
-      ) : null}
-      {f.urgent ? (
-        <button type="button" className="tagtoken is-on" onClick={() => filter.set({ ...f, urgent: false })} aria-label="Stop showing only urgent">
-          <Icon name="urgent" className="icon--sm" />
-          <span>Urgent</span>
-          <Icon name="x" className="icon--xs" />
-        </button>
-      ) : null}
-      {f.tags.map((id) => {
-        const t = hub.tag(id);
-        return t ? (
-          <button key={id} type="button" className="tagtoken is-on" onClick={() => filter.set({ ...f, tags: f.tags.filter((x) => x !== id) })} aria-label={`Stop filtering by ${t.name}`}>
-            <TagMark icon={t.icon} />
-            <span dir="auto">{t.name}</span>
-            <Icon name="x" className="icon--xs" />
-          </button>
-        ) : null;
-      })}
-      <button type="button" className="textbtn filterbar__clear" onClick={() => filter.clear()}>
-        Clear{hidden ? ` · ${hidden} hidden` : ''}
-      </button>
+      {children}
     </div>
   );
 }

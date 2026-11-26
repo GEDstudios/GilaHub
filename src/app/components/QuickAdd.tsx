@@ -2,7 +2,7 @@ import { playSound } from '../ui/sounds';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { List } from '../../core/model';
 import { parseQuickAdd, type ParseContext, type ParseResult } from '../../smart/parse';
-import { composeDraft, modeOf, overriddenTokens, parsedDraft, type AddMode } from '../compose';
+import { composeDraft, overriddenTokens, parsedDraft, type AddMode } from '../compose';
 import { useHub, useRt } from '../context';
 import { notifyAbout, setUpReminders } from '../notify';
 import { dayFirst, setPrefs, use24h, usePrefs, weekStart, workdays } from '../prefs';
@@ -14,9 +14,9 @@ import { ListBullet } from '../ui/primitives';
 import { type Draft } from './editors';
 import { TagMark, TagPicker, tagsLabel } from './Tags';
 import type { Hub } from '../../core/actions';
-import { useShopAdd } from './shopAdd';
+import { usePingUrgent } from './add';
 
-export function useParseContext(list: List | undefined): ParseContext {
+export function useParseContext(_list?: List): ParseContext {
   const hub = useHub();
   const prefs = usePrefs();
   return {
@@ -27,7 +27,6 @@ export function useParseContext(list: List | undefined): ParseContext {
     weekStart: weekStart(prefs),
     workdays: workdays(),
     h24: use24h(prefs),
-    mode: hub.isShop(list) ? 'shopping' : 'task',
     repeatFrom: 'schedule',
   };
 }
@@ -47,13 +46,13 @@ export function useCompose({
   parentId?: string | null;
   defaultDue?: string | null;
   text: string;
-  /** From the combined Shopping tab: send each item to the list it belongs on ("bulbs" → Home), until a list is picked. */
+  /** On a project showing what's inside it too: each thing goes where it belongs ("bulbs" → Home shopping), until a project is picked. */
   route?: boolean;
 }) {
   const hub = useHub();
   const rt = useRt();
   const { toast } = useOverlays();
-  const shopAdd = useShopAdd();
+  const pingUrgent = usePingUrgent();
   const [ignore, setIgnore] = useState<Set<string>>(new Set());
   const [over, setOver] = useState<Partial<Draft>>({});
   // Where it goes, once picked: a project, or a task in one (then it's a subtask of that task).
@@ -67,11 +66,10 @@ export function useCompose({
   const ctx = useParseContext(base);
   const parse = (raw: string) => parseQuickAdd(raw, { ...ctx, ignore });
   const parsed = useMemo(() => parseQuickAdd(text, { ...ctx, ignore }), [text, ctx, ignore]);
-  const routed = (p: ParseResult) =>
-    route && !target && hub.isShop(base) && p.title.trim() ? hub.routeShopping(p.title, hub.shoppingLists().filter((l) => l.flavor)) : undefined;
+  const routed = (p: ParseResult) => (route && !target && base && !parent && p.title.trim() ? hub.list(hub.placeFor(p.title, base.id)) : undefined);
   const destOf = (p: ParseResult) => (p.listId && !parent ? hub.list(p.listId) : undefined) ?? routed(p) ?? base;
   const dest = destOf(parsed);
-  const mode: AddMode = parent ? 'task' : modeOf(hub.isShop(dest));
+  const mode: AddMode = 'task';
   const suggested = useMemo(() => (parsed.title.trim() ? hub.suggestTags(parsed.title, dest?.id) : { auto: [], more: [] }), [hub, parsed.title, dest?.id]);
   const tags = picked ?? suggested.auto;
   const allowed = allowedVis(hub, dest, parent);
@@ -105,7 +103,7 @@ export function useCompose({
   };
 
   /** Add it. `raw` adds other words with the same chips (a pasted line). Returns the new id. */
-  const commit = (raw?: string, opts: { quiet?: boolean; announce?: boolean } = {}): string | undefined => {
+  const commit = (raw?: string, opts: { quiet?: boolean; announce?: boolean; listed?: boolean } = {}): string | undefined => {
     const p = raw === undefined ? parsed : parse(raw);
     const to = destOf(p);
     const d = raw === undefined ? draft : draftOf(p);
@@ -113,12 +111,11 @@ export function useCompose({
     if (!to || !title) return undefined;
     // Picked tags go on this one; other words (a pasted line, a suggestion) find their own.
     const ownTags = raw === undefined && picked ? picked : undefined;
-    if (hub.isShop(to) && !parent) {
-      return shopAdd(to.id, { title, qty: p.qty ?? null, urgent: d.urgent, vis: d.visibility, tags: ownTags }, opts)?.id;
-    }
     const asking = hub.isRequest(d.assignee);
-    const id = hub.addItem(to.id, {
+    // Never twice: one already open says so (+1); one done before comes back.
+    const res = hub.add(to.id, {
       title,
+      qty: p.qty ?? null,
       parentId: to.id === (base?.id ?? listId) ? parentPick : null,
       due: d.due,
       dueTime: d.dueTime,
@@ -131,18 +128,27 @@ export function useCompose({
       needsOk: !!d.needsOk && asking && !d.repeat,
       tags: ownTags,
     });
+    const id = res.id;
+    if (d.urgent && res.kind !== 'exists' && hub.item(id)) pingUrgent(hub.item(id)!, true);
+    if (res.kind === 'exists') {
+      markFresh(id, { scroll: opts.announce });
+      if (!opts.quiet) toast(`${hub.item(id)?.title} is already in ${to.name}`, { action: { label: '+1', run: () => hub.bump(id) } });
+      return id;
+    }
     // A dated task notifies by default: ask for permission the first time (in this tap).
     if (d.remind != null && typeof Notification !== 'undefined' && Notification.permission === 'default') setUpReminders(rt, toast);
     const made = hub.item(id);
     if (made && asking && made.requestedBy === hub.meId) {
       notifyAbout(rt, hub, made, d.assignee as string, `🙋 ${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
     }
-    // New (from Today, Search…) opens on the last task project used.
-    if (!parent && !hub.isShop(to)) setPrefs({ lastList: to.id });
+    // New (from Today, Search…) opens on the last project used.
+    if (!parent) setPrefs({ lastList: to.id });
     markFresh(id, { scroll: opts.announce });
     if (!opts.quiet) playSound('add');
-    if (opts.announce) toast(`Added to ${to.name}`, { ms: 1800 });
-    else if (!opts.quiet) ifNotInView(id, () => toast(`Added to ${to.name}`, { ms: 1800 }));
+    const said = res.kind === 'revived' ? `Brought back ${hub.item(id)?.title ?? ''}` : `Added to ${to.name}`;
+    // In the composer, what was added is listed under the card: only news is said.
+    if (opts.announce || res.kind === 'revived') toast(said, { ms: 1800 });
+    else if (!opts.quiet && !opts.listed) ifNotInView(id, () => toast(said, { ms: 1800 }));
     return id;
   };
 

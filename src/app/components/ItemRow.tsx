@@ -33,6 +33,9 @@ export function useDoer(item: Item) {
 export const ItemRow = memo(function ItemRow({
   item,
   showList,
+  skipTag,
+  inUrgent,
+  flash,
   dateMode = 'full',
   trailing,
   below,
@@ -44,6 +47,12 @@ export const ItemRow = memo(function ItemRow({
 }: {
   item: Item;
   showList?: boolean;
+  /** The tag its group already says (By tag): not again on the row. */
+  skipTag?: string | null;
+  /** Drawn in the Urgent card: no Urgent tag needed. */
+  inUrgent?: boolean;
+  /** Just added or marked urgent by my partner: it glows a moment. */
+  flash?: boolean;
   dateMode?: 'full' | 'none';
   trailing?: ReactNode;
   /** Under the text, e.g. OK / Not yet (RequestActions className="row__acts"). */
@@ -84,7 +93,7 @@ export const ItemRow = memo(function ItemRow({
   };
 
   const twin = hub.linked(item);
-  const tags = hub.tagsOf(item);
+  const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
   return (
     <li
       ref={liRef}
@@ -92,13 +101,14 @@ export const ItemRow = memo(function ItemRow({
       {...dragProps}
       data-settle={item.id}
       data-id={item.id}
-      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh row--flash' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
+      className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh row--flash' : flash ? 'row--flash' : ''} ${settling ? 'is-settling' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
       <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
+          {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
         {(showList && list) || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
           <span className="row__meta">
@@ -135,10 +145,10 @@ export const ItemRow = memo(function ItemRow({
         ) : null}
         {below}
       </div>
-      {trailing || item.urgent || avatar ? (
+      {trailing || (item.urgent && !inUrgent && !item.done) || avatar ? (
         <span className="row__trail">
           {trailing}
-          {item.urgent ? <UrgentTag /> : null}
+          {item.urgent && !inUrgent && !item.done ? <UrgentTag /> : null}
           {avatar ? <Avatar member={avatar} size="xs" /> : null}
         </span>
       ) : null}

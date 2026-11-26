@@ -1,19 +1,21 @@
-import { setPrefs, usePrefs } from '../prefs';
+import type { ListView } from '../../core/model';
+import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
-import { Icon } from '../ui/Icon';
+import { Icon, type IconName } from '../ui/Icon';
 
-/** List or cards: how a project's tasks (or the shopping) are laid out. Remembered on this device. */
-export function ViewToggle({ which }: { which: 'taskView' | 'shopView' }) {
-  const prefs = usePrefs();
-  const now = prefs[which];
+const VIEWS: Array<[ListView, IconName, string]> = [
+  ['list', 'lines', 'List'],
+  ['cards', 'folders', 'Cards'],
+  ['tags', 'tag', 'By tag'],
+];
+
+/** How a project is looked at, for both of us: a list, cards, or grouped by tag (the aisles). */
+export function ViewToggle({ listId }: { listId: string }) {
+  const hub = useHub();
+  const now = hub.viewOf(hub.list(listId));
   return (
-    <div className="viewtoggle" role="radiogroup" aria-label={which === 'shopView' ? 'Show the shopping as' : 'Show tasks as'}>
-      {(
-        [
-          ['list', 'lines', 'List'],
-          ['cards', 'folders', 'Cards'],
-        ] as const
-      ).map(([v, icon, label]) => (
+    <div className="viewtoggle" role="radiogroup" aria-label="Show as">
+      {VIEWS.map(([v, icon, label]) => (
         <button
           key={v}
           type="button"
@@ -24,7 +26,7 @@ export function ViewToggle({ which }: { which: 'taskView' | 'shopView' }) {
           className={`viewtoggle__btn ${now === v ? 'is-on' : ''}`}
           onClick={() => {
             haptic('select');
-            setPrefs({ [which]: v });
+            hub.setListView(listId, v);
           }}
         >
           <Icon name={icon} className="icon--sm" />

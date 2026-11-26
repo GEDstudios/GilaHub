@@ -4,11 +4,12 @@ import type { Route } from './router';
 import type { IconName } from './ui/Icon';
 
 /**
- * Between Today and Projects you pin as many as you like: Shopping, Chores, Search or any
- * project. Past 5 tabs the bar goes icons-only, past 7 it docks and scrolls (barDensity), and
- * holding it lets you slide to pick. 24 is a sanity cap, not a design limit.
+ * Between Today and Projects you pin as many as you like: Search or any project. Past 5 tabs the
+ * bar goes icons-only, past 7 it docks and scrolls (barDensity), and holding it lets you slide to
+ * pick. 24 is a sanity cap, not a design limit.
  */
 export const MAX_PINS = 24;
+/** As stored: 'shop' is the Shopping project (from when it was a tab of its own). */
 export const DEFAULT_PINS = ['shop'];
 /** Tabs that still fit with their labels. */
 export const COMFY_TABS = 5;
@@ -41,22 +42,12 @@ export function barDensity(n: number, { editing = false }: { editing?: boolean }
 
 export function pinOptions(hub: Hub): TabDef[] {
   const lists = hub.lists();
-  // The Shopping tab is the Shopping project, under its own name.
-  const root = hub.shopRoot();
   return [
-    { key: 'shop', label: root?.name ?? 'Shopping', path: '/shop', icon: 'basket' },
     { key: 'search', label: 'Search', path: '/search', icon: 'search' },
     ...lists.map((l) => ({ key: `l:${l.id}`, label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
 }
 
-/**
- * A project the Shopping tab already shows: the Shopping project itself, with that tab in the
- * bar. The bar's tray and the sidebar don't offer it a second time (it stays a project).
- */
-export function coveredByTab(hub: Hub, listId: string, pins: readonly string[] = pinsOf(hub)): boolean {
-  return !!hub.list(listId)?.shopRoot && pins.includes('shop');
-}
 
 /** Known keys only, each once, in order, at most MAX_PINS (pure, for tests). */
 export function cleanPins(raw: readonly string[], valid: ReadonlySet<string>): string[] {
@@ -70,8 +61,14 @@ export function cleanPins(raw: readonly string[], valid: ReadonlySet<string>): s
 
 const validKeys = (hub: Hub) => new Set(pinOptions(hub).map((t) => t.key));
 
+/** A stored 'shop' (the old Shopping tab) is the Shopping project's pin. */
+const resolved = (hub: Hub, raw: readonly string[]): string[] => {
+  const root = hub.shopRoot();
+  return raw.map((k) => (k === 'shop' ? (root ? `l:${root.id}` : '') : k));
+};
+
 export function pinsOf(hub: Hub): string[] {
-  return cleanPins(hub.me()?.tabs ?? DEFAULT_PINS, validKeys(hub));
+  return cleanPins(resolved(hub, hub.me()?.tabs ?? DEFAULT_PINS), validKeys(hub));
 }
 
 /** Is the bar as it came? (Settings offers "Back to the default" only when not.) */
@@ -106,8 +103,8 @@ export function keepDormant<T>(raw: readonly T[], next: readonly T[], key: (t: T
 const dormantKey = (hub: Hub) => (k: string) => k.startsWith('l:') && hub.listDormant(k.slice(2));
 
 export function setPins(hub: Hub, pins: string[]): void {
-  const raw = (hub.me()?.tabs ?? []).filter((k): k is string => typeof k === 'string');
-  hub.upsertMember(hub.meId, { tabs: keepDormant(raw, cleanPins(pins, validKeys(hub)), (k) => k, dormantKey(hub)) });
+  const raw = resolved(hub, (hub.me()?.tabs ?? []).filter((k): k is string => typeof k === 'string'));
+  hub.upsertMember(hub.meId, { tabs: keepDormant(raw, cleanPins(resolved(hub, pins), validKeys(hub)), (k) => k, dormantKey(hub)) });
 }
 
 /** "Back to the default": really the default, archived pins and all. Undo puts back what was stored. */
@@ -161,15 +158,15 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
   const pins = pinsOf(hub);
   const forList = (listId: string | undefined): string => {
     if (!listId) return 'projects';
-    if (pins.includes(`l:${listId}`)) return `l:${listId}`;
-    if (hub.isShop(listId) && pins.includes('shop')) return 'shop';
+    // Itself, or the nearest project it's inside that's in the bar.
+    for (const l of [hub.list(listId), ...[...hub.listPath(listId)].reverse()]) if (l && pins.includes(`l:${l.id}`)) return `l:${l.id}`;
     return 'projects';
   };
   switch (r.name) {
     case 'today':
       return 'today';
     case 'shop':
-      return 'shop';
+      return forList(hub.shopRoot()?.id);
     case 'chores':
     case 'lists':
       return 'projects';

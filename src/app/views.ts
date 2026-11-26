@@ -41,8 +41,6 @@ export interface TodayView {
   today: Item[];
   earlier: Item[];
   upcoming: Array<{ date: string; items: Item[] }>;
-  /** What's on the shopping lists: `preview` is the first 4, urgent first, then newest. */
-  shopping: { count: number; urgent: number; lists: List[]; preview: Item[]; all: Item[] };
   together: number;
   recent: Array<{ log?: LogEntry; item: Item; by: string; at: number }>;
   dueCount: number;
@@ -64,17 +62,17 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const lists = new Map(hub.lists().map((l) => [l.id, l]));
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
-    return l && !hub.isShop(l) && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
+    return l && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
   const todayAll = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
   const earlierAll = mine.filter((i) => i.due! < ref).sort((a, b) => a.due!.localeCompare(b.due!) || byUrgentThenTime(a, b));
-  // Requests between us: one-off things in task projects (not chores, not shopping).
+  // Requests between us: one-off things (not repeating ones).
   const partnerId = hub.partner()?.id;
   const items = hub.store.all('item');
   const live = (i: Item) => {
     const l = lists.get(i.listId);
-    return !!l && !i.done && !i.archived && !i.repeat && !hub.isShop(l);
+    return !!l && !i.done && !i.archived && !i.repeat;
   };
   const asked = partnerId
     ? items
@@ -112,17 +110,11 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   }
   const upcoming = [...upcomingMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, items]) => ({ date, items: items.sort(byUrgentThenTime) }));
 
-  const shopLists = hub.shoppingLists();
-  const shopIds = new Set(shopLists.map((l) => l.id));
-  const shopOpen = hub.store
-    .all('item')
-    .filter((i) => shopIds.has(i.listId) && !i.done && !i.archived && !i.parentId)
-    .sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
-
   const weekAgo = Date.now() - 7 * 86_400_000;
   const logs = hub.store.all('log');
-  const doneTasks = hub.store.all('item').filter((i) => i.done && i.doneAt && i.doneAt > weekAgo && !hub.isShop(lists.get(i.listId)));
-  const together = logs.filter((l) => l.at > weekAgo).length + doneTasks.length;
+  const doneTasks = hub.store.all('item').filter((i) => i.done && i.doneAt && i.doneAt > weekAgo && lists.has(i.listId));
+  // A tick is logged (older ones weren't): each counts once.
+  const together = logs.filter((l) => l.at > weekAgo).length + doneTasks.filter((i) => !i.logId).length;
 
   const partner = hub.partner();
   const dayAgo = Date.now() - 36 * 3600_000;
@@ -133,7 +125,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
       const item = hub.item(l.itemId);
       if (item) recent.push({ log: l, item, by: l.by, at: l.at });
     }
-    for (const i of doneTasks) if (i.doneBy === partner.id && i.doneAt! > dayAgo) recent.push({ item: i, by: partner.id, at: i.doneAt! });
+    for (const i of doneTasks) if (i.doneBy === partner.id && i.doneAt! > dayAgo) recent.push({ log: hub.store.get('log', i.logId) ?? undefined, item: i, by: partner.id, at: i.doneAt! });
     recent.sort((a, b) => b.at - a.at);
   }
 
@@ -141,13 +133,6 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     today,
     earlier,
     upcoming,
-    shopping: {
-      count: shopOpen.length,
-      urgent: shopOpen.filter((i) => i.urgent).length,
-      preview: shopOpen.slice(0, 4),
-      all: shopOpen,
-      lists: shopLists.filter((l) => shopOpen.some((i) => i.listId === l.id)),
-    },
     together,
     recent: recent.slice(0, 3),
     dueCount: today.length + earlier.length,
@@ -168,94 +153,100 @@ function doneOn(hub: Hub, day: string): number {
   const within = (t: number | null | undefined) => !!t && t >= from && t < to;
   let n = 0;
   for (const i of hub.store.all('item')) {
-    if (i.done && i.doneBy === hub.meId && within(i.doneAt) && !hub.isShop(i.listId)) n++;
+    if (i.done && i.doneBy === hub.meId && within(i.doneAt) && !i.logId) n++;
   }
-  for (const l of hub.store.all('log')) if (l.kind === 'done' && l.by === hub.meId && within(l.at)) n++;
+  for (const l of hub.store.all('log')) if (l.by === hub.meId && within(l.at)) n++;
   return n;
 }
 
-// ---------------------------------------------------------------- Shopping
+// ---------------------------------------------------------------- a project
 
-/** One aisle: the things whose first tag (in our order) is this one; `tag` null holds the untagged. */
-export interface AisleGroup {
+/** A part of a project's page: one tag's things (an aisle), one inner project's, or all of them. */
+export interface ProjectGroup {
   key: string;
-  tag: string | null;
-  label: string;
+  /** Grouped by tag: the tag (null: the untagged). */
+  tag?: string | null;
+  /** Grouped by project: which one. */
+  listId?: string;
+  label: string | null;
   /** The tag's icon ("i:…", "x:…" or an emoji). */
-  icon: string | null;
-  items: Array<Item & { emoji: string }>;
+  icon?: string | null;
+  items: Item[];
 }
 
-export interface ShoppingView {
-  /** The shopping lists shown (the base and what's inside it, or the one picked). */
+export interface ProjectView {
+  /** The project, and the projects inside it when they're shown too. */
   lists: List[];
-  urgent: Array<Item & { emoji: string }>;
-  groups: AisleGroup[];
-  inCart: Array<Item & { emoji: string }>;
-  openCount: number;
+  open: Item[];
+  /** Urgent ones, in the page's order (by tag: the walk through the store). */
+  urgent: Item[];
+  groups: ProjectGroup[];
+  /** Just done: ticked, not cleared yet. Newest first. */
+  tray: Item[];
+  /** Done and cleared, newest first. */
+  cleared: Item[];
   stats: Map<string, PurchaseStats>;
-  buyAgain: BuyAgainSuggestion[];
+  /** Again? Things done here before, about due again. */
+  again: BuyAgainSuggestion[];
 }
 
-/** A shopping list and everything inside it. */
+/** A project and everything inside it. */
 export function shopTree(hub: Hub, id: string): List[] {
   const l = hub.list(id);
   return l ? [l, ...hub.nestedLists(id)] : [];
 }
 
 /**
- * Shopping, from `base` (the Shopping project, or a list in it): the lists `filter` picks
- * ('all', or one list inside, with what's inside that), their open things grouped into aisles
- * by tag in our walking order, then the untagged; the cart; and Buy again.
+ * One project's page, whatever's in it: its top-level things (and those of the projects inside,
+ * with `inside`), grouped by tag (in our order, the untagged last), by project, or not at all;
+ * the tray of things just done; Again?.
  */
-export const shoppingView = memo((hub: Hub, base: string, filter: string, dismissed: Record<string, number>): ShoppingView => {
-  const lists = filter !== 'all' && hub.list(filter) ? shopTree(hub, filter) : shopTree(hub, base);
+export const projectView = memo((hub: Hub, listId: string, inside: boolean, view: string, dismissed: Record<string, number>): ProjectView => {
+  const lists = inside ? shopTree(hub, listId) : shopTree(hub, listId).slice(0, 1);
   const ids = new Set(lists.map((l) => l.id));
   const items = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
-  const withEmoji = (i: Item) => ({ ...i, emoji: hub.emojiOf(i) });
   const open = items.filter((i) => !i.done && !i.archived);
-  const rank = new Map(hub.tags().map((t, n) => [t.id, n]));
-  const groups = new Map<string, AisleGroup>();
-  for (const i of open) {
-    const tag = hub.tagsOf(i).sort((a, b) => (rank.get(a) ?? 1e9) - (rank.get(b) ?? 1e9))[0] ?? null;
-    const key = tag ?? 'none';
-    let g = groups.get(key);
-    if (!g) {
-      const t = hub.tag(tag);
-      g = { key, tag, label: t?.name ?? 'Other', icon: t ? (t.icon ?? null) : 'i:cart', items: [] };
-      groups.set(key, g);
+  const groups: ProjectGroup[] = [];
+  if (view === 'tags') {
+    const rank = new Map(hub.tags().map((t, n) => [t.id, n]));
+    const byKey = new Map<string, ProjectGroup>();
+    for (const i of open) {
+      const tag = hub.tagsOf(i).sort((a, b) => (rank.get(a) ?? 1e9) - (rank.get(b) ?? 1e9))[0] ?? null;
+      const key = tag ?? 'none';
+      let g = byKey.get(key);
+      if (!g) {
+        const t = hub.tag(tag);
+        g = { key, tag, label: t?.name ?? 'No tag', icon: t ? (t.icon ?? null) : null, items: [] };
+        byKey.set(key, g);
+      }
+      g.items.push(i);
     }
-    g.items.push(withEmoji(i));
+    const at = (g: ProjectGroup) => (g.tag ? (rank.get(g.tag) ?? 1e9) : 2e9);
+    groups.push(...[...byKey.values()].sort((a, b) => at(a) - at(b)));
+  } else if (lists.length > 1) {
+    for (const l of lists) groups.push({ key: `l:${l.id}`, listId: l.id, label: l.id === listId ? null : l.name, items: open.filter((i) => i.listId === l.id) });
+  } else {
+    groups.push({ key: 'all', label: null, items: open });
   }
-  const sorted = [...groups.values()].sort((a, b) => (a.tag ? (rank.get(a.tag) ?? 1e9) : 2e9) - (b.tag ? (rank.get(b.tag) ?? 1e9) : 2e9));
-  // Where each item sits on the walk through the store: its aisle, then its place in it.
+  for (const g of groups) g.items.sort(byOrder);
   const walk = new Map<string, number>();
-  sorted.forEach((g, at) => {
-    g.items.sort(byOrder);
-    g.items.forEach((i, n) => walk.set(i.id, at * 10_000 + n));
-  });
-  const inCart = items
-    .filter((i) => i.done && !i.archived)
-    .sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0))
-    .map(withEmoji);
+  groups.forEach((g, at) => g.items.forEach((i, n) => walk.set(i.id, at * 10_000 + n)));
 
   const logs = hub.store.all('log').filter((l) => l.kind === 'bought' && (!l.listId || ids.has(l.listId)));
   const stats = purchaseStats(logs);
   const onList = new Set(open.map((i) => itemKey(i.title)));
-  const suggestions = buyAgain(stats, onList, { isDismissed: (key, lastAt) => dismissed[key] === lastAt });
-
   return {
     lists,
-    // The Urgent card reads in walking order; it has no order of its own (arrange in the aisles).
-    urgent: open
-      .filter((i) => i.urgent)
-      .sort((a, b) => (walk.get(a.id) ?? 0) - (walk.get(b.id) ?? 0))
-      .map(withEmoji),
-    groups: sorted,
-    inCart,
-    openCount: open.length,
+    open,
+    urgent: open.filter((i) => i.urgent).sort((a, b) => (walk.get(a.id) ?? 0) - (walk.get(b.id) ?? 0)),
+    groups: groups.filter((g) => g.items.length || g.listId === listId),
+    tray: items.filter((i) => i.done && !i.archived).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0)),
+    cleared: items
+      .filter((i) => i.done && i.archived)
+      .sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0))
+      .slice(0, 40),
     stats,
-    buyAgain: suggestions,
+    again: buyAgain(stats, onList, { isDismissed: (key, lastAt) => dismissed[key] === lastAt }),
   };
 });
 
@@ -310,12 +301,11 @@ export function openCount(hub: Hub, listId: string): number {
 }
 
 /**
- * A folder's count and its words: what's open in it and in the projects inside it ("4 open"),
- * so Shopping counts what's on its lists.
+ * A folder's count and its words: what's open in it and in the projects inside it ("4 open").
  */
 export function projectCount(hub: Hub, list: List): { n: number; text: string } {
   const n = [list, ...hub.nestedLists(list.id)].reduce((sum, l) => sum + openCount(hub, l.id), 0);
-  return { n, text: n ? `${n} ${hub.isShop(list) ? 'to buy' : 'open'}` : 'All clear' };
+  return { n, text: n ? `${n} open` : 'All clear' };
 }
 
 export function stepProgress(hub: Hub, id: string): { done: number; total: number } {

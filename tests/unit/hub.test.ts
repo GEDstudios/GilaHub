@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hub, pickColor, pickColors, seedHousehold } from '../../src/core/actions';
-import { isForMe, shoppingView, todayView } from '../../src/app/views';
+import { isForMe, projectView, todayView } from '../../src/app/views';
 import { LINE_COLORS } from '../../src/core/model';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
@@ -46,7 +46,7 @@ describe('Hub: household & privacy', () => {
     const { guy, hila } = await couple();
     expect(hila.lists().map((l) => l.name)).toEqual(expect.arrayContaining(['Shopping', 'To do', 'Groceries', 'Home shopping', 'Chores', "Guy's things", 'Notes to self']));
     // The two shopping lists are projects inside Shopping.
-    expect(hila.shoppingLists().filter((l) => !l.shopRoot).map((l) => l.name)).toEqual(['Groceries', 'Home shopping']);
+    expect(hila.nestedLists(hila.shopRoot()!.id).map((l) => l.name)).toEqual(['Groceries', 'Home shopping']);
     // Each sees exactly one "Notes to self": their own.
     expect(guy.lists().filter((l) => l.name === 'Notes to self')).toHaveLength(1);
     expect(hila.lists().filter((l) => l.name === 'Notes to self')).toHaveLength(1);
@@ -125,13 +125,13 @@ describe('Hub: shopping', () => {
     expect(again).toMatchObject({ kind: 'revived', id: first.id });
   });
 
-  it('logs purchases and files the cart on finish', async () => {
+  it('logs every tick, and Clear files the tray away', async () => {
     const { guy } = await couple();
     const g = listNamed(guy, 'Groceries');
     const { id } = guy.addShopping(g.id, 'Eggs');
     guy.toggle(id);
     expect(guy.store.all('log').some((l) => l.kind === 'bought' && l.key === 'egg')).toBe(true);
-    guy.finishTrip([g.id]);
+    guy.clearDone([g.id]);
     expect(guy.item(id)?.archived).toBe(true);
   });
 
@@ -423,12 +423,12 @@ describe('Shopping: urgent', () => {
     const cream = guy.addShopping(g, 'sour cream', { urgent: true }).id;
     const apples = guy.addShopping(g, 'apples', { urgent: true }).id;
     const root = guy.shopRoot()!.id;
-    const urgent = () => shoppingView(guy, root, 'all', {}).urgent.map((i) => i.id);
+    const urgent = () => projectView(guy, root, true, 'tags', {}).urgent.map((i) => i.id);
     // Fruit & Veg, Dairy, Personal care, then the home departments.
     expect(urgent()).toEqual([apples, milk, cream, shampoo, batteries]);
     // Arranging Dairy is the one way to change where sour cream sits in the walk.
     guy.reorder(cream, null, milk);
-    const dairy = shoppingView(guy, root, 'all', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
+    const dairy = projectView(guy, root, true, 'tags', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
     expect(dairy).toEqual([cream, milk]);
     expect(urgent()).toEqual([apples, cream, milk, shampoo, batteries]);
   });
@@ -442,7 +442,7 @@ describe('Shopping: urgent', () => {
     // Each list numbers its own keys from the start, so the two lists tie row for row.
     for (const t of ['milk', 'yogurt', 'cottage']) guy.addShopping(g, t);
     for (const t of ['butter', 'cream cheese', 'kefir']) guy.addShopping(m, t);
-    const dairy = () => shoppingView(guy, root, 'all', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
+    const dairy = () => projectView(guy, root, true, 'tags', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
     const before = dairy();
     expect(new Set(before.map((id) => guy.item(id)!.order)).size).toBe(3);
     // Every row into every slot reads back as dropped, one drop after another.

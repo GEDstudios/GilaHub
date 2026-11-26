@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Hub, seedHousehold } from '../../src/core/actions';
-import { shoppingView } from '../../src/app/views';
+import { projectView } from '../../src/app/views';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
 
@@ -54,7 +54,8 @@ describe('Shopping lists become projects inside Shopping, and aisles become tags
     expect(guy.list(g)!.parentId).toBe(root.id);
     expect(guy.list(h)!.parentId).toBe(root.id);
     expect(guy.lists().every((l) => l.kind === 'tasks')).toBe(true);
-    expect(guy.isShop(g) && guy.isShop(h) && guy.isShop(root)).toBe(true);
+    // Ordinary projects, all looked at by tag.
+    expect([g, h, root.id].map((id) => guy.list(id)!.view)).toEqual(['tags', 'tags', 'tags']);
     // Our names and our own aisle; the walk as we had it; the one we took away stays away.
     const names = guy.tags().map((t) => t.name);
     expect(names.slice(0, 3)).toEqual(['Milk & cheese', 'Fruit & Veg', 'Party']);
@@ -131,18 +132,83 @@ describe('Tags', () => {
     const milk = guy.addItem(groceries.id, { title: 'milk' });
     guy.addItem(groceries.id, { title: 'tomatoes' });
     guy.addItem(root.id, { title: 'zzzz' });
-    const v = shoppingView(guy, root.id, 'all', {});
-    expect(v.groups.map((g) => g.label)).toEqual(['Fruit & Veg', 'Dairy & Eggs', 'Other']);
+    const v = projectView(guy, root.id, true, 'tags', {});
+    expect(v.groups.map((g) => g.label)).toEqual(['Fruit & Veg', 'Dairy & Eggs', 'No tag']);
     guy.moveToTag(milk, 'g:dairy', 'g:produce');
-    expect(shoppingView(guy, root.id, 'all', {}).groups.map((g) => g.label)).toEqual(['Fruit & Veg', 'Other']);
+    expect(projectView(guy, root.id, true, 'tags', {}).groups.map((g) => g.label)).toEqual(['Fruit & Veg', 'No tag']);
     // Learned: milk goes to Produce next time.
     guy.toggle(milk);
-    guy.finishTrip([groceries.id]);
+    guy.clearDone([groceries.id]);
     const again = guy.addItem(groceries.id, { title: 'milk' });
     expect(guy.tagsOf(guy.item(again)!)).toEqual(['g:produce']);
     // Arranging the tags is arranging the walk.
     guy.arrangeTags(['g:dairy', ...guy.tags().map((t) => t.id).filter((id) => id !== 'g:dairy')]);
     guy.setTags(again, ['g:dairy']);
-    expect(shoppingView(guy, root.id, 'all', {}).groups[0].label).toBe('Dairy & Eggs');
+    expect(projectView(guy, root.id, true, 'tags', {}).groups[0].label).toBe('Dairy & Eggs');
+  });
+});
+
+describe('One kind of project', () => {
+  it('any project: never twice, a done one comes back, ticks fill the tray until Clear', async () => {
+    const guy = await person('guy');
+    seedHousehold(guy, ['todo']);
+    const todo = guy.lists()[0].id;
+    const a = guy.add(todo, { title: 'Call the bank' });
+    expect(guy.add(todo, { title: 'call the bank' }).kind).toBe('exists');
+    guy.toggle(a.id);
+    // Logged, like any tick (Again? reads it).
+    expect(guy.store.all('log').some((l) => l.key && l.itemId === a.id)).toBe(true);
+    expect(projectView(guy, todo, false, 'list', {}).tray.map((i) => i.id)).toEqual([a.id]);
+    guy.clearDone([todo]);
+    const v = projectView(guy, todo, false, 'list', {});
+    expect(v.tray).toEqual([]);
+    expect(v.cleared.map((i) => i.id)).toEqual([a.id]);
+    expect(guy.add(todo, { title: 'Call the bank', due: '2030-01-01' })).toMatchObject({ kind: 'revived', id: a.id });
+    expect(guy.item(a.id)).toMatchObject({ done: false, archived: false, due: '2030-01-01' });
+  });
+
+  it('a project looked at by tag puts the aisle on by itself; a list view only offers it', async () => {
+    const guy = await person('guy');
+    seedHousehold(guy, ['todo']);
+    const todo = guy.lists()[0].id;
+    guy.ensureBuiltinTags('grocery');
+    expect(guy.suggestTags('milk', todo).auto).toEqual([]);
+    guy.setListView(todo, 'tags');
+    expect(guy.suggestTags('milk', todo).auto).toEqual(['g:dairy']);
+  });
+
+  it('adding over a project and what is inside it sends each thing where it belongs', async () => {
+    const guy = await person('guy');
+    seedHousehold(guy, ['groceries', 'home']);
+    const root = guy.shopRoot()!.id;
+    const g = guy.lists().find((l) => l.name === 'Groceries')!.id;
+    const h = guy.lists().find((l) => l.name === 'Home shopping')!.id;
+    expect(guy.placeFor('milk', root)).toBe(g);
+    expect(guy.placeFor('light bulbs', root)).toBe(h);
+    const eggs = guy.add(h, { title: 'eggs' });
+    // Already there: there.
+    expect(guy.placeFor('eggs', root)).toBe(h);
+    expect(guy.item(eggs.id)!.listId).toBe(h);
+  });
+
+  it('the old Shopping tab and To buy widget become the Shopping project, pinned', async () => {
+    const { pinsOf } = await import('../../src/app/tabs');
+    const { homeOf } = await import('../../src/app/home');
+    const guy = await person('guy');
+    guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1, tabs: ['shop'], home: [{ key: 'today', on: true }, { key: 'shop', on: true }] });
+    seedHousehold(guy, ['groceries']);
+    const root = guy.shopRoot()!;
+    expect(root.view).toBe('tags');
+    expect(pinsOf(guy)).toEqual([`l:${root.id}`]);
+    expect(homeOf(guy).map((s) => s.key)).toContain(`l:${root.id}`);
+  });
+
+  it('phones that moved before views look at Shopping by tag', async () => {
+    const guy = await person('guy');
+    const root = guy.createList({ name: 'Shopping' });
+    const g = guy.createList({ name: 'Groceries', parentId: root, flavor: 'grocery' });
+    guy.store.mutate('list', root, { shopRoot: true });
+    guy.uniformProjects();
+    expect([guy.list(root)!.view, guy.list(g)!.view]).toEqual(['tags', 'tags']);
   });
 });

@@ -1,6 +1,6 @@
 import { useWide } from '../ui/useWide';
 import { useEffect, useState } from 'react';
-import { FilterBar, FilterButton, useFilter } from '../components/Filter';
+import { Lens, useFilter } from '../components/Filter';
 import { flushSync } from 'react-dom';
 import type { Hub } from '../../core/actions';
 import { fromDateStr, today as todayStr } from '../../core/dates';
@@ -14,7 +14,6 @@ import {
   PartnerDid,
   ProjectWidget,
   SummaryCard,
-  ToBuyWidget,
   TodayWidget,
   WeekStrips,
 } from '../components/HomeWidgets';
@@ -41,7 +40,7 @@ function greeting(): string {
 }
 
 /** On a computer these are glances, in the side column: the week, my person's, shopping. */
-const SIDE = new Set(['week', 'partner', 'shop']);
+const SIDE = new Set(['week', 'partner']);
 
 /** Does this block draw anything right now? (Today always does: its add row.) */
 function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<string>): boolean {
@@ -54,8 +53,6 @@ function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<stri
       return aheadOf(v).length > 0;
     case 'partner':
       return !!hub.partner() && v.recent.length > 0;
-    case 'shop':
-      return v.shopping.count > 0;
     default:
       return true;
   }
@@ -63,7 +60,6 @@ function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<stri
 
 /** Today with a filter on: only what passes, everywhere on the page (the counts follow). */
 function filterToday(v: TodayView, keep: (i: Item) => boolean): TodayView {
-  const shopping = v.shopping.all.filter(keep);
   return {
     ...v,
     today: v.today.filter(keep),
@@ -74,7 +70,6 @@ function filterToday(v: TodayView, keep: (i: Item) => boolean): TodayView {
     awaitingOk: v.awaitingOk.filter(keep),
     waitingTheirOk: v.waitingTheirOk.filter(keep),
     recent: v.recent.filter((r) => keep(r.item)),
-    shopping: { ...v.shopping, all: shopping, preview: shopping.slice(0, 4), count: shopping.length, urgent: shopping.filter((i) => i.urgent).length },
   };
 }
 
@@ -93,7 +88,11 @@ export function Today() {
   const { openSheet } = useOverlays();
   const ref = todayStr();
   const filter = useFilter('today');
-  const v = filter.active ? filterToday(todayView(hub, ref), (i) => filter.test(i)) : todayView(hub, ref);
+  const all = todayView(hub, ref);
+  const v = filter.active ? filterToday(all, (i) => filter.test(i)) : all;
+  // The lens looks over everything on the page, once each.
+  const onPage = [...new Map([...all.today, ...all.earlier, ...all.upcoming.flatMap((g) => g.items), ...all.asked, ...all.outgoing, ...all.awaitingOk, ...all.waitingTheirOk].map((i) => [i.id, i])).values()];
+  const lens = <Lens filter={filter} items={onPage} />;
   const me = hub.me();
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
@@ -149,8 +148,6 @@ export function Today() {
         return <ComingUp key={key} v={v} day={ref} />;
       case 'partner':
         return <PartnerDid key={key} v={v} />;
-      case 'shop':
-        return <ToBuyWidget key={key} v={v} settle={settle} />;
       default:
         return null;
     }
@@ -193,7 +190,6 @@ export function Today() {
         actions={
           <>
             <IconButton icon="search" label="Search" onClick={() => openSearch()} />
-            <FilterButton filter={filter} />
             <NewButton onClick={openNew} />
           </>
         }
@@ -207,8 +203,8 @@ export function Today() {
         // shopping, the invite) in a narrower one beside it.
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
           <div className="home__lead">
-            <FilterBar filter={filter} />
             <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+            {lens}
             <HomeNotices />
           </div>
           <div className="home__cols">
@@ -233,8 +229,8 @@ export function Today() {
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
-          <FilterBar filter={filter} />
           <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
+          {lens}
           <HomeNotices />
           {slots.map((s) => block(s.key))}
           <InviteCard />

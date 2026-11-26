@@ -1,29 +1,34 @@
 import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { useWide } from '../ui/useWide';
 import { openSearch } from '../search';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Item, List } from '../../core/model';
-import { FilterBar, FilterButton, useFilter, type FilterState } from '../components/Filter';
+import { Lens, useFilter } from '../components/Filter';
 import { useAddAction } from '../addAction';
-import { Children } from '../components/Children';
 import { OptRow } from '../components/pickers';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
-import { useHub } from '../context';
+import { DoneTray, ProjectItems } from '../components/ProjectItems';
+import { ItemRow } from '../components/ItemRow';
+import { useHub, usePartnerHere, useRt } from '../context';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Empty, IconButton, lineVars, ListBullet, NewButton, Seg } from '../ui/primitives';
+import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewButton, Seg } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
-import { usePrefs } from '../prefs';
+import { setPrefs, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
 import { Sortable } from '../ui/Sortable';
 import { folderLean, NewProjectSheet, ProjectCard, SortableProject } from './Lists';
-import { coveredByTab, pinsOf, setPins, togglePin } from '../tabs';
+import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
-import { openCount } from '../views';
-import { Shopping } from './Shopping';
+import { openCount, projectView, shopTree } from '../views';
+import { notifyMembers } from '../runtime';
+import { markFresh } from '../ui/fresh';
+import { playSound } from '../ui/sounds';
+import { haptic } from '../ui/haptics';
+import { cadenceLabel } from '../../smart/suggest';
 
 /** The project's "…": the rare things only. Everything else is edited in place on its page. */
 export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
@@ -35,8 +40,7 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   return (
     <Sheet onClose={onClose} title={list.name}>
       <div className="group">
-        {!hub.isShop(list) ? (
-          <OptRow
+        <OptRow
             icon="refresh"
             title="Uncheck all"
             onClick={() => {
@@ -45,7 +49,6 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
               toast('Everything unticked, ready to reuse', { action: { label: 'Undo', run: undo } });
             }}
           />
-        ) : null}
         <OptRow
           icon="move"
           title={hub.parentOf(listId) ? 'Move to…' : 'Put inside…'}
@@ -191,10 +194,7 @@ export const heroVis = (hub: ReturnType<typeof useHub>, list: List): string => (
 export function ProjectChips({ list }: { list: List }) {
   const hub = useHub();
   const { toast } = useOverlays();
-  // The Shopping project is its tab: in the bar when that tab is.
-  const tab = list.shopRoot ? 'shop' : null;
-  const covered = !!tab && coveredByTab(hub, list.id, pinsOf(hub));
-  const pinned = covered || pinsOf(hub).includes(`l:${list.id}`);
+  const pinned = pinsOf(hub).includes(`l:${list.id}`);
   const partner = hub.partner();
   const onChange = (p: Partial<ProjectLook>) => {
     if (p.color) hub.updateList(list.id, { color: p.color });
@@ -206,7 +206,7 @@ export function ProjectChips({ list }: { list: List }) {
     }
     if (p.pinned !== undefined) {
       const before = pinsOf(hub);
-      const now = togglePin(hub, covered && tab ? tab : `l:${list.id}`);
+      const now = togglePin(hub, `l:${list.id}`);
       toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
     }
   };
@@ -214,36 +214,140 @@ export function ProjectChips({ list }: { list: List }) {
 }
 
 export function ListScreen({ id }: { id: string }) {
-  const hub = useHub();
-  const list = hub.list(id);
-  if (hub.isShop(list)) return <Shopping listId={id} />;
-  return <TaskProject id={id} />;
+  return <ProjectPage id={id} />;
 }
 
-/** The project's "…" and its New, for the header. */
-export function ProjectActions({ listId, label, onNew, menu = true, filter }: { listId: string; label: string; onNew: () => void; menu?: boolean; filter?: FilterState }) {
+/** The project's header buttons: search it, Start (or Pause), its "…" and its New. */
+export function ProjectActions({ listId, label, onNew, focus }: { listId: string; label: string; onNew: () => void; focus?: { on: boolean; toggle: () => void } }) {
   return (
     <>
-      <IconButton icon="search" label="Search this project" onClick={() => openSearch(listId)} />
-      {filter ? <FilterButton filter={filter} /> : null}
-      {menu ? <ProjectMenuButton listId={listId} /> : null}
+      {focus?.on ? null : <IconButton icon="search" label="Search this project" onClick={() => openSearch(listId)} />}
+      {focus ? <IconButton icon={focus.on ? 'pause' : 'play'} label={focus.on ? 'Pause' : 'Start'} onClick={focus.toggle} /> : null}
+      {focus?.on ? null : <ProjectMenuButton listId={listId} />}
       <NewButton label={label} onClick={onNew} />
     </>
   );
 }
 
-function TaskProject({ id }: { id: string }) {
+/** While we're on it (Start): the screen stays on. */
+function useWakeLock(on: boolean) {
+  useEffect(() => {
+    if (!on || !('wakeLock' in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    let alive = true;
+    const acquire = async () => {
+      try {
+        lock = await navigator.wakeLock.request('screen');
+      } catch {
+        /* denied — fine */
+      }
+    };
+    const onVis = () => {
+      if (alive && document.visibilityState === 'visible') void acquire();
+    };
+    void acquire();
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      alive = false;
+      document.removeEventListener('visibilitychange', onVis);
+      void lock?.release().catch(() => {});
+    };
+  }, [on]);
+}
+
+/**
+ * Start: I'm on this project now (in the store, cleaning the flat). The screen stays on, my
+ * partner's phone knows (and once in a while hears: "Guy is on Shopping. Need anything?"), and
+ * what they add or mark urgent here shows up as it happens.
+ */
+function useOnIt(on: boolean, listId: string, name: string) {
   const hub = useHub();
-  const { openSheet } = useOverlays();
-  const list = hub.list(id);
-  const label = `Add to ${list?.name ?? 'project'}`;
-  const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={id} />);
-  useAddAction(openNew, label);
-  const [showAll, setShowAll] = useShowAll(id);
-  const wide = useWide();
+  const rt = useRt();
+  const partner = hub.partner();
+  useWakeLock(on);
+  useEffect(() => {
+    if (!on) return;
+    rt.sync?.setPresence(`on:${listId}`);
+    const key = `gila-hub:onIt:${listId}`;
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem(key) ?? 0);
+    } catch {
+      /* storage blocked */
+    }
+    if (partner && partner.shopAlerts !== false && Date.now() - last > 30 * 60_000) {
+      try {
+        localStorage.setItem(key, String(Date.now()));
+      } catch {
+        /* storage blocked */
+      }
+      void notifyMembers(rt, [partner.id], {
+        title: `${hub.me()?.name ?? 'Your partner'} is on ${name}`,
+        body: 'Need anything? Add it now and it shows up for them.',
+        url: `/l/${listId}`,
+        tag: 'onit',
+      });
+    }
+    return () => rt.sync?.setPresence(null);
+  }, [on, rt, partner, hub, listId, name]);
+}
+
+/** What my partner just added (or brought back, or marked urgent) here: it glows, and while I'm on it, it's said. */
+function usePartnerNews(open: Item[], saying: boolean): Set<string> {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const [flash, setFlash] = useState<Set<string>>(new Set());
+  const seen = useRef<{ added: Map<string, number>; urgent: Set<string> } | null>(null);
+  const sig = open.map((i) => `${i.id}:${i.addedAt ?? i.createdAt}:${i.urgent ? 1 : 0}`).join();
+  useEffect(() => {
+    const prev = seen.current;
+    const added = new Map(open.map((i) => [i.id, i.addedAt ?? i.createdAt] as const));
+    const urgent = new Set(open.filter((i) => i.urgent).map((i) => i.id));
+    seen.current = { added, urgent };
+    if (!prev) return;
+    const theirs = (i: Item) => (i.addedBy ?? i.createdBy) !== hub.meId;
+    const fresh = open.filter((i) => prev.added.get(i.id) !== added.get(i.id) && theirs(i));
+    const urged = open.filter((i) => i.urgent && !prev.urgent.has(i.id) && prev.added.has(i.id) && i.urgentBy && i.urgentBy !== hub.meId);
+    if (!fresh.length && !urged.length) return;
+    setFlash(new Set([...fresh, ...urged].map((i) => i.id)));
+    const first = fresh[0] ?? urged[0];
+    const who = hub.member(fresh.length ? (first.addedBy ?? first.createdBy) : first.urgentBy);
+    const more = fresh.length + urged.length - 1;
+    if (saying && who) toast(`${who.name} ${fresh.length ? 'added' : 'marked urgent'} ${first.title}${more > 0 ? ` +${more}` : ''}`);
+    const t = setTimeout(() => setFlash(new Set()), 2200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
+  return flash;
+}
+
+/**
+ * Any project, the one way: its folder up top, then a lens over what's in it (who, urgent, its
+ * tags) beside how it's looked at (list, cards, by tag); Again? (things done here before, due
+ * again); the tray of things just done; the Urgent card; the things themselves; the projects
+ * inside; and what was cleared. Start (in the header) is for being on it: the store, a cleaning
+ * spree. Shopping is just a project looked at by tag.
+ */
+function ProjectPage({ id }: { id: string }) {
+  const hub = useHub();
   const prefs = usePrefs();
+  const wide = useWide();
+  const { openSheet, toast } = useOverlays();
+  const list = hub.list(id);
+  const nested = hub.nestedLists(id);
+  const [showAll, setShowAll] = useShowAll(id);
+  // A folder shows everything inside it, until "Here" is picked.
+  const inside = nested.length > 0 && (showAll ?? true);
+  const view = hub.viewOf(list);
+  const v = projectView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(`l:${id}`);
-  const show = filter.active ? (i: Item) => filter.test(i, true) : undefined;
+  const [focus, setFocus] = useState(false);
+  useOnIt(focus, id, list?.name ?? '');
+  const flash = usePartnerNews(v.open, focus);
+  const partnerHere = usePartnerHere();
+  const label = `Add to ${list?.name ?? 'project'}`;
+  const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={id} route={inside} />);
+  useAddAction(openNew, label);
 
   if (!list) {
     return (
@@ -254,54 +358,115 @@ function TaskProject({ id }: { id: string }) {
     );
   }
 
-  const n = openCount(hub, id);
-  const all = hub.children(id, null);
-  const done = all.filter((i) => i.done).length;
-  const pct = all.length ? Math.round((done / all.length) * 100) : null;
+  const keep = (i: Item) => filter.test(i, true);
+  const groups = filter.active ? v.groups.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length || g.listId === id) : v.groups;
+  const urgent = v.urgent.filter(keep);
+  const shownN = groups.reduce((n, g) => n + g.items.length, 0);
+  const lists = new Set(v.open.map((i) => i.listId));
   const parent = hub.parentOf(id);
-  const nested = hub.nestedLists(id);
-  const everything = nested.length > 0 && showAll;
-  const nAll = n + nested.reduce((sum, l) => sum + openCount(hub, l.id), 0);
+  const n = v.open.length;
+  const total = n + v.tray.length;
+  const pct = total && v.tray.length ? Math.round((v.tray.length / total) * 100) : null;
+  const shopper = partnerHere && partnerHere.listId === id ? hub.member(partnerHere.member) : undefined;
+
+  const again = (name: string) => {
+    const res = hub.add(inside ? hub.placeFor(name, id) : id, { title: name });
+    markFresh(res.id);
+    playSound('add');
+  };
+  const clear = () => {
+    const k = v.tray.length;
+    const undo = hub.clearDone(v.lists.map((l) => l.id));
+    setFocus(false);
+    haptic('success');
+    toast(`Cleared ${k}`, { action: { label: 'Undo', run: undo } });
+  };
 
   return (
-    <div className="projpage">
+    <div className={`projpage ${focus ? 'is-onit' : ''}`}>
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
-        actions={<ProjectActions listId={id} label={label} onNew={openNew} filter={filter} />}
+        actions={<ProjectActions listId={id} label={label} onNew={openNew} focus={n || focus ? { on: focus, toggle: () => setFocus(!focus) } : undefined} />}
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} />}
       >
         <ProjectHero
           list={list}
-          stat={pct !== null && done ? `${pct}%` : undefined}
-          sub={
-            <>
-              {`${n ? `${n} open` : all.length ? 'All done' : 'Empty'}${heroVis(hub, list)}`}
-            </>
-          }
+          stat={pct !== null ? `${pct}%` : undefined}
+          sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : total ? 'All done' : 'Empty'}${heroVis(hub, list)}`}
         />
-        {/* A computer: the folder and its settings stay beside the tasks. */}
-        {wide ? <ProjectChips list={list} /> : null}
+        {wide && !focus ? <ProjectChips list={list} /> : null}
       </Band>
       <div className="column">
-        {wide ? null : <ProjectChips list={list} />}
+        {wide || focus ? null : <ProjectChips list={list} />}
         {nested.length ? (
           <div className="filter filter--top">
             <Seg
-              label="Which tasks"
-              value={everything ? 'all' : 'here'}
-              onChange={(v) => setShowAll(id, v === 'all')}
+              label="Which things"
+              value={inside ? 'all' : 'here'}
+              onChange={(val) => setShowAll(id, val === 'all')}
               options={[
-                { value: 'here', label: <FilterCount text="Here" n={n} /> },
-                { value: 'all', label: <FilterCount text="Everything inside" n={nAll} /> },
+                { value: 'here', label: <FilterCount text="Here" n={openCount(hub, id)} /> },
+                { value: 'all', label: <FilterCount text="Everything inside" n={shopTree(hub, id).reduce((sum, l) => sum + openCount(hub, l.id), 0)} /> },
               ]}
             />
           </div>
         ) : null}
-        <FilterBar filter={filter} />
-        <ViewToggle which="taskView" />
-        <Children listId={id} parentId={null} cards={prefs.taskView === 'cards'} show={show} />
-        {everything ? <AllInside lists={nested} show={show} /> : <SubProjects list={list} />}
+        <Lens filter={filter} items={v.open}>
+          <ViewToggle listId={id} />
+        </Lens>
+
+        {shopper && !focus ? (
+          <div className="notice">
+            <Avatar member={shopper} size="sm" />
+            <span className="notice__text">
+              <strong>{shopper.name} is on it now.</strong> What you add shows up for them.
+            </span>
+          </div>
+        ) : null}
+
+        {!focus && !filter.active && v.again.length ? (
+          <div className="buyagain">
+            <p className="inline__prompt">Again?</p>
+            <div className="tokens tokens--scroll">
+              {v.again.map((s) => (
+                <span key={s.key} className="token token--split" title={cadenceLabel(s.avgDays)}>
+                  <button type="button" onClick={() => again(s.name)}>
+                    <Icon name="plus" />
+                    <span dir="auto">{s.name}</span>
+                  </button>
+                  <button type="button" className="token__x" aria-label={`Not now: ${s.name}`} onClick={() => setPrefs({ dismissed: { ...prefs.dismissed, [s.key]: s.lastAt } })}>
+                    <Icon name="x" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {v.tray.length ? <DoneTray items={v.tray} left={n} onOut={(i) => hub.toggle(i.id)} onClear={clear} strong={focus} /> : null}
+
+        <ProjectItems
+          groups={groups}
+          urgent={urgent}
+          cards={view === 'cards'}
+          draggable={!focus}
+          showList={lists.size > 1 && (view === 'tags' || !inside)}
+          flash={flash}
+        />
+        {filter.active && n && !shownN ? <p className="hint">Nothing here with this filter.</p> : null}
+
+        {!focus ? <SubProjects list={list} /> : null}
+
+        {!focus && v.cleared.length ? (
+          <Disclosure title="Done" count={v.cleared.length}>
+            <ul className="rows">
+              {v.cleared.map((i) => (
+                <ItemRow key={i.id} item={i} showList={lists.size > 1} />
+              ))}
+            </ul>
+          </Disclosure>
+        ) : null}
       </div>
     </div>
   );
@@ -312,33 +477,6 @@ function FilterCount({ text, n }: { text: string; n: number }) {
     <>
       <span dir="auto">{text}</span>
       {n ? <span className="filter__n num">{n}</span> : null}
-    </>
-  );
-}
-
-
-/** Every project inside, its tasks under its own name, as if you opened each in turn. */
-function AllInside({ lists, show }: { lists: List[]; show?: (i: Item) => boolean }) {
-  const hub = useHub();
-  return (
-    <>
-      {lists.map((l) => (
-        <section key={l.id} className="inside" style={lineVars(l.color)}>
-          <button type="button" className="inside__head" onClick={() => navigate({ name: 'list', id: l.id })}>
-            <ListBullet list={l} size="sm" />
-            <span className="inside__name" dir="auto">
-              {hub
-                .listPath(l.id)
-                .slice(1)
-                .map((p) => `${p.name} › `)
-                .join('')}
-              {l.name}
-            </span>
-            <Icon name="chevron-right" className="icon--xs" />
-          </button>
-          {hub.children(l.id, null).length ? <Children listId={l.id} parentId={null} show={show} /> : <p className="inside__none">Nothing here yet</p>}
-        </section>
-      ))}
     </>
   );
 }
@@ -381,7 +519,7 @@ function SubProjects({ list }: { list: List }) {
   );
 }
 
-/** Here only, or everything inside too: remembered per project, on this device. */
+/** Here only, or everything inside too: as picked per project, on this device ("-id": here). Unpicked: undefined. */
 const ALL_KEY = 'gila-hub:show-inside';
 function readShowAll(): string[] {
   try {
@@ -391,10 +529,10 @@ function readShowAll(): string[] {
     return [];
   }
 }
-function useShowAll(id: string): [boolean, (id: string, on: boolean) => void] {
+function useShowAll(id: string): [boolean | undefined, (id: string, on: boolean) => void] {
   const [ids, setIds] = useState(readShowAll);
   const set = (key: string, on: boolean) => {
-    const next = on ? [...new Set([...ids, key])] : ids.filter((x) => x !== key);
+    const next = [...ids.filter((x) => x !== key && x !== `-${key}`), on ? key : `-${key}`];
     setIds(next);
     try {
       localStorage.setItem(ALL_KEY, JSON.stringify(next));
@@ -402,5 +540,5 @@ function useShowAll(id: string): [boolean, (id: string, on: boolean) => void] {
       /* storage blocked */
     }
   };
-  return [ids.includes(id), set];
+  return [ids.includes(id) ? true : ids.includes(`-${id}`) ? false : undefined, set];
 }

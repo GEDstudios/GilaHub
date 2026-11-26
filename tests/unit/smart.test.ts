@@ -95,9 +95,12 @@ describe('quick add parser', () => {
     expect(r).toMatchObject({ title: 'Pay tomorrow', tokens: [] });
   });
 
-  it('parses quantities only in shopping mode', () => {
-    expect(parseQuickAdd('2 milk !', { ...ctx, mode: 'shopping' })).toMatchObject({ title: 'milk', qty: '2', urgent: true });
-    expect(parseQuickAdd('Milk tomorrow', { ...ctx, mode: 'shopping' })).toMatchObject({ title: 'Milk tomorrow' });
+  it('reads quantities the same everywhere, but never a bare number at the end', () => {
+    expect(parseQuickAdd('2 milk !', ctx)).toMatchObject({ title: 'milk', qty: '2', urgent: true });
+    expect(parseQuickAdd('milk x3', ctx)).toMatchObject({ title: 'milk', qty: '3' });
+    const rent = parseQuickAdd('Pay rent 3500', ctx);
+    expect(rent.title).toBe('Pay rent 3500');
+    expect(rent.qty ?? null).toBeNull();
   });
 });
 

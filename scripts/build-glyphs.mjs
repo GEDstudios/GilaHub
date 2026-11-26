@@ -34,7 +34,7 @@ const MAP = {
   heart: ['heart', 'duo'], 'heart-fill': ['heart', 'duo'], plane: ['airplane-tilt', 'duo'],
   move: ['arrow-square-in', 'duo'], share: ['export', 'duo'], note: ['note', 'duo'], steps: ['list-checks', 'duo'],
   device: ['device-mobile', 'duo'], download: ['tray-arrow-down', 'duo'], upload: ['tray-arrow-up', 'duo'],
-  snooze: ['bell-z', 'duo'], skip: ['skip-forward', 'duo'], pause: ['pause', 'duo'], tag: ['tag', 'duo'],
+  snooze: ['bell-z', 'duo'], skip: ['skip-forward', 'duo'], pause: ['pause', 'duo'], play: ['play', 'duo'], funnel: ['funnel-simple', 'duo'], tag: ['tag', 'duo'],
   cart: ['shopping-cart-simple', 'duo'], link: ['link', 'duo'], eye: ['eye', 'duo'], 'eye-off': ['eye-slash', 'duo'],
   moon: ['moon', 'duo'], hand: ['hand', 'duo'], pin: ['push-pin', 'duo'], urgent: ['lightning', 'duo'],
   layout: ['layout', 'duo'], sliders: ['sliders-horizontal', 'duo'], inbox: ['tray', 'duo'], stack: ['rows', 'duo'],

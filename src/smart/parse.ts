@@ -128,7 +128,7 @@ export function parseQuickAdd(input: string, ctx: ParseContext = {}): ParseResul
     return humanDate(d, today);
   };
 
-  if (ctx.mode !== 'shopping') {
+  {
     // ---------- repeat ----------
     const fromDone = String.raw`(?:\s+(?:after\s+(?:it'?s\s+)?done|from\s+(?:when\s+)?done|אחרי\s+שנעשה))?`;
     const mkInterval = (every: number, unit: Unit, done: boolean): RepeatRule => ({
@@ -339,9 +339,10 @@ export function parseQuickAdd(input: string, ctx: ParseContext = {}): ParseResul
     .replace(/^[,.;:\s]+|[,;:\s]+$/g, '')
     .trim();
 
-  if (ctx.mode === 'shopping' && !ignore.has('qty:*')) {
+  // How many: "2 milk", "milk x2", "500g cheese" (not a bare number at the end: "Pay rent 3500").
+  if (!ignore.has('qty:*')) {
     const q = parseQuantity(title);
-    if (q.qty) {
+    if (q.qty && !new RegExp(String.raw`\s${q.qty.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(title.trim())) {
       out.qty = q.qty;
       title = q.name;
       tokens.push({ kind: 'qty', start: -1, end: -1, text: q.qty, key: 'qty:*', label: `× ${q.qty}` });

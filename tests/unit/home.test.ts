@@ -68,8 +68,8 @@ describe('home layout', () => {
     expect(homeOf(hub)).toEqual(DEFAULT_HOME);
     expect(isDefaultHome(hub)).toBe(true);
     expect(keys(visibleHome(hub))).toEqual(['today', 'week', 'upcoming']);
-    // The tray offers only what could show: To buy, never asks, partner or their chores.
-    expect(hiddenWidgets(hub)).toEqual(['shop']);
+    // The tray offers only what could show: never asks or partner while solo.
+    expect(hiddenWidgets(hub)).toEqual([]);
   });
 
   it('shows the whole default page once paired', async () => {
@@ -95,7 +95,7 @@ describe('home layout', () => {
     expect(out.filter((k) => k === 'week')).toHaveLength(1);
     expect(homeOf(hub).find((s) => s.key === 'week')!.on).toBe(true);
     // My order (week, then today) stands; the defaults I never stored go in after their predecessor.
-    expect(out).toEqual(['asks', 'week', 'upcoming', 'partner', 'shop', 'today']);
+    expect(out).toEqual(['asks', 'week', 'upcoming', 'partner', 'today']);
   });
 
   it('drops a deleted or archived project, and keeps at most 3', async () => {
@@ -134,7 +134,7 @@ describe('home layout', () => {
 
   it('a project pinned into an archived one’s slot keeps it when that one comes back', async () => {
     const hub = await solo();
-    const home = hub.createList({ name: 'Home shopping', kind: 'shopping', flavor: 'home' });
+    const home = hub.createList({ name: 'Home shopping', flavor: 'home' });
     const [a, b, c] = hub.lists();
     for (const l of [a, b, c]) showHome(hub, `l:${l.id}`);
     hub.updateList(c.id, { archived: true });
@@ -169,9 +169,8 @@ describe('home layout', () => {
         { key: 'asks', on: true },
       ],
     });
-    // week follows today; partner follows its nearest known predecessor (upcoming), then shop.
-    expect(keys(homeOf(hub))).toEqual(['upcoming', 'partner', 'shop', 'today', 'week', 'asks']);
-    expect(homeOf(hub).find((s) => s.key === 'shop')!.on).toBe(false);
+    // week follows today; partner follows its nearest known predecessor (upcoming).
+    expect(keys(homeOf(hub))).toEqual(['upcoming', 'partner', 'today', 'week', 'asks']);
   });
 
   it('keeps a hidden widget hidden', async () => {
@@ -186,9 +185,9 @@ describe('home layout', () => {
   it('reorders what shows and keeps hidden and unavailable entries in place', async () => {
     const hub = await solo();
     hideHome(hub, 'week');
-    // Visible: today, upcoming. Stored: asks, today, week(off), upcoming, partner, shop(off).
+    // Visible: today, upcoming. Stored: asks, today, week(off), upcoming, partner.
     reorderHome(hub, ['upcoming', 'today']);
-    expect(keys(homeOf(hub))).toEqual(['asks', 'upcoming', 'week', 'today', 'partner', 'shop']);
+    expect(keys(homeOf(hub))).toEqual(['asks', 'upcoming', 'week', 'today', 'partner']);
     expect(homeOf(hub).find((s) => s.key === 'week')!.on).toBe(false);
     expect(keys(visibleHome(hub))).toEqual(['upcoming', 'today']);
     // Not a permutation of what shows: ignored.
@@ -199,8 +198,7 @@ describe('home layout', () => {
   it('brings things back right after the last visible block', async () => {
     const { guy } = await couple();
     hideHome(guy, 'week');
-    expect(showHome(guy, 'shop')).toBe(true);
-    expect(keys(visibleHome(guy))).toEqual(['asks', 'today', 'upcoming', 'partner', 'shop']);
+    expect(keys(visibleHome(guy))).toEqual(['asks', 'today', 'upcoming', 'partner']);
     expect(showHome(guy, 'week')).toBe(true);
     expect(keys(visibleHome(guy)).at(-1)).toBe('week');
     expect(showHome(guy, 'nope')).toBe(false);
@@ -270,15 +268,14 @@ describe('home blocks', () => {
     expect(s.person).toBe(false);
   });
 
-  it('week strips never repeat a widget, and say "done this week" when solo', async () => {
+  it('week strips say "done this week" when solo, each tick counted once', async () => {
     const hub = await solo();
     hub.addShopping(listNamed(hub, 'Groceries').id, 'milk');
     const done = hub.addItem(listNamed(hub, 'To do').id, { title: 'Sweep' });
     hub.toggle(done);
     const v = todayView(hub, today());
-    expect(weekBands(hub, v).map((b) => b.label)).toEqual(['to buy', 'done this week', 'Keep a moment']);
-    showHome(hub, 'shop');
-    expect(weekBands(hub, todayView(hub, today())).map((b) => b.key)).toEqual(['done', 'moments']);
+    expect(weekBands(hub, v).map((b) => b.label)).toEqual(['done this week', 'Keep a moment']);
+    expect(weekBands(hub, v)[0].num).toBe(1);
     hub.addMoment('Pancakes in bed', '🥰');
     expect(weekBands(hub, todayView(hub, today())).at(-1)).toMatchObject({ key: 'moments', num: '🥰', label: 'Pancakes in bed' });
   });
@@ -301,9 +298,7 @@ describe('home blocks', () => {
     hub.addShopping(listNamed(hub, 'Groceries').id, 'bread');
     const v = todayView(hub, today());
     expect(aheadOf(v).map((i) => i.title)).toEqual(['Plumber', 'Car service']);
-    expect(v.shopping.preview.map((i) => i.title)).toEqual(['milk', 'bread']);
     expect(homePreview('upcoming', hub, v)).toEqual({ text: '2 in the next 7 days', empty: false });
-    expect(homePreview('shop', hub, v).text).toBe('2 to buy · 1 urgent');
     expect(homePreview('today', hub, v)).toEqual({ text: 'Nothing due today', empty: true });
     expect(homePreview(`l:${todo}`, hub, v).text).toBe('2 open');
     expect(homePreview('asks', hub, v).empty).toBe(true);

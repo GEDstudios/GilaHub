@@ -82,18 +82,16 @@ async function plus(p, what = 'task') {
   await p.locator(`.addmenu__item--${what}`).click();
 }
 
-/** Add through the black + (the only way to add): write on the card, Enter. Shopping stays open: Done closes it. */
-async function addVia(p, lines, { shopping = false } = {}) {
-  for (let i = 0; i < lines.length; i++) {
-    if (!shopping || i === 0) {
-      await plus(p);
-      await p.locator('.composer__input').waitFor({ timeout: 5000 });
-    }
-    await p.locator('.composer__input').fill(lines[i]);
+/** Add through the black + (the only way to add): write on the card, Enter, the next; Done closes it. The same in every project. */
+async function addVia(p, lines) {
+  await plus(p);
+  await p.locator('.composer__input').waitFor({ timeout: 5000 });
+  for (const line of lines) {
+    await p.locator('.composer__input').fill(line);
     await p.locator('.composer__input').press('Enter');
     await p.waitForTimeout(250);
   }
-  if (shopping) await p.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
+  await p.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
   await p.waitForTimeout(300);
 }
 let failures = 0;
@@ -162,15 +160,15 @@ try {
       await waitFor(async () => (await hila.locator('.projcard__name', { hasText: name }).count()) > 0, 20000, `${name} on hila`);
     }
     await shot(hila, '05-lists-hila');
-    // The shopping lists are projects inside Shopping.
+    // The shopping lists are projects inside Shopping, a project like any other.
     await hila.locator('.projcard__name', { hasText: /^Shopping$/ }).click();
-    for (const name of [/groceries/i, /home shopping/i]) await hila.getByRole('radio', { name }).waitFor({ timeout: 10000 });
+    for (const name of [/^Groceries$/, /^Home shopping$/]) await hila.locator('.projcard__name', { hasText: name }).waitFor({ timeout: 10000 });
   });
 
   // ---------- Shopping sync, both ways
   await check('Guy adds groceries; Hila sees them live', async () => {
     await guy.goto(`${url}/shop`);
-    await addVia(guy, ['2 milk', 'עגבניות', 'light bulbs'], { shopping: true });
+    await addVia(guy, ['2 milk', 'עגבניות', 'light bulbs']);
     await hila.goto(`${url}/shop`);
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'milk' }).count()) > 0, 15000, 'milk on hila');
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'עגבניות' }).count()) > 0, 15000, 'tomatoes on hila');
@@ -178,16 +176,17 @@ try {
   });
 
   await check('Smart routing: light bulbs go to Home shopping', async () => {
-    await hila.getByRole('radio', { name: /home shopping/i }).click();
+    await hila.locator('.projcard__name', { hasText: /^Home shopping$/ }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'light bulbs' }).count()) > 0, 10000, 'bulbs in home');
-    await hila.getByRole('radio', { name: /^all/i }).click();
+    if (await hila.locator('.row__title', { hasText: 'milk' }).count()) throw new Error('milk went to Home shopping');
+    await hila.goto(`${url}/shop`);
   });
 
   await check('No duplicates: adding milk again says it exists', async () => {
     await plus(hila);
     await hila.locator('.composer__input').fill('Milk');
     await hila.locator('.composer__input').press('Enter');
-    await hila.getByText(/already on the list/).waitFor({ timeout: 5000 });
+    await hila.getByText(/is already in/).waitFor({ timeout: 5000 });
     await hila.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
     const n = await hila.locator('.row__title', { hasText: /^milk/i }).count();
     if (n !== 1) throw new Error(`expected 1 milk row, found ${n}`);
@@ -198,7 +197,7 @@ try {
     await shot(hila, '07-shop-hila');
     await guy.goto(`${url}/shop`);
     try {
-      await waitFor(async () => (await guy.getByText(/in the cart/i).count()) > 0, 15000, 'cart on guy');
+      await waitFor(async () => (await guy.locator('.cartcard', { hasText: 'Just done' }).count()) > 0, 15000, 'tray on guy');
     } finally {
       await shot(guy, '07b-shop-guy');
     }
@@ -334,11 +333,11 @@ try {
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
     await shot(guy, '13-composer-ask');
+    // It goes to the last project added to (the composer's project chip says which): go there.
+    const where = (await guy.locator('.sheet .echip').first().innerText()).trim();
     await guy.getByRole('button', { name: 'Add', exact: true }).click();
-    // It goes to the last project added to (here Chores, from the chores check): follow the toast there.
-    const added = guy.getByText(/^Added to /);
-    await added.waitFor({ timeout: 5000 });
-    const where = (await added.innerText()).replace(/^Added to /, '').trim();
+    await guy.locator('.composer__added', { hasText: 'Return the library books' }).waitFor({ timeout: 5000 });
+    await guy.locator('.composer').getByRole('button', { name: 'Done', exact: true }).click();
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: new RegExp(`^${where}$`) }).click();
     await guy.locator('li.row', { hasText: 'Return the library books' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
@@ -445,7 +444,7 @@ try {
     await touch('touchStart', from.x, from.y);
     await guy.waitForTimeout(450);
     if (!(await guy.locator('nav.tabbar.is-receiving').count())) throw new Error('the bar did not rise to meet the folder');
-    const shop = await guy.locator('nav.tabbar [data-key="shop"]').boundingBox();
+    const shop = await guy.locator('nav.tabbar [data-key^="l:"]').first().boundingBox();
     const to = { x: shop.x + shop.width - 3, y: shop.y + shop.height / 2 };
     for (let i = 1; i <= 30; i++) {
       await touch('touchMove', from.x + ((to.x - from.x) * i) / 30, from.y + ((to.y - from.y) * i) / 30);
@@ -457,7 +456,7 @@ try {
     await touch('touchEnd', to.x, to.y);
     await guy.getByText('To do is in the bar').waitFor({ timeout: 3000 });
     const mine = await keys(guy);
-    if (mine.length !== 4 || mine[1] !== 'shop' || !mine[2].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);
+    if (mine.length !== 4 || !mine[1].startsWith('l:') || !mine[2].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);
     await hila.waitForTimeout(1500);
     await hila.reload();
     await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();

@@ -122,7 +122,7 @@ describe('Shopping adds carry who it’s for', () => {
     guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
     guy.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
     seedHousehold(guy, ['groceries']);
-    const groceries = guy.shoppingLists()[0];
+    const groceries = guy.lists().find((l) => l.name === 'Groceries')!;
     const f = visFields(guy, 'theirs');
     const res = guy.addShopping(groceries.id, 'eggs', { qty: '2', visibility: f.visibility, owner: f.owner });
     expect(res.kind).toBe('added');

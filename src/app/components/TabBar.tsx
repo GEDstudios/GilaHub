@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { useBarEdit, withGap } from '../barEdit';
-import { useHub, usePartnerShopping } from '../context';
+import { useHub, usePartnerHere } from '../context';
 import { navigate, useRoute } from '../router';
 import { activeTabKey, barDensity, pinsOf, setPins, tabsOf, type TabDef } from '../tabs';
 import { replay } from '../ui/flip';
@@ -270,7 +270,7 @@ function findFolder(t: TabDef) {
 export function TabBar() {
   const route = useRoute();
   const hub = useHub();
-  const shopping = usePartnerShopping();
+  const here = usePartnerHere();
   const { arranging, aim } = useBarEdit();
   const all = tabsOf(hub);
   const { tabs, gap } = withGap(all, aim);
@@ -355,7 +355,8 @@ export function TabBar() {
       receiving={receiving}
       gap={gap}
       slotClass={(k) => (k === fresh ? 'is-new' : undefined)}
-      live={shopping ? new Set(['shop']) : undefined}
+      // My partner is on a project now: its tab (or the pinned one it's inside) glows.
+      live={here?.listId ? new Set([`l:${here.listId}`, ...hub.listPath(here.listId).map((l) => `l:${l.id}`)]) : undefined}
       navRef={navRef}
       scrollRef={scrollRef}
       onTab={(t, e) => {

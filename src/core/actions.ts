@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type AisleConf, type Idea, type Tag, type Item, type Moment, type Note, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { LINE_COLORS, type AisleConf, type Idea, type Tag, type Item, type Moment, type Note, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { aisleGlyph, categorize, categoryMeta, categoryOrder, emojiFor, lookup, routeFlavor, type Flavor } from '../smart/categorize';
@@ -38,7 +38,7 @@ export interface NewItem {
   tags?: string[];
 }
 
-export type ShoppingAddResult =
+export type AddResult =
   | { kind: 'added'; id: string; listId: string }
   | { kind: 'exists'; id: string; listId: string }
   | { kind: 'revived'; id: string; listId: string };
@@ -115,6 +115,8 @@ export class Hub {
     parentId?: string | null;
     /** Whose a "Mine" project is (mine unless said). */
     owner?: string | null;
+    /** How it's looked at: a list (unset), cards, or by tag. */
+    view?: ListView;
     id?: string;
   }): string {
     const visibility = input.visibility ?? 'shared';
@@ -133,6 +135,7 @@ export class Hub {
         visibility,
         order: keyBetween(last?.order ?? null, null),
         parentId: input.parentId && this.list(input.parentId) ? input.parentId : undefined,
+        ...(input.view ? { view: input.view } : {}),
         createdAt: Date.now(),
         createdBy: this.meId,
       });
@@ -419,7 +422,7 @@ export class Hub {
   }
 
   canTick(item: Item): boolean {
-    return this.canEdit(item) || this.isShop(item.listId);
+    return this.canEdit(item);
   }
 
   private scopeForItem(item: Item): Scope {
@@ -513,7 +516,8 @@ export class Hub {
     if (fields.urgent && !before?.urgent) fields = { ...fields, urgentBy: this.meId };
     // Renamed: its twin in a task project follows (a shopping twin keeps its shopping name).
     const twin = this.linked(before);
-    if (twin && fields.title && !this.isShop(twin.listId) && !this.isShop(before!.listId)) this.store.mutate('item', twin.id, { title: fields.title });
+    // Renamed: its twin follows when it reads the same ("doorknob" stays, under "Buy a doorknob").
+    if (twin && fields.title && twin.title === before!.title) this.store.mutate('item', twin.id, { title: fields.title });
     const prev: Record<string, unknown> = {};
     if (before) for (const k of Object.keys(fields)) prev[k] = (before as unknown as Record<string, unknown>)[k] ?? null;
     this.store.mutate('item', id, fields);
@@ -582,7 +586,7 @@ export class Hub {
     if (!parentId && list.id === item.listId && !item.parentId) return null;
     return this.store.batch(() => {
       const other =
-        this.isShop(list) && !parentId ? this.addShopping(listId, toBuy(item.title)).id : this.addItem(listId, { title: item.title, parentId });
+        parentId ? this.addItem(listId, { title: item.title, parentId }) : this.add(listId, { title: buyWords(item.title) ? toBuy(item.title) : item.title }).id;
       this.store.mutate('item', other, { linkId: id });
       this.store.mutate('item', id, { linkId: other });
       return other;
@@ -592,9 +596,9 @@ export class Hub {
   /** "Buy a doorknob": a subtask that's shopping lands on the right shopping list too. */
   linkIfShopping(id: string): string | null {
     const item = this.item(id);
-    if (!item || !buyWords(item.title) || this.isShop(item.listId)) return null;
-    const dest = this.routeShopping(toBuy(item.title));
-    return dest ? this.alsoIn(id, dest.id) : null;
+    const root = this.shopRoot();
+    if (!item || !root || !buyWords(item.title) || this.inShopTree(item.listId)) return null;
+    return this.alsoIn(id, this.placeFor(toBuy(item.title), root.id));
   }
 
   unlink(id: string): void {
@@ -618,13 +622,13 @@ export class Hub {
       this.store.mutate('item', id, { submittedAt: Date.now(), submittedBy: this.meId, sentBackAt: null, sentBackBy: null });
       return () => this.store.mutate('item', id, { submittedAt: null, submittedBy: null, ...back });
     }
-    const list = this.list(item.listId);
     const done = !item.done;
     const now = Date.now();
     const touched: Array<[string, Partial<Item>]> = [];
     this.store.batch(() => {
       const fields: Partial<Item> = { done, doneAt: done ? now : null, doneBy: done ? this.meId : null };
-      if (this.isShop(list) && !item.parentId) {
+      // A one-off ticked is remembered (Again?): its words, where, when.
+      if (!item.parentId && !item.repeat) {
         if (done) {
           const logId = newId();
           this.writeLog(item, { id: logId, kind: 'bought', key: itemKey(item.title), name: item.title, listId: item.listId, at: now });
@@ -640,7 +644,7 @@ export class Hub {
       const twin = this.linked(item);
       if (twin && !twin.repeat && twin.done !== done) {
         const tf: Partial<Item> = { done, doneAt: done ? now : null, doneBy: done ? this.meId : null };
-        if (this.isShop(twin.listId) && !twin.parentId) {
+        if (!twin.parentId) {
           if (done) {
             const logId = newId();
             this.writeLog(twin, { id: logId, kind: 'bought', key: itemKey(twin.title), name: twin.title, listId: twin.listId, at: now });
@@ -664,7 +668,7 @@ export class Hub {
     return () =>
       this.store.batch(() => {
         const cur = this.item(id);
-        if (cur?.logId && this.isShop(list)) this.store.mutate('log', cur.logId, { deleted: true });
+        if (cur?.logId && !item.parentId) this.store.mutate('log', cur.logId, { deleted: true });
         for (const [tid, prev] of touched) this.store.mutate('item', tid, prev);
       });
   }
@@ -830,30 +834,21 @@ export class Hub {
       });
   }
 
-  // ---------- shopping ----------
+  // ---------- adding, and the tray of things just done ----------
 
-  /** The Shopping project: shopping lists are it and the projects inside it. */
+  /** The Shopping project (from the move from before, or a shopping template): where "Buy a doorknob" also goes. */
   shopRoot(): List | undefined {
     return this.lists().find((l) => l.shopRoot);
   }
 
-  /** Is this project a shopping list (Shopping, or inside it; or one from before, not moved yet)? */
-  isShop(list: List | string | null | undefined): boolean {
-    const l = typeof list === 'string' ? this.list(list) : list;
+  /** Is this project Shopping or inside it? (Only for "Buy …" twins, and never-tagged things from older apps.) */
+  private inShopTree(listId: string | null | undefined): boolean {
+    const l = this.list(listId);
     if (!l) return false;
-    if (l.shopRoot || l.kind === 'shopping') return true;
-    return this.listPath(l.id).some((p) => p.shopRoot);
+    return !!l.shopRoot || l.kind === 'shopping' || this.listPath(l.id).some((p) => p.shopRoot);
   }
 
-  /** Every shopping list: Shopping, then the projects inside it, in order. */
-  shoppingLists(): List[] {
-    const root = this.shopRoot();
-    const inside = root ? [root, ...this.nestedLists(root.id)] : [];
-    const old = this.lists().filter((l) => l.kind === 'shopping' && !inside.includes(l));
-    return [...inside, ...old];
-  }
-
-  /** The Shopping project, made if there's none yet (at the top of Projects). */
+  /** The Shopping project, made if there's none yet (at the top of Projects, looked at by tag). */
   ensureShopRoot(): string {
     const have = this.shopRoot() ?? this.store.all('list').find((l) => l.shopRoot);
     if (have) {
@@ -862,31 +857,28 @@ export class Hub {
     }
     const first = this.lists()[0];
     return this.store.batch(() => {
-      const id = this.createList({ name: 'Shopping', icon: 'i:basket', visibility: 'shared' });
+      const id = this.createList({ name: 'Shopping', icon: 'i:basket', visibility: 'shared', view: 'tags' });
       this.store.mutate('list', id, { shopRoot: true, order: keyBetween(null, first?.order ?? null) });
       return id;
     });
   }
 
-  flavorOf(list: List | undefined): Flavor {
-    if (list?.flavor) return list.flavor as Flavor;
-    for (const p of list ? [...this.listPath(list.id)].reverse() : []) if (p.flavor) return p.flavor as Flavor;
-    return 'grocery';
+  /** How a project is looked at, for both of us: as a list, as cards, or grouped by tag. */
+  setListView(id: string, view: ListView): void {
+    if (this.list(id)) this.store.mutate('list', id, { view });
+  }
+
+  viewOf(list: List | undefined): ListView {
+    return list?.view ?? 'list';
   }
 
   /** Learned category lookup: private memory first, then shared. */
   learned = (key: string): { category: string; emoji?: string } | undefined =>
     this.store.get('memory', `p:${this.meId}:${key}`) ?? this.store.get('memory', key);
 
-  /** Its emoji, from the catalog (Shopping's cart chips). */
+  /** Its emoji, from the catalog (the tray's chips). */
   emojiOf(item: Pick<Item, 'title'>): string {
     return emojiFor(item.title);
-  }
-
-  /** Pick the destination list when adding from the combined view. */
-  routeShopping(name: string, among: List[] = this.shoppingLists()): List | undefined {
-    const flavor = routeFlavor(name);
-    return among.find((l) => l.flavor === flavor) ?? among.find((l) => this.flavorOf(l) === flavor && !l.shopRoot) ?? among[0];
   }
 
   findOnList(listIds: string[], name: string): Item | undefined {
@@ -901,21 +893,47 @@ export class Hub {
   }
 
   /**
-   * Add to a shopping list without ever creating a duplicate:
-   * already open → report it; crossed off / archived → bring it back.
+   * Where a new thing goes, among a project and the projects inside it: where the same thing
+   * already is; else where things wearing its tag (or one of its kind: groceries, home) live;
+   * else the project itself.
    */
-  addShopping(
-    listId: string,
-    raw: string,
-    extra: { urgent?: boolean; visibility?: ItemVisibility; qty?: string | null; owner?: string | null; tags?: string[] | null } = {},
-  ): ShoppingAddResult {
-    const { name, qty } = extra.qty !== undefined ? { name: raw.trim(), qty: extra.qty } : parseQuantity(raw);
-    const existing = this.findOnList([listId], name);
+  placeFor(title: string, listId: string): string {
+    const tree = [listId, ...this.nestedLists(listId).map((l) => l.id)];
+    if (tree.length === 1 || !title.trim()) return listId;
+    const same = this.findOnList(tree, title);
+    if (same) return same.listId;
+    const s = this.suggestTags(title, listId);
+    const tag = s.auto[0] ?? s.more[0] ?? this.catalogTag(title);
+    if (!tag) return listId;
+    const family = tag.includes(':') ? tag.split(':')[0] : null;
+    const score = new Map<string, number>();
+    for (const i of this.store.all('item')) {
+      if (!tree.includes(i.listId) || i.parentId) continue;
+      const tags = this.tagsOf(i);
+      const n = tags.includes(tag) ? 10 : family && family !== 'c' && tags.some((t) => t.startsWith(`${family}:`)) ? 1 : 0;
+      if (n) score.set(i.listId, (score.get(i.listId) ?? 0) + n);
+    }
+    let best = listId;
+    let top = 0;
+    for (const [id, n] of score) if (n > top) [best, top] = [id, n];
+    // Nothing of its kind yet: a list made for that kind (Groceries, Home shopping).
+    if (!top && (family === 'g' || family === 'h')) return tree.find((id) => this.list(id)?.flavor === (family === 'g' ? 'grocery' : 'home')) ?? listId;
+    return best;
+  }
+
+  /**
+   * Add a thing the one way, to any project: never twice. Already open there → said so (a
+   * quantity or urgency goes onto it); done before → brought back as it's asked for now; else
+   * new. A subtask is just added.
+   */
+  add(listId: string, input: NewItem): AddResult {
+    if (input.parentId) return { kind: 'added', id: this.addItem(listId, input), listId };
+    const existing = this.findOnList([listId], input.title);
     if (existing && !existing.done && !existing.archived) {
-      if (qty || extra.urgent) this.updateItem(existing.id, { qty: qty ?? existing.qty, urgent: extra.urgent || existing.urgent });
+      if (input.qty || input.urgent) this.updateItem(existing.id, { qty: input.qty ?? existing.qty, urgent: input.urgent || existing.urgent });
       return { kind: 'exists', id: existing.id, listId };
     }
-    if (existing && this.canEdit(existing)) {
+    if (existing && this.canEdit(existing) && !existing.repeat) {
       this.store.batch(() => {
         this.store.mutate('item', existing.id, {
           done: false,
@@ -923,19 +941,32 @@ export class Hub {
           doneBy: null,
           archived: false,
           logId: null,
-          qty: qty ?? null,
-          urgent: extra.urgent ?? false,
-          urgentBy: extra.urgent ? this.meId : null,
+          qty: input.qty ?? null,
+          urgent: input.urgent ?? false,
+          urgentBy: input.urgent ? this.meId : null,
+          due: input.due ?? null,
+          dueTime: input.dueTime ?? null,
+          remind: input.remind ?? null,
           addedBy: this.meId,
           addedAt: Date.now(),
           order: keyBetween(this.children(listId, null).at(-1)?.order ?? null, null),
         });
-        if (extra.tags) this.setTags(existing.id, extra.tags);
+        if (input.assignee !== undefined) this.assign(existing.id, input.assignee ?? null, { needsOk: input.needsOk });
+        if (input.tags) this.setTags(existing.id, input.tags);
       });
       return { kind: 'revived', id: existing.id, listId };
     }
-    const id = this.addItem(listId, { title: name, qty, urgent: extra.urgent, visibility: extra.visibility, owner: extra.owner, tags: extra.tags ?? undefined });
-    return { kind: 'added', id, listId };
+    return { kind: 'added', id: this.addItem(listId, input), listId };
+  }
+
+  /** Add words as written ("2 milk": two of them), never twice (Hub.add). */
+  addShopping(
+    listId: string,
+    raw: string,
+    extra: { urgent?: boolean; visibility?: ItemVisibility; qty?: string | null; owner?: string | null; tags?: string[] | null } = {},
+  ): AddResult {
+    const { name, qty } = extra.qty !== undefined ? { name: raw.trim(), qty: extra.qty } : parseQuantity(raw);
+    return this.add(listId, { title: name, qty, urgent: extra.urgent, visibility: extra.visibility, owner: extra.owner, tags: extra.tags ?? undefined });
   }
 
   /** "+1": bump a quantity. */
@@ -946,24 +977,22 @@ export class Hub {
     this.updateItem(id, { qty: String(n + 1) });
   }
 
-  /** Finish a trip: file everything in the cart into history. */
-  finishTrip(listIds: string[]): Undo {
+  /** Clear the tray: what was just done here is filed away (Again? remembers it). */
+  clearDone(listIds: string[]): Undo {
     const ids = new Set(listIds);
-    const inCart = this.store.all('item').filter((i) => ids.has(i.listId) && i.done && !i.archived && !i.parentId);
+    const done = this.store.all('item').filter((i) => ids.has(i.listId) && i.done && !i.archived && !i.parentId);
     this.store.batch(() => {
-      for (const i of inCart) this.store.mutate('item', i.id, { archived: true });
+      for (const i of done) this.store.mutate('item', i.id, { archived: true });
     });
     return () =>
       this.store.batch(() => {
-        for (const i of inCart) this.store.mutate('item', i.id, { archived: false });
+        for (const i of done) this.store.mutate('item', i.id, { archived: false });
       });
   }
 
-  /** Housekeeping: carts left unfinished for 12h are filed automatically. */
+  /** Housekeeping: a tray left for 12h is cleared by itself. */
   autoArchive(now = Date.now()): void {
-    const stale = this.store
-      .all('item')
-      .filter((i) => i.done && !i.archived && !i.parentId && i.doneAt && now - i.doneAt > 12 * 3600_000 && this.isShop(i.listId));
+    const stale = this.store.all('item').filter((i) => i.done && !i.archived && !i.parentId && i.doneAt && now - i.doneAt > 12 * 3600_000);
     if (!stale.length) return;
     this.store.batch(() => {
       for (const i of stale) this.store.mutate('item', i.id, { archived: true });
@@ -1113,31 +1142,42 @@ export class Hub {
    */
   tagsOf(item: Item): string[] {
     if (Array.isArray(item.tags)) return item.tags.filter((t) => !!this.tag(t));
-    if (item.parentId || !this.isShop(item.listId)) return [];
-    const flavor = this.flavorOf(this.list(item.listId));
+    if (item.parentId || !this.inShopTree(item.listId)) return [];
+    const flavor = (this.list(item.listId)?.flavor ?? 'grocery') as Flavor;
     const id = item.category && item.category !== 'other' ? this.tagIdFor(flavor, item.category) : this.catalogTag(item.title, flavor);
     return id && this.tag(id) ? [id] : [];
   }
 
   /**
-   * Tags for these words: `auto` goes on by itself (what we taught it; on a shopping list also
-   * the catalog's aisle), `more` is offered (the catalog elsewhere, tags named in the words).
+   * Tags for these words: `auto` goes on by itself (what we taught it; in a project that goes by
+   * aisle also the catalog's aisle), `more` is offered (the catalog elsewhere, tags named in the words).
    */
   suggestTags(title: string, listId?: string | null): { auto: string[]; more: string[] } {
     const key = itemKey(title);
     if (!key) return { auto: [], more: [] };
     const taught = (this.store.get('memory', `p:${this.meId}:t:${key}`) ?? this.store.get('memory', `t:${key}`)) as { tags?: string[] } | undefined;
     const auto = (Array.isArray(taught?.tags) ? taught.tags : []).filter((t) => !!this.tag(t));
-    const shop = !!listId && this.isShop(listId);
+    const aisled = !!listId && this.byAisle(listId);
     const more: string[] = [];
-    const cat = this.catalogTag(title, shop ? this.flavorOf(this.list(listId)) : undefined);
-    if (cat && !auto.includes(cat)) (shop && !auto.length ? auto : more).push(cat);
+    const cat = this.catalogTag(title);
+    if (cat && !auto.includes(cat)) (aisled && !auto.length ? auto : more).push(cat);
     const words = new Set(fold(title).split(' '));
     for (const t of this.tags()) {
       const n = fold(t.name);
       if (n && !auto.includes(t.id) && !more.includes(t.id) && (words.has(n) || (n.includes(' ') && fold(title).includes(n)))) more.push(t.id);
     }
     return { auto, more };
+  }
+
+  /**
+   * Does this project go by aisle? Looked at by tag (it or a project it's in), or already
+   * holding things that wear an aisle: then the catalog's aisle goes on by itself.
+   */
+  byAisle(listId: string): boolean {
+    const l = this.list(listId);
+    if (!l) return false;
+    if ([l, ...this.listPath(l.id)].some((p) => p.view === 'tags')) return true;
+    return this.store.all('item').some((i) => i.listId === listId && !i.parentId && this.tagsOf(i).some((t) => /^[gh]:/.test(t)));
   }
 
   /** Change its tags, and remember them for the same words next time (for both of us, unless it's private). */
@@ -1174,7 +1214,7 @@ export class Hub {
    */
   uniformProjects(): void {
     const legacy = this.store.all('list').filter((l) => l.kind === 'shopping');
-    if (!legacy.length) return;
+    if (!legacy.length) return this.viewsFromKinds();
     this.store.batch(() => {
       // Our aisles, as they were: names, icons, the walk, the ones we took away.
       let prev: string | null = this.tags().at(-1)?.order ?? null;
@@ -1234,8 +1274,21 @@ export class Hub {
       }
       for (const l of legacy) {
         const inside = !!root && (l.id === root.id || this.listPath(l.id).some((p) => p.id === root!.id));
-        this.store.mutate('list', l.id, { kind: 'tasks', flavor: l.flavor ?? 'grocery', ...(root && !inside ? { parentId: root.id } : {}) });
+        this.store.mutate('list', l.id, { kind: 'tasks', flavor: l.flavor ?? 'grocery', view: 'tags', ...(root && !inside ? { parentId: root.id } : {}) });
       }
+      if (root && !root.view) this.store.mutate('list', root.id, { view: 'tags' });
+    });
+  }
+
+  /**
+   * Shopping is a project like any other, looked at by tag (the aisles). One step after
+   * uniformProjects, for phones that moved before projects had views. Once; the same everywhere.
+   */
+  viewsFromKinds(): void {
+    const todo = this.store.all('list').filter((l) => (l.shopRoot || l.flavor) && !l.view);
+    if (!todo.length) return;
+    this.store.batch(() => {
+      for (const l of todo) this.store.mutate('list', l.id, { view: 'tags' });
     });
   }
 
@@ -1303,9 +1356,12 @@ export class Hub {
 
   /** The notes still stuck on a screen, newest on top. */
   notesOn(place: string): Note[] {
+    // The old Shopping screen ("shop") is the Shopping project's page.
+    const root = this.shopRoot();
+    const same = (p: string) => (p === 'shop' && root ? `list:${root.id}` : p);
     return this.store
       .all('note')
-      .filter((n) => !n.deleted && !n.peeledAt && n.place === place)
+      .filter((n) => !n.deleted && !n.peeledAt && same(n.place) === same(place))
       .sort((a, b) => b.createdAt - a.createdAt);
   }
 
@@ -1580,7 +1636,7 @@ export class Hub {
     const lists = new Set(this.lists().map((l) => l.id));
     const hits: Array<{ it: Item; rank: number }> = [];
     for (const it of this.store.all('item')) {
-      if (!lists.has(it.listId) || it.archived) continue;
+      if (!lists.has(it.listId)) continue;
       const t = fold(it.title);
       let rank = -1;
       if (t.startsWith(q)) rank = 0;
@@ -1643,7 +1699,7 @@ export function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineCol
   return hub.store.batch(() => {
     const parentId = t.flavor ? hub.ensureShopRoot() : null;
     if (t.flavor) hub.ensureBuiltinTags(t.flavor);
-    return hub.createList({ name: t.name, flavor: t.flavor, color, icon: t.icon, visibility: t.visibility ?? 'shared', parentId });
+    return hub.createList({ name: t.name, flavor: t.flavor, color, icon: t.icon, visibility: t.visibility ?? 'shared', parentId, view: t.flavor ? 'tags' : undefined });
   });
 }
 

@@ -3,12 +3,11 @@ import { useState } from 'react';
 import { addDays, humanTime, relativeAgo } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
 import { byOrder } from '../../core/order';
-import { useHub, usePartnerShopping } from '../context';
+import { useHub, usePartnerHere } from '../context';
 import { AHEAD_MAX, aheadDay, aheadOf, summaryOf, things, weekBands } from '../home';
 import { setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
 import { useLater } from '../tick';
-import { ShopRow } from '../screens/Shopping';
 import { useFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
@@ -16,7 +15,7 @@ import { ProjectMark } from '../ui/ProjectMark';
 import { Avatar, lineVars, Section } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
 import { SettleContext, useSettle, type Settle } from '../ui/useSettle';
-import { openCount, todayView, type TodayView } from '../views';
+import { todayView, type TodayView } from '../views';
 import { AsksWidget } from './Asks';
 import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
@@ -107,16 +106,20 @@ export function SummaryCard({ v, day, asksShown }: { v: TodayView; day: string; 
 /** Live notices under the summary: the partner is in the store. */
 export function HomeNotices() {
   const hub = useHub();
-  const shopping = usePartnerShopping();
-  const shopper = shopping ? hub.member(shopping.member) : undefined;
+  const here = usePartnerHere();
+  const shopper = here ? hub.member(here.member) : undefined;
+  const on = here?.listId ? hub.list(here.listId) : undefined;
   return (
     <>
       <NotesElsewhere />
       {shopper ? (
-        <button type="button" className="notice" onClick={() => navigate({ name: 'shop' })}>
+        <button type="button" className="notice" onClick={() => on && navigate({ name: 'list', id: on.id })}>
           <Avatar member={shopper} size="sm" />
           <span className="notice__text">
-            <strong>{shopper.name} is shopping now.</strong> Need anything?
+            <strong>
+              {shopper.name} is on {on?.name ?? 'it'} now.
+            </strong>{' '}
+            Need anything?
           </span>
           <Icon name="chevron-right" />
         </button>
@@ -228,7 +231,6 @@ export function WeekStrips({ v, shown }: { v: TodayView; shown: ReadonlySet<stri
   const bands = weekBands(hub, v, shown);
   if (!bands.length) return null;
   const go = {
-    shop: () => navigate({ name: 'shop' }),
     done: undefined,
     moments: () => openSheet((close) => <MomentsSheet onClose={close} />),
   };
@@ -335,89 +337,35 @@ export function PartnerDid({ v }: { v: TodayView }) {
   );
 }
 
-// ---------------------------------------------------------------- shopping
-
-/** Up to 4 things to buy, ticked straight from Today. */
-function ShopRows({ items, group, settle, showList }: { items: Item[]; group: string; settle: Settle<Item>; showList: boolean }) {
-  const hub = useHub();
-  const { toast } = useOverlays();
-  const rows = settle.view(group, items);
-  if (!rows.length) return null;
-  const tick = (i: Item) => {
-    if (i.done) return;
-    settle.hold(i.id);
-    const undo = hub.toggle(i.id);
-    toast(`${i.title} is in the cart`, { action: { label: 'Undo', run: undo }, ms: 2600, group: 'cart', many: (n) => `${n} in the cart` });
-  };
-  return (
-    <ul className="rows">
-      {rows.map(({ row: i, settling }) => (
-        <ShopRow
-          key={i.id}
-          item={i}
-          settling={settling}
-          showList={showList}
-          onTick={tick}
-          onOpen={(it) => navigate({ name: 'item', id: it.id })}
-        />
-      ))}
-    </ul>
-  );
-}
-
-/** To buy: the top of the shopping lists (urgent first, newest). */
-export function ToBuyWidget({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
-  const hub = useHub();
-  const lists = hub.shoppingLists();
-  if (!v.shopping.count || !lists.length) return null;
-  return (
-    <Section
-      title="To buy"
-      count={v.shopping.count}
-      action={
-        <button type="button" className="textbtn" onClick={() => navigate({ name: 'shop' })}>
-          See all
-        </button>
-      }
-    >
-      <ShopRows items={v.shopping.preview} group="shop" settle={settle} showList={new Set(v.shopping.all.map((i) => i.listId)).size > 1} />
-    </Section>
-  );
-}
-
 // ---------------------------------------------------------------- a pinned project
-
-const byUrgentThenNewest = (a: Item, b: Item) => Number(!!b.urgent) - Number(!!a.urgent) || (b.createdAt ?? 0) - (a.createdAt ?? 0);
 
 /** A window into one project: its first few open things and its add row. Never deduped. */
 export function ProjectWidget({ listId, settle, show }: { listId: string; day?: string; settle: Settle<Item>; show?: (i: Item) => boolean }) {
   const hub = useHub();
   const list = hub.list(listId);
   if (!list) return null;
-  const open = hub.children(listId, null).filter((i) => !i.done && !i.archived && (!show || show(i)));
+  // What's open in it, and in the projects inside it.
+  const ids = new Set([listId, ...hub.nestedLists(listId).map((l) => l.id)]);
+  const open = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId && !i.done && !i.archived && (!show || show(i)));
   const head = (
     <>
       <ProjectMark color={list.color} icon={list.icon} size="sm" />
       <span dir="auto">{list.name}</span>
     </>
   );
-  let body;
-  if (hub.isShop(list)) {
-    body = <ShopRows items={[...open].sort(byUrgentThenNewest).slice(0, 4)} group={`l:${listId}`} settle={settle} showList={false} />;
-  } else {
-    const rows = settle.view(`l:${listId}`, [...open].sort(byOrder).slice(0, 5));
-    body = rows.length ? (
-      <ul className="rows">
-        {rows.map(({ row: i, settling }) => (
-          <ItemRow key={i.id} item={i} settling={settling} />
-        ))}
-      </ul>
-    ) : null;
-  }
+  // Urgent first, then in the project's order: the first five.
+  const rows = settle.view(`l:${listId}`, [...open].sort((a, b) => Number(!!b.urgent) - Number(!!a.urgent) || byOrder(a, b)).slice(0, 5));
+  const body = rows.length ? (
+    <ul className="rows">
+      {rows.map(({ row: i, settling }) => (
+        <ItemRow key={i.id} item={i} settling={settling} />
+      ))}
+    </ul>
+  ) : null;
   return (
     <Section
       title={head}
-      count={openCount(hub, listId)}
+      count={open.length}
       action={
         <button type="button" className="textbtn" onClick={() => navigate({ name: 'list', id: listId })}>
           Open

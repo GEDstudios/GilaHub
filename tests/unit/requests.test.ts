@@ -202,7 +202,8 @@ describe('Today: requests between us', () => {
     guy.completeRepeating(r);
     const milk = guy.findOnList([listNamed(guy, 'Groceries').id], 'milk')!;
     guy.toggle(milk.id);
-    expect(todayView(guy, today()).doneToday).toBe(2);
+    // Every project is the same: buying the milk is something done too.
+    expect(todayView(guy, today()).doneToday).toBe(3);
   });
 });
 

@@ -41,9 +41,8 @@ export interface HomeSlot {
 }
 
 /**
- * What a project holds. Every project is 'tasks' now: chores and then shopping lists used to be
- * kinds of their own. A shopping list is any project inside the Shopping project (List.shopRoot),
- * and 'shopping' is only read from older data (Hub.uniformProjects moves it).
+ * Every project is 'tasks': there is one kind of project. Chores and then shopping lists used to
+ * be kinds of their own; 'shopping' is only read from older data (Hub.uniformProjects moves it).
  */
 export type ListKind = 'tasks' | 'shopping';
 
@@ -56,14 +55,19 @@ export type Visibility = 'shared' | 'visible' | 'private';
 
 export type ShoppingFlavor = 'grocery' | 'home';
 
+/** A project's look: rows, cards, or rows grouped by their first tag (the aisles). */
+export type ListView = 'list' | 'cards' | 'tags';
+
 export interface List {
   id: string;
   name: string;
   kind: ListKind;
-  /** A shopping list's leaning (groceries or things for the home): where "Add" sends a thing and which catalog it's read against. */
+  /** Older data: a shopping list's leaning (groceries or things for the home). Read only. */
   flavor?: ShoppingFlavor;
-  /** The Shopping project: it and every project inside it are shopping lists (aisles, a cart, Buy again). */
+  /** The Shopping project: "Buy a doorknob" under a task also lands here. (It's a project like any other.) */
   shopRoot?: boolean;
+  /** How we look at it (both of us): a list (unset), cards, or grouped by tag. */
+  view?: ListView;
   color: LineColor;
   /** Optional emoji; otherwise the bullet shows the first letter of the name. */
   icon?: string;
@@ -148,7 +152,7 @@ export interface Item {
   category?: string | null;
   /** Shopping: preferred store id. */
   storeId?: string | null;
-  /** Shopping: cleared from the cart after a trip. */
+  /** Done and cleared from its project's tray ("Clear"; by itself after 12h). */
   archived?: boolean;
   /** Recurring: last completion. */
   lastDoneAt?: number | null;

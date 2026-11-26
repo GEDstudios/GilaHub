@@ -25,7 +25,6 @@ import { ListScreen } from './screens/ListScreen';
 import { Lists, NewProjectSheet } from './screens/Lists';
 import { Onboarding, type OnboardResult } from './screens/Onboarding';
 import { Settings } from './screens/Settings';
-import { Shopping } from './screens/Shopping';
 import { SyncDot } from './components/SyncBadge';
 import { Today } from './screens/Today';
 import { Icon } from './ui/Icon';
@@ -36,8 +35,8 @@ import { haptic } from './ui/haptics';
 import { cursorImage, setCursors } from './ui/cursors';
 import { startLiveCursor } from './ui/liveCursor';
 import { ProjectMark } from './ui/ProjectMark';
-import { activeTabKey, tabsOf } from './tabs';
-import { todayRef, todayView } from './views';
+import { activeTabKey, pinsOf, tabsOf } from './tabs';
+import { projectCount, todayRef, todayView } from './views';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
 
@@ -53,7 +52,7 @@ function useAdd() {
  * Adding (the black +) and a note for my person float bottom right, as they do on the phone.
  */
 /** The +'s choices, each drawn as the little thing it makes. */
-function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
+function MenuGlyph({ kind }: { kind: 'task' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
       // Same language as the folder and note: a flat lilac disc with one thin ink outline, left
@@ -62,15 +61,6 @@ function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
         <circle cx="19.5" cy="21" r="14" fill="var(--lilac)" />
         <circle cx="19.5" cy="21" r="14" fill="none" stroke="#0a0a04" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="72.82 15.15" transform="rotate(-16.3 19.5 21)" />
         <path d="M12.1 21.4L16.9 26.2L31.8 7.2" fill="none" stroke="#0a0a04" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  if (kind === 'buy')
-    return (
-      <svg className="addmenu__glyph" viewBox="0 0 40 40" aria-hidden="true">
-        <path d="M14.5 15v-2.5a5.5 5.5 0 0 1 11 0V15" fill="none" stroke="#0a0a04" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M8.6 15h22.8l-1.9 16.2a3 3 0 0 1-3 2.6H13.5a3 3 0 0 1-3-2.6z" fill="var(--pink)" stroke="#0a0a04" strokeWidth="1.6" strokeLinejoin="round" />
-        <circle cx="15" cy="20" r="1.4" fill="#0a0a04" />
-        <circle cx="25" cy="20" r="1.4" fill="#0a0a04" />
       </svg>
     );
   if (kind === 'project')
@@ -92,7 +82,7 @@ function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
 
 /**
  * The +: what to make. A tap opens three choices over it (the + turns into an x): a task (or a
- * thing to buy, or a subtask, as the screen says), a project (inside this one, on a project's
+ * subtask, as the screen says), a project (inside this one, on a project's
  * page), or a sticky note for my person on this screen. N still makes a task straight away.
  */
 function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
@@ -111,13 +101,12 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
   const where = JSON.stringify(route);
   useEffect(() => setOpen(false), [where]);
   const here = route.name === 'list' ? hub.list(route.id) : route.name === 'item' ? hub.list(hub.item(route.id)?.listId) : route.name === 'shop' ? hub.shopRoot() : undefined;
-  const buying = hub.isShop(here);
   const inside = route.name === 'list' || route.name === 'shop' ? here : undefined;
   const choices: Array<{ key: string; label: string; face: ReactNode; run: () => void }> = [
     {
       key: 'task',
-      label: buying ? 'Something to buy' : addLabel === 'New' ? 'Task' : addLabel,
-      face: <MenuGlyph kind={buying ? 'buy' : 'task'} />,
+      label: addLabel === 'New' ? 'Task' : addLabel,
+      face: <MenuGlyph kind="task" />,
       run: () => {
         primeKeyboard();
         add();
@@ -125,7 +114,7 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
     },
     {
       key: 'project',
-      label: inside ? (inside.shopRoot ? 'Shopping list' : `Project inside ${inside.name}`) : 'Project',
+      label: inside ? `Project inside ${inside.name}` : 'Project',
       face: <MenuGlyph kind="project" />,
       run: () => openSheet((close) => <NewProjectSheet onClose={close} parentId={inside?.id} />),
     },
@@ -184,7 +173,12 @@ function TopNav() {
   const prefs = usePrefs();
   const on = activeTabKey(hub, route);
   const v = todayView(hub, todayRef());
-  const counts: Record<string, number> = { today: v.dueCount, shop: v.shopping.count };
+  // Today's due, and each pinned project's open things (with what's inside it).
+  const counts: Record<string, number> = { today: v.dueCount };
+  for (const k of pinsOf(hub)) {
+    const l = k.startsWith('l:') ? hub.list(k.slice(2)) : undefined;
+    if (l) counts[k] = projectCount(hub, l).n;
+  }
   const tabs = tabsOf(hub).filter((t) => t.key !== 'search');
   const me = hub.me();
   const partner = hub.partner();
@@ -230,11 +224,15 @@ function TopNav() {
 
 function Screen() {
   const route = useRoute();
+  const hub = useHub();
   switch (route.name) {
     case 'today':
       return <Today />;
-    case 'shop':
-      return <Shopping />;
+    case 'shop': {
+      // An old link to the Shopping tab: the Shopping project, like any other.
+      const root = hub.shopRoot();
+      return root ? <ListScreen key={root.id} id={root.id} /> : <Lists />;
+    }
     case 'chores':
       // Chores are ordinary projects now: an old link lands on Projects.
       return <Lists />;
