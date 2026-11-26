@@ -222,7 +222,7 @@ export function ItemScreen({ id }: { id: string }) {
   const [snap] = useState(() => snapOf(item));
   const changed = !!item && !!snap && (JSON.stringify(snapOf(item)) !== JSON.stringify(snap) || notes !== (item.notes ?? ''));
   const upToRef = useRef<() => void>(() => back({ name: 'today' }));
-  const guard = useBackGuard({
+  useBackGuard({
     dirty: changed,
     title: 'Keep your changes?',
     text: 'You changed this task. Keep it as it is now, or put it back the way it was.',
@@ -429,7 +429,10 @@ export function ItemScreen({ id }: { id: string }) {
     <>
       <Band
         onBack={() => {
-          if (!guard.ask()) back(upTo);
+          // The app's own back arrow keeps what was changed (the notes too) and leaves.
+          const it = hub.item(id);
+          if (it && notes !== (it.notes ?? '')) hub.updateItem(id, { notes });
+          back(upTo);
         }}
         mini={item.title}
         actions={

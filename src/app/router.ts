@@ -49,19 +49,37 @@ function emit() {
  * sheet you're on, not the screen under it. A sheet closed another way (×, a pull, Create)
  * takes its step back out; a navigation made meanwhile waits for that, so it isn't undone.
  */
-type SheetStep = { id: number; close: () => void; popped: boolean };
+type SheetStep = { id: number; close: () => void; popped: boolean; pushed: boolean; done: boolean };
 const sheetSteps: SheetStep[] = [];
 let sheetSeq = 1;
 let unwinding = 0;
 let waiting: Array<() => void> = [];
 
+/**
+ * Take back out the history steps of everything that has closed and sits on top (one go, however
+ * many). A step that closed under one still open waits there, and goes when that one does, so
+ * no dead step is ever left for Back to land on.
+ */
+function unwindClosed(): void {
+  let n = 0;
+  for (let i = sheetSteps.length - 1; i >= 0 && sheetSteps[i].done; i--) n++;
+  if (!n) return;
+  const gone = sheetSteps.splice(sheetSteps.length - n, n);
+  const inHistory = gone.filter((s) => s.pushed && !s.popped).length;
+  // Only when the history's top really is one of these (a navigation since must never be undone).
+  const top = typeof history !== 'undefined' ? (history.state as { gilaSheet?: number } | null)?.gilaSheet : undefined;
+  if (inHistory && !memory && typeof history !== 'undefined' && gone.some((s) => s.id === top)) {
+    unwinding++;
+    history.go(-inHistory);
+  }
+}
+
 export function sheetOpened(close: () => void): { closed: () => void } {
-  const step: SheetStep = { id: sheetSeq++, close, popped: false };
-  let pushed = false;
+  const step: SheetStep = { id: sheetSeq++, close, popped: false, pushed: false, done: false };
   if (!memory && typeof history !== 'undefined') {
     try {
       history.pushState({ gilaSheet: step.id }, '', location.href);
-      pushed = true;
+      step.pushed = true;
     } catch {
       /* sandboxed: no step */
     }
@@ -69,12 +87,11 @@ export function sheetOpened(close: () => void): { closed: () => void } {
   sheetSteps.push(step);
   return {
     closed: () => {
-      const at = sheetSteps.indexOf(step);
-      if (at >= 0) sheetSteps.splice(at, 1);
-      if (pushed && !step.popped && history.state?.gilaSheet === step.id) {
-        unwinding++;
-        history.back();
-      }
+      if (step.done) return;
+      step.done = true;
+      // Back already took its step (it's off the list): nothing to undo.
+      if (!sheetSteps.includes(step)) return;
+      unwindClosed();
     },
   };
 }
@@ -104,6 +121,8 @@ if (typeof window !== 'undefined') {
     if (top) {
       top.popped = true;
       top.close();
+      // Anything under it that had already closed goes with it.
+      unwindClosed();
       return;
     }
     depth = Math.max(0, depth - 1);

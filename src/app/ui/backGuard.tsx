@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { afterSheets, sheetOpened } from '../router';
+import { afterSheets, leavingByBack, sheetOpened } from '../router';
 import { Icon } from './Icon';
 import { Sheet, useOverlays } from './overlays';
 
 /**
- * Unsaved changes, and Back: once something's been written or changed and not kept yet, the
- * phone's Back (or the page's own back arrow, through `ask`) doesn't just leave. It asks: Save,
- * or Discard; closing the question (or Back again) keeps you where you were, still writing.
+ * Unsaved changes, and the phone's Back: once something's been written or changed and not kept
+ * yet, Back doesn't just leave. It asks: Save, or Discard. Back again on the question leaves,
+ * keeping the work (Save); closing it with × or a pull keeps you where you were. (The app's own
+ * back arrow saves and leaves without asking.)
  */
 export function useBackGuard({
   dirty,
@@ -87,10 +88,13 @@ function LeaveSheet({
   onKeep: () => void;
 }) {
   const chose = useRef(false);
-  // Closed without choosing (×, a pull, Back): keep writing.
+  // Closed without choosing: Back again means "just leave", keeping the work (its first choice);
+  // × or a pull means "not yet", back to writing.
   useEffect(
     () => () => {
-      if (!chose.current) onKeep();
+      if (chose.current) return;
+      if (leavingByBack()) afterSheets(onSave);
+      else onKeep();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
