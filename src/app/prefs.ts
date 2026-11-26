@@ -47,6 +47,8 @@ export interface Prefs {
   todayNew: 'mine' | 'ours';
   /** Today shows all of it, just mine, or just ours. */
   todayScope: 'all' | 'mine' | 'ours';
+  /** My Quick view on Today: the tasks I put there, in the order I did. */
+  quick: string[];
 }
 
 /** About this device itself, not about me: never synced. */
@@ -77,6 +79,7 @@ const DEFAULTS: Prefs = {
   filters: {},
   todayNew: 'mine',
   todayScope: 'all',
+  quick: [],
 };
 
 export const PREF_KEYS = Object.keys(DEFAULTS) as Array<keyof Prefs>;

@@ -207,8 +207,8 @@ function Composer({
   useEffect(() => () => saveDraft(null), []);
   const { draft, dest, parsed } = c;
   const title = parsed.title.trim();
-  // Who stays offered even in a Private folder: asking my person takes it to a shared one.
-  const fields = FIELDS.filter((f) => f !== 'who' || draft.visibility !== 'private' || !!hub.partner());
+  // A private task is mine alone: nobody else to give it to.
+  const fields = FIELDS.filter((f) => f !== 'who' || draft.visibility !== 'private');
   const steps = c.parent ? [] : [...words.steps, ...own];
   const parent = hub.item(parentId);
 

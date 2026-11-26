@@ -191,3 +191,43 @@ describe('A folder’s task template', () => {
     expect(guy.list(l)?.template ?? null).toBeNull();
   });
 });
+
+describe('A task moved into a folder with a template', () => {
+  it('takes it only when asked: tags added, the rest set; Undo puts it all back', async () => {
+    const { applyTemplate } = await import('../../src/app/template');
+    const guy = await person('guy');
+    const from = guy.createList({ name: 'Home' });
+    const to = guy.createList({ name: 'Work' });
+    const work = guy.createTag('Work')!;
+    const mine = guy.createTag('Calls')!;
+    guy.setListTemplate(to, { urgent: true, tags: [work], remind: 30 });
+    const id = guy.addItem(from, { title: 'Call the bank' });
+    guy.setTags(id, [mine]);
+    guy.move(id, { listId: to, parentId: null });
+    expect(guy.item(id)?.urgent ?? false).toBe(false);
+    const undo = applyTemplate(guy, id, to);
+    expect(guy.item(id)).toMatchObject({ urgent: true, remind: 30 });
+    expect(guy.tagsOf(guy.item(id)!).sort()).toEqual([mine, work].sort());
+    undo();
+    expect(guy.item(id)).toMatchObject({ urgent: false, remind: null });
+    expect(guy.tagsOf(guy.item(id)!)).toEqual([mine]);
+  });
+});
+
+describe('My Quick view', () => {
+  it('holds the tasks I put there, open ones only; Undo takes it out again', async () => {
+    const { setQuick, quickItems, isQuick } = await import('../../src/app/quick');
+    const guy = await person('guy');
+    const l = guy.createList({ name: 'Home' });
+    const a = guy.addItem(l, { title: 'Book the dentist' });
+    const b = guy.addItem(l, { title: 'Renew passport' });
+    setQuick(a, true);
+    const undo = setQuick(b, true);
+    expect(quickItems(guy).map((i) => i.title)).toEqual(['Book the dentist', 'Renew passport']);
+    undo();
+    expect(isQuick(b)).toBe(false);
+    guy.toggle(a);
+    expect(quickItems(guy)).toEqual([]);
+    setQuick(a, false);
+  });
+});

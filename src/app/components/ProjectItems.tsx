@@ -11,6 +11,7 @@ import { SettleContext, useSettle } from '../ui/useSettle';
 import type { ProjectGroup } from '../views';
 import { ItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
+import { movedTo } from './TemplateAsk';
 import { TagMark } from './Tags';
 
 const idOf = (i: Item) => i.id;
@@ -69,7 +70,8 @@ export function ProjectItems({
   flash: Set<string>;
 }) {
   const hub = useHub();
-  const { toast, openSheet } = useOverlays();
+  const overlays = useOverlays();
+  const { toast, openSheet } = overlays;
   const settle = useSettle(idOf);
   // A group whose last thing was just ticked stays until that row has settled.
   const last = useRef<ProjectGroup[]>([]);
@@ -122,7 +124,7 @@ export function ProjectItems({
       const was = { listId: item.listId, parentId: item.parentId ?? null };
       hub.move(id, { listId: to.id, parentId: null });
       haptic('success');
-      toast(`Moved to ${to.name}`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
+      movedTo(hub, overlays, id, was.listId, to.id, `Moved to ${to.name}`, () => hub.move(id, was));
     },
     lift: (id: string) => {
       lifted.current = id;

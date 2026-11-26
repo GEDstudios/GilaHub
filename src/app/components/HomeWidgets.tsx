@@ -7,6 +7,7 @@ import { useHub, usePartnerHere } from '../context';
 import { AHEAD_MAX, aheadDay, aheadOf, summaryOf, things, weekBands } from '../home';
 import { setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
+import { quickItems } from '../quick';
 import { useLater } from '../tick';
 import { useFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';
@@ -346,6 +347,34 @@ export function PartnerDid({ v }: { v: TodayView }) {
               </button>
             ) : null}
           </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------- my quick view
+
+/** The tasks I chose to keep in sight here (a task's "Quick view" chip), from any folder. Gone while it's empty. */
+export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: Item) => boolean }) {
+  const hub = useHub();
+  const prefs = usePrefs();
+  const open = quickItems(hub, prefs.quick).filter((i) => !show || show(i));
+  const rows = settle.view('quick', open);
+  if (!rows.length) return null;
+  return (
+    <Section
+      title={
+        <>
+          <Icon name="eye" className="icon--sm" />
+          <span>Quick view</span>
+        </>
+      }
+      count={open.length}
+    >
+      <ul className="rows">
+        {rows.map(({ row: i, settling }) => (
+          <ItemRow key={i.id} item={i} settling={settling} showList />
         ))}
       </ul>
     </Section>

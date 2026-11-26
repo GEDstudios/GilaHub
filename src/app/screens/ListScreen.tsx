@@ -35,78 +35,73 @@ import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
 import { haptic } from '../ui/haptics';
 import { cadenceLabel } from '../../smart/suggest';
+import { hasTemplate } from '../template';
 
-/** The project's "…": the rare things only. Everything else is edited in place on its page. */
-export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
+/** The folder's own settings, in place under its card: a photo, on Today, its task template, the tasks it shows from elsewhere, where it sits. Each says what it's set to. */
+const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, assignee: null, urgent: false, visibility: 'ours' };
+
+function FolderTools({ list }: { list: List }) {
   const hub = useHub();
   const { toast, openSheet } = useOverlays();
-  const list = hub.list(listId);
+  const listId = list.id;
   const addPhoto = useAddPhoto(`list:${listId}`);
+  const photoN = hub.photosOf(`list:${listId}`).length;
   const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === projectKey(listId));
+  const shows = hub.shownIn(listId);
+  const parent = hub.parentOf(listId);
+  const tpl = hasTemplate(list);
+  return (
+    <InlineEditor
+      className="foldertools"
+      value={NO_DRAFT}
+      onChange={() => undefined}
+      fields={[]}
+      extras={[
+        { key: 'photo', label: photoN ? `Photos ${photoN}` : 'Photo', icon: 'image', set: photoN > 0, toggle: () => void addPhoto() },
+        {
+          key: 'today',
+          label: 'On Today',
+          icon: 'home',
+          set: onHome,
+          toggle: () => {
+            haptic('select');
+            if (onHome) {
+              hideHome(hub, projectKey(listId));
+              toast('Off your Today', { action: { label: 'Undo', run: () => showHome(hub, projectKey(listId)) } });
+            } else if (showHome(hub, projectKey(listId))) toast('Its open tasks show on your Today', { action: { label: 'Undo', run: () => hideHome(hub, projectKey(listId)) } });
+            else toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
+          },
+        },
+        { key: 'tpl', label: tpl ? 'Template' : 'Task template', icon: 'layout', set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
+        {
+          key: 'shows',
+          label: shows.length ? `Shows ${shows.map((l) => l.name).join(', ')}` : 'Show tasks from',
+          icon: 'link',
+          set: shows.length > 0,
+          toggle: () => openSheet((close) => <ShowsSheet listId={listId} onClose={close} />),
+        },
+        {
+          key: 'move',
+          label: parent ? `In ${parent.name}` : 'Move to…',
+          icon: 'move',
+          set: !!parent,
+          toggle: () => openSheet((close) => <MoveProjectSheet listId={listId} onClose={close} />),
+        },
+      ]}
+    />
+  );
+}
+
+/** The project's "…": the rare things only (archive, delete). Everything else is edited in place on its page. */
+export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const list = hub.list(listId);
   if (!list) return null;
   const mineToChange = !list.owner || list.owner === hub.meId;
   return (
     <Sheet onClose={onClose} title={list.name}>
       <div className="group">
-        <OptRow
-          icon="image"
-          title="Add a photo"
-          onClick={() => {
-            // Asked in this tap (the picker needs it), then the sheet goes.
-            void addPhoto();
-            onClose();
-          }}
-        />
-        <OptRow
-            icon="refresh"
-            title="Uncheck all"
-            onClick={() => {
-              const undo = hub.uncheckAll(listId);
-              onClose();
-              toast('Everything unticked, ready to reuse', { action: { label: 'Undo', run: undo } });
-            }}
-          />
-        <OptRow
-          icon="home"
-          title="Visible on Today"
-          sub={onHome ? 'Its open tasks show on your Today' : `Show its open tasks on your Today (up to ${MAX_HOME_PROJECTS} folders)`}
-          trail={
-            <Switch
-              on={onHome}
-              label="Visible on Today"
-              onChange={(v) => {
-                if (!v) return hideHome(hub, projectKey(listId));
-                if (!showHome(hub, projectKey(listId))) toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
-              }}
-            />
-          }
-        />
-        <OptRow
-          icon="layout"
-          title="Task template"
-          sub={list.template && Object.values(list.template).some((v) => v !== null && v !== undefined && !(Array.isArray(v) && !v.length)) ? 'New tasks here start with it' : 'How new tasks here start: who, tags, notification…'}
-          onClick={() => {
-            onClose();
-            openSheet((close) => <TemplateSheet listId={listId} onClose={close} />);
-          }}
-        />
-        <OptRow
-          icon="link"
-          title="Show tasks from…"
-          sub={hub.shownIn(listId).length ? hub.shownIn(listId).map((l) => l.name).join(', ') : 'Another folder’s tasks, here too'}
-          onClick={() => {
-            onClose();
-            openSheet((close) => <ShowsSheet listId={listId} onClose={close} />);
-          }}
-        />
-        <OptRow
-          icon="move"
-          title={hub.parentOf(listId) ? 'Move to…' : 'Put inside…'}
-          onClick={() => {
-            onClose();
-            openSheet((close) => <MoveProjectSheet listId={listId} onClose={close} />);
-          }}
-        />
         <OptRow
           icon="archive"
           title="Archive"
@@ -173,7 +168,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
           if ('visibility' in patch) next.visibility = patch.visibility ?? null;
           hub.setListTemplate(listId, next);
         }}
-        fields={['repeat', 'remind', 'who', 'vis', 'urgent']}
+        fields={(['repeat', 'remind', 'who', 'vis', 'urgent'] as const).filter((f) => f !== 'who' || value.visibility !== 'private')}
         allowedVis={allowed}
         whoMode="compose"
         extras={[
@@ -591,6 +586,7 @@ function ProjectPage({ id }: { id: string }) {
         <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
       </Band>
       <div className="column">
+        <FolderTools list={list} />
         <Lens filter={filter} items={v.open} lists={v.lists.length > 1 ? v.lists : undefined}>
           <ViewToggle listId={id} />
         </Lens>

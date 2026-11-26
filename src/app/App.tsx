@@ -13,6 +13,8 @@ import { NotesLayer, useNoteHere } from './components/Notes';
 import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
+import { ShortcutsSheet, useHistory } from './undo';
+import { quietly } from '../core/history';
 import { pendingDraft, QuickAddSheet } from './components/QuickAddSheet';
 import { TabBar } from './components/TabBar';
 import { RuntimeProvider, useHub, useRt } from './context';
@@ -269,7 +271,7 @@ function Duties() {
   const rt = useRt();
   const hub = useHub();
   const prefs = usePrefs();
-  const { toast } = useOverlays();
+  const { toast, openSheet } = useOverlays();
   const add = useAdd();
   const me = hub.me();
   useArrivalWatch(hub);
@@ -279,7 +281,7 @@ function Duties() {
     if (!tourWatch(hub)) return;
     const list = tourList(hub);
     if (!list) return;
-    hub.updateList(list.id, { archived: true });
+    quietly(hub.store, () => hub.updateList(list.id, { archived: true }));
     toast('You know your way around', { action: { label: 'Keep it', run: () => hub.updateList(list.id, { archived: false }) } });
   });
   useEffect(() => {
@@ -324,17 +326,17 @@ function Duties() {
     run();
     const off = rt.store.subscribe(run);
     const offRelay = rt.onRelay(run);
-    hub.autoArchive();
+    quietly(hub.store, () => hub.autoArchive());
     try {
       if (!localStorage.getItem('gila-hub:project-icons')) {
-        hub.fillIcons();
+        quietly(hub.store, () => hub.fillIcons());
         localStorage.setItem('gila-hub:project-icons', '1');
       }
     } catch {
       /* storage blocked: next time */
     }
     const timer = setInterval(() => {
-      hub.autoArchive();
+      quietly(hub.store, () => hub.autoArchive());
       local.refresh();
     }, 15 * 60_000);
     return () => {
@@ -387,12 +389,54 @@ function Duties() {
     return () => window.removeEventListener('gila:update', onUpdate);
   }, [toast]);
 
+  // Undo and redo: anywhere but in a field (there the field's own undo works on its text).
+  const history = useHistory(hub);
   useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      const k = e.key.toLowerCase();
+      if (!mod || e.altKey || !(k === 'z' || k === 'y')) return;
+      if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable]')) return;
+      e.preventDefault();
+      const redo = k === 'y' || e.shiftKey;
+      const ok = redo ? history.redo() : history.undo();
+      haptic('select');
+      if (!ok) toast(redo ? 'Nothing to redo' : 'Nothing to undo');
+      else
+        toast(redo ? 'Done again' : 'Undone', {
+          action: { label: redo ? 'Undo' : 'Redo', run: () => void (redo ? history.undo() : history.redo()) },
+        });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [history, toast]);
+
+  useEffect(() => {
+    let g = 0;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
       if (t.closest('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === '?') {
+        e.preventDefault();
+        if (!document.querySelector('.sheet')) openSheet((close) => <ShortcutsSheet onClose={close} />);
+        return;
+      }
       // Not under a sheet, nor in an edit mode (Arrange the bar): keys there belong to it.
       if (document.querySelector('.sheet') || document.documentElement.classList.contains('is-editing')) return;
+      // G, then a letter: go somewhere.
+      if (performance.now() - g < 1200) {
+        g = 0;
+        const to = { t: { name: 'today' }, f: { name: 'lists' }, s: { name: 'settings' } }[e.key.toLowerCase()] as Parameters<typeof navigate>[0] | undefined;
+        if (to) {
+          e.preventDefault();
+          navigate(to);
+          return;
+        }
+      }
+      if (e.key === 'g' || e.key === 'G') {
+        g = performance.now();
+        return;
+      }
       if (e.key === '/') {
         e.preventDefault();
         openSearch();
@@ -406,7 +450,7 @@ function Duties() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [add, hub]);
+  }, [add, hub, openSheet]);
 
   return null;
 }

@@ -1,3 +1,4 @@
+import { quietly } from '../core/history';
 import type { Hub } from '../core/actions';
 import { today as todayStr } from '../core/dates';
 import type { Item, List } from '../core/model';
@@ -81,7 +82,8 @@ export function startTour(hub: Hub): string {
 /** Tick a step off (once), when it has really been done. */
 export function tourDone(hub: Hub, key: TourKey): void {
   const it = tourItem(hub, key);
-  if (it && !it.done) hub.toggle(it.id);
+  // The tour ticking itself: not one of my steps to undo.
+  if (it && !it.done) quietly(hub.store, () => hub.toggle(it.id));
 }
 
 /** Is this item a "tap me to open me" kind of step? Opening it is doing it. */

@@ -18,6 +18,9 @@ import { useAddAction } from '../addAction';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { useHub, useRt } from '../context';
 import { back, navigate } from '../router';
+import { isQuick, setQuick } from '../quick';
+import { movedTo } from '../components/TemplateAsk';
+import { usePrefs } from '../prefs';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
@@ -67,7 +70,7 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
  */
 function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onClose: () => void }) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const overlays = useOverlays();
   const item = hub.item(id);
   const [to, setTo] = useState<{ listId: string; parentId: string | null } | null>(null);
   if (!item) return null;
@@ -84,7 +87,7 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
     const was = { listId: item.listId, parentId: item.parentId ?? null };
     hub.move(id, to);
     onClose();
-    toast(`Moved to ${name(to)}`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
+    movedTo(hub, overlays, id, was.listId, to.parentId ? was.listId : to.listId, `Moved to ${name(to)}`, () => hub.move(id, was));
   };
   return (
     <Sheet onClose={onClose} title="Where it lives">
@@ -193,6 +196,7 @@ export function ItemScreen({ id }: { id: string }) {
   const { openSheet, toast } = useOverlays();
   const summarize = useSummary();
   const item = hub.item(id);
+  const inQuick = isQuick(id, usePrefs().quick);
   const [notes, setNotes] = useState(item?.notes ?? '');
   useEffect(() => setNotes(item?.notes ?? ''), [item?.notes]);
   // The + adds a step of this item (a chip in the sheet makes it its own task instead).
@@ -512,6 +516,17 @@ export function ItemScreen({ id }: { id: string }) {
                 icon: 'image' as const,
                 set: photoN > 0,
                 toggle: () => void addPhoto(),
+              },
+              {
+                key: 'quick',
+                label: 'Quick view',
+                icon: 'eye' as const,
+                set: inQuick,
+                toggle: () => {
+                  haptic('select');
+                  const undo = setQuick(id, !inQuick);
+                  toast(inQuick ? 'Out of your Quick view' : 'In your Quick view on Today', { action: { label: 'Undo', run: undo } });
+                },
               },
               ...(!item.parentId && (!item.done || item.ongoingAt)
                 ? [

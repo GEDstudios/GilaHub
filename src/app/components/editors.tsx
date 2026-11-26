@@ -62,7 +62,7 @@ export function useSummary() {
       parts.push(d.assignee === 'both' ? 'together' : d.assignee === 'turns' ? 'taking turns' : who === 'Me' ? 'for you' : `for ${who}`);
     }
     const r = remindText(d.remind);
-    if (r) parts.push(`notify ${r.toLowerCase()}${d.nag && !d.repeat ? `, then ${ruleShort(d.nag).toLowerCase()} until done` : ''}`);
+    if (r) parts.push(`notify ${r.toLowerCase()}${d.nag ? `, then ${ruleShort(d.nag).toLowerCase()} until done` : ''}`);
     if (!parts.length) return opts.listName ? `In ${opts.listName}` : 'No date';
     const s = parts.join(', ');
     return `${s[0].toUpperCase()}${s.slice(1)}.`;
@@ -525,21 +525,23 @@ export function WhenCard({
   const prefs = usePrefs();
   const h24 = use24h(prefs);
   const ref = todayStr();
-  const [part, setPart] = useState<'repeat' | 'notify' | 'again' | null>(null);
-  const flip = (p: 'repeat' | 'notify' | 'again') => setPart(part === p ? null : p);
+  const [part, setPart] = useState<'time' | 'repeat' | 'notify' | 'again' | null>(null);
+  const flip = (p: 'time' | 'repeat' | 'notify' | 'again') => setPart(part === p ? null : p);
+  const mouse = useMouse();
 
   const setDay = (due: string | null) => onChange(due ? { due, ...withNotification(value, due) } : { due: null, dueTime: null, remind: null, nag: null });
   const setTime = (dueTime: string | null) => onChange(dueTime ? { dueTime, due: value.due ?? ref, ...withNotification(value, value.due ?? ref) } : { dueTime: null });
   const onRepeat = (r: RepeatRule | null) => {
     const due = r && (r.type !== 'interval' || !value.due) ? firstDue(r, ref) : value.due;
-    onChange({ repeat: r, due, ...(r ? { nag: null } : {}), ...(due !== value.due ? withNotification(value, due) : {}) });
+    onChange({ repeat: r, due, ...(due !== value.due ? withNotification(value, due) : {}) });
   };
   const notifyOn = value.remind != null;
   const setNotify = (on: boolean) => {
     onChange(on ? { remind: 0, due: value.due ?? ref } : { remind: null, nag: null });
     setPart(on ? 'notify' : null);
   };
-  const again = remind && notifyOn && !value.repeat && value.nag !== undefined;
+  // Again until done: on a repeating task too (each time, until that time is done).
+  const again = remind && notifyOn && value.nag !== undefined;
 
   return (
     <div className="panel whencard">
@@ -555,6 +557,26 @@ export function WhenCard({
       <MonthPicker value={value.due} onPick={(d) => setDay(d === value.due ? null : d)} />
 
       <div className="whencard__rows">
+        {mouse ? (
+          // A computer: its own picker (type it, or pick the hour and the minutes), not the phone's wheel.
+          <WhenRow
+            icon="clock"
+            title="Time"
+            value={value.dueTime ? humanTime(value.dueTime, h24) : 'Any time'}
+            on={!!value.dueTime}
+            open={part === 'time'}
+            onOpen={() => flip('time')}
+            trail={
+              value.dueTime ? (
+                <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => (setTime(null), setPart(null))}>
+                  <Icon name="x" className="icon--xs" />
+                </button>
+              ) : undefined
+            }
+          >
+            <TimePanel value={value.dueTime} h24={h24} onChange={setTime} onDone={() => setPart(null)} />
+          </WhenRow>
+        ) : (
         <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
           <div className="whenrow__line">
             <label className="whenrow__btn whenrow__btn--time">
@@ -571,6 +593,7 @@ export function WhenCard({
             ) : null}
           </div>
         </div>
+        )}
         {repeat ? (
           <WhenRow icon="repeat" title="Repeat" value={value.repeat ? ruleShort(value.repeat) : 'Never'} on={!!value.repeat} open={part === 'repeat'} onOpen={() => flip('repeat')}>
             <RepeatPanel bare rule={value.repeat} defaultFrom={repeatFrom} onChange={onRepeat} />
@@ -695,6 +718,126 @@ function WhenRow({
         {trail}
       </div>
       {open ? <div className="whenrow__body">{children}</div> : null}
+    </div>
+  );
+}
+
+/** A mouse to point with (a computer): pickers made for it rather than for a thumb. */
+const MOUSE = '(hover: hover) and (pointer: fine)';
+function useMouse(): boolean {
+  const [on, setOn] = useState(() => typeof matchMedia === 'function' && matchMedia(MOUSE).matches);
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return;
+    const m = matchMedia(MOUSE);
+    const fn = () => setOn(m.matches);
+    m.addEventListener('change', fn);
+    return () => m.removeEventListener('change', fn);
+  }, []);
+  return on;
+}
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** "9", "930", "9:30", "18.30", "6pm", "6:15 am" → "HH:MM" (null if it isn't a time). */
+export function parseTime(text: string): string | null {
+  const m = text.trim().toLowerCase().match(/^(\d{1,2})(?:[:.\s]?(\d{2}))?\s*(a|am|p|pm)?$/);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  if (min > 59) return null;
+  if (m[3]) {
+    if (h < 1 || h > 12) return null;
+    h = (h % 12) + (m[3].startsWith('p') ? 12 : 0);
+  }
+  if (h > 23) return null;
+  return `${pad2(h)}:${pad2(min)}`;
+}
+
+const QUICK_TIMES = [
+  { label: 'Morning', t: '09:00' },
+  { label: 'Noon', t: '12:00' },
+  { label: 'Afternoon', t: '15:00' },
+  { label: 'Evening', t: '18:00' },
+  { label: 'Night', t: '21:00' },
+];
+
+/**
+ * The time, on a computer: type it ("9:30", "6pm"; ↑ ↓ move by a quarter hour, Enter keeps it),
+ * or pick a part of the day, or an hour and then its minutes. Every pick sets it at once.
+ */
+function TimePanel({ value, h24, onChange, onDone }: { value: string | null; h24: boolean; onChange: (t: string | null) => void; onDone: () => void }) {
+  const [text, setText] = useState(value ? humanTime(value, h24) : '');
+  const field = useRef<HTMLInputElement>(null);
+  // A pick elsewhere shows in the field (not while it's being typed in).
+  useEffect(() => {
+    if (document.activeElement !== field.current) setText(value ? humanTime(value, h24) : '');
+  }, [value, h24]);
+  useEffect(() => field.current?.focus(), []);
+  const [h, m] = value ? value.split(':').map(Number) : [null, null];
+  const typed = text.trim() ? parseTime(text) : null;
+  const bad = !!text.trim() && !typed;
+  const set = (t: string) => onChange(t);
+  const step = (by: number) => {
+    const base = value ? (h as number) * 60 + (m as number) : 9 * 60;
+    const next = (((Math.round(base / 15) * 15 + by) % 1440) + 1440) % 1440;
+    set(`${pad2(Math.floor(next / 60))}:${pad2(next % 60)}`);
+  };
+  const hourLabel = (n: number) => (h24 ? pad2(n) : `${n % 12 === 0 ? 12 : n % 12}${n < 12 ? 'a' : 'p'}`);
+  return (
+    <div className="timepick">
+      <div className={`timepick__field ${bad ? 'is-bad' : ''}`}>
+        <Icon name="clock" className="icon--sm" />
+        <input
+          ref={field}
+          value={text}
+          placeholder={h24 ? 'Type a time, like 9:30' : 'Type a time, like 6:30pm'}
+          aria-label="Time"
+          aria-invalid={bad}
+          onChange={(e) => {
+            setText(e.target.value);
+            const t = parseTime(e.target.value);
+            if (t) onChange(t);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+              e.preventDefault();
+              step(e.key === 'ArrowUp' ? 15 : -15);
+            } else if (e.key === 'Enter') {
+              e.preventDefault();
+              onDone();
+            }
+          }}
+          onBlur={() => setText(value ? humanTime(value, h24) : '')}
+        />
+        <span className="timepick__keys" aria-hidden="true">
+          <kbd>↑</kbd>
+          <kbd>↓</kbd>
+        </span>
+      </div>
+      <div className="timepick__quick" role="group" aria-label="Part of the day">
+        {QUICK_TIMES.map((q) => (
+          <button key={q.t} type="button" className={`timepick__q ${value === q.t ? 'is-on' : ''}`} aria-pressed={value === q.t} onClick={() => set(q.t)}>
+            <span>{q.label}</span>
+            <span className="timepick__qt num">{humanTime(q.t, h24)}</span>
+          </button>
+        ))}
+      </div>
+      <div className="timepick__grid">
+        <div className="timepick__hours" role="group" aria-label="Hour">
+          {Array.from({ length: 24 }, (_, n) => (
+            <button key={n} type="button" className={`timepick__h num ${h === n ? 'is-on' : ''} ${n < 6 ? 'is-night' : ''}`} aria-pressed={h === n} aria-label={humanTime(`${pad2(n)}:00`, h24)} onClick={() => set(`${pad2(n)}:${pad2(m ?? 0)}`)}>
+              {hourLabel(n)}
+            </button>
+          ))}
+        </div>
+        <div className="timepick__mins" role="group" aria-label="Minutes">
+          {[0, 15, 30, 45].map((n) => (
+            <button key={n} type="button" className={`timepick__m num ${m === n ? 'is-on' : ''}`} aria-pressed={m === n} onClick={() => set(`${pad2(h ?? 9)}:${pad2(n)}`)}>
+              :{pad2(n)}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

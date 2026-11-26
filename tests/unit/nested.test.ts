@@ -141,11 +141,22 @@ describe('notify again until done', () => {
     expect(desiredReminders(hub, now).filter((r) => r.id.startsWith(id))).toEqual([]);
   });
 
-  it('is not for repeating things', async () => {
+  it('on a repeating task: every day until this time is done, never twice on a day it is due anyway', async () => {
+    const { desiredReminders } = await import('../../src/app/reminders');
+    const { atLocal } = await import('../../src/core/dates');
     const hub = await person('guy');
     const l = hub.createList({ name: 'Home', kind: 'tasks' });
-    const id = hub.addItem(l, { title: 'Bins', due: '2026-11-23', remind: 0, repeat: { type: 'interval', every: 1, unit: 'week', from: 'schedule' }, nag: { type: 'interval', every: 1, unit: 'day', from: 'schedule' } });
-    expect(hub.item(id)?.nag).toBeNull();
+    // Rent: monthly on the 1st; a nudge every day until it's paid.
+    const id = hub.addItem(l, { title: 'Pay rent', due: '2026-11-01', remind: 0, repeat: { type: 'monthdays', days: [1] }, nag: { type: 'interval', every: 1, unit: 'day', from: 'schedule' } });
+    expect(hub.item(id)?.nag).toMatchObject({ unit: 'day' });
+    const now = atLocal('2026-11-26', '12:00');
+    const ids = desiredReminders(hub, now).filter((r) => r.id.startsWith(id)).map((r) => r.id);
+    expect(ids.filter((x) => x.includes('.n'))).toEqual(['27', '28', '29', '30'].map((d) => `${id}.n2026-11-${d}`).concat([`${id}.n2026-12-02`, `${id}.n2026-12-03`]));
+    expect(ids).toContain(`${id}.1`);
+    hub.toggle(id);
+    // Paid: this month's nagging stops; next month's starts after the 1st.
+    expect(hub.item(id)?.due).toBe('2026-12-01');
+    expect(desiredReminders(hub, now).filter((r) => r.id.includes('.n'))[0].id).toBe(`${id}.n2026-12-02`);
   });
 });
 

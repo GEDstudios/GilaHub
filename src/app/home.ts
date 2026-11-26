@@ -3,6 +3,7 @@ import { addDays, diffDays, fromDateStr, humanDate, today as todayStr, weekdayNa
 import { onThisDay } from './moments';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';
 import { keepDormant } from './tabs';
+import { quickItems } from './quick';
 import type { IconName } from './ui/Icon';
 import { openCount, type TodayView } from './views';
 
@@ -14,10 +15,11 @@ import { openCount, type TodayView } from './views';
  */
 export const MAX_HOME_PROJECTS = 3;
 
-export type WidgetKey = 'today' | 'upcoming' | 'week';
+export type WidgetKey = 'today' | 'quick' | 'upcoming' | 'week';
 
 export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'today', on: true },
+  { key: 'quick', on: true },
   { key: 'upcoming', on: true },
   { key: 'week', on: true },
 ];
@@ -32,6 +34,7 @@ export interface WidgetDef {
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   // Today holds what my person asked of me too (docs/07-HOME.md): one list of things to do.
   today: { title: () => 'Today', icon: 'sun' },
+  quick: { title: () => 'Quick view', icon: 'eye' },
   upcoming: { title: () => 'The week', icon: 'calendar' },
   week: { title: (hub) => (hub.partner() ? 'Us' : 'Your week'), icon: 'heart' },
 };
@@ -302,6 +305,10 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
     case 'week': {
       const { week } = weekCounts(hub);
       return join([week > 0 && `${week} done`, v.recent.length > 0 && `${p} did ${v.recent.length} since yesterday`], 'How the week went, and your moments');
+    }
+    case 'quick': {
+      const n = quickItems(hub).length;
+      return join([n > 0 && `${n} you chose`], 'Tasks you pick (Quick view on a task)');
     }
     case 'upcoming': {
       const n = aheadOf(v).length;

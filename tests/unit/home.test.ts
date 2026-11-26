@@ -67,14 +67,14 @@ describe('home layout', () => {
     const hub = await solo();
     expect(homeOf(hub)).toEqual(DEFAULT_HOME);
     expect(isDefaultHome(hub)).toBe(true);
-    expect(keys(visibleHome(hub))).toEqual(['today', 'upcoming', 'week']);
+    expect(keys(visibleHome(hub))).toEqual(['today', 'quick', 'upcoming', 'week']);
     // The tray offers only what could show: never asks or partner while solo.
     expect(hiddenWidgets(hub)).toEqual([]);
   });
 
   it('shows the whole default page once paired', async () => {
     const { guy } = await couple();
-    expect(keys(visibleHome(guy))).toEqual(['today', 'upcoming', 'week']);
+    expect(keys(visibleHome(guy))).toEqual(['today', 'quick', 'upcoming', 'week']);
     expect(slotTitle(guy, 'week')).toBe('Us');
   });
 
@@ -95,7 +95,7 @@ describe('home layout', () => {
     expect(out.filter((k) => k === 'week')).toHaveLength(1);
     expect(homeOf(hub).find((s) => s.key === 'week')!.on).toBe(true);
     // My order (week, then today) stands; the defaults I never stored go in after their predecessor.
-    expect(out).toEqual(['week', 'today', 'upcoming']);
+    expect(out).toEqual(['week', 'today', 'quick', 'upcoming']);
   });
 
   it('drops a deleted or archived project, and keeps at most 3', async () => {
@@ -170,13 +170,13 @@ describe('home layout', () => {
       ],
     });
     // week follows its nearest known predecessor (upcoming).
-    expect(keys(homeOf(hub))).toEqual(['upcoming', 'week', 'today']);
+    expect(keys(homeOf(hub))).toEqual(['upcoming', 'week', 'today', 'quick']);
   });
 
   it('keeps a hidden widget hidden', async () => {
     const hub = await solo();
     hideHome(hub, 'upcoming');
-    expect(keys(visibleHome(hub))).toEqual(['today', 'week']);
+    expect(keys(visibleHome(hub))).toEqual(['today', 'quick', 'week']);
     expect(homeOf(hub).find((s) => s.key === 'upcoming')).toEqual({ key: 'upcoming', on: false });
     expect(hiddenWidgets(hub)).toContain('upcoming');
     expect(isDefaultHome(hub)).toBe(false);
@@ -185,9 +185,10 @@ describe('home layout', () => {
   it('reorders what shows and keeps hidden and unavailable entries in place', async () => {
     const hub = await solo();
     hideHome(hub, 'week');
-    // Visible: today, upcoming. Stored: today, upcoming, week(off).
+    hideHome(hub, 'quick');
+    // Visible: today, upcoming. Stored: today, quick(off), upcoming, week(off).
     reorderHome(hub, ['upcoming', 'today']);
-    expect(keys(homeOf(hub))).toEqual(['upcoming', 'today', 'week']);
+    expect(keys(homeOf(hub))).toEqual(['upcoming', 'quick', 'today', 'week']);
     expect(homeOf(hub).find((s) => s.key === 'week')!.on).toBe(false);
     expect(keys(visibleHome(hub))).toEqual(['upcoming', 'today']);
     // Not a permutation of what shows: ignored.
@@ -198,7 +199,7 @@ describe('home layout', () => {
   it('brings things back right after the last visible block', async () => {
     const { guy } = await couple();
     hideHome(guy, 'week');
-    expect(keys(visibleHome(guy))).toEqual(['today', 'upcoming']);
+    expect(keys(visibleHome(guy))).toEqual(['today', 'quick', 'upcoming']);
     expect(showHome(guy, 'week')).toBe(true);
     expect(keys(visibleHome(guy)).at(-1)).toBe('week');
     expect(showHome(guy, 'nope')).toBe(false);
@@ -224,6 +225,7 @@ describe('home layout', () => {
     const { guy } = await couple();
     const phone = new Hub(guy.store, 'guy');
     hideHome(guy, 'upcoming');
+    hideHome(guy, 'quick');
     reorderHome(guy, ['week', 'today']);
     expect(keys(visibleHome(phone))).toEqual(['week', 'today']);
   });

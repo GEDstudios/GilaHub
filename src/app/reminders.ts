@@ -61,7 +61,9 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
       out.push({ id: `${item.id}.${i}`, at, members, scope, note: { title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`, body: `${when} · ${list.name}`, url: `/i/${item.id}`, tag: item.id } });
     });
     // Again until done: the next few times on its rhythm after the first, while it's still open.
-    if (item.nag && !item.repeat) {
+    // On a repeating task, for the time that's due now (a day its next time is due has that reminder already).
+    if (item.nag) {
+      const own = new Set(dues);
       const rule = item.nag.type === 'interval' ? { ...item.nag, from: 'schedule' as const } : item.nag;
       let d = item.due;
       let n = 0;
@@ -69,7 +71,7 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
         d = nextDue(rule, d, d);
         const at = reminderTime(item, d);
         if (at > now + NAG_HORIZON) break;
-        if (at < now - 60_000) continue;
+        if (at < now - 60_000 || own.has(d)) continue;
         n++;
         out.push({
           id: `${item.id}.n${d}`,

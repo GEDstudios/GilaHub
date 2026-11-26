@@ -97,6 +97,12 @@ export class Store {
     this.readable = new Set(scopes);
   }
 
+  /**
+   * Told of every local write, with what it changes from and to (field by field; `_s` is the
+   * privacy scope) and whether the entity is new. For undo and redo (core/history.ts).
+   */
+  onWrite: ((t: Table, id: string, before: Record<string, unknown>, after: Record<string, unknown>, fresh: boolean) => void) | null = null;
+
   /** Raw record (including deleted entities) — for undo and debugging. */
   record(t: Table, id: string): EntityRecord | undefined {
     return this.records.get(recKey(t, id));
@@ -125,13 +131,17 @@ export class Store {
       this.records.set(k, rec);
     }
     const f: Record<string, unknown> = {};
+    const was: Record<string, unknown> = {};
+    const fresh = !Object.keys(rec.v).some((k) => k !== '_s');
     for (const [name, raw] of Object.entries(fields)) {
       if (name === 'id' || name === '_s') continue;
       const val = raw === undefined ? null : raw;
+      was[name] = rec.v[name] ?? null;
       f[name] = val;
       rec.v[name] = val;
       rec.c[name] = h;
     }
+    this.onWrite?.(t, id, was, f, fresh);
     const op: Op = { t, id, f, h };
     this.enqueue({ cid: newId(12), s: this.scopeOf(t, id), op });
     this.touch(rec);
@@ -155,6 +165,7 @@ export class Store {
     if (scope === 'h') return;
     const h = this.clock.now();
     const rec: EntityRecord = { t, id, v: { _s: scope }, c: { _s: h } };
+    this.onWrite?.(t, id, {}, { _s: scope }, true);
     this.records.set(recKey(t, id), rec);
     this.enqueue({ cid: newId(12), s: scope, op: { t, id, f: { _s: scope }, h } });
     this.touch(rec);
@@ -167,6 +178,7 @@ export class Store {
     const prev = this.scopeOf(t, id);
     if (prev === next) return;
     const h = this.clock.now();
+    this.onWrite?.(t, id, { _s: prev }, { _s: next }, false);
     rec.v._s = next;
     rec.c._s = h;
     this.enqueue({ cid: newId(12), s: prev, op: { t, id, f: { _s: next }, h } });

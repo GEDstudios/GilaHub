@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
-import { HomeNotices, InviteCard, ProjectWidget } from '../components/HomeWidgets';
+import { HomeNotices, InviteCard, ProjectWidget, QuickView } from '../components/HomeWidgets';
 import { DayCard, TodayList, UsTile, WeekStrip } from '../components/Home';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
@@ -144,6 +144,8 @@ export function Today() {
       case 'today':
         // What my person asked waits in Us's cards; with Us hidden, folded under the list.
         return <TodayList key={key} v={v} day={ref} settle={settle} asksHere={!slots.some((x) => x.key === 'week')} />;
+      case 'quick':
+        return <QuickView key={key} settle={settle} show={filter.active ? (i) => filter.test(i, true) : undefined} />;
       case 'upcoming':
         return <WeekStrip key={key} v={v} day={ref} />;
       case 'week':

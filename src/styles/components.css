@@ -8101,3 +8101,189 @@ textarea.nf__write {
   color: var(--text-3);
   padding-right: 2px;
 }
+
+/* ============================================================ Time, on a computer: type it, or pick it */
+.timepick {
+  display: grid;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.timepick__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px 0 14px;
+  border-radius: 14px;
+  background: var(--tile);
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1.5px transparent;
+  transition: box-shadow 140ms var(--ease);
+}
+
+.timepick__field:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.timepick__field.is-bad {
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+.timepick__field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.timepick__keys {
+  display: flex;
+  gap: 3px;
+}
+
+.timepick__keys kbd {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--card);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+  font: 600 11px/1 inherit;
+  color: var(--text-3);
+}
+
+.timepick__quick {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.timepick__q {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: var(--tile);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 120ms var(--ease), transform 120ms var(--ease);
+}
+
+.timepick__qt {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.timepick__grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.timepick__hours {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.timepick__h,
+.timepick__m {
+  height: 32px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 120ms var(--ease), color 120ms var(--ease);
+}
+
+.timepick__h.is-night {
+  color: var(--text-3);
+}
+
+.timepick__mins {
+  display: grid;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.timepick__m {
+  padding: 0 12px;
+}
+
+@media (hover: hover) {
+  .timepick__q:hover,
+  .timepick__h:hover,
+  .timepick__m:hover {
+    background: var(--tile-2);
+  }
+}
+
+.timepick__q.is-on,
+.timepick__h.is-on,
+.timepick__m.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.timepick__q.is-on .timepick__qt {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* ============================================================ Shortcuts */
+.keys {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.keys__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.keys__row:last-child {
+  border-bottom: 0;
+}
+
+.keys__what {
+  color: var(--text);
+}
+
+.keys__keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-3);
+}
+
+.keys__keys kbd {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--tile);
+  box-shadow: inset 0 -2px 0 var(--tile-2);
+  font: 600 13px/1 var(--font);
+  color: var(--ink);
+}
