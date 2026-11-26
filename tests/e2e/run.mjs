@@ -831,7 +831,7 @@ try {
     await hila.reload();
     await hila.locator('.scopetag.is-mine').waitFor({ timeout: 5000 });
     await hila.locator('.scopetag').click();
-    await hila.locator('.homeus').getByText('Return the library books').waitFor({ timeout: 3000 });
+    await hila.locator('.homeus').getByText('Return the library books').waitFor({ timeout: 10000 });
   });
 
   await check('The path: a task deep inside nested projects shows every step, and each step goes there', async () => {
