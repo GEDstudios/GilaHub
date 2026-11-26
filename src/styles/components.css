@@ -7186,3 +7186,46 @@ textarea.nf__write {
 .home__lead .lens {
   margin-top: 14px;
 }
+
+/* A project a dragged task would land in: it lifts and rings in ink, so where it goes is plain. */
+.projgrid .projcard.is-droptarget,
+.projcard.is-droptarget {
+  transform: rotate(0deg) scale(1.05);
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
+  transition: transform 180ms var(--spring);
+}
+
+/* The task being dropped into a project: a small ink chip under the hand. */
+.dropchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 240px;
+  height: 38px;
+  padding: 0 15px 0 12px;
+  border-radius: 999px;
+  background: var(--cta);
+  color: var(--cta-text);
+  font-size: 14.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 10px 24px rgb(10 10 4 / 0.22);
+}
+
+.crumbs__step.is-droptarget,
+.topnav__tab.is-droptarget,
+.tabbar .is-droptarget {
+  border-radius: 10px;
+  background: var(--cta);
+  color: var(--cta-text);
+  box-shadow: 0 0 0 4px var(--cta);
+  transition: background 140ms var(--ease);
+}
+
+.crumbs__step.is-droptarget .crumbs__go,
+.crumbs__step.is-droptarget .icon {
+  color: inherit;
+}

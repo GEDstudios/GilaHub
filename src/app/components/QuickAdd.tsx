@@ -16,6 +16,14 @@ import { TagMark, TagPicker, tagsLabel } from './Tags';
 import type { Hub } from '../../core/actions';
 import { usePingUrgent } from './add';
 
+/** What a composer had picked: kept with a draft so a reload brings it all back. */
+export interface ComposeSeed {
+  over: Partial<Draft>;
+  place: { listId: string; parentId: string | null } | null;
+  tags: string[] | null;
+  ignore: string[];
+}
+
 export function useParseContext(_list?: List): ParseContext {
   const hub = useHub();
   const prefs = usePrefs();
@@ -41,11 +49,14 @@ export function useCompose({
   defaultDue,
   text,
   route,
+  seed,
 }: {
   listId: string;
   parentId?: string | null;
   defaultDue?: string | null;
   text: string;
+  /** Picked before (a draft brought back after a reload): chips, place, tags, words kept as text. */
+  seed?: ComposeSeed;
   /** On a project showing what's inside it too: each thing goes where it belongs ("bulbs" → Home shopping), until a project is picked. */
   route?: boolean;
 }) {
@@ -53,12 +64,12 @@ export function useCompose({
   const rt = useRt();
   const { toast } = useOverlays();
   const pingUrgent = usePingUrgent();
-  const [ignore, setIgnore] = useState<Set<string>>(new Set());
-  const [over, setOver] = useState<Partial<Draft>>({});
+  const [ignore, setIgnore] = useState<Set<string>>(() => new Set(seed?.ignore ?? []));
+  const [over, setOver] = useState<Partial<Draft>>(seed?.over ?? {});
   // Where it goes, once picked: a project, or a task in one (then it's a subtask of that task).
-  const [place, setPlace] = useState<{ listId: string; parentId: string | null } | null>(null);
+  const [place, setPlace] = useState<{ listId: string; parentId: string | null } | null>(seed?.place ?? null);
   // Its tags, once picked; until then, what the words suggest by themselves (Hub.suggestTags).
-  const [picked, setTags] = useState<string[] | null>(null);
+  const [picked, setTags] = useState<string[] | null>(seed?.tags ?? null);
   const target = place?.listId ?? null;
   const base = (target ? hub.list(target) : undefined) ?? hub.list(listId);
   const parentPick = place ? place.parentId : parentId;
@@ -152,7 +163,9 @@ export function useCompose({
     return id;
   };
 
-  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, mode, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested };
+  /** What was picked, to keep through a reload. */
+  const seedOut: ComposeSeed = { over, place, tags: picked, ignore: [...ignore] };
+  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, mode, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested, seed: seedOut };
 }
 
 export type Compose = ReturnType<typeof useCompose>;

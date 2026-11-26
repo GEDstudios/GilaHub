@@ -10,6 +10,8 @@ export interface Crumb {
   go: () => void;
   /** Move what's on this page into this step instead (asked first). */
   move?: () => void;
+  /** A project: a dragged task can be dropped on it. */
+  drop?: string;
 }
 
 /**
@@ -23,7 +25,7 @@ export function PathCrumbs({ steps }: { steps: Crumb[] }) {
       {steps.map((s, i) => (
         <Fragment key={s.key}>
           {i ? <Icon name="chevron-right" className="crumbs__sep" /> : null}
-          <span className="crumbs__step">
+          <span className="crumbs__step" data-drop-list={s.drop}>
             <button type="button" className="crumbs__go" onClick={s.go} dir="auto">
               {s.label}
             </button>
@@ -43,6 +45,6 @@ export function PathCrumbs({ steps }: { steps: Crumb[] }) {
 export function projectPath(hub: Hub, id: string): Crumb[] {
   return [
     { key: 'projects', label: 'Projects', go: () => navigate({ name: 'lists' }) },
-    ...hub.listPath(id).map((l) => ({ key: l.id, label: l.name, go: () => navigate({ name: 'list', id: l.id }) })),
+    ...hub.listPath(id).map((l) => ({ key: l.id, label: l.name, go: () => navigate({ name: 'list', id: l.id }), drop: l.id })),
   ];
 }

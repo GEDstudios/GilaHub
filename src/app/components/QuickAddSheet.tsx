@@ -12,7 +12,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
 import { EChip, InlineEditor, useSummary, type Field } from './editors';
-import { listChip, ParsedToken, tagChip, useCompose } from './QuickAdd';
+import { listChip, ParsedToken, tagChip, useCompose, type ComposeSeed } from './QuickAdd';
 
 /**
  * New: the one way to add, from the black + on every screen. You write straight onto the
@@ -22,6 +22,46 @@ import { listChip, ParsedToken, tagChip, useCompose } from './QuickAdd';
  * day), else the last project you added to, else To do. Shopping stays open for the next
  * item until Done.
  */
+/**
+ * A thing half-written in New is kept on this device while the sheet is open, so a reload (an
+ * update, a pull, the phone's own) brings it back as it was: the words, the project, the chips,
+ * the subtasks. Closing the sheet, or adding, lets it go.
+ */
+const DRAFT_KEY = 'gila-hub:composer';
+const DRAFT_TTL = 24 * 3600_000;
+
+export interface ComposerDraft {
+  text: string;
+  listId: string;
+  parentId: string | null;
+  defaultDue?: string | null;
+  route?: boolean;
+  own: string[];
+  asStep: boolean;
+  seed: ComposeSeed;
+  at: number;
+}
+
+function saveDraft(d: ComposerDraft | null) {
+  try {
+    if (d) localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    else localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* storage blocked */
+  }
+}
+
+/** The draft left by a reload, if it's recent and still has somewhere to go. */
+export function pendingDraft(hub: ReturnType<typeof useHub>): ComposerDraft | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as ComposerDraft | null;
+    if (!d || Date.now() - d.at > DRAFT_TTL || !hub.list(d.listId) || (!d.text?.trim() && !d.own?.length)) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
 export function QuickAddSheet({
   onClose,
   defaultDue,
@@ -29,8 +69,11 @@ export function QuickAddSheet({
   parentId,
   route,
   text,
+  restore,
 }: {
   onClose: () => void;
+  /** A draft a reload interrupted: back exactly as it was. */
+  restore?: ComposerDraft;
   /** Start with these words on the card (a suggestion tapped on the page). */
   text?: string;
   defaultDue?: string | null;
@@ -43,6 +86,20 @@ export function QuickAddSheet({
   const hub = useHub();
   const lists = hub.lists();
   const last = getPrefs().lastList;
+  if (restore && hub.list(restore.listId))
+    return (
+      <Sheet onClose={onClose} label="New">
+        <Composer
+          listId={restore.listId}
+          parentId={restore.parentId}
+          defaultDue={restore.defaultDue}
+          route={restore.route}
+          initialText={restore.text}
+          restore={restore}
+          onDone={onClose}
+        />
+      </Sheet>
+    );
   const initial =
     (listId && hub.list(listId)) ||
     (last && lists.find((l) => l.id === last)) ||
@@ -68,6 +125,7 @@ function Composer({
   defaultDue,
   route,
   initialText = '',
+  restore,
   onDone,
 }: {
   listId: string;
@@ -75,6 +133,7 @@ function Composer({
   defaultDue?: string | null;
   route?: boolean;
   initialText?: string;
+  restore?: ComposerDraft;
   onDone: () => void;
 }) {
   const hub = useHub();
@@ -84,9 +143,9 @@ function Composer({
   const summarize = useSummary();
   const [text, setText] = useState(initialText);
   const [roll] = useState(Math.random);
-  const [asStep, setAsStep] = useState(!!parentId);
+  const [asStep, setAsStep] = useState(restore ? restore.asStep : !!parentId);
   const [added, setAdded] = useState<string[]>([]);
-  const [own, setOwn] = useState<string[]>([]);
+  const [own, setOwn] = useState<string[]>(restore?.own ?? []);
   const [stepText, setStepText] = useState('');
   const field = useRef<HTMLTextAreaElement>(null);
   // "Task: a, b and c" puts its steps in the words (not for shopping, nor for a step itself).
@@ -97,7 +156,17 @@ function Composer({
     defaultDue,
     text: words.head,
     route,
+    seed: restore?.seed,
   });
+
+  // Kept while it's being written (a reload brings it back); gone once added or closed.
+  const keep = text.trim() || own.length ? JSON.stringify({ text, own, asStep, seed: c.seed }) : '';
+  useEffect(() => {
+    if (!keep) return saveDraft(null);
+    saveDraft({ text, listId, parentId, defaultDue, route, own, asStep, seed: c.seed, at: Date.now() });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keep]);
+  useEffect(() => () => saveDraft(null), []);
   const { draft, dest, parsed } = c;
   const title = parsed.title.trim();
   const fields = FIELDS.filter((f) => f !== 'who' || draft.visibility !== 'private');

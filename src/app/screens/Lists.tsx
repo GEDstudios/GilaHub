@@ -183,6 +183,7 @@ export function ProjectCard({ list, onClick }: { list: List; onClick?: () => voi
       style={{ ...lineVars(list.color), ['--tilt' as string]: `${tilt(list.id)}deg` }}
       onClick={onClick ?? (() => navigate({ name: 'list', id: list.id }))}
       data-drag
+      data-drop-list={list.id}
     >
       {/* The name gets the card's whole width; the glyph sits low, by the count. */}
       <span className="ccard__top">

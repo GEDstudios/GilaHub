@@ -454,7 +454,8 @@ export function Sortable({
     };
     if (bar) return [probe, ({ transform }) => (drag.current?.out ? transform : { ...transform, y: transform.y * ROW_X })];
     if (!rows) return [probe];
-    const damp: Modifier = ({ transform }) => ({ ...transform, x: transform.x * ROW_X });
+    // A row moves up and down, only a little sideways; over an outside target it follows the hand.
+    const damp: Modifier = ({ transform }) => (drag.current?.out ? transform : { ...transform, x: transform.x * ROW_X });
     const keep: Modifier = ({ transform }) => {
       const d = drag.current;
       if (!d?.box) return transform;

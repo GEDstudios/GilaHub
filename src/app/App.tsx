@@ -13,7 +13,7 @@ import { NotesLayer, useNoteHere } from './components/Notes';
 import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
-import { QuickAddSheet } from './components/QuickAddSheet';
+import { pendingDraft, QuickAddSheet } from './components/QuickAddSheet';
 import { TabBar } from './components/TabBar';
 import { RuntimeProvider, useHub, useRt } from './context';
 import { usePrefs } from './prefs';
@@ -55,12 +55,13 @@ function useAdd() {
 function MenuGlyph({ kind }: { kind: 'task' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
-      // Same language as the folder and note: a flat lilac disc with one thin ink outline, left
-      // open at the top right where the check's tip passes out of it.
+      // The folder's and the note's language: a pink disc, its lower half lighter (like the
+      // folder's front), one 1.6 ink line open at the top right where the tick, as fine, leaves it.
       <svg className="addmenu__glyph" aria-hidden="true" viewBox="0 0 40 40">
-        <circle cx="19.5" cy="21" r="14" fill="var(--lilac)" />
+        <circle cx="19.5" cy="21" r="14" fill="var(--pink)" />
+        <path d="M5.5 22a14 14 0 0 0 28 0z" fill="color-mix(in srgb, var(--pink) 40%, #fff)" />
         <circle cx="19.5" cy="21" r="14" fill="none" stroke="#0a0a04" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="72.82 15.15" transform="rotate(-16.3 19.5 21)" />
-        <path d="M12.1 21.4L16.9 26.2L31.8 7.2" fill="none" stroke="#0a0a04" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12.1 21.4L16.9 26.2L31.8 7.2" fill="none" stroke="#0a0a04" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   if (kind === 'project')
@@ -190,7 +191,14 @@ function TopNav() {
         </button>
         <nav className="topnav__tabs" aria-label="Places">
           {tabs.map((t) => (
-            <button key={t.key} type="button" className={`topnav__tab ${on === t.key ? 'is-on' : ''}`} aria-current={on === t.key ? 'page' : undefined} onClick={() => navigate(t.path)}>
+            <button
+              key={t.key}
+              type="button"
+              className={`topnav__tab ${on === t.key ? 'is-on' : ''}`}
+              aria-current={on === t.key ? 'page' : undefined}
+              onClick={() => navigate(t.path)}
+              data-drop-list={t.key.startsWith('l:') ? t.key.slice(2) : undefined}
+            >
               {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
               <span dir="auto">{t.label}</span>
               {counts[t.key] ? <span className="topnav__count num">{counts[t.key]}</span> : null}
@@ -404,6 +412,14 @@ function Shell() {
       navigate('/', { replace: true });
       openSearch();
     }
+  }, []);
+  // Something was being written in New when the app reloaded: open it again, as it was.
+  const hub = useHub();
+  const { openSheet } = useOverlays();
+  useEffect(() => {
+    const draft = pendingDraft(hub);
+    if (draft) openSheet((close) => <QuickAddSheet onClose={close} restore={draft} />);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <div className="app">

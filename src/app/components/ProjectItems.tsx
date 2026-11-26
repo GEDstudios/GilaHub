@@ -6,13 +6,24 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { ListBullet } from '../ui/primitives';
-import { Sortable, useSortableItem } from '../ui/Sortable';
+import { Sortable, useSortableItem, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import type { ProjectGroup } from '../views';
 import { ItemRow } from './ItemRow';
 import { TagMark } from './Tags';
 
 const idOf = (i: Item) => i.id;
+
+/** The project under the hand, if any: one marked [data-drop-list], or a project's tab in the bar. */
+function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
+  for (const e of document.elementsFromPoint(p.x, p.y)) {
+    const t = e.closest<HTMLElement>('[data-drop-list], .tabbar [data-key^="l:"]');
+    if (!t) continue;
+    const listId = t.dataset.dropList ?? t.dataset.key?.slice(2);
+    if (listId) return { el: t, listId };
+  }
+  return null;
+}
 
 type RowProps = { item: Item; settling?: boolean; showList?: boolean; skipTag?: string | null; flash?: boolean };
 
@@ -64,6 +75,42 @@ export function ProjectItems({
     window.addEventListener('pointermove', track, { capture: true, passive: true });
     return () => window.removeEventListener('pointermove', track, { capture: true });
   }, []);
+
+  // Drop a task on a project (a folder here, a step of the path, a project in the bar): it moves there.
+  const lifted = useRef<string | null>(null);
+  const lit = useRef<HTMLElement | null>(null);
+  const light = (el: HTMLElement | null) => {
+    if (lit.current === el) return;
+    lit.current?.classList.remove('is-droptarget');
+    el?.classList.add('is-droptarget');
+    if (el) haptic('select');
+    lit.current = el;
+  };
+  const into = {
+    hit: (p: Point) => {
+      const t = dropListAt(p);
+      return !!t && t.listId !== hub.item(lifted.current)?.listId;
+    },
+    aim: (p: Point | null) => light(p ? (dropListAt(p)?.el ?? null) : null),
+    drop: (id: string, p: Point) => {
+      const t = dropListAt(p);
+      const item = hub.item(id);
+      const to = hub.list(t?.listId);
+      light(null);
+      if (!t || !item || !to) return;
+      const was = { listId: item.listId, parentId: item.parentId ?? null };
+      hub.move(id, { listId: to.id, parentId: null });
+      haptic('success');
+      toast(`Moved to ${to.name}`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
+    },
+    lift: (id: string) => {
+      lifted.current = id;
+    },
+    end: () => {
+      lifted.current = null;
+      light(null);
+    },
+  };
 
   const onMove = (next: string[], id: string) => {
     const from = groupOf.get(id);
@@ -151,9 +198,18 @@ export function ProjectItems({
           onMove={onMove}
           layout={cards ? 'grid' : 'rows'}
           bounds="none"
+          outside={into}
           label={(id) => hub.item(id)?.title ?? ''}
-          renderOverlay={(id) => {
+          renderOverlay={(id, { outside }) => {
             const item = hub.item(id);
+            // Over a project: the task as a small chip, going in.
+            if (item && outside)
+              return (
+                <span className="dropchip">
+                  <Icon name="move" className="icon--sm" />
+                  <span dir="auto">{item.title}</span>
+                </span>
+              );
             return item ? (
               <ul className={rowsClass}>
                 <ItemRow item={item} showList={showList} skipTag={groupOf.get(id)?.tag} />
