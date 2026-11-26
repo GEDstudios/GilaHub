@@ -6916,3 +6916,28 @@ textarea.nf__write {
 .whencard__clear:active {
   transform: scale(0.96);
 }
+
+/* Urgent as a list: the lemon card holds its things as a white list inside it */
+.aisle--urgent .rows:not(.rows--cards) {
+  padding: 0 10px 10px;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .row {
+  background: #fff;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .aisle__cap + .row {
+  border-radius: 14px 14px 0 0;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .row:last-child {
+  border-radius: 0 0 14px 14px;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .aisle__cap + .row:last-child {
+  border-radius: 14px;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .row + .row::before {
+  background: rgb(10 10 4 / 0.07);
+}

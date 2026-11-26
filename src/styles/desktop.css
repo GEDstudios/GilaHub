@@ -348,6 +348,25 @@
     background: transparent;
   }
 
+  /* As a list too: the white list sits in the lemon card (the card is the list's own lemon) */
+  .main .aisle--urgent:not(:has(.rows--cards)) {
+    padding: 0;
+  }
+
+  .main .aisle--urgent .rows:not(.rows--cards) {
+    padding: 0 10px 10px;
+    background: var(--lemon);
+    border-radius: 14px;
+  }
+
+  .main .aisle--urgent .rows:not(.rows--cards) .row {
+    background: #fff;
+  }
+
+  .main .aisle--urgent .rows:not(.rows--cards) .row:hover {
+    background: #f7f7f3;
+  }
+
   /* As cards, Urgent is one lemon card with white cards in it */
   .main .aisle--urgent:has(.rows--cards) {
     padding: 12px 12px 12px;
