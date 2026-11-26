@@ -151,14 +151,26 @@ export const ItemRow = memo(function ItemRow({
     >
       {intoOngoing ? (
         <span className="row__swipe row__swipe--right" aria-hidden="true">
-          <Icon name="play" />
-          Ongoing
+          <span className="row__swipeset">
+            <span className="row__swipedisc">
+              <svg viewBox="0 0 24 24">
+                <path d="M8.5 5.6v12.8c0 .9 1 1.4 1.7.9l9.4-6.4a1.1 1.1 0 0 0 0-1.8l-9.4-6.4c-.7-.5-1.7 0-1.7.9Z" />
+              </svg>
+            </span>
+            <span className="row__swipelabel">Ongoing</span>
+          </span>
         </span>
       ) : null}
       {outOfOngoing ? (
         <span className="row__swipe row__swipe--left" aria-hidden="true">
-          Not now
-          <Icon name="x" />
+          <span className="row__swipeset">
+            <span className="row__swipedisc">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 7l10 10M17 7L7 17" fill="none" strokeWidth="2.6" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className="row__swipelabel">Not now</span>
+          </span>
         </span>
       ) : null}
       <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />

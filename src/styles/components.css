@@ -7553,50 +7553,117 @@ textarea.nf__write {
   transition: background 140ms var(--ease);
 }
 
-/* What letting go will do, under the row: a band in my colour (Ongoing) or a quiet one (Not now). */
+/*
+ * What letting go will do, in the space the row uncovers: a band in my colour (Ongoing) or a
+ * quiet one (Not now), with an ink disc and a word. They grow in as the row moves (--swipe-p)
+ * and the disc pops once letting go would do it. The row casts a soft shadow onto the band, so
+ * it reads as sliding over it.
+ */
 .row__swipe {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 100vw;
   display: none;
   align-items: center;
-  gap: 8px;
-  padding: 0 18px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
+  overflow: hidden;
   pointer-events: none;
 }
 
 .row__swipe--right {
-  right: 100%;
-  justify-content: flex-end;
+  left: calc(-1 * var(--swipe, 0px));
+  width: var(--swipe, 0px);
+  justify-content: center;
   background: var(--me-light, var(--lemon));
 }
 
 .row__swipe--left {
   left: 100%;
-  justify-content: flex-start;
+  width: calc(-1 * var(--swipe, 0px));
+  justify-content: center;
   background: var(--tile-2);
-  color: var(--text-2);
 }
 
 .row.is-swiping .row__swipe {
   display: flex;
 }
 
-.row__swipe .icon {
-  --s: 18;
-  transition: transform 240ms var(--spring);
+.row.is-swiping {
+  box-shadow: 0 0 18px -6px rgb(10 10 4 / 0.28);
 }
 
-.row.is-armed .row__swipe .icon {
-  transform: scale(1.3);
+.row__swipeset {
+  flex: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transform: scale(calc(0.5 + var(--swipe-p, 0) * 0.5));
 }
 
-.row.is-armed .row__swipe--right .icon {
-  transform: scale(1.3) translateX(4px);
+.row__swipedisc {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 3px 8px -3px rgb(10 10 4 / 0.45);
+  transition:
+    transform 300ms var(--spring),
+    background 180ms var(--ease);
+}
+
+.row__swipedisc svg {
+  width: 15px;
+  height: 15px;
+  fill: #fff;
+  stroke: #fff;
+}
+
+.row__swipe--right .row__swipedisc svg {
+  stroke: none;
+  transform: translateX(1px);
+}
+
+.row__swipe--left .row__swipedisc {
+  background: var(--card);
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+.row__swipe--left .row__swipedisc svg {
+  stroke: var(--ink);
+}
+
+.row__swipelabel {
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--ink);
+  white-space: nowrap;
+  opacity: calc(var(--swipe-p, 0) * 1.6 - 0.6);
+}
+
+.row__swipe--left .row__swipelabel {
+  color: var(--text-2);
+}
+
+/* Past the line: it's going to happen. */
+.row.is-armed .row__swipedisc {
+  transform: scale(1.14);
+}
+
+.row.is-armed .row__swipe--right .row__swipedisc {
+  animation: swipe-armed 420ms var(--spring);
+}
+
+@keyframes swipe-armed {
+  40% {
+    transform: scale(1.28) rotate(-8deg);
+  }
+  100% {
+    transform: scale(1.14);
+  }
 }
 
 /* With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). */

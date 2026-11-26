@@ -10,7 +10,8 @@ import { haptic } from './haptics';
  * scrolling, and a still press is left to the long-press that lifts the row (Sortable). A tap
  * after a swipe doesn't open the row. Calm when motion is turned down (it still works).
  *
- * The row gets `--swipe` (px) while it moves, `is-swiping`, and `is-armed` past the line.
+ * The row gets `--swipe` (px) and `--swipe-p` (0–1, how far to the line) while it moves,
+ * `is-swiping`, and `is-armed` past the line.
  */
 export function useSwipe<T extends HTMLElement>(opts: { right?: () => void; left?: () => void; line?: number }) {
   const ref = useRef<T | null>(null);
@@ -31,6 +32,8 @@ export function useSwipe<T extends HTMLElement>(opts: { right?: () => void; left
     const set = (x: number) => {
       dx = x;
       el.style.setProperty('--swipe', `${x}px`);
+      // How far to the line, 0–1: what's revealed grows in with it.
+      el.style.setProperty('--swipe-p', Math.min(1, Math.abs(x) / line()).toFixed(3));
       const over = Math.abs(x) >= line();
       if (over !== armed) {
         armed = over;
@@ -41,6 +44,7 @@ export function useSwipe<T extends HTMLElement>(opts: { right?: () => void; left
     const reset = () => {
       el.classList.remove('is-swiping', 'is-armed');
       el.style.setProperty('--swipe', '0px');
+      el.style.setProperty('--swipe-p', '0');
       start = null;
       mode = 'idle';
       dx = 0;
