@@ -36,6 +36,19 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
   return (
     <Sheet onClose={onClose} title="More">
       <div className="group">
+        {item.parentId ? (
+          <OptRow
+            icon="arrow-back"
+            title="Make it its own task"
+            sub={`Out from under “${hub.item(item.parentId)?.title ?? 'its task'}”, in ${hub.list(item.listId)?.name ?? 'its folder'}`}
+            onClick={() => {
+              const was = { listId: item.listId, parentId: item.parentId ?? null };
+              hub.move(id, { listId: item.listId, parentId: null });
+              onClose();
+              toast(`“${item.title}” is its own task`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
+            }}
+          />
+        ) : null}
         <OptRow
           icon="copy"
           title="Duplicate"
@@ -463,8 +476,16 @@ export function ItemScreen({ id }: { id: string }) {
                 label: l.name,
                 go: () => navigate({ name: 'list', id: l.id }),
                 move: editable ? () => movePath(l.id) : undefined,
+                // A subtask dragged up onto it: out on its own, there.
+                drop: editable ? l.id : undefined,
               })),
-              ...ancestors.map((a) => ({ key: a.id, label: a.title, go: () => navigate({ name: 'item', id: a.id }), move: editable ? () => movePath(a.id) : undefined })),
+              ...ancestors.map((a) => ({
+                key: a.id,
+                label: a.title,
+                go: () => navigate({ name: 'item', id: a.id }),
+                move: editable ? () => movePath(a.id) : undefined,
+                dropItem: editable ? a.id : undefined,
+              })),
             ]}
           />
         }
