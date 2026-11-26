@@ -540,13 +540,13 @@ export function ItemScreen({ id }: { id: string }) {
               },
               {
                 key: 'quick',
-                label: 'Spotlight',
-                icon: 'sparkle' as const,
+                label: inQuick ? 'Pinned to Today' : 'Pin to Today',
+                icon: 'pin' as const,
                 set: inQuick,
                 toggle: () => {
                   haptic('select');
                   const undo = setQuick(id, !inQuick);
-                  toast(inQuick ? 'Out of your Spotlight' : 'In your Spotlight, on Today', { action: { label: 'Undo', run: undo } });
+                  toast(inQuick ? 'Unpinned from Today' : 'Pinned to your Today', { action: { label: 'Undo', run: undo } });
                 },
               },
               ...(!item.parentId && (!item.done || item.ongoingAt)

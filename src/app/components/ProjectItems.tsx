@@ -12,6 +12,7 @@ import type { ProjectGroup } from '../views';
 import { ItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
 import { movedTo } from './TemplateAsk';
+import { getPrefs, setPrefs, usePrefs } from '../prefs';
 import { useGroupDrag } from '../ui/groupDrag';
 import { TagMark } from './Tags';
 
@@ -79,7 +80,17 @@ export function ProjectItems({
     const at = pageId ? up.findIndex((x) => x.id === pageId) : -1;
     return at < 0 ? [l] : [...up.slice(at + 1), l];
   };
-  const ids = groups.flatMap((g) => g.items.map((i) => i.id));
+  // A group can be folded to its heading (mine, remembered on my devices).
+  const prefs = usePrefs();
+  const foldKey = (g: ProjectGroup) => `${pageId ?? ''}|${g.key}`;
+  const isFolded = (g: ProjectGroup) => !!g.label && prefs.foldedGroups.includes(foldKey(g));
+  const flipFold = (g: ProjectGroup) => {
+    haptic('select');
+    const k = foldKey(g);
+    const now = getPrefs().foldedGroups;
+    setPrefs({ foldedGroups: now.includes(k) ? now.filter((x) => x !== k) : [...now, k].slice(-300) });
+  };
+  const ids = groups.filter((g) => !isFolded(g)).flatMap((g) => g.items.map((i) => i.id));
   const groupOf = new Map(groups.flatMap((g) => g.items.map((i) => [i.id, g] as const)));
   const lastPt = useRef<[number, number] | null>(null);
   useEffect(() => {
@@ -100,13 +111,50 @@ export function ProjectItems({
     if (el) haptic('select');
     lit.current = el;
   };
+  // Or onto the middle of another task: it goes under it, as a subtask. (The rows' resting places
+  // decide, not where they've slid to make room, so the target holds still.)
+  const nestRef = useRef<string | null>(null);
+  const nestAt = (p: Point): { el: HTMLElement; id: string } | null => {
+    const from = lifted.current;
+    if (!from || hub.childrenOf(from).length) return null;
+    for (const li of document.querySelectorAll<HTMLElement>('.aisle li.row:not(.row--nested)[data-id]')) {
+      const id = li.dataset.id!;
+      if (id === from || li.closest('.dragwrap')) continue;
+      const r = li.getBoundingClientRect();
+      const shift = new DOMMatrixReadOnly(getComputedStyle(li).transform === 'none' ? undefined : getComputedStyle(li).transform).m42;
+      const top = r.top - shift;
+      const band = (p.y - top) / r.height;
+      if (p.x < r.left || p.x > r.right || band < 0.3 || band > 0.7) continue;
+      const it = hub.item(id);
+      return it && !it.parentId && !it.done && hub.canEdit(it) ? { el: li, id } : null;
+    }
+    return null;
+  };
   const into = {
     hit: (p: Point) => {
+      const n = nestAt(p);
+      nestRef.current = n?.id ?? null;
+      if (n) return true;
       const t = dropListAt(p);
       return !!t && t.listId !== hub.item(lifted.current)?.listId;
     },
-    aim: (p: Point | null) => light(p ? (dropListAt(p)?.el ?? null) : null),
+    aim: (p: Point | null) => light(p ? (nestAt(p)?.el ?? dropListAt(p)?.el ?? null) : null),
     drop: (id: string, p: Point) => {
+      const n = nestAt(p);
+      if (n) {
+        light(null);
+        const item = hub.item(id);
+        const under = hub.item(n.id);
+        if (!item || !under) return;
+        const was = { listId: item.listId, parentId: item.parentId ?? null };
+        hub.move(id, { listId: under.listId, parentId: under.id });
+        // Show it where it went: its new task opens its subtasks.
+        const unf = getPrefs().unfolded;
+        if (!unf.includes(under.id)) setPrefs({ unfolded: [...unf, under.id].slice(-200) });
+        haptic('success');
+        movedTo(hub, overlays, id, was.listId, was.listId, `${item.title}: under “${under.title}”`, () => hub.move(id, was));
+        return;
+      }
       const t = dropListAt(p);
       const item = hub.item(id);
       const to = hub.list(t?.listId);
@@ -122,6 +170,7 @@ export function ProjectItems({
     },
     end: () => {
       lifted.current = null;
+      nestRef.current = null;
       light(null);
     },
   };
@@ -155,16 +204,38 @@ export function ProjectItems({
 
   // By tag: a tag's heading drags its whole group up or down. That's our tag order (it's the
   // same everywhere: the walk through the store), so both of us see it.
+  // As lists: a folder inside's heading moves it among its sister folders (the folders' own order).
+  const sortScope = (g: ProjectGroup): string | null => {
+    if (g.tag) return 'tags';
+    const l = g.listId && g.label ? hub.list(g.listId) : undefined;
+    if (!l || !pageId || l.id === pageId || !hub.listPath(l.id).some((x) => x.id === pageId)) return null;
+    return `in:${hub.parentOf(l.id)?.id ?? ''}`;
+  };
   const tagGroups = groups.filter((g) => g.tag).map((g) => g.tag as string);
-  useGroupDrag(tagGroups.length > 1, (tag, before) => {
-    const was = hub.tags().map((t) => t.id);
-    const rest = was.filter((x) => x !== tag);
-    const at = before ? rest.indexOf(before) : rest.indexOf(tagGroups.filter((x) => x !== tag).at(-1) ?? '') + 1;
-    rest.splice(at < 0 ? rest.length : at, 0, tag);
-    if (rest.join() === was.join()) return;
-    hub.arrangeTags(rest);
-    haptic('drop');
-    toast(`${hub.tag(tag)?.name ?? 'Tag'} moved`, { action: { label: 'Undo', run: () => hub.arrangeTags(was) } });
+  const sortable = groups.filter((g) => sortScope(g)).length > 1;
+  useGroupDrag(sortable, (key, beforeKey) => {
+    const g = groups.find((x) => x.key === key);
+    const b = beforeKey ? groups.find((x) => x.key === beforeKey) : undefined;
+    if (!g) return;
+    if (g.tag) {
+      const tag = g.tag;
+      const before = b?.tag ?? null;
+      const was = hub.tags().map((t) => t.id);
+      const rest = was.filter((x) => x !== tag);
+      const at = before ? rest.indexOf(before) : rest.indexOf(tagGroups.filter((x) => x !== tag).at(-1) ?? '') + 1;
+      rest.splice(at < 0 ? rest.length : at, 0, tag);
+      if (rest.join() === was.join()) return;
+      hub.arrangeTags(rest);
+      toast(`${hub.tag(tag)?.name ?? 'Tag'} moved`, { action: { label: 'Undo', run: () => hub.arrangeTags(was) } });
+    } else if (g.listId) {
+      const id = g.listId;
+      const parent = hub.parentOf(id)?.id;
+      const sisters = parent ? hub.subLists(parent) : hub.topLists();
+      const at = sisters.findIndex((l) => l.id === id);
+      const wasBefore = sisters[at + 1]?.id ?? null;
+      hub.moveList(id, b?.listId ?? null);
+      toast(`${hub.list(id)?.name ?? 'Folder'} moved`, { action: { label: 'Undo', run: () => hub.moveList(id, wasBefore) } });
+    }
   });
 
   const rowsClass = `rows ${cards ? 'rows--cards' : ''}`;
@@ -173,15 +244,16 @@ export function ProjectItems({
     <>
       {groups.map((g) => {
         const shown = settle.view(g.key, g.items);
-        if (!shown.length && g.label) return null;
+        // An empty group says nothing (the folder's own, too, while its folders inside have tasks).
+        if (!shown.length && (g.label || groups.length > 1)) return null;
         const list = g.listId ? hub.list(g.listId) : undefined;
         // Rows name their project only where the group mixes projects.
         const mixed = showList && new Set(g.items.map((i) => i.listId)).size > 1;
         return (
-          <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--plain'}`} aria-label={g.label ?? undefined} data-group={g.key} data-list={g.listId ?? undefined} data-tag={g.tag ?? undefined}>
+          <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--plain'} ${isFolded(g) ? 'is-folded' : ''}`} aria-label={g.label ?? undefined} data-group={g.key} data-list={g.listId ?? undefined} data-tag={g.tag ?? undefined} data-sort={sortable && sortScope(g) ? g.key : undefined} data-sort-scope={sortScope(g) ?? undefined}>
             {g.label ? (
-              <h2 className={`aisle__head ${g.tag ? 'aisle__head--drag' : ''}`} title={g.tag ? 'Drag to reorder the tags' : undefined}>
-                {g.tag ? <Icon name="grip" className="aisle__grip" /> : null}
+              <h2 className={`aisle__head ${sortable && sortScope(g) ? 'aisle__head--drag' : ''}`} title={sortable && sortScope(g) ? 'Hold to move this group' : undefined}>
+                {sortable && sortScope(g) ? <Icon name="grip" className="aisle__grip" /> : null}
                 {g.tag !== undefined ? (
                   <>
                     <TagMark icon={g.tag ? g.icon : null} className="" />
@@ -204,8 +276,19 @@ export function ProjectItems({
                   g.label
                 )}
                 <span className="num">{g.items.length}</span>
+                <button
+                  type="button"
+                  className={`aisle__fold ${isFolded(g) ? '' : 'is-open'}`}
+                  aria-expanded={!isFolded(g)}
+                  aria-label={`${isFolded(g) ? 'Show' : 'Fold'} ${g.label}`}
+                  title={isFolded(g) ? 'Show its tasks' : 'Fold it'}
+                  onClick={() => flipFold(g)}
+                >
+                  <Icon name="chevron-down" />
+                </button>
               </h2>
             ) : null}
+            {isFolded(g) ? null : (
             <ul className={rowsClass}>
               {shown.map(({ row: i, settling }) =>
                 draggable && !settling ? (
@@ -215,7 +298,8 @@ export function ProjectItems({
                 ),
               )}
             </ul>
-            {list && g.label && g.tag === undefined ? (
+            )}
+            {list && g.label && g.tag === undefined && !isFolded(g) ? (
               // Add straight into this folder, without going in.
               <button type="button" className="groupadd" aria-label={`Add to ${list.name}`} onClick={() => openSheet((close) => <QuickAddSheet onClose={close} listId={list.id} />)}>
                 <Icon name="plus" />
@@ -257,7 +341,7 @@ export function ProjectItems({
             if (item && outside)
               return (
                 <span className="dropchip">
-                  <Icon name="move" className="icon--sm" />
+                  <Icon name={nestRef.current ? 'subtask' : 'move'} className="icon--sm" />
                   <span dir="auto">{item.title}</span>
                 </span>
               );

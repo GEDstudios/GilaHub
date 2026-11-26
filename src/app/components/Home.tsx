@@ -158,19 +158,19 @@ export function TodayList({ v, day, settle, asksHere = false }: { v: TodayView; 
         <ul className="rows">
           {ok.map(({ row: i, settling }) =>
             i.submittedAt && i.requestedBy === hub.meId ? (
-              <ItemRow key={i.id} item={i} settling={settling} showList dateMode="none" liClass="is-ask" below={<RequestActions item={i} className="row__acts" />} />
+              <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} dateMode="none" liClass="is-ask" below={<RequestActions item={i} className="row__acts" />} />
             ) : (
-              <ItemRow key={i.id} item={i} settling={settling} showList liClass="is-ask" />
+              <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} liClass="is-ask" />
             ),
           )}
           {loud.map(({ row: i, settling }) => (
-            <ItemRow key={i.id} item={i} showList settling={settling} liClass="is-ask" />
+            <ItemRow key={i.id} item={i} showList listLink={false} settling={settling} liClass="is-ask" />
           ))}
           {late.map(({ row: i, settling }) => (
-            <ItemRow key={i.id} item={i} showList settling={settling} />
+            <ItemRow key={i.id} item={i} showList listLink={false} settling={settling} />
           ))}
           {rows.map(({ row: i, settling }) => (
-            <ItemRow key={i.id} item={i} showList settling={settling} />
+            <ItemRow key={i.id} item={i} showList listLink={false} settling={settling} />
           ))}
         </ul>
       ) : null}
@@ -188,7 +188,7 @@ export function TodayList({ v, day, settle, asksHere = false }: { v: TodayView; 
           {open ? (
             <ul className="rows quietline__rows">
               {quiet.map(({ row: i, settling }) => (
-                <ItemRow key={i.id} item={i} showList settling={settling} liClass="is-ask" />
+                <ItemRow key={i.id} item={i} showList listLink={false} settling={settling} liClass="is-ask" />
               ))}
             </ul>
           ) : null}
@@ -255,7 +255,7 @@ export function WeekStrip({ v, day }: { v: TodayView; day: string }) {
       {items.length ? (
         <ul className="rows">
           {items.map((i) => (
-            <ItemRow key={i.id} item={i} showList dateMode="time" />
+            <ItemRow key={i.id} item={i} showList listLink={false} dateMode="time" />
           ))}
         </ul>
       ) : (
@@ -505,7 +505,7 @@ function AsksRows({ items, settle }: { items: Item[]; settle: Settle<Item> }) {
   return (
     <ul className="rows wcard__rows" onClick={(e) => e.stopPropagation()}>
       {rows.map(({ row: i, settling }) => (
-        <ItemRow key={i.id} item={i} settling={settling} showList liClass="is-ask" />
+        <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} liClass="is-ask" />
       ))}
     </ul>
   );
@@ -517,7 +517,7 @@ function AskedRows({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
   return (
     <ul className="rows wcard__rows" onClick={(e) => e.stopPropagation()}>
       {rows.map(({ row: i, settling }) => (
-        <ItemRow key={i.id} item={i} settling={settling} showList />
+        <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} />
       ))}
     </ul>
   );

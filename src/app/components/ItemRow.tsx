@@ -50,6 +50,7 @@ export const ItemRow = memo(function ItemRow({
   dragProps,
   inTray,
   nested,
+  listLink = true,
 }: {
   item: Item;
   showList?: boolean;
@@ -74,6 +75,8 @@ export const ItemRow = memo(function ItemRow({
   inTray?: boolean;
   /** A subtask unfolded under its task: no swipe, no unfolding of its own. */
   nested?: boolean;
+  /** Its folder's name goes to the folder (off where a tap anywhere should open the task: Today). */
+  listLink?: boolean;
 }) {
   const hub = useHub();
   const prefs = usePrefs();
@@ -214,7 +217,12 @@ export const ItemRow = memo(function ItemRow({
         {(showList && list) || req || vis || due || item.repeat || steps.total || twin || tags.length || ongoing ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} /> : null}
-            {showList && list ? (
+            {showList && list && !listLink ? (
+              <span className="meta">
+                <ListBullet list={list} size="xs" />
+                <span dir="auto">{list.name}</span>
+              </span>
+            ) : showList && list ? (
               <button
                 type="button"
                 className="meta meta--link"

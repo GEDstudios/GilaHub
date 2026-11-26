@@ -420,9 +420,9 @@ try {
     await shot(guy, '15-edit-today');
     const rows = () => guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
     const before = await rows();
-    if (before.join() !== 'Today,Spotlight,The week,Us') throw new Error(`unexpected slots: ${before.join(', ')}`);
-    await guy.getByRole('button', { name: 'Hide Spotlight' }).click();
-    await waitFor(async () => !(await rows()).includes('Spotlight'), 3000, 'Spotlight hidden');
+    if (before.join() !== 'Today,Pinned,Us,The week') throw new Error(`unexpected slots: ${before.join(', ')}`);
+    await guy.getByRole('button', { name: 'Hide Pinned' }).click();
+    await waitFor(async () => !(await rows()).includes('Pinned'), 3000, 'Pinned hidden');
     await guy.getByRole('button', { name: 'Hide The week' }).click();
     await waitFor(async () => !(await rows()).includes('The week'), 3000, 'The week hidden');
     await guy.locator('.homeghost', { hasText: 'The week' }).waitFor({ timeout: 3000 });
@@ -460,7 +460,7 @@ try {
     await guy.getByRole('button', { name: 'Back to the default' }).click();
     await guy.getByText('Today is back to the default').waitFor({ timeout: 3000 });
     const slots = await guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
-    if (slots.join() !== 'Today,Spotlight,The week,Us') throw new Error(`after reset: ${slots.join(', ')}`);
+    if (slots.join() !== 'Today,Pinned,Us,The week') throw new Error(`after reset: ${slots.join(', ')}`);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
   });
 
@@ -819,19 +819,18 @@ try {
     await note.waitFor({ state: 'detached', timeout: 3000 });
   });
 
-  await check('Today: the lens narrows the page to one person, and remembers it', async () => {
+  await check('Today: no filter row; the Ours ↔ Mine tag narrows the page, and remembers it', async () => {
     await hila.goto(`${url}/`);
-    // Guy asked her for them: they wait in Us's "Guy asked you for" card.
     const today = hila.locator('.homeus');
     await today.getByText('Return the library books').waitFor({ timeout: 5000 });
-    // Guy's things only: the books are mine to do, so they step aside.
-    await hila.locator('.lens__chip', { hasText: 'Guy' }).click();
+    if (await hila.locator('.home .lens').count()) throw new Error('Today still has a filter row');
+    // Mine only: Guy's ask is ours, so it steps aside.
+    await hila.locator('.scopetag').click();
     await today.getByText('Return the library books').waitFor({ state: 'detached', timeout: 3000 });
-    await shot(hila, '34-today-lens');
-    // It stays as picked (this phone).
+    await shot(hila, '34-today-mine');
     await hila.reload();
-    await hila.locator('.lens__chip.is-on', { hasText: 'Guy' }).waitFor({ timeout: 5000 });
-    await hila.locator('.lens__chip', { hasText: 'All' }).click();
+    await hila.locator('.scopetag.is-mine').waitFor({ timeout: 5000 });
+    await hila.locator('.scopetag').click();
     await hila.locator('.homeus').getByText('Return the library books').waitFor({ timeout: 3000 });
   });
 
@@ -845,7 +844,7 @@ try {
     await guy.locator('.sheet .ccard__input').fill('Packing');
     await guy.getByRole('button', { name: /create folder/i }).click();
     await guy.getByRole('heading', { name: 'Packing', level: 1 }).waitFor({ timeout: 5000 });
-    const path = () => guy.locator('.crumbs--path').innerText().then((t) => t.replace(/\s+/g, ' ').trim());
+    const path = () => guy.locator('.crumbs--path .crumbs__go').allInnerTexts().then((t) => t.join(' ').replace(/\s+/g, ' ').trim());
     if ((await path()) !== 'Folders Next trip') throw new Error(`Packing's path: ${await path()}`);
     await addVia(guy, ['Passport']);
     // A new task can go under one: pick Passport in the composer's tree, and it's a subtask.

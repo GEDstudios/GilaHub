@@ -1,6 +1,5 @@
 import { useWide } from '../ui/useWide';
 import { useEffect, useState, type CSSProperties } from 'react';
-import { Lens, useFilter } from '../components/Filter';
 import { flushSync } from 'react-dom';
 import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
@@ -64,7 +63,8 @@ export function Today() {
   const hub = useHub();
   const { openSheet } = useOverlays();
   const ref = todayStr();
-  const filter = useFilter('today');
+  // No filter row here: the Ours ↔ Mine tag is the one way to narrow Today.
+  const filter = { active: false, test: (_i: Item, _deep?: boolean) => true };
   const prefs = usePrefs();
   const partner = hub.partner();
   const me = hub.me();
@@ -95,9 +95,7 @@ export function Today() {
       {mineOnly ? 'Mine' : 'Ours'}
     </button>
   ) : null;
-  // The lens looks over everything on the page, once each.
-  const onPage = [...new Map([...all.today, ...all.earlier, ...all.upcoming.flatMap((g) => g.items), ...all.asked, ...all.outgoing, ...all.awaitingOk, ...all.waitingTheirOk].map((i) => [i.id, i])).values()];
-  const lens = <Lens filter={filter} items={onPage} />;
+
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
   const settle = useSettle(idOf);
   const [editing, setEditing] = useState(false);
@@ -208,7 +206,6 @@ export function Today() {
             <div className="home__main">
               <DayCard v={v} day={ref} />
               <HomeNotices />
-              {lens}
               {slots.filter((s) => !SIDE.has(s.key)).map((s) => block(s.key))}
               {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
               {editLink}
@@ -223,7 +220,6 @@ export function Today() {
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
           <DayCard v={v} day={ref} />
           <HomeNotices />
-          {lens}
           {slots.map((s) => block(s.key))}
           <InviteCard />
           {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}

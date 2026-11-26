@@ -174,7 +174,7 @@ export function TodayWidget({ v, day, settle, bare }: { v: TodayView; day: strin
       {rows.length ? (
         <ul className="rows">
           {rows.map(({ row: i, settling }) => (
-            <ItemRow key={i.id} item={i} showList settling={settling} />
+            <ItemRow key={i.id} item={i} showList listLink={false} settling={settling} />
           ))}
         </ul>
       ) : null}
@@ -355,7 +355,7 @@ export function PartnerDid({ v }: { v: TodayView }) {
 
 // ---------------------------------------------------------------- my quick view
 
-/** The tasks I chose to keep in sight here (a task's "Spotlight" chip), from any folder. Gone while it's empty. */
+/** The tasks I chose to keep in sight here (a task's "Pin to Today" chip), from any folder. Gone while it's empty. */
 export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: Item) => boolean }) {
   const hub = useHub();
   const prefs = usePrefs();
@@ -366,15 +366,15 @@ export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: I
     <Section
       title={
         <>
-          <Icon name="sparkle" className="icon--sm" />
-          <span>Spotlight</span>
+          <Icon name="pin" className="icon--sm" />
+          <span>Pinned</span>
         </>
       }
       count={open.length}
     >
       <ul className="rows">
         {rows.map(({ row: i, settling }) => (
-          <ItemRow key={i.id} item={i} settling={settling} showList />
+          <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} />
         ))}
       </ul>
     </Section>

@@ -47,8 +47,10 @@ export interface Prefs {
   todayNew: 'mine' | 'ours';
   /** Today shows all of it, just mine, or just ours. */
   todayScope: 'all' | 'mine' | 'ours';
-  /** My Spotlight on Today: the tasks I put there, in the order I did. */
+  /** Pinned to my Today: the tasks I put there, in the order I did. */
   quick: string[];
+  /** Groups I folded on a folder's page ("<page>|<group>": a folder inside, a tag, one shown from elsewhere). */
+  foldedGroups: string[];
 }
 
 /** About this device itself, not about me: never synced. */
@@ -80,6 +82,7 @@ const DEFAULTS: Prefs = {
   todayNew: 'mine',
   todayScope: 'all',
   quick: [],
+  foldedGroups: [],
 };
 
 export const PREF_KEYS = Object.keys(DEFAULTS) as Array<keyof Prefs>;

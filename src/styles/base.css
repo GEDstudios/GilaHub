@@ -65,8 +65,10 @@ svg {
   border-radius: 8px;
 }
 
+/* Ink with lemon words: it shows on every card colour (lemon ones too), and it's still ours */
 ::selection {
-  background: color-mix(in srgb, var(--lemon) 75%, transparent);
+  background: var(--ink);
+  color: var(--lemon);
 }
 
 input::placeholder,

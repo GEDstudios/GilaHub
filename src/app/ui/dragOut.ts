@@ -8,8 +8,8 @@ export interface Point {
 
 /**
  * Drag one thing out of where it sits (a subtask out from under its task, on a folder page):
- * a mouse drags it after a few pixels, a finger after holding it still a moment. A small chip
- * with its name follows the hand; `aim` lights what's under it; letting go calls `drop`.
+ * a mouse drags it after a few pixels, a finger after holding it still a moment. Lifted, it
+ * looks like any task (a full row) and follows the hand; `aim` lights what's under it; letting go calls `drop`.
  * The press never reaches what holds it (the task row it's under has a drag of its own).
  */
 export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled: boolean; aim: (p: Point | null) => void; drop: (p: Point) => void }) {
@@ -25,18 +25,35 @@ export function useDragOut<T extends HTMLElement>(opts: { label: string; enabled
     let chip: HTMLElement | null = null;
     let swallow = false;
 
+    let grab = { x: 0, y: 0 };
+    // Held, it's a task like any other: a full row, lifted, as wide as the list it came from.
     const lift = (p: Point) => {
       dragging = true;
       haptic('lift');
-      el.classList.add('is-lifted-out');
+      const host = el.parentElement?.closest<HTMLElement>('.rows:not(.rows--sub)') ?? el;
+      const hr = host.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      grab = { x: p.x - hr.left, y: p.y - r.top };
       chip = document.createElement('div');
-      chip.className = 'dropchip dropchip--float';
-      chip.textContent = latest.current.label;
+      chip.className = 'dragout';
+      chip.style.width = `${hr.width}px`;
+      const card = document.createElement('div');
+      card.className = 'lift is-lifted lift--row';
+      const ul = document.createElement('ul');
+      ul.className = 'rows';
+      const row = el.cloneNode(true) as HTMLElement;
+      row.classList.remove('row--nested', 'is-lifted-out');
+      row.removeAttribute('data-id');
+      row.removeAttribute('data-settle');
+      ul.appendChild(row);
+      card.appendChild(ul);
+      chip.appendChild(card);
       document.body.appendChild(chip);
+      el.classList.add('is-lifted-out');
       move(p);
     };
     const move = (p: Point) => {
-      if (chip) chip.style.transform = `translate(${p.x + 12}px, ${p.y - 46}px) rotate(-3deg)`;
+      if (chip) chip.style.transform = `translate(${p.x - grab.x}px, ${p.y - grab.y}px)`;
       latest.current.aim(p);
     };
     const end = () => {

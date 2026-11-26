@@ -694,6 +694,8 @@ function ProjectPage({ id }: { id: string }) {
       </Band>
       <div className="column">
         <FolderTools list={list} />
+        {/* Its folders first, then its tasks */}
+        <SubProjects list={list} />
         <Lens filter={filter} items={v.open} lists={v.lists.length > 1 ? v.lists : undefined}>
           <ViewToggle listId={id} />
         </Lens>
@@ -740,8 +742,6 @@ function ProjectPage({ id }: { id: string }) {
           flash={flash}
         />
         {filter.active && n && !shownN ? <p className="hint">Nothing here with this filter.</p> : null}
-
-        <SubProjects list={list} />
 
         {done.length ? (
           <Disclosure title="Done" count={done.length}>

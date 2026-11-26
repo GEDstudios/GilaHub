@@ -421,8 +421,8 @@
     border-radius: 9px;
   }
 
-  .main .rows .row:hover,
-  .row--tap:hover {
+  .main .rows .row:hover:not(:has(.row--nested:hover)),
+  .row--tap:hover:not(:has(.row--nested:hover)) {
     background: var(--press);
   }
 
@@ -798,4 +798,15 @@
   width: 3px;
   border-radius: 2px;
   background: var(--ink);
+}
+
+@media (min-width: 960px) {
+  /* A group held to move it: the whole panel lifts */
+  .main section.aisle.is-moving {
+    box-shadow: var(--lift-3);
+  }
+
+  .main section.aisle.is-moving > .rows {
+    box-shadow: none;
+  }
 }

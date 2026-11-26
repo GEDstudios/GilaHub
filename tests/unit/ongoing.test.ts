@@ -214,7 +214,7 @@ describe('A task moved into a folder with a template', () => {
   });
 });
 
-describe('My Spotlight', () => {
+describe('Pinned to my Today', () => {
   it('holds the tasks I put there, open ones only; Undo takes it out again', async () => {
     const { setQuick, quickItems, isQuick } = await import('../../src/app/quick');
     const guy = await person('guy');

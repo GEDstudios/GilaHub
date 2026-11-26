@@ -923,12 +923,13 @@ textarea.ccard__input {
   cursor: var(--cur-point, pointer);
 }
 
-.row--tap:active {
+.row--tap:active:not(:has(.row--nested:active)) {
   background: var(--tile-2);
 }
 
 @media (hover: hover) {
-  .row--tap:hover {
+  /* (Not while the hand is on one of its unfolded subtasks: then only that line lights.) */
+  .row--tap:hover:not(:has(.row--nested:hover)) {
     background: #ebebe7;
   }
 }
@@ -4106,6 +4107,15 @@ html:has(.iconlib) .fab {
 }
 
 .subprojects {
+  margin-top: var(--space-5);
+}
+
+/* Right under the folder's own settings: its folders, then (a section down) its tasks */
+.foldertools + .subprojects {
+  margin-top: 0;
+}
+
+.subprojects + .lens {
   margin-top: var(--space-5);
 }
 
@@ -7784,7 +7794,19 @@ textarea.nf__write {
 .rows--sub .row {
   min-height: 44px;
   padding: 6px 8px 6px 14px;
+  border-radius: 12px;
   background: transparent;
+}
+
+/* A subtask is its own line to press: it lights alone */
+.rows--sub .row--tap:active {
+  background: var(--tile-2);
+}
+
+@media (hover: hover) {
+  .rows--sub .row--tap:hover {
+    background: rgb(10 10 4 / 0.06);
+  }
 }
 
 .rows--sub .row__title {
@@ -8267,17 +8289,21 @@ textarea.nf__write {
   color: var(--ink);
 }
 
-/* The path's move button: at its end, small and round */
+/* The path's move button: at its end, a small pill that says what it does */
 .crumbs__moveto {
   flex: none;
-  width: 26px;
-  height: 26px;
-  margin-inline-start: 6px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  margin-inline-start: 10px;
+  padding: 0 11px 0 9px;
+  border-radius: 999px;
   background: var(--tile);
-  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
   transition: background 140ms var(--ease), transform 140ms var(--ease);
 }
 
@@ -8287,11 +8313,10 @@ textarea.nf__write {
 
 .crumbs__moveto:hover {
   background: var(--tile-2);
-  color: var(--text);
 }
 
 .crumbs__moveto:active {
-  transform: scale(0.9);
+  transform: scale(0.95);
 }
 
 /* A block's title that goes somewhere (a folder on Today): the name itself is the link */
@@ -8397,33 +8422,90 @@ textarea.nf__write {
   }
 }
 
+/* Held like a task: it leans and lifts; the others slide out of its way, and it settles into the gap */
 section.aisle.is-moving {
   position: relative;
   z-index: 20;
-  opacity: 0.96;
-  filter: drop-shadow(0 14px 28px rgb(10 10 4 / 0.18));
   transition: none;
+  transform-origin: 50% 20%;
 }
 
-section.aisle.is-drop-before,
-section.aisle.is-drop-after {
-  position: relative;
+section.aisle.is-moving > .rows {
+  box-shadow: var(--lift-3);
+  background: var(--card);
 }
 
-section.aisle.is-drop-before::before,
-section.aisle.is-drop-after::after {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--ink);
+section.aisle.is-moving > .aisle__head {
+  color: var(--text);
 }
 
-section.aisle.is-drop-before::before {
-  top: -14px;
+section.aisle.is-making-room {
+  transition: transform 220ms var(--spring, var(--ease));
 }
 
-section.aisle.is-drop-after::after {
-  bottom: -14px;
+section.aisle.is-settling-in {
+  transition: transform 180ms var(--ease);
+}
+
+section.aisle.is-settling-in > .rows {
+  transition: box-shadow 180ms var(--ease);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  section.aisle.is-making-room,
+  section.aisle.is-settling-in {
+    transition: none;
+  }
+}
+
+/* A group folded to its heading: its tasks are a tap away */
+.aisle__fold {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-inline-start: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+
+.aisle__fold .icon {
+  --s: 16;
+  transform: rotate(-90deg);
+  transition: transform 180ms var(--ease);
+}
+
+.aisle__fold.is-open .icon {
+  transform: none;
+}
+
+@media (hover: hover) {
+  .aisle__fold:hover {
+    background: var(--press);
+    color: var(--text);
+  }
+}
+
+.aisle.is-folded .aisle__head {
+  margin-bottom: 0;
+}
+
+/* A subtask held out from under its task: a full row, lifted, following the hand */
+.dragout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* A task a dragged one would go under */
+.aisle li.row.is-droptarget {
+  background: var(--me-light, var(--tile-2));
+  box-shadow: inset 0 0 0 2px var(--ink);
+  border-radius: 14px;
 }

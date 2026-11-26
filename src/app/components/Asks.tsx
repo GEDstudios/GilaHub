@@ -63,9 +63,9 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
       <ul className="rows">
         {shown.map(({ row: i, settling }) =>
           i.submittedAt && i.requestedBy === hub.meId ? (
-            <ItemRow key={i.id} item={i} settling={settling} showList dateMode="none" below={<RequestActions item={i} className="row__acts" />} />
+            <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} dateMode="none" below={<RequestActions item={i} className="row__acts" />} />
           ) : (
-            <ItemRow key={i.id} item={i} settling={settling} showList />
+            <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} />
           ),
         )}
       </ul>
@@ -123,7 +123,7 @@ export function AskedLine({ v, settle }: { v: TodayView; settle: Settle<Item> })
       {open ? (
         <ul className="rows quietline__rows">
           {rows.map(({ row: i, settling }) => (
-            <ItemRow key={i.id} item={i} settling={settling} showList />
+            <ItemRow key={i.id} item={i} settling={settling} showList listLink={false} />
           ))}
         </ul>
       ) : null}

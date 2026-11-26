@@ -20,8 +20,9 @@ export type WidgetKey = 'today' | 'quick' | 'upcoming' | 'week';
 export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'today', on: true },
   { key: 'quick', on: true },
-  { key: 'upcoming', on: true },
   { key: 'week', on: true },
+  // The next days at the bottom: today's things come first.
+  { key: 'upcoming', on: true },
 ];
 
 export interface WidgetDef {
@@ -34,7 +35,7 @@ export interface WidgetDef {
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   // Today holds what my person asked of me too (docs/07-HOME.md): one list of things to do.
   today: { title: () => 'Today', icon: 'sun' },
-  quick: { title: () => 'Spotlight', icon: 'sparkle' },
+  quick: { title: () => 'Pinned', icon: 'pin' },
   upcoming: { title: () => 'The week', icon: 'calendar' },
   week: { title: (hub) => (hub.partner() ? 'Us' : 'Your week'), icon: 'heart' },
 };
@@ -308,7 +309,7 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
     }
     case 'quick': {
       const n = quickItems(hub).length;
-      return join([n > 0 && `${n} you chose`], 'Tasks you pick to keep in sight (Spotlight, on a task)');
+      return join([n > 0 && `${n} pinned`], 'Tasks you pin to Today (Pin to Today, on a task)');
     }
     case 'upcoming': {
       const n = aheadOf(v).length;
