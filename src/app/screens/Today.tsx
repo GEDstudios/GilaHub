@@ -15,7 +15,9 @@ import { listIdOf, visibleHome } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Band, IconButton, NewButton } from '../ui/primitives';
+import { Band, IconButton, NewButton, Seg } from '../ui/primitives';
+import { setPrefs, usePrefs } from '../prefs';
+import { itemVisChoice } from '../privacy';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { todayView, type TodayView } from '../views';
 
@@ -62,8 +64,31 @@ export function Today() {
   const { openSheet } = useOverlays();
   const ref = todayStr();
   const filter = useFilter('today');
+  const prefs = usePrefs();
+  const partner = hub.partner();
+  // All · Mine · Ours: my own things (Mine, Private) or the house's (Ours, and my person's).
+  const scope = partner ? prefs.todayScope : 'all';
+  const isMine = (i: Item) => {
+    const c = itemVisChoice(hub, i);
+    return c === 'mine' || c === 'private';
+  };
+  const inScope = (i: Item) => scope === 'all' || (scope === 'mine' ? isMine(i) : !isMine(i));
   const all = todayView(hub, ref);
-  const v = filter.active ? filterToday(all, (i) => filter.test(i)) : all;
+  const v = filter.active || scope !== 'all' ? filterToday(all, (i) => inScope(i) && (!filter.active || filter.test(i))) : all;
+  const scopeSwitch = partner ? (
+    <div className="homescope">
+      <Seg
+        label="Show on Today"
+        value={scope}
+        onChange={(next) => setPrefs({ todayScope: next })}
+        options={[
+          { value: 'all', label: 'All' },
+          { value: 'mine', label: 'Mine' },
+          { value: 'ours', label: 'Ours' },
+        ]}
+      />
+    </div>
+  ) : null;
   // The lens looks over everything on the page, once each.
   const onPage = [...new Map([...all.today, ...all.earlier, ...all.upcoming.flatMap((g) => g.items), ...all.asked, ...all.outgoing, ...all.awaitingOk, ...all.waitingTheirOk].map((i) => [i.id, i])).values()];
   const lens = <Lens filter={filter} items={onPage} />;
@@ -172,6 +197,7 @@ export function Today() {
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
           <div className="home__cols">
             <div className="home__main">
+              {scopeSwitch}
               <DayCard v={v} day={ref} />
               <HomeNotices />
               {lens}
@@ -187,6 +213,7 @@ export function Today() {
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
+          {scopeSwitch}
           <DayCard v={v} day={ref} />
           <HomeNotices />
           {lens}

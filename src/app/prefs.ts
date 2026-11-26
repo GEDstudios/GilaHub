@@ -1,7 +1,11 @@
 import { useSyncExternalStore } from 'react';
 import { prefersDayFirst, weekStartsOn } from '../core/dates';
 
-/** Device-local conveniences (never synced, never needed for correctness). */
+/**
+ * My conveniences: how I like things (views, filters, what's open, sounds…). They're mine, not
+ * this phone's: kept in a record only I can read and synced to all my devices (userPrefs.ts).
+ * Only DEVICE_ONLY stays on the device. Never needed for correctness.
+ */
 export interface Prefs {
   h24: boolean | null;
   weekStart: 0 | 1 | null;
@@ -39,7 +43,14 @@ export interface Prefs {
   shopView: 'list' | 'cards';
   /** Each screen's filter ("today", "shop", "l:<id>"): tags, for whom, urgent only. */
   filters: Record<string, { tags: string[]; who: 'me' | 'partner' | null; urgent: boolean; lists?: string[] }>;
+  /** Where something new from Today (or anywhere not in a folder) goes: my To-Do, or our last shared folder. */
+  todayNew: 'mine' | 'ours';
+  /** Today shows all of it, just mine, or just ours. */
+  todayScope: 'all' | 'mine' | 'ours';
 }
+
+/** About this device itself, not about me: never synced. */
+export const DEVICE_ONLY: ReadonlyArray<keyof Prefs> = ['lastBackupAt'];
 
 const KEY = 'gila-hub:prefs';
 const DEFAULTS: Prefs = {
@@ -64,7 +75,11 @@ const DEFAULTS: Prefs = {
   taskView: 'list',
   shopView: 'list',
   filters: {},
+  todayNew: 'mine',
+  todayScope: 'all',
 };
+
+export const PREF_KEYS = Object.keys(DEFAULTS) as Array<keyof Prefs>;
 
 function read(): Prefs {
   try {
@@ -82,7 +97,20 @@ export function getPrefs(): Prefs {
   return current;
 }
 
+/** Where my changes go to reach my other devices (userPrefs.ts sets it once I'm known). */
+let writer: ((patch: Partial<Prefs>) => void) | null = null;
+export function setPrefsWriter(fn: ((patch: Partial<Prefs>) => void) | null): void {
+  writer = fn;
+}
+
+/** Change mine: here at once, and on my other devices. */
 export function setPrefs(patch: Partial<Prefs>): void {
+  applyPrefs(patch);
+  writer?.(patch);
+}
+
+/** Take what came from my other devices (here only; it's already everywhere else). */
+export function applyPrefs(patch: Partial<Prefs>): void {
   current = { ...current, ...patch };
   try {
     localStorage.setItem(KEY, JSON.stringify(current));

@@ -154,3 +154,25 @@ describe('Notes kept, and brought back', () => {
     expect(guy.collectedNotes().map((n) => n.id)).toEqual([id]);
   });
 });
+
+describe('My private To-Do', () => {
+  it('is made once per person, Private, first, with its description; my person never sees it', async () => {
+    const guy = await person('guy');
+    const hila = await person('hila');
+    guy.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    hila.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    guy.createList({ name: 'Shopping' });
+    const id = guy.ensurePersonalFolder()!;
+    expect(id).toBe('todoguy');
+    expect(guy.list(id)).toMatchObject({ name: 'To-Do', visibility: 'private', personal: true, description: 'My default private folder' });
+    expect(guy.topLists()[0].id).toBe(id);
+    // Not twice (another device of mine, or after a delete).
+    expect(guy.ensurePersonalFolder()).toBeNull();
+    guy.deleteList(id);
+    expect(guy.ensurePersonalFolder()).toBeNull();
+    sync(guy, hila);
+    expect(hila.list(id)).toBeUndefined();
+    // Hila gets her own.
+    expect(hila.ensurePersonalFolder()).toBe('todohila');
+  });
+});

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { addMonths, daysInMonth, fromDateStr, humanDate, humanTime, today as todayStr, weekday, weekdayName } from '../../core/dates';
 import type { Assignee, RepeatRule, RepeatUnit } from '../../core/model';
 import { describeRule, firstDue, ordinalDay } from '../../smart/recurrence';
@@ -9,7 +9,7 @@ import { withNotification } from '../compose';
 import { REMIND_OPTIONS } from '../reminders';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Avatar, Switch } from '../ui/primitives';
+import { Avatar, lightVar, Switch } from '../ui/primitives';
 import { PairSheet } from './PairSheet';
 
 /** Everything the inline editor can change about an item. */
@@ -82,11 +82,16 @@ export function EChip({
   disabled,
   ghost,
   compact,
+  tone,
+  style,
 }: {
   label: ReactNode;
   icon?: IconName;
   lead?: ReactNode;
   set: boolean;
+  /** An extra class (a chip with a look of its own, like who sees it). */
+  tone?: string;
+  style?: CSSProperties;
   open: boolean;
   onToggle: () => void;
   disabled?: boolean;
@@ -116,7 +121,8 @@ export function EChip({
     <button
       ref={ref}
       type="button"
-      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${compact ? 'echip--sm' : ''}`}
+      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${compact ? 'echip--sm' : ''} ${tone ?? ''}`}
+      style={style}
       onClick={onToggle}
       aria-expanded={open}
       disabled={disabled}
@@ -153,11 +159,28 @@ export function VisChip({
   const partner = hub.partner();
   if (allowed.length < 2) return null;
   const hint = visHint(value, partner?.name ?? null);
+  const me = hub.me();
+  // Loud on purpose, coloured by who will see it: both of us (our two colours), me (mine), my
+  // person (theirs), or nobody else (ink, locked).
+  const who = value === 'ours' ? [me, partner] : value === 'mine' ? [me] : value === 'theirs' ? [partner] : [];
+  const faces = who.filter((m): m is NonNullable<typeof m> => !!m);
   return (
     <>
       <EChip
         label={visLabel(value, partner?.name)}
-        icon={VIS_ICON[value]}
+        tone={`echip--vis echip--vis-${value}`}
+        style={{ '--me': lightVar(me?.color ?? 'lemon'), '--them': lightVar(partner?.color ?? 'sky') } as CSSProperties}
+        lead={
+          faces.length ? (
+            <span className="echip__faces">
+              {faces.map((m) => (
+                <Avatar key={m.id} member={m} size="xs" />
+              ))}
+            </span>
+          ) : (
+            <Icon name={VIS_ICON[value]} className="icon--sm" />
+          )
+        }
         set={value !== allowed[0]}
         open={open}
         onToggle={onToggle}

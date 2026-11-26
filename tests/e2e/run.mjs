@@ -245,7 +245,7 @@ try {
     await addVia(guy, ['Ring for Hila 💍', 'Book dinner friday']);
     await guy.locator('.row__title', { hasText: 'Ring for Hila' }).click();
     await guy.locator('.echip', { hasText: 'Ours' }).click();
-    await guy.getByRole('radio', { name: /only me/i }).click();
+    await guy.getByRole('radio', { name: /^private/i }).click();
     await shot(guy, '08-private-item');
     await guy.goBack();
     await hila.goto(`${url}/lists`);
@@ -493,7 +493,8 @@ try {
     await touch('touchEnd', to.x, to.y);
     await guy.getByText('To do is in the bar').waitFor({ timeout: 3000 });
     const mine = await keys(guy);
-    if (mine.length !== 4 || !mine[1].startsWith('l:') || !mine[2].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);
+    // Today, his private To-Do (pinned first, made for him), Shopping, the dropped To do, Folders.
+    if (mine.length !== 5 || !mine[1].startsWith('l:todo') || !mine[2].startsWith('l:') || !mine[3].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);
     await hila.waitForTimeout(1500);
     await hila.reload();
     await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();

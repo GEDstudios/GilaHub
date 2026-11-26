@@ -5,6 +5,8 @@ import type { Scope } from '../core/model';
 import { api, authToken, keyring, readableScopes, relayAvailable, saveSession, type Session } from '../core/session';
 import { Store } from '../core/store';
 import { SyncClient } from '../core/sync';
+import { pinsOf, setPins, MAX_PINS } from './tabs';
+import { bindUserPrefs } from './userPrefs';
 
 /** Everything the running app needs, created once per session. */
 export interface Runtime {
@@ -36,6 +38,32 @@ export async function startRuntime(persistence: Persistence, session: Session): 
   hub.endAwayMode();
   const relayListeners = new Set<() => void>();
 
+  /**
+   * Once what I already have has arrived (the first sync, or none to wait for): my preferences
+   * follow me from here on, and my private To-Do is made if I've never had one, pinned first.
+   */
+  let settled = false;
+  const settle = () => {
+    if (settled) return;
+    settled = true;
+    bindUserPrefs(hub);
+    const personal = () => {
+      const made = hub.ensurePersonalFolder();
+      if (!made) return;
+      const pins = pinsOf(hub);
+      if (pins.length < MAX_PINS) setPins(hub, [`l:${made}`, ...pins]);
+    };
+    // A brand-new me (onboarding) isn't written yet: wait for it.
+    if (hub.me()) personal();
+    else {
+      const off = store.subscribe(() => {
+        if (!hub.me()) return;
+        off();
+        personal();
+      });
+    }
+  };
+
   const rt: Runtime = {
     persistence,
     session,
@@ -54,7 +82,11 @@ export async function startRuntime(persistence: Persistence, session: Session): 
       }
       const everSynced = (await persistence.getMeta<boolean>('everSynced')) ?? false;
       const available = await relayAvailable(session.apiBase);
-      if (!available && !(everSynced && !navigator.onLine)) return;
+      if (!available && !(everSynced && !navigator.onLine)) {
+        // On this device only (no relay): it's all here already.
+        if (!everSynced) settle();
+        return;
+      }
       rt.relay = true;
       if (!everSynced) await persistence.commit({ meta: { everSynced: true } });
       const sync = new SyncClient(store, persistence, {
@@ -70,6 +102,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
       hub.renameOldDefaults();
       hub.uniformProjects();
       hub.endAwayMode();
+      settle();
       for (const fn of relayListeners) fn();
       void registerPush(rt);
     },

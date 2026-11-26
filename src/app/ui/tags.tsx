@@ -20,7 +20,7 @@ export function UrgentTag({ title = 'Urgent', short }: { title?: string; short?:
 
 /**
  * Whose it is, when that differs from its project (so Ours projects stay quiet):
- * an ink "Only me", "Mine" in my color, "{P}'s" in theirs, or "Ours" inside a Mine project.
+ * an ink "Private", "Mine" in my color, "{P}'s" in theirs, or "Ours" inside a Mine project.
  */
 export function VisTag({ item }: { item: Item }) {
   const hub = useHub();
@@ -30,7 +30,7 @@ export function VisTag({ item }: { item: Item }) {
     return (
       <span className="vtag vtag--private">
         <Icon name={VIS_ICON.private} className="on-ink" />
-        Only me
+        Private
       </span>
     );
   }

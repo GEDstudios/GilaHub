@@ -27,6 +27,8 @@ export interface Member {
   requestAlerts?: boolean;
   /** My bottom bar, between Today and Projects, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
   tabs?: string[];
+  /** My private To-Do was made (its id): never made again, even if I delete it. */
+  personalFolder?: string | null;
   /** How I look at each folder (list, cards, by tag): mine, not my partner's. Unset: the folder's own default. */
   views?: Record<string, ListView> | null;
   /** My Today page, in order (undefined = the defaults). Synced to my devices; see app/home.ts. */
@@ -76,6 +78,10 @@ export interface List {
   owner: string | null;
   visibility: Visibility;
   order: string;
+  /** A line or two about it, under its name. */
+  description?: string | null;
+  /** My own private To-Do (one per person, made for them; Hub.ensurePersonalFolder). */
+  personal?: boolean;
   /** The project it sits inside (a folder in a folder). Unset, or one I can't see: top level. */
   parentId?: string | null;
   archived?: boolean;

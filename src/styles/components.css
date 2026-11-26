@@ -7794,3 +7794,74 @@ textarea.nf__write {
   border-radius: 14px;
   background: var(--tile);
 }
+
+/* ---------------------------------------------------------------- who sees it: a loud chip */
+
+/* Ours: our two colours, side by side. Mine: my colour. Theirs: my person's. Private: ink, locked. */
+.echip.echip--vis {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1.5px var(--ink) inset;
+}
+
+.echip--vis-ours {
+  background: linear-gradient(100deg, var(--me) 0 50%, var(--them) 50% 100%);
+}
+
+.echip--vis-mine {
+  background: var(--me);
+}
+
+.echip--vis-theirs {
+  background: var(--them);
+}
+
+.echip.echip--vis-private {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+
+.echip.echip--vis-private .icon {
+  color: var(--bg);
+}
+
+.echip__faces {
+  display: inline-flex;
+  margin-left: -5px;
+}
+
+.echip__faces .avatar + .avatar {
+  margin-left: -7px;
+}
+
+.echip__faces .avatar {
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+/* A folder's description: a quiet line under its name, written in place. */
+.hero__desc {
+  display: block;
+  width: calc(100% - 56px);
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: rgb(10 10 4 / 0.72);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  position: relative;
+  z-index: 1;
+}
+
+.hero__desc::placeholder {
+  color: rgb(10 10 4 / 0.4);
+}
+
+.hero__desc:focus-visible {
+  outline: none;
+  color: var(--ink);
+}

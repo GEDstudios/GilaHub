@@ -197,6 +197,14 @@ export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
             <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Folder name" />
           </h1>
         </div>
+        <AutoTitle
+          className="hero__desc"
+          value={list.description ?? ''}
+          placeholder="Add a description"
+          optional
+          onSave={(d) => hub.updateList(list.id, { description: d || null })}
+          label="Folder description"
+        />
         <div className="hero__foot">
           <p className="hero__sub">{sub}</p>
         </div>

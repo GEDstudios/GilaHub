@@ -22,7 +22,7 @@ export function listDefaultVis(hub: Hub, list: Pick<List, 'visibility' | 'owner'
 /** A project's own setting, as a choice (a project is never "theirs" to the person setting it). */
 export const LIST_VIS: Record<Visibility, VisChoice> = { shared: 'ours', visible: 'mine', private: 'private' };
 
-/** "Ours", "Mine", "Hila’s" or "Only me", for a project. */
+/** "Ours", "Mine", "Hila’s" or "Private", for a project. */
 export function listVisLabel(hub: Hub, list: Pick<List, 'visibility' | 'owner'>): string {
   return visLabel(listDefaultVis(hub, list), hub.member(list.owner)?.name);
 }
@@ -70,7 +70,7 @@ export function setItemVis(hub: Hub, id: string, v: VisChoice): void {
 export function visLabel(v: VisChoice, partnerName?: string | null): string {
   if (v === 'ours') return 'Ours';
   if (v === 'mine') return 'Mine';
-  if (v === 'private') return 'Only me';
+  if (v === 'private') return 'Private';
   return partnerName ? `${partnerName}’s` : 'Theirs';
 }
 

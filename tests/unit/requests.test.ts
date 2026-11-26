@@ -247,7 +247,7 @@ describe('privacy helpers', () => {
   });
 
   it('labels and hints, paired and solo', () => {
-    expect(['ours', 'mine', 'theirs', 'private'].map((v) => visLabel(v as never, 'Hila'))).toEqual(['Ours', 'Mine', 'Hila’s', 'Only me']);
+    expect(['ours', 'mine', 'theirs', 'private'].map((v) => visLabel(v as never, 'Hila'))).toEqual(['Ours', 'Mine', 'Hila’s', 'Private']);
     expect(visHint('mine', 'Hila')).toBe('Yours. Hila can see it and help.');
     expect(visHint('private', 'Hila')).toBe('Hidden from Hila. Encrypted.');
     expect(visHint('theirs', 'Hila')).toContain('Who → Ask Hila');

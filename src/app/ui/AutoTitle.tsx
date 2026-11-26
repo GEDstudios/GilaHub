@@ -4,7 +4,24 @@ import { useEffect, useRef, useState } from 'react';
  * A title edited in place: a borderless textarea that grows with its text. Enter saves,
  * an empty title goes back to what it was. Used on the item's and the project's color card.
  */
-export function AutoTitle({ value, onSave, readOnly, label = 'Title' }: { value: string; onSave: (v: string) => void; readOnly?: boolean; label?: string }) {
+export function AutoTitle({
+  value,
+  onSave,
+  readOnly,
+  label = 'Title',
+  className = 'hero__titleinput',
+  placeholder,
+  optional = false,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+  readOnly?: boolean;
+  label?: string;
+  className?: string;
+  placeholder?: string;
+  /** It can be left empty (a description), and emptying it saves that. */
+  optional?: boolean;
+}) {
   const [v, setV] = useState(value);
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => setV(value), [value]);
@@ -18,10 +35,11 @@ export function AutoTitle({ value, onSave, readOnly, label = 'Title' }: { value:
   return (
     <textarea
       ref={ref}
-      className="hero__titleinput"
+      className={className}
       dir="auto"
       rows={1}
       value={v}
+      placeholder={placeholder}
       readOnly={readOnly}
       aria-label={label}
       enterKeyHint="done"
@@ -38,7 +56,7 @@ export function AutoTitle({ value, onSave, readOnly, label = 'Title' }: { value:
       }}
       onBlur={() => {
         const t = v.trim();
-        if (t && t !== value) onSave(t);
+        if ((t || optional) && t !== value) onSave(t);
         else setV(value);
       }}
     />

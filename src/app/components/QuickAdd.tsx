@@ -5,7 +5,7 @@ import { parseQuickAdd, type ParseContext, type ParseResult } from '../../smart/
 import { composeDraft, overriddenTokens, parsedDraft, type AddMode } from '../compose';
 import { useHub, useRt } from '../context';
 import { notifyAbout, setUpReminders } from '../notify';
-import { dayFirst, setPrefs, use24h, usePrefs, weekStart, workdays } from '../prefs';
+import { dayFirst, getPrefs, setPrefs, use24h, usePrefs, weekStart, workdays } from '../prefs';
 import { allowedVis, itemVisChoice, visFields, type VisChoice } from '../privacy';
 import { ifNotInView, markFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';
@@ -71,7 +71,17 @@ export function useCompose({
   // Its tags, once picked; until then, what the words suggest by themselves (Hub.suggestTags).
   const [picked, setTags] = useState<string[] | null>(seed?.tags ?? null);
   const target = place?.listId ?? null;
-  const base = (target ? hub.list(target) : undefined) ?? hub.list(listId);
+  const home = (target ? hub.list(target) : undefined) ?? hub.list(listId);
+  // Asking my person can't live in a Private folder: unless I picked one, it goes to a shared one
+  // (the last I added to, else To do).
+  const partner = hub.partner();
+  const asking = !!partner && (hub.isRequest(over.assignee) || new RegExp(`(^|\\s)@${partner.name.split(' ')[0]}`, 'iu').test(text));
+  const sharedHome = () => {
+    const shared = hub.lists().filter((l) => l.visibility !== 'private');
+    const last = getPrefs().lastList;
+    return shared.find((l) => l.id === last) ?? shared.find((l) => l.name === 'To do') ?? shared[0];
+  };
+  const base = asking && home?.visibility === 'private' && !target ? (sharedHome() ?? home) : home;
   const parentPick = place ? place.parentId : parentId;
   const parent = hub.item(parentPick);
   const ctx = useParseContext(base);

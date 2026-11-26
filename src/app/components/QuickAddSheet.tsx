@@ -99,10 +99,16 @@ export function QuickAddSheet({
         />
       </Sheet>
     );
+  // Not from a folder (Today, search…): where I said new things go. Mine: my private To-Do.
+  // Ours: the last shared folder I added to (never a private one).
+  const shared = (l: { visibility: string }) => l.visibility !== 'private';
+  const mine = getPrefs().todayNew !== 'ours' ? hub.list(hub.personalFolderId()) : undefined;
   const initial =
     (listId && hub.list(listId)) ||
-    (last && lists.find((l) => l.id === last)) ||
-    lists.find((l) => l.name === 'To do') ||
+    (mine && !mine.archived ? mine : undefined) ||
+    (last && lists.find((l) => l.id === last && (mine !== undefined || shared(l)))) ||
+    lists.find((l) => l.name === 'To do' && shared(l)) ||
+    lists.find(shared) ||
     lists[0];
   return (
     <Sheet onClose={onClose} label="New">
@@ -167,7 +173,8 @@ function Composer({
   useEffect(() => () => saveDraft(null), []);
   const { draft, dest, parsed } = c;
   const title = parsed.title.trim();
-  const fields = FIELDS.filter((f) => f !== 'who' || draft.visibility !== 'private');
+  // Who stays offered even in a Private folder: asking my person takes it to a shared one.
+  const fields = FIELDS.filter((f) => f !== 'who' || draft.visibility !== 'private' || !!hub.partner());
   const steps = c.parent ? [] : [...words.steps, ...own];
   const parent = hub.item(parentId);
 

@@ -439,13 +439,33 @@ function hearThem() {
   order.forEach((k, i) => setTimeout(() => playSound(k), i * 520));
 }
 
-// ---------------------------------------------------------------- On this device
+// ---------------------------------------------------------------- yours, on every device
 
+/** How I like things. They follow me to all my devices (userPrefs.ts), not this phone's. */
 function ThisDevice() {
+  const hub = useHub();
   const prefs = usePrefs();
+  const partner = hub.partner();
   return (
-    <Section title="On this device">
+    <Section title="Yours, on every device">
       <div className="group">
+        <OptRow
+          icon="plus"
+          title="New things from Today"
+          sub={prefs.todayNew === 'ours' ? `Into your last shared folder, for you and ${partner?.name ?? 'your person'}` : 'Into your To-Do, private to you'}
+          trail={
+            <Seg
+              small
+              label="New things from Today"
+              value={prefs.todayNew}
+              options={[
+                { value: 'mine', label: 'Mine' },
+                { value: 'ours', label: 'Ours' },
+              ]}
+              onChange={(v) => setPrefs({ todayNew: v })}
+            />
+          }
+        />
         <OptRow
           icon="calendar"
           title="Week starts"

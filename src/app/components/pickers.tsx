@@ -85,7 +85,7 @@ export function ListPickerSheet({
             key={l.id}
             lead={<ListBullet list={l} size="md" />}
             title={l.name}
-            sub={l.visibility === 'private' ? 'Only me' : l.visibility === 'visible' ? `${hub.member(l.owner)?.name ?? ''}’s` : undefined}
+            sub={l.visibility === 'private' ? 'Private' : l.visibility === 'visible' ? `${hub.member(l.owner)?.name ?? ''}’s` : undefined}
             on={l.id === current}
             onClick={() => {
               onPick(l);

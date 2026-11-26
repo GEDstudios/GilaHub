@@ -118,6 +118,7 @@ export class Hub {
     /** How it's looked at: a list (unset), cards, or by tag. */
     view?: ListView;
     id?: string;
+    description?: string | null;
   }): string {
     const visibility = input.visibility ?? 'shared';
     const owner = visibility === 'shared' ? null : visibility === 'visible' ? (input.owner ?? this.meId) : this.meId;
@@ -136,9 +137,34 @@ export class Hub {
         order: keyBetween(last?.order ?? null, null),
         parentId: input.parentId && this.list(input.parentId) ? input.parentId : undefined,
         ...(input.view ? { view: input.view } : {}),
+        ...(input.description ? { description: input.description } : {}),
         createdAt: Date.now(),
         createdBy: this.meId,
       });
+    });
+    return id;
+  }
+
+  /** My private To-Do's id: the same on all my devices, so two of them never make two. */
+  personalFolderId(): string {
+    return `todo${this.meId}`;
+  }
+
+  /**
+   * A private space from the start: my own To-Do, Private (my person never sees it), first among
+   * the folders. Made once per person; deleted, it stays gone. Returns its id when it was just
+   * made (the app pins it first), else null. Call after the first sync, so a new device of mine
+   * finds the one I already have.
+   */
+  ensurePersonalFolder(): string | null {
+    const id = this.personalFolderId();
+    const me = this.me();
+    if (!me || me.personalFolder || this.store.record('list', id)) return null;
+    const first = this.topLists()[0];
+    this.store.batch(() => {
+      this.createList({ id, name: 'To-Do', visibility: 'private', color: me.color === 'ink' ? 'lemon' : me.color, icon: 'i:star', description: 'My default private folder' });
+      this.store.mutate('list', id, { personal: true, order: keyBetween(null, first?.order ?? null) });
+      this.upsertMember(this.meId, { personalFolder: id });
     });
     return id;
   }
@@ -245,7 +271,7 @@ export class Hub {
     return true;
   }
 
-  updateList(id: string, fields: Partial<Pick<List, 'name' | 'color' | 'icon' | 'kind' | 'flavor' | 'archived'>>): void {
+  updateList(id: string, fields: Partial<Pick<List, 'name' | 'color' | 'icon' | 'kind' | 'flavor' | 'archived' | 'description'>>): void {
     this.store.mutate('list', id, fields);
   }
 

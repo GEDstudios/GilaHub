@@ -33,11 +33,11 @@ const STEPS: TourStep[] = [
   { key: 'add', title: () => 'Add something of yours with the black +', today: true },
   {
     key: 'share',
-    title: () => 'Ours, Mine or Only me?',
+    title: () => 'Ours, Mine or Private?',
     notes: (p) =>
       `Ours: ${p ?? 'your person'} and you both see it and change it.\n` +
       `Mine: it's yours. ${p ?? 'Your person'} can see it and help.\n` +
-      `Only me: ${p ?? 'your person'} never sees it, not even that it's there.\n` +
+      `Private: ${p ?? 'your person'} never sees it, not even that it's there.\n` +
       `Ask ${p ?? 'your person'}: pick them under Who and it lands on their Today.`,
   },
   { key: 'bar', title: () => 'Hold the bottom bar and slide' },
