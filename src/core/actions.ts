@@ -1136,13 +1136,13 @@ export class Hub {
   }
 
   /** Change my own note: its words, paper, how its photo sits, what's drawn on it (only the one who left it). */
-  editNote(id: string, fields: { text?: string; color?: LineColor; photoShape?: string; photoBorder?: string; photoAt?: string; photoPos?: string; ink?: string | null }): void {
+  editNote(id: string, fields: { text?: string; color?: LineColor; photoShape?: string; photoBorder?: string; photoAt?: string; photoPos?: string; ink?: string | null; textSize?: number | null }): void {
     const n = this.store.get('note', id);
     if (!n || n.by !== this.meId) return;
     const patch: Partial<Note> = {};
     if (fields.text !== undefined && fields.text.trim() && fields.text.trim() !== n.text) patch.text = fields.text.trim();
     if (fields.color && fields.color !== n.color) patch.color = fields.color;
-    for (const k of ['photoShape', 'photoBorder', 'photoAt', 'photoPos', 'ink'] as const) if (fields[k] !== undefined && fields[k] !== n[k]) patch[k] = fields[k];
+    for (const k of ['photoShape', 'photoBorder', 'photoAt', 'photoPos', 'ink', 'textSize'] as const) if (fields[k] !== undefined && fields[k] !== n[k]) (patch as Record<string, unknown>)[k] = fields[k];
     if (Object.keys(patch).length) this.store.mutate('note', id, patch);
   }
 

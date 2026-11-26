@@ -86,6 +86,7 @@ export function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): Not
     border: (n.photoBorder as PhotoBorder) || 'white',
     pos: posOf(n),
     ink,
+    size: n.textSize ?? null,
   };
 }
 
@@ -122,7 +123,7 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
   const rt = useRt();
   const { toast } = useOverlays();
   const partner = hub.partner();
-  const [look, setLook] = useState<NoteLook>({ text: '', color: 'lemon', by: `— ${hub.me()?.name ?? ''}`, photo: null, shape: 'squircle', border: 'white', pos: PHOTO_HOME, ink: [] });
+  const [look, setLook] = useState<NoteLook>({ text: '', color: 'lemon', by: `— ${hub.me()?.name ?? ''}`, photo: null, shape: 'squircle', border: 'white', pos: PHOTO_HOME, ink: [], size: null });
   const set = (p: Partial<NoteLook>) => setLook((l) => ({ ...l, ...p }));
   const where = placeName(hub, place);
   const ready = !!look.text.trim() || !!look.photo || look.ink.length > 0;
@@ -130,7 +131,7 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
     const id = hub.addNote(place, look.text.trim() || (look.photo ? '📷' : look.ink.length ? '✏️' : ''), look.color);
     if (!id) return;
     if (look.photo) hub.setShot('note', id, look.photo);
-    hub.editNote(id, { photoShape: look.shape, photoBorder: look.border, photoPos: posText(look.pos), ink: look.ink.length ? JSON.stringify(look.ink) : null });
+    hub.editNote(id, { photoShape: look.shape, photoBorder: look.border, photoPos: posText(look.pos), ink: look.ink.length ? JSON.stringify(look.ink) : null, textSize: look.size });
     haptic('tick');
     onClose();
     toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.deleteNote(id) } });
@@ -590,6 +591,7 @@ function MyNote({ note, peeling }: { note: Note; peeling: boolean }) {
       photoBorder: p.border,
       photoPos: p.pos ? posText(p.pos) : undefined,
       ink: p.ink === undefined ? undefined : p.ink.length ? JSON.stringify(p.ink) : null,
+      textSize: p.size,
     });
   };
   return (

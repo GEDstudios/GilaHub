@@ -6048,3 +6048,349 @@ textarea.nf__write {
   padding-left: 2px;
   align-items: center;
 }
+
+/* ============================================================ Note editor: a desk, four tools, one tray */
+/* Words never touch the paper's edge: room for an italic's swash on every side */
+.nf__text {
+  padding: 2px 3px 3px;
+  line-height: 1.2;
+}
+
+.noteedit {
+  display: grid;
+  gap: 14px;
+}
+
+/* The note on its own little desk: even room all round, and a photo that hangs off stays on it */
+.noteedit__desk {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 30px 20px;
+  overflow: hidden;
+  border-radius: 22px;
+  background-color: var(--tile);
+  background-image: radial-gradient(circle, rgb(10 10 4 / 0.09) 1px, transparent 1.3px);
+  background-size: 14px 14px;
+  background-position: center;
+}
+
+.noteedit__desk.is-drawing {
+  cursor: crosshair;
+}
+
+/* The four tools: round, equal, centred */
+.noteedit__tools {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+
+.tool {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--text);
+  transition:
+    transform 200ms var(--spring),
+    background 160ms var(--ease),
+    color 160ms var(--ease);
+}
+
+.tool:active {
+  transform: scale(0.9);
+}
+
+.tool.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.tool__aa {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.tool__paper {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--c, var(--lemon));
+  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.12);
+  transform: rotate(-6deg);
+}
+
+/* The tray: one tool's choices, every one a picture of itself */
+.noteedit__tray {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px rgb(10 10 4 / 0.05);
+  animation: pop 200ms var(--spring) both;
+}
+
+.tray__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tray__row--center {
+  justify-content: center;
+}
+
+.tray__inks {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tray__chip {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 17px;
+  background: var(--tile);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.tray__chip.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.tray__a {
+  flex: none;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--text-2);
+}
+
+.tray__a--s {
+  font-size: 13px;
+}
+
+.tray__a--l {
+  font-size: 24px;
+}
+
+.tray__slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--cta);
+}
+
+.tray__paper {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--c, var(--lemon));
+  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.1);
+  transition: transform 200ms var(--spring);
+}
+
+.tray__paper.is-on {
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--text);
+  transform: rotate(-5deg);
+}
+
+/* Shapes and borders: your own photo, cut and framed each way */
+.tray__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tray__grid--4 {
+  --n: 4;
+  max-width: 280px;
+  justify-self: center;
+  width: 100%;
+}
+
+.tray__tile {
+  position: relative;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--tile);
+  transition:
+    transform 200ms var(--spring),
+    box-shadow 160ms var(--ease);
+}
+
+.tray__tile:active {
+  transform: scale(0.92);
+}
+
+.tray__tile.is-on {
+  box-shadow: inset 0 0 0 2px var(--text);
+  background: var(--card);
+}
+
+.tray__tile > img {
+  position: absolute;
+  inset: 12%;
+  width: 76%;
+  height: 76%;
+}
+
+.tray__tile img {
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.tray__framed {
+  position: absolute;
+  inset: 18%;
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.tray__framed img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tray__border--white .tray__framed {
+  border: 3px solid #fff;
+  box-shadow: 0 1px 3px rgb(10 10 4 / 0.25);
+}
+
+.tray__border--ink .tray__framed {
+  border: 3px solid #0a0a04;
+}
+
+.tray__border--tape .tray__framed {
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgb(10 10 4 / 0.2);
+}
+
+.tray__border--tape::after {
+  content: '';
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  width: 46%;
+  height: 12%;
+  background: rgb(255 255 255 / 0.72);
+  box-shadow: 0 0 0 1px rgb(10 10 4 / 0.06);
+  transform: translateX(-50%) rotate(-4deg);
+}
+
+.tray__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.tray__action {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border-radius: 14px;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: transform 200ms var(--spring);
+}
+
+.tray__action:active {
+  transform: scale(0.94);
+}
+
+.tray__action:disabled {
+  opacity: 0.4;
+}
+
+.tray__action--row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 36px;
+  border-radius: 18px;
+}
+
+.tray__hint {
+  margin: -2px 0 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+/* Pens: round dabs of ink; the rainbow one is any colour */
+.tray__ink {
+  position: relative;
+  width: 100%;
+  max-width: 34px;
+  aspect-ratio: 1;
+  justify-self: center;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.15);
+  transition: transform 200ms var(--spring);
+}
+
+.tray__ink.is-on {
+  box-shadow:
+    inset 0 0 0 1px rgb(10 10 4 / 0.15),
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--text);
+  transform: scale(1.06);
+}
+
+.tray__ink--custom {
+  overflow: hidden;
+  background: conic-gradient(#ff3b30, #ffcc00, #34c759, #0a84ff, #af52de, #ff3b30);
+  cursor: pointer;
+}
+
+.tray__ink--custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.tray__widths {
+  display: flex;
+  gap: 6px;
+}
+
+.tray__width {
+  width: 40px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--tile);
+}
+
+.tray__width.is-on {
+  box-shadow: inset 0 0 0 2px var(--text);
+  background: var(--card);
+}
+
+.tray__width span {
+  display: block;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(10 10 4 / 0.12);
+}

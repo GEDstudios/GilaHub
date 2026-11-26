@@ -526,17 +526,25 @@ try {
     await guy.locator('.notebtn').click();
     await guy.getByRole('dialog', { name: 'A note for Hila' }).waitFor();
     await guy.getByRole('textbox', { name: 'Your note' }).fill(NOTE);
+    await guy.getByRole('button', { name: 'Paper' }).click();
     await guy.getByRole('radio', { name: 'pink' }).click();
+    // The words a size by hand.
+    await guy.getByRole('button', { name: 'Text size' }).click();
+    await guy.getByRole('slider', { name: 'Text size' }).fill('13');
     // A photo on it, drawn on.
     await guy.locator('.sheet input[type=file]').setInputFiles(new URL('./.out/10-chores.png', import.meta.url).pathname);
     await guy.getByRole('button', { name: 'Attach' }).click();
     await guy.locator('.sheet .nf__photo img').waitFor({ timeout: 5000 });
-    // A tap on the photo opens its choices: a heart.
+    // Its tray opens by itself: cut it into a heart.
     const ph = guy.locator('.sheet .nf__photo');
-    await ph.click();
     await guy.getByRole('radio', { name: 'Heart' }).click();
     await guy.locator('.sheet .nf__photo--heart').waitFor({ timeout: 3000 });
-    await guy.getByRole('button', { name: 'Done', exact: true }).click();
+    // A tap on the photo closes its tray (and opens it again): the shape stays a heart.
+    await ph.click();
+    await guy.locator('.noteedit__tray').waitFor({ state: 'detached', timeout: 3000 });
+    await ph.click();
+    await guy.getByRole('radio', { name: 'Heart' }).waitFor({ timeout: 3000 });
+    if (!(await guy.locator('.sheet .nf__photo--heart').count())) throw new Error('tapping the photo changed its shape');
     // Hold it and drag it down and left: it moves on the note.
     const pb = await ph.boundingBox();
     await guy.mouse.move(pb.x + pb.width / 2, pb.y + pb.height / 2);
@@ -555,8 +563,9 @@ try {
     await guy.mouse.down();
     for (let i = 1; i <= 8; i++) await guy.mouse.move(pad.x + pad.width * (0.15 + i * 0.07), pad.y + pad.height * (0.85 - Math.sin(i / 2.5) * 0.1));
     await guy.mouse.up();
-    await guy.locator('.sheet .nf__ink polyline').waitFor({ timeout: 3000 });
-    await guy.getByRole('button', { name: 'Done drawing' }).click();
+    await guy.locator('.sheet .nf__ink path').waitFor({ timeout: 3000 });
+    await shot(guy, '28a-note-pen');
+    await guy.getByRole('button', { name: 'Draw on the note' }).click();
     await shot(guy, '28b-note-drawn');
     await guy.getByRole('button', { name: 'Stick it' }).click();
     await guy.locator('.stuck').waitFor({ timeout: 3000 });
@@ -572,7 +581,7 @@ try {
     await stuck.waitFor({ timeout: 3000 });
     await stuck.locator('.nf__photo img').waitFor({ timeout: 15000 });
     await stuck.locator('.nf__photo--heart').waitFor({ timeout: 3000 });
-    await stuck.locator('.nf__ink polyline').waitFor({ timeout: 3000 });
+    await stuck.locator('.nf__ink path').waitFor({ timeout: 3000 });
     await hila.waitForTimeout(700);
     await shot(hila, '31-note-hila-shop');
     // A tap reads it.

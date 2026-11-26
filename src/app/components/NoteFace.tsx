@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { LineColor } from '../../core/model';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
@@ -31,6 +31,8 @@ export interface NoteLook {
   border: PhotoBorder;
   pos: PhotoPos;
   ink: Stroke[];
+  /** The words' size, in points; null: as big as fits. */
+  size: number | null;
 }
 
 export const NOTE_COLORS: LineColor[] = ['lemon', 'pink', 'sky', 'mint', 'lilac'];
@@ -119,10 +121,14 @@ function ShapedPhoto({ look, lifted, bind }: { look: NoteLook; lifted?: boolean;
 // ---------------------------------------------------------------- the words, fitted
 
 /** Make an element's text as big as fits (it's on a fixed paper, so scale doesn't change it). */
-function useFit(ref: React.RefObject<HTMLElement | null>, deps: unknown[], max: number, min: number) {
+function useFit(ref: React.RefObject<HTMLElement | null>, deps: unknown[], max: number, min: number, fixed: number | null = null) {
   useLayoutEffect(() => {
     const n = ref.current;
     if (!n) return;
+    if (fixed) {
+      n.style.fontSize = `${fixed}px`;
+      return;
+    }
     const fit = () => {
       let size = max;
       n.style.fontSize = `${size}px`;
@@ -134,7 +140,21 @@ function useFit(ref: React.RefObject<HTMLElement | null>, deps: unknown[], max: 
     fit();
     void document.fonts?.ready.then(fit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, max, min]);
+  }, [...deps, max, min, fixed]);
+}
+
+/** A stroke drawn smooth: a curve through the middles of its points (the points are its handles). */
+export function smoothPath(p: string): string {
+  const pts = p.split(' ').map((xy) => xy.split(',').map(Number) as [number, number]);
+  if (pts.length < 3) return `M${pts.map(([x, y]) => `${x},${y}`).join(' L')}`;
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2;
+    const my = (pts[i][1] + pts[i + 1][1]) / 2;
+    d += ` Q${pts[i][0]},${pts[i][1]} ${mx.toFixed(1)},${my.toFixed(1)}`;
+  }
+  const last = pts[pts.length - 1];
+  return `${d} L${last[0]},${last[1]}`;
 }
 
 // ---------------------------------------------------------------- the note
@@ -154,7 +174,7 @@ export function NoteFace({
   /** Writing it: the words are a field, fitted the same way. */
   write?: { onText: (t: string) => void; onBlur?: () => void; placeholder: string; autoFocus?: boolean };
   /** Drawing on it: a pen in this colour; each finished stroke comes back. */
-  draw?: { color: string; onStroke: (s: Stroke) => void };
+  draw?: { color: string; width: number; onStroke: (s: Stroke) => void };
   /** Its photo can be picked up (hold), moved, turned and sized; a tap opens its menu. */
   photo?: { onPos: (p: PhotoPos) => void; onTap: () => void; selected: boolean };
   className?: string;
@@ -163,7 +183,7 @@ export function NoteFace({
   const field = useRef<HTMLTextAreaElement>(null);
   const shown = useRef<HTMLSpanElement>(null);
   const paper = useRef<HTMLSpanElement>(null);
-  useFit(write ? field : shown, [text], 21, 7);
+  useFit(write ? field : shown, [text], 21, 6, look.size);
   const [live, setLive] = useState<PhotoPos | null>(null);
   const shownLook = live ? { ...look, pos: live } : look;
   const gesture = usePhotoGesture({
@@ -201,11 +221,11 @@ export function NoteFace({
         {look.ink.length ? (
           <svg className="nf__ink" viewBox={`0 0 ${PAPER} ${PAPER}`} aria-hidden="true">
             {look.ink.map((s, i) => (
-              <polyline key={i} points={s.p} fill="none" stroke={s.c} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" />
+              <path key={i} d={smoothPath(s.p)} fill="none" stroke={s.c} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" />
             ))}
           </svg>
         ) : null}
-        {draw ? <DrawLayer pen={draw.color} onStroke={draw.onStroke} /> : null}
+        {draw ? <DrawLayer pen={draw.color} width={draw.width} onStroke={draw.onStroke} /> : null}
       </span>
     </span>
   );
@@ -450,7 +470,7 @@ function usePhotoGesture({
 }
 
 /** Drawing on the note: a finger (or the mouse) leaves a line; lifted, it's kept. */
-function DrawLayer({ pen, onStroke }: { pen: string; onStroke: (s: Stroke) => void }) {
+function DrawLayer({ pen, width, onStroke }: { pen: string; width: number; onStroke: (s: Stroke) => void }) {
   const el = useRef<HTMLSpanElement>(null);
   const [pts, setPts] = useState<Array<[number, number]> | null>(null);
   const at = (e: React.PointerEvent): [number, number] => {
@@ -474,17 +494,18 @@ function DrawLayer({ pen, onStroke }: { pen: string; onStroke: (s: Stroke) => vo
         if (!pts) return;
         const p = at(e);
         const last = pts[pts.length - 1];
-        if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= 0.8) setPts([...pts, p]);
+        // Points too close together only make it shaky.
+        if (Math.hypot(p[0] - last[0], p[1] - last[1]) >= 1.4) setPts([...pts, p]);
       }}
       onPointerUp={() => {
-        if (pts) onStroke({ c: pen, w: 2.2, p: (pts.length === 1 ? [pts[0], [pts[0][0] + 0.1, pts[0][1]]] : pts).map(([x, y]) => `${x},${y}`).join(' ') });
+        if (pts) onStroke({ c: pen, w: width, p: (pts.length === 1 ? [pts[0], [pts[0][0] + 0.1, pts[0][1]]] : pts).map(([x, y]) => `${x},${y}`).join(' ') });
         setPts(null);
       }}
       onPointerCancel={() => setPts(null)}
     >
       {pts ? (
         <svg className="nf__ink" viewBox={`0 0 ${PAPER} ${PAPER}`}>
-          <polyline points={pts.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" stroke={pen} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={smoothPath(pts.map(([x, y]) => `${x},${y}`).join(' '))} fill="none" stroke={pen} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       ) : null}
     </span>
@@ -493,21 +514,26 @@ function DrawLayer({ pen, onStroke }: { pen: string; onStroke: (s: Stroke) => vo
 
 // ---------------------------------------------------------------- the editor
 
-const PENS = [
-  { c: '#0a0a04', label: 'Black' },
-  { c: '#ff3b30', label: 'Red' },
-  { c: '#2f6bff', label: 'Blue' },
-  { c: '#ffffff', label: 'White' },
+/** Pens: the app's own colours, plus black, white and a red. A custom one comes from the rainbow. */
+const BRAND = ['lemon', 'pink', 'sky', 'mint', 'lilac', 'amber'] as const;
+const PEN_FIXED = ['#0a0a04', '#ffffff', '#ff3b30'];
+const WIDTHS = [
+  { w: 1.4, label: 'Thin' },
+  { w: 2.4, label: 'Medium' },
+  { w: 4, label: 'Thick' },
 ];
+const brandHex = (c: string) => (typeof document === 'undefined' ? '#000' : getComputedStyle(document.documentElement).getPropertyValue(`--${c}`).trim() || '#000');
 
 /** The most ink a note keeps (it syncs as one small field). */
 export const INK_MAX = 24_000;
 
+type Tool = 'text' | 'paper' | 'photo' | 'pen';
+
 /**
- * Writing a note (a new one, or my own), right on it, big and exactly as it'll look. Under it,
- * one quiet row: the paper's colours, and two round buttons: a photo, and a pencil to draw on
- * the note. The photo is a sticker on the note: hold it to move it (a second finger, or the
- * mouse anywhere, turns and sizes it); a tap opens its few choices.
+ * Writing a note (a new one, or my own), right on it, big and exactly as it'll look, on its own
+ * little desk (room around it for a photo that hangs off). Under it one row of round tools: Aa
+ * (the words' size), Paper, Photo, Pen. A tool opens its tray under the row: one at a time, and
+ * every choice in it is a picture of the choice, not a word.
  */
 export function NoteEditor({
   look,
@@ -523,129 +549,180 @@ export function NoteEditor({
   autoFocus?: boolean;
 }) {
   const { openSheet, toast } = useOverlays();
-  const [drawing, setDrawing] = useState(false);
-  const [photoMenu, setPhotoMenu] = useState(false);
-  const [pen, setPen] = useState(PENS[0].c);
+  const [tool, setTool] = useState<Tool | null>(null);
+  const [pen, setPen] = useState('#0a0a04');
+  const [width, setWidth] = useState(2.4);
   const picker = useShotPicker((photo) => {
     set(look.photo ? { photo } : { photo, pos: PHOTO_HOME });
-    setDrawing(false);
+    setTool('photo');
   });
-  const addStroke = (s: Stroke) => {
-    const next = [...look.ink, s];
+  const pick = (t: Tool) => {
+    haptic('select');
+    if (t === 'photo' && !look.photo) {
+      picker.pick();
+      return;
+    }
+    setTool(tool === t ? null : t);
+  };
+  const addStroke = (st: Stroke) => {
+    const next = [...look.ink, st];
     if (JSON.stringify(next).length > INK_MAX) {
       toast('That’s all the ink a note holds');
       return;
     }
     set({ ink: next });
   };
+  const TOOLS: Array<{ id: Tool; label: string; face: ReactNode }> = [
+    { id: 'text', label: 'Text size', face: <span className="tool__aa">Aa</span> },
+    { id: 'paper', label: 'Paper', face: <span className="tool__paper" style={lineVars(look.color)} /> },
+    { id: 'photo', label: look.photo ? 'Photo' : 'Add a photo', face: <Icon name="image" /> },
+    { id: 'pen', label: 'Draw on the note', face: <Icon name="edit" /> },
+  ];
   return (
     <div className="noteedit">
-      <div className="noteedit__stage">
+      <div className={`noteedit__desk ${tool === 'pen' ? 'is-drawing' : ''}`}>
         <NoteFace
           look={look}
-          scale={2.3}
+          scale={2.2}
           write={{ onText, onBlur: onTextDone, placeholder: 'Don’t forget the milk 💛', autoFocus }}
-          draw={drawing ? { color: pen, onStroke: addStroke } : undefined}
+          draw={tool === 'pen' ? { color: pen, width, onStroke: addStroke } : undefined}
           photo={{
             onPos: (pos) => set({ pos }),
             onTap: () => {
               haptic('select');
-              setPhotoMenu(!photoMenu);
+              setTool(tool === 'photo' ? null : 'photo');
             },
-            selected: photoMenu,
+            selected: tool === 'photo',
           }}
         />
       </div>
 
-      {photoMenu && look.photo ? (
-        <div className="noteedit__photo" role="group" aria-label="Photo">
-          <div className="noteedit__choices" role="radiogroup" aria-label="Shape">
-            {SHAPES.map((s) => (
-              <button key={s.id} type="button" role="radio" aria-checked={look.shape === s.id} aria-label={s.label} title={s.label} className={`noteedit__shape ${look.shape === s.id ? 'is-on' : ''}`} onClick={() => set({ shape: s.id })}>
-                <span className="noteedit__shapeswatch" style={maskOf(s.id)} />
+      <div className="noteedit__tools" role="toolbar" aria-label="Note">
+        {TOOLS.map((t) => (
+          <button key={t.id} type="button" className={`tool ${tool === t.id ? 'is-on' : ''}`} aria-label={t.label} aria-pressed={tool === t.id} title={t.label} onClick={() => pick(t.id)}>
+            {t.face}
+          </button>
+        ))}
+      </div>
+
+      {tool ? (
+        <div className="noteedit__tray" key={tool}>
+          {tool === 'text' ? (
+            <div className="tray__row">
+              <button type="button" className={`tray__chip ${look.size === null ? 'is-on' : ''}`} aria-pressed={look.size === null} onClick={() => set({ size: null })}>
+                Auto
               </button>
-            ))}
-          </div>
-          <div className="noteedit__choices" role="radiogroup" aria-label="Border">
-            {BORDERS.map((b) => (
-              <button key={b.id} type="button" role="radio" aria-checked={look.border === b.id} className={`option option--sm ${look.border === b.id ? 'is-on' : ''}`} onClick={() => set({ border: b.id })}>
-                {b.label}
-              </button>
-            ))}
-          </div>
-          <div className="noteedit__actions">
-            <button type="button" className="textbtn" onClick={() => openSheet((close) => <SketchSheet src={look.photo!} onDone={(photo) => set({ photo })} onClose={close} />)}>
-              <Icon name="scribble" className="icon--xs" /> Draw on it
-            </button>
-            <button type="button" className="textbtn" onClick={picker.pick}>
-              Another photo
-            </button>
-            <button
-              type="button"
-              className="textbtn"
-              onClick={() => {
-                set({ photo: null });
-                setPhotoMenu(false);
-              }}
-            >
-              Take it off
-            </button>
-            <span className="noteedit__grow" />
-            <button type="button" className="btn btn--sm" onClick={() => setPhotoMenu(false)}>
-              Done
-            </button>
-          </div>
+              <span className="tray__a tray__a--s" aria-hidden="true">
+                A
+              </span>
+              <input
+                className="tray__slider"
+                type="range"
+                min={7}
+                max={30}
+                step={0.5}
+                value={look.size ?? 16}
+                aria-label="Text size"
+                onChange={(e) => set({ size: Number(e.target.value) })}
+              />
+              <span className="tray__a tray__a--l" aria-hidden="true">
+                A
+              </span>
+            </div>
+          ) : null}
+
+          {tool === 'paper' ? (
+            <div className="tray__row tray__row--center" role="radiogroup" aria-label="Paper">
+              {NOTE_COLORS.map((c) => (
+                <button key={c} type="button" role="radio" aria-checked={c === look.color} aria-label={c} className={`tray__paper ${c === look.color ? 'is-on' : ''}`} style={lineVars(c)} onClick={() => set({ color: c })} />
+              ))}
+            </div>
+          ) : null}
+
+          {tool === 'photo' && look.photo ? (
+            <>
+              <div className="tray__grid" role="radiogroup" aria-label="Shape" style={{ '--n': SHAPES.length } as CSSProperties}>
+                {SHAPES.map((sh) => (
+                  <button key={sh.id} type="button" role="radio" aria-checked={look.shape === sh.id} aria-label={sh.label} title={sh.label} className={`tray__tile ${look.shape === sh.id ? 'is-on' : ''}`} onClick={() => set({ shape: sh.id })}>
+                    <img src={look.photo ?? undefined} alt="" draggable={false} style={maskOf(sh.id)} />
+                  </button>
+                ))}
+              </div>
+              <div className="tray__grid tray__grid--4" role="radiogroup" aria-label="Border">
+                {BORDERS.map((b) => (
+                  <button key={b.id} type="button" role="radio" aria-checked={look.border === b.id} aria-label={`${b.label} border`} title={`${b.label} border`} className={`tray__tile tray__border tray__border--${b.id} ${look.border === b.id ? 'is-on' : ''}`} onClick={() => set({ border: b.id })}>
+                    <span className="tray__framed">
+                      <img src={look.photo ?? undefined} alt="" draggable={false} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="tray__actions">
+                <button type="button" className="tray__action" onClick={() => openSheet((close) => <SketchSheet src={look.photo!} onDone={(photo) => set({ photo })} onClose={close} />)}>
+                  <Icon name="scribble" />
+                  <span>Draw</span>
+                </button>
+                <button type="button" className="tray__action" onClick={picker.pick}>
+                  <Icon name="image" />
+                  <span>Replace</span>
+                </button>
+                <button
+                  type="button"
+                  className="tray__action"
+                  onClick={() => {
+                    set({ photo: null });
+                    setTool(null);
+                  }}
+                >
+                  <Icon name="trash" />
+                  <span>Remove</span>
+                </button>
+              </div>
+              <p className="tray__hint">Hold the photo to move it; a second finger turns and sizes it</p>
+            </>
+          ) : null}
+
+          {tool === 'pen' ? (
+            <>
+              <div className="tray__inks" role="radiogroup" aria-label="Pen colour">
+                {[...BRAND.map((c) => ({ id: c, hex: brandHex(c) })), ...PEN_FIXED.map((hex) => ({ id: hex, hex }))].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={pen === c.hex}
+                    aria-label={c.id}
+                    className={`tray__ink ${pen === c.hex ? 'is-on' : ''}`}
+                    style={{ background: c.hex }}
+                    onClick={() => setPen(c.hex)}
+                  />
+                ))}
+                <label className={`tray__ink tray__ink--custom ${![...BRAND.map(brandHex), ...PEN_FIXED].includes(pen) ? 'is-on' : ''}`} title="Any colour">
+                  <input type="color" value={pen.startsWith('#') && pen.length === 7 ? pen : '#7a5cff'} aria-label="Any colour" onChange={(e) => setPen(e.target.value)} />
+                </label>
+              </div>
+              <div className="tray__row">
+                <div className="tray__widths" role="radiogroup" aria-label="Pen size">
+                  {WIDTHS.map((wd) => (
+                    <button key={wd.w} type="button" role="radio" aria-checked={width === wd.w} aria-label={wd.label} className={`tray__width ${width === wd.w ? 'is-on' : ''}`} onClick={() => setWidth(wd.w)}>
+                      <span style={{ width: wd.w * 3.2, height: wd.w * 3.2, background: pen }} />
+                    </button>
+                  ))}
+                </div>
+                <span className="noteedit__grow" />
+                <button type="button" className="tray__action tray__action--row" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
+                  <Icon name="undo" />
+                  <span>Undo</span>
+                </button>
+                <button type="button" className="tray__action tray__action--row" disabled={!look.ink.length} onClick={() => set({ ink: [] })}>
+                  <Icon name="trash" />
+                  <span>Clear</span>
+                </button>
+              </div>
+            </>
+          ) : null}
         </div>
       ) : null}
-
-      <div className="noteedit__bar">
-        {drawing ? (
-          <>
-            {PENS.map((p) => (
-              <button
-                key={p.c}
-                type="button"
-                role="radio"
-                aria-checked={pen === p.c}
-                aria-label={p.label}
-                className={`sketch__pen ${pen === p.c ? 'is-on' : ''}`}
-                style={{ background: p.c }}
-                onClick={() => {
-                  haptic('select');
-                  setPen(p.c);
-                }}
-              />
-            ))}
-            <button type="button" className="iconbtn" aria-label="Undo the last line" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
-              <Icon name="undo" />
-            </button>
-          </>
-        ) : (
-          NOTE_COLORS.map((c) => (
-            <button key={c} type="button" role="radio" aria-checked={c === look.color} aria-label={c} className={`note__swatch ${c === look.color ? 'is-on' : ''}`} style={lineVars(c)} onClick={() => set({ color: c })} />
-          ))
-        )}
-        <span className="noteedit__grow" />
-        {look.photo || drawing ? null : (
-          <button type="button" className="noteedit__round" aria-label="Add a photo" title="Add a photo" onClick={picker.pick}>
-            <Icon name="image" className="icon--sm" />
-          </button>
-        )}
-        <button
-          type="button"
-          className={`noteedit__round ${drawing ? 'is-on' : ''}`}
-          aria-label={drawing ? 'Done drawing' : 'Draw on the note'}
-          aria-pressed={drawing}
-          title={drawing ? 'Done drawing' : 'Draw on the note'}
-          onClick={() => {
-            haptic('select');
-            setDrawing(!drawing);
-            setPhotoMenu(false);
-          }}
-        >
-          <Icon name={drawing ? 'check' : 'edit'} className="icon--sm" />
-        </button>
-      </div>
       {picker.input}
     </div>
   );

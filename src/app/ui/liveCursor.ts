@@ -55,7 +55,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   img.width = 32;
   img.height = 32;
   body.append(img);
-  // A small timer by the cursor while a hold is under way: it fills, and then the thing lifts.
+  // While a hold is under way the cursor is a timer: it fills, and then the thing lifts.
   const timer = document.createElement('div');
   timer.className = 'livecursor__timer';
   timer.innerHTML = `<svg viewBox="0 0 24 24"><circle class="livecursor__track" cx="12" cy="12" r="9"/><circle class="livecursor__fill" cx="12" cy="12" r="9"/></svg>`;
@@ -106,11 +106,11 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     raf = 0;
     const vx = x - lastX;
     lastX = x;
-    // Lean into a sideways move; when it stops, spring back a little past straight, then settle
-    // (an under-damped spring: one small overshoot you can see, not a wobble).
-    const lean = Math.max(-12, Math.min(12, vx * 0.55));
-    rotV = (rotV + (lean - rot) * 0.2) * 0.73;
-    rot += rotV;
+    // Lean into a sideways move; when it stops, swing back well past straight and wiggle to a
+    // stop (a loose spring: a clear swing back, then a smaller one, then still).
+    const lean = Math.max(-13, Math.min(13, vx * 0.55));
+    rotV = (rotV + (lean - rot) * 0.22) * 0.84;
+    rot = Math.max(-17, Math.min(17, rot + rotV));
     scV = (scV + (scTarget - sc) * 0.3) * 0.62;
     sc += scV;
     el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
@@ -121,8 +121,16 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     if (!raf) raf = requestAnimationFrame(frame);
   };
 
+  // The mouse is still over this page (not off in another window, or the page around this one).
+  const here = () => document.documentElement.matches(':hover');
   const wave = () => {
     if (!visible || kind === 'text') return;
+    // Gone off the page without saying so (leaving a frame can skip the event): no hand left
+    // waving by itself next to the real pointer.
+    if (!here()) {
+      hide();
+      return;
+    }
     waving = true;
     shown = null;
     setKind(kind);
@@ -164,6 +172,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   const endHold = () => {
     holdAt = null;
     timer.classList.remove('is-on');
+    el.classList.remove('is-holding');
   };
   const onDown = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
@@ -174,6 +183,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
       timer.classList.remove('is-on');
       void timer.offsetWidth;
       timer.classList.add('is-on');
+      el.classList.add('is-holding');
       setTimeout(() => holdAt && endHold(), MOUSE_HOLD_MS + 120);
     }
     scTarget = 0.86;
@@ -194,18 +204,28 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   const onLeave = (e: MouseEvent) => {
     if (!e.relatedTarget) hide();
   };
+  const onOut = (e: PointerEvent) => {
+    if (e.pointerType === 'mouse' && !e.relatedTarget) hide();
+  };
   const onRepaint = () => {
     shown = null;
     setKind(kind);
   };
   // Classes that change the shape without a move (a drag starts, a note is lifted).
-  const watch = new MutationObserver(() => setKind(kindAt(document.elementFromPoint(x, y))));
+  const watch = new MutationObserver(() => {
+    // It lifted: the timer's done, the hand takes over.
+    if (holdAt && document.documentElement.classList.contains('note-lifted')) endHold();
+    setKind(kindAt(document.elementFromPoint(x, y)));
+  });
   watch.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-twist'] });
 
   window.addEventListener('pointermove', onMove, { capture: true, passive: true });
   window.addEventListener('pointerdown', onDown, { capture: true, passive: true });
   window.addEventListener('pointerup', onUp, { capture: true, passive: true });
   document.addEventListener('mouseout', onLeave);
+  document.documentElement.addEventListener('mouseleave', hide);
+  document.addEventListener('pointerout', onOut);
+  document.addEventListener('visibilitychange', hide);
   window.addEventListener('blur', hide);
   window.addEventListener('gila:cursors', onRepaint);
   hide();
@@ -218,6 +238,9 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     window.removeEventListener('pointerdown', onDown, { capture: true });
     window.removeEventListener('pointerup', onUp, { capture: true });
     document.removeEventListener('mouseout', onLeave);
+    document.documentElement.removeEventListener('mouseleave', hide);
+    document.removeEventListener('pointerout', onOut);
+    document.removeEventListener('visibilitychange', hide);
     window.removeEventListener('blur', hide);
     window.removeEventListener('gila:cursors', onRepaint);
     document.documentElement.classList.remove('has-livecursor');
