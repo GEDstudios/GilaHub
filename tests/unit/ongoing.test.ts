@@ -263,3 +263,54 @@ describe('A template’s day, note and subtasks', () => {
     expect(guy.childrenOf(w)).toHaveLength(0);
   });
 });
+
+describe('Kept stocked', () => {
+  it('goes on Shopping when low, turns urgent when very low, and is stocked up when bought', async () => {
+    const guy = await person('guy');
+    const shop = guy.createList({ name: 'Shopping' });
+    guy.store.mutate('list', shop, { shopRoot: true });
+    const pantry = guy.createList({ name: 'Pantry' });
+    const oil = guy.addItem(pantry, { title: 'Olive oil' });
+    guy.setStock(oil, { stock: 3, stockAddAt: 1, stockUrgentAt: 0 });
+    const onList = () => guy.children(shop, null).filter((i) => !i.done && i.title === 'Olive oil');
+    expect(onList()).toHaveLength(0);
+    guy.useOne(oil);
+    expect(onList()).toHaveLength(0);
+    const undo = guy.useOne(oil);
+    expect(guy.item(oil)?.stock).toBe(1);
+    expect(onList()).toHaveLength(1);
+    expect(onList()[0].urgent ?? false).toBe(false);
+    // Undo takes it back off.
+    undo();
+    expect(guy.item(oil)?.stock).toBe(2);
+    expect(onList()).toHaveLength(0);
+    guy.useOne(oil);
+    guy.useOne(oil);
+    expect(guy.item(oil)?.stock).toBe(0);
+    expect(onList()).toHaveLength(1);
+    expect(onList()[0].urgent).toBe(true);
+    // Bought two: stocked up by two, and off the list.
+    const entry = onList()[0].id;
+    guy.updateItem(entry, { qty: '2' });
+    guy.toggle(entry);
+    expect(guy.item(oil)).toMatchObject({ stock: 2, stockLink: null });
+  });
+
+  it('stocked again by hand: its entry leaves the list; one that was already there stays', async () => {
+    const guy = await person('guy');
+    const shop = guy.createList({ name: 'Shopping' });
+    guy.store.mutate('list', shop, { shopRoot: true });
+    const pantry = guy.createList({ name: 'Pantry' });
+    const rice = guy.addItem(pantry, { title: 'Rice' });
+    guy.setStock(rice, { stock: 1 });
+    expect(guy.children(shop, null).filter((i) => i.title === 'Rice')).toHaveLength(1);
+    guy.setStock(rice, { stock: 5 });
+    expect(guy.children(shop, null).filter((i) => i.title === 'Rice')).toHaveLength(0);
+    // Already on the list before it ran low: left alone.
+    guy.addItem(shop, { title: 'Pasta' });
+    const pasta = guy.addItem(pantry, { title: 'Pasta' });
+    guy.setStock(pasta, { stock: 0 });
+    guy.setStock(pasta, { stock: 4 });
+    expect(guy.children(shop, null).filter((i) => i.title === 'Pasta')).toHaveLength(1);
+  });
+});

@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, useSummary, type Draft } from '../components/editors';
+import { InlineEditor, Options, Panel, useSummary, type Draft } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
 import { OptRow } from '../components/pickers';
@@ -142,6 +142,73 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
         </div>
       ) : null}
     </Sheet>
+  );
+}
+
+/** A − n + line for the stock panel. */
+function StockLine({ title, sub, value, min = 0, onChange }: { title: string; sub?: string; value: number | null; min?: number; onChange: (n: number | null) => void }) {
+  return (
+    <div className="stockline">
+      <span className="stockline__text">
+        <span className="stockline__title">{title}</span>
+        {sub ? <span className="stockline__sub">{sub}</span> : null}
+      </span>
+      <span className="stepper">
+        <button type="button" aria-label={`${title}: one less`} disabled={value === null || value <= min} onClick={() => onChange(value === null ? null : Math.max(min, value - 1))}>
+          −
+        </button>
+        <span className="num stockline__n">{value === null ? 'Off' : value}</span>
+        <button type="button" aria-label={`${title}: one more`} onClick={() => onChange(value === null ? min : value + 1)}>
+          +
+        </button>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Keep stocked: how many are in, and when it goes on the list to get more (and when that's urgent).
+ * It checks itself on every change; buying its entry on the list stocks it up by that many.
+ */
+function StockPanel({ id }: { id: string }) {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const item = hub.item(id);
+  if (!item) return null;
+  const on = item.stock != null;
+  const to = hub.list(hub.stockList(item));
+  const set = (patch: Parameters<typeof hub.setStock>[1]) => {
+    const before = hub.item(id)?.stockLink ?? null;
+    hub.setStock(id, patch);
+    const now = hub.item(id);
+    if (now?.stockLink && now.stockLink !== before) toast(`Running low: on ${hub.list(hub.item(now.stockLink)?.listId)?.name ?? 'the list'}`);
+  };
+  if (!on)
+    return (
+      <Panel>
+        <p className="panel__lede">Count how many you have. When it runs low, it goes on a list by itself.</p>
+        <button type="button" className="btn btn--block" onClick={() => set({ stock: 2, stockAddAt: 1, stockUrgentAt: 0 })}>
+          <Icon name="package" className="icon--sm" />
+          Keep it stocked
+        </button>
+      </Panel>
+    );
+  const choices = [hub.shopRoot(), ...(hub.shopRoot() ? hub.nestedLists(hub.shopRoot()!.id) : []), hub.list(item.listId)].filter((l, i, a): l is NonNullable<typeof l> => !!l && a.findIndex((x) => x?.id === l.id) === i);
+  return (
+    <Panel>
+      <StockLine title="In stock" value={item.stock ?? 0} onChange={(n) => set({ stock: n ?? 0 })} />
+      <StockLine title="Add to the list at" sub={`On ${to?.name ?? 'the list'} at this many or fewer`} value={item.stockAddAt ?? 1} onChange={(n) => set({ stockAddAt: n ?? 0 })} />
+      <StockLine title="Urgent at" sub="That entry turns urgent at this many or fewer" value={item.stockUrgentAt ?? null} onChange={(n) => set({ stockUrgentAt: n })} />
+      {choices.length > 1 ? (
+        <div className="stockto">
+          <p className="panel__head">Goes on</p>
+          <Options value={to?.id ?? null} options={choices.map((l) => ({ value: l.id, label: l.name }))} onPick={(v) => set({ stockTo: v })} />
+        </div>
+      ) : null}
+      <button type="button" className="textbtn stockoff" onClick={() => set({ stock: null })}>
+        Stop keeping it stocked
+      </button>
+    </Panel>
   );
 }
 
@@ -529,6 +596,17 @@ export function ItemScreen({ id }: { id: string }) {
                   ]
                 : []),
               qtyChip,
+              ...(!item.parentId
+                ? [
+                    {
+                      key: 'stock',
+                      label: item.stock != null ? `${item.stock} in stock` : 'Keep stocked',
+                      icon: 'package' as const,
+                      set: item.stock != null,
+                      panel: () => <StockPanel id={id} />,
+                    },
+                  ]
+                : []),
               tagsChip,
               alsoChip,
               {

@@ -163,6 +163,17 @@ export interface Item {
   addedAt?: number | null;
   /** Shopping: quantity text like "2", "500g", "1 ק"ג". */
   qty?: string | null;
+  /** Kept stocked: how many are in now (unset: not kept stocked). */
+  stock?: number | null;
+  /** At or under this many, it goes on a list to get more (unset: 1). */
+  stockAddAt?: number | null;
+  /** At or under this many, that entry is urgent (unset: never). */
+  stockUrgentAt?: number | null;
+  /** The list it goes on (unset: Shopping, else its own folder). */
+  stockTo?: string | null;
+  /** The entry it put on that list, while it's there; and whether it made it (or found it there). */
+  stockLink?: string | null;
+  stockMade?: boolean;
   /** Its tags (Tag ids), in no particular order. Unset: never tagged (a thing to buy is then read for its aisle). */
   tags?: string[] | null;
   /** Older data: a thing to buy's aisle category id. Read only, as a tag (Hub.tagsOf). */

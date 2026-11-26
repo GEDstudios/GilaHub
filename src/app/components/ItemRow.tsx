@@ -214,7 +214,7 @@ export const ItemRow = memo(function ItemRow({
           {item.title || 'Untitled'}
           {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
-        {(showList && list) || req || vis || due || item.repeat || steps.total || twin || tags.length || ongoing ? (
+        {(showList && list) || item.stock != null || req || vis || due || item.repeat || steps.total || twin || tags.length || ongoing ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} /> : null}
             {showList && list && !listLink ? (
@@ -236,6 +236,31 @@ export const ItemRow = memo(function ItemRow({
               </button>
             ) : null}
             {req ? <ReqTag state={req} /> : null}
+            {item.stock != null ? (
+              <span className={`meta meta--stock ${item.stockUrgentAt != null && item.stock <= item.stockUrgentAt ? 'is-out' : item.stock <= (item.stockAddAt ?? 1) ? 'is-low' : ''}`}>
+                <Icon name="package" />
+                {item.stock} in stock
+                {item.stock > 0 && !readonly ? (
+                  <button
+                    type="button"
+                    className="meta__use"
+                    aria-label={`Used one ${item.title}`}
+                    title="Used one"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      haptic('select');
+                      const before = item.stockLink ?? null;
+                      const undo = hub.useOne(item.id);
+                      const now = hub.item(item.id);
+                      const added = now?.stockLink && now.stockLink !== before;
+                      toast(added ? `${item.title}: ${now?.stock} left, on ${hub.list(hub.item(now!.stockLink)?.listId)?.name ?? 'the list'}` : `${item.title}: ${now?.stock ?? 0} left`, { ms: 2400, action: { label: 'Undo', run: undo } });
+                    }}
+                  >
+                    −1
+                  </button>
+                ) : null}
+              </span>
+            ) : null}
             {vis ? <VisTag item={item} /> : null}
             {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
             {item.repeat ? (

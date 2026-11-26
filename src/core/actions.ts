@@ -707,6 +707,14 @@ export class Hub {
       }
       touched.push([id, { done: item.done, doneAt: item.doneAt ?? null, doneBy: item.doneBy ?? null, logId: item.logId ?? null }]);
       this.store.mutate('item', id, fields);
+      // Bought what a kept-stocked thing put on the list: it's stocked up by that many.
+      if (done) {
+        for (const k of this.store.all('item').filter((x) => x.stockLink === id && x.stock != null)) {
+          const got = parseFloat(item.qty ?? '') || 1;
+          touched.push([k.id, { stock: k.stock ?? 0, stockLink: id, stockMade: !!k.stockMade }]);
+          this.store.mutate('item', k.id, { stock: Math.max(0, (k.stock ?? 0) + Math.round(got)), stockLink: null, stockMade: false });
+        }
+      }
       // The same thing elsewhere goes with it (bought on Shopping = done on the chore, and back).
       const twin = this.linked(item);
       if (twin && !twin.repeat && twin.done !== done) {
@@ -738,6 +746,76 @@ export class Hub {
         if (cur?.logId && !item.parentId) this.store.mutate('log', cur.logId, { deleted: true });
         for (const [tid, prev] of touched) this.store.mutate('item', tid, prev);
       });
+  }
+
+  // ---------- kept stocked ----------
+
+  /** Where a kept-stocked thing goes when it runs low: its own choice, else Shopping, else its folder. */
+  stockList(item: Item): string {
+    return (item.stockTo && this.list(item.stockTo)?.id) || this.shopRoot()?.id || item.listId;
+  }
+
+  /**
+   * Change how many are in, or its levels (`stock: null` stops keeping it stocked). Then it checks
+   * itself: low → on the list (urgent when very low); stocked again by hand → off the list, if it
+   * put it there. Returns the undo.
+   */
+  setStock(id: string, patch: Partial<Pick<Item, 'stock' | 'stockAddAt' | 'stockUrgentAt' | 'stockTo'>>): Undo {
+    return this.stockChange(id, () => {
+      const f: Partial<Item> = { ...patch };
+      if (typeof f.stock === 'number') f.stock = Math.max(0, Math.round(f.stock));
+      this.store.mutate('item', id, f);
+    });
+  }
+
+  /** One used up (the row's −1). */
+  useOne(id: string): Undo {
+    const it = this.item(id);
+    return it?.stock != null ? this.setStock(id, { stock: Math.max(0, it.stock - 1) }) : () => {};
+  }
+
+  private stockChange(id: string, fn: () => void): Undo {
+    const before = this.item(id);
+    if (!before) return () => {};
+    const keep = { stock: before.stock ?? null, stockAddAt: before.stockAddAt ?? null, stockUrgentAt: before.stockUrgentAt ?? null, stockTo: before.stockTo ?? null, stockLink: before.stockLink ?? null, stockMade: !!before.stockMade };
+    const link = before.stockLink ? this.item(before.stockLink) : undefined;
+    const linkWas = link ? { urgent: !!link.urgent, deleted: false } : null;
+    let made: string | null = null;
+    this.store.batch(() => {
+      fn();
+      made = this.stockCheck(id);
+    });
+    return () =>
+      this.store.batch(() => {
+        this.store.mutate('item', id, keep);
+        if (made) this.store.mutate('item', made, { deleted: true });
+        if (link && linkWas) this.store.mutate('item', link.id, linkWas);
+      });
+  }
+
+  /** Puts it on its list when low, makes that urgent when very low, takes it off when it's stocked again. Returns an entry it made. */
+  private stockCheck(id: string): string | null {
+    const it = this.item(id);
+    if (!it) return null;
+    const link = it.stockLink ? this.item(it.stockLink) : undefined;
+    const open = link && !link.done && !link.archived ? link : undefined;
+    if (it.stock == null) return null;
+    const low = it.stock <= (it.stockAddAt ?? 1);
+    const urgent = it.stockUrgentAt != null && it.stock <= it.stockUrgentAt;
+    if (low) {
+      if (open) {
+        if (!!open.urgent !== urgent) this.store.mutate('item', open.id, { urgent });
+        return null;
+      }
+      const res = this.add(this.stockList(it), { title: it.title, urgent });
+      if (res.kind === 'exists' && urgent) this.store.mutate('item', res.id, { urgent: true });
+      this.store.mutate('item', id, { stockLink: res.id, stockMade: res.kind !== 'exists' });
+      return res.kind === 'exists' ? null : res.id;
+    }
+    // Stocked again (by hand): what it put on the list goes; one that was there already stays.
+    if (open && it.stockMade) this.store.mutate('item', open.id, { deleted: true });
+    if (it.stockLink) this.store.mutate('item', id, { stockLink: null, stockMade: false });
+    return null;
   }
 
   /** Done for a repeating item/chore, on any day (early, late, yesterday…). */
