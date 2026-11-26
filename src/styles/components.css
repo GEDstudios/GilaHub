@@ -4508,24 +4508,6 @@ html:has(.iconlib) .fab {
   background: var(--me-light, var(--lemon));
 }
 
-/* Turn it: drag the handle round */
-.sticky__turn {
-  position: absolute;
-  left: -14px;
-  bottom: -14px;
-  z-index: 1;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--ink);
-  color: #fff;
-  box-shadow: 0 4px 10px -3px rgb(10 10 4 / 0.4);
-  touch-action: none;
-  cursor: alias;
-  animation: pop 220ms var(--spring) both;
-}
 
 .stuck.is-peeling {
   transition:
@@ -5056,8 +5038,7 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
 }
 
 /* However big or small the note, its tick and handle stay finger-sized */
-.stuck .sticky__check,
-.stuck .sticky__turn {
+.stuck .sticky__check {
   scale: calc(1 / var(--scale));
 }
 

@@ -143,9 +143,8 @@ const NOTE_W = 124;
 
 /**
  * The notes stuck on this screen. Each sits where it was left (both of us see the same spot),
- * new ones up by the top corner, a little fanned. A tap reads it; the one it's for ticks it off
- * (it goes to the collected notes, on Projects). Hold one to pick it up: drag it anywhere, turn
- * it by the round handle on its corner; tap anywhere else to put it down.
+ * new ones up by the top corner, a little fanned. A tap reads it; either of us ticks it off (it
+ * goes to the collected notes, on Projects). Hold one to pick it up (see StuckNote).
  */
 export function NotesLayer() {
   const hub = useHub();
@@ -157,6 +156,8 @@ export function NotesLayer() {
   useEffect(() => {
     if (!lifted) return;
     const off = (e: PointerEvent) => {
+      // Fingers put it down by letting go (a second finger is for turning it, not for this).
+      if (e.pointerType !== 'mouse') return;
       if (!(e.target as Element)?.closest?.(`[data-note="${lifted}"]`)) setLifted(null);
     };
     document.addEventListener('pointerdown', off, true);
@@ -176,6 +177,11 @@ export function NotesLayer() {
 
 type Place = { x: number; y: number; rot: number; scale: number };
 const clampScale = (s: number) => Math.min(NOTE_MAX, Math.max(NOTE_MIN, s));
+const turned = (rot: number) => {
+  let r = ((rot + 540) % 360) - 180;
+  if (Math.abs(r) < 2.5) r = 0; // a little snap to straight
+  return r;
+};
 
 function StuckNote({
   note,
@@ -210,92 +216,163 @@ function StuckNote({
   };
   const at = live ?? home();
   const [peeling, setPeeling] = useState(false);
+  const keep = (p: Place): Place => {
+    const w = width();
+    return { ...p, x: Math.min(1 - 40 / w, Math.max(-60 / w, p.x)), y: Math.max(8, p.y), scale: clampScale(p.scale), rot: turned(p.rot) };
+  };
+  const put = () => {
+    if (liveRef.current) {
+      hub.placeNote(note.id, liveRef.current);
+      haptic('drop');
+    }
+    show(null);
+  };
 
   /**
-   * The gesture. One finger: a hold picks it up, then it follows the finger; a quick tap (no
-   * hold, no move) reads it. Two fingers, any time: pinch to size it, twist to turn it, both to
-   * move it, like a sticker. The round handle does size and turn for one finger (or a mouse).
+   * Hold it (a moment) and it comes off the page. With a finger: it follows that finger, and a
+   * second finger anywhere turns and sizes it around the first; let go and it's put down. With
+   * a mouse: drag it; the wheel sizes it, Shift+wheel turns it; click elsewhere to put it down.
+   * A quick tap reads it.
    */
-  const fingers = useRef(new Map<number, { x: number; y: number }>());
-  const g = useRef<{
-    mode: 'wait' | 'move' | 'pinch' | 'handle';
-    sx: number;
-    sy: number;
-    start: Place;
-    timer?: ReturnType<typeof setTimeout>;
-    d0?: number;
-    a0?: number;
-    c0?: { x: number; y: number };
-    center?: { x: number; y: number };
-  } | null>(null);
+  const g = useRef<{ mode: 'wait' | 'mouse' | 'finger'; sx: number; sy: number; start: Place; timer?: ReturnType<typeof setTimeout> } | null>(null);
   const tap = useRef(false);
+  const release = useRef<(() => void) | null>(null);
+  useEffect(() => () => release.current?.(), []);
 
-  // While it's in hand, the page mustn't scroll (or zoom) under the fingers.
+  // Before the hold lands, the page scrolls as usual; once it's in hand, nothing under it moves.
   useEffect(() => {
     const n = el.current;
     if (!n) return;
     const stop = (e: TouchEvent) => {
-      if (e.touches.length > 1 || (g.current && g.current.mode !== 'wait')) e.preventDefault();
+      if (g.current && g.current.mode !== 'wait') e.preventDefault();
     };
     n.addEventListener('touchmove', stop, { passive: false });
     return () => n.removeEventListener('touchmove', stop);
   }, []);
 
-  const two = () => {
-    const [a, b] = [...fingers.current.values()];
-    return { d: Math.hypot(b.x - a.x, b.y - a.y), a: Math.atan2(b.y - a.y, b.x - a.x), c: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
-  };
-  const centerOf = () => {
-    const r = el.current!.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  // The wheel, while it's lifted (mouse): size, or with Shift, turn.
+  useEffect(() => {
+    const n = el.current;
+    if (!n || !lifted) return;
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const p = liveRef.current ?? home();
+      const next = e.shiftKey ? { ...p, rot: p.rot + e.deltaY * 0.15 } : { ...p, scale: p.scale * Math.exp(-e.deltaY * 0.0015) };
+      show(keep(next));
+      hub.placeNote(note.id, keep(next));
+    };
+    n.addEventListener('wheel', wheel, { passive: false });
+    return () => n.removeEventListener('wheel', wheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lifted]);
+
+  /** In hand with a finger: follow the touches on the whole screen until that finger lifts. */
+  const followFingers = (start: Place, sx: number, sy: number) => {
+    let anchor: number | null = null;
+    let base = { place: start, ax: sx, ay: sy, d0: 1, a0: 0, two: false };
+    const find = (list: TouchList, id: number | null) => [...list].find((t) => t.identifier === id);
+    const rebase = (a: Touch, b?: Touch) => {
+      base = b
+        ? { place: liveRef.current ?? start, ax: a.clientX, ay: a.clientY, d0: Math.max(1, Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY)), a0: Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX), two: true }
+        : { place: liveRef.current ?? start, ax: a.clientX, ay: a.clientY, d0: 1, a0: 0, two: false };
+    };
+    const onStart = (e: TouchEvent) => {
+      // A second finger is for the note: nothing under it gets the touch.
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      const a = find(e.touches, anchor);
+      const b = [...e.touches].find((t) => t.identifier !== anchor);
+      if (a && b) {
+        rebase(a, b);
+        haptic('select');
+      }
+    };
+    const onMove = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      if (anchor === null) {
+        // The holding finger: the touch nearest where the hold began.
+        const near = [...e.touches].sort((p, q) => Math.hypot(p.clientX - sx, p.clientY - sy) - Math.hypot(q.clientX - sx, q.clientY - sy))[0];
+        if (!near) return;
+        anchor = near.identifier;
+        rebase(near);
+      }
+      const a = find(e.touches, anchor);
+      if (!a) return;
+      const b = [...e.touches].find((t) => t.identifier !== anchor);
+      const w = width();
+      if (b && !base.two) rebase(a, b);
+      if (!b && base.two) rebase(a);
+      const moved = { ...base.place, x: base.place.x + (a.clientX - base.ax) / w, y: base.place.y + (a.clientY - base.ay) };
+      if (b) {
+        const d = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+        const ang = Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX);
+        show(keep({ ...moved, rot: base.place.rot + ((ang - base.a0) * 180) / Math.PI, scale: base.place.scale * (d / base.d0) }));
+      } else show(keep(moved));
+    };
+    const onEnd = (e: TouchEvent) => {
+      const a = find(e.touches, anchor);
+      if (a && anchor !== null) {
+        // The second finger lifted: keep moving with the first.
+        if (base.two) rebase(a);
+        return;
+      }
+      if (e.touches.length && anchor === null) return;
+      done();
+    };
+    const block = (e: Event) => e.preventDefault();
+    const opts: AddEventListenerOptions = { passive: false, capture: true };
+    const done = () => {
+      document.removeEventListener('touchstart', onStart, opts);
+      document.removeEventListener('touchmove', onMove, opts);
+      document.removeEventListener('touchend', onEnd, opts);
+      document.removeEventListener('touchcancel', onEnd, opts);
+      document.removeEventListener('gesturestart', block, opts);
+      release.current = null;
+      g.current = null;
+      put();
+      onLift(false);
+    };
+    document.addEventListener('touchstart', onStart, opts);
+    document.addEventListener('touchmove', onMove, opts);
+    document.addEventListener('touchend', onEnd, opts);
+    document.addEventListener('touchcancel', onEnd, opts);
+    // iPhone's own pinch-zoom stays out of it.
+    document.addEventListener('gesturestart', block, opts);
+    release.current = done;
   };
 
-  const down = (e: React.PointerEvent, handle = false) => {
+  const down = (e: React.PointerEvent) => {
     if ((e.target as Element).closest('.sticky__check')) return;
+    if (g.current?.mode === 'finger') return;
     e.stopPropagation();
-    try {
-      (e.currentTarget as Element).setPointerCapture(e.pointerId);
-    } catch {
-      /* a pointer the browser doesn't track (synthetic): no capture */
-    }
-    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     tap.current = false;
-    clearTimeout(g.current?.timer);
     const start = liveRef.current ?? home();
-    if (handle) {
-      const c = centerOf();
-      g.current = { mode: 'handle', sx: e.clientX, sy: e.clientY, start, center: c, d0: Math.hypot(e.clientX - c.x, e.clientY - c.y), a0: Math.atan2(e.clientY - c.y, e.clientX - c.x) };
+    // Already in hand (mouse): drag straight away.
+    if (lifted && e.pointerType === 'mouse') {
+      g.current = { mode: 'mouse', sx: e.clientX, sy: e.clientY, start };
+      try {
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      } catch {
+        /* untracked pointer */
+      }
       return;
     }
-    if (fingers.current.size >= 2) {
-      const t = two();
-      g.current = { mode: 'pinch', sx: t.c.x, sy: t.c.y, start, d0: t.d, a0: t.a, c0: t.c };
-      if (!lifted) onLift(true);
-      haptic('select');
-      return;
-    }
-    g.current = { mode: lifted ? 'move' : 'wait', sx: e.clientX, sy: e.clientY, start };
-    if (!lifted)
-      g.current.timer = setTimeout(() => {
-        if (g.current?.mode !== 'wait') return;
-        g.current.mode = 'move';
-        haptic('lift');
-        onLift(true);
-      }, 380);
+    const finger = e.pointerType !== 'mouse';
+    g.current = { mode: 'wait', sx: e.clientX, sy: e.clientY, start };
+    g.current.timer = setTimeout(() => {
+      if (g.current?.mode !== 'wait') return;
+      haptic('lift');
+      onLift(true);
+      if (finger) {
+        g.current.mode = 'finger';
+        followFingers(start, g.current.sx, g.current.sy);
+      } else g.current.mode = 'mouse';
+    }, 380);
   };
 
   const move = (e: React.PointerEvent) => {
-    if (!fingers.current.has(e.pointerId)) return;
-    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const s = g.current;
-    if (!s) return;
-    const w = width();
-    const keep = (p: Place): Place => ({ ...p, x: Math.min(1 - 40 / w, Math.max(-60 / w, p.x)), y: Math.max(8, p.y), scale: clampScale(p.scale) });
-    const turned = (rot: number) => {
-      let r = ((rot + 540) % 360) - 180;
-      if (Math.abs(r) < 2.5) r = 0; // a little snap to straight
-      return r;
-    };
+    if (!s || s.mode === 'finger') return;
     if (s.mode === 'wait') {
       // Moving before the hold lands: it was a scroll, not for the note.
       if (Math.hypot(e.clientX - s.sx, e.clientY - s.sy) > 8) {
@@ -304,55 +381,26 @@ function StuckNote({
       }
       return;
     }
-    if (s.mode === 'move') {
-      show(keep({ ...s.start, x: s.start.x + (e.clientX - s.sx) / w, y: s.start.y + (e.clientY - s.sy) }));
-    } else if (s.mode === 'pinch' && fingers.current.size >= 2) {
-      const t = two();
-      show(
-        keep({
-          x: s.start.x + (t.c.x - s.c0!.x) / w,
-          y: s.start.y + (t.c.y - s.c0!.y),
-          rot: turned(s.start.rot + ((t.a - s.a0!) * 180) / Math.PI),
-          scale: s.start.scale * (t.d / Math.max(1, s.d0!)),
-        }),
-      );
-    } else if (s.mode === 'handle') {
-      const c = s.center!;
-      const d = Math.hypot(e.clientX - c.x, e.clientY - c.y);
-      const a = Math.atan2(e.clientY - c.y, e.clientX - c.x);
-      show(keep({ ...s.start, rot: turned(s.start.rot + ((a - s.a0!) * 180) / Math.PI), scale: s.start.scale * (d / Math.max(1, s.d0!)) }));
-    }
+    show(keep({ ...s.start, x: s.start.x + (e.clientX - s.sx) / width(), y: s.start.y + (e.clientY - s.sy) }));
   };
 
   const up = (e: React.PointerEvent) => {
-    fingers.current.delete(e.pointerId);
     const s = g.current;
-    if (!s) return;
-    // One of two fingers lifted: carry on with the other as a plain move.
-    if (s.mode === 'pinch' && fingers.current.size === 1) {
-      const [f] = [...fingers.current.values()];
-      g.current = { mode: 'move', sx: f.x, sy: f.y, start: liveRef.current ?? s.start };
-      return;
-    }
-    if (fingers.current.size) return;
-    g.current = null;
+    if (!s || s.mode === 'finger') return;
     clearTimeout(s.timer);
-    if (s.mode !== 'wait') {
-      if (liveRef.current) {
-        hub.placeNote(note.id, liveRef.current);
-        haptic('drop');
-      }
-      show(null);
+    g.current = null;
+    if (s.mode === 'mouse') {
+      put();
       return;
     }
     // A plain tap: the click that follows opens it (opening here would let that click land on the sheet's veil).
     tap.current = Math.hypot(e.clientX - s.sx, e.clientY - s.sy) <= 8;
   };
 
-  const cancel = (e: React.PointerEvent) => {
-    fingers.current.delete(e.pointerId);
-    if (fingers.current.size) return;
-    clearTimeout(g.current?.timer);
+  const cancel = () => {
+    const s = g.current;
+    if (!s || s.mode === 'finger') return;
+    clearTimeout(s.timer);
     g.current = null;
     show(null);
   };
@@ -379,7 +427,7 @@ function StuckNote({
       style={{ left: `${at.x * 100}%`, top: at.y, '--rot': `${at.rot}deg`, '--scale': at.scale } as CSSProperties}
       role="button"
       tabIndex={0}
-      aria-label={`A note ${mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `from ${hub.member(note.by)?.name ?? 'your person'}`}: ${note.text}. Hold to move it; pinch to size and turn it.`}
+      aria-label={`A note ${mine ? `for ${hub.member(note.to)?.name ?? 'them'}` : `from ${hub.member(note.by)?.name ?? 'your person'}`}: ${note.text}. Hold to move it; with a second finger, turn and size it.`}
       onKeyDown={(e) => {
         if (e.key === 'Enter') read();
       }}
@@ -388,7 +436,7 @@ function StuckNote({
         tap.current = false;
         read();
       }}
-      onPointerDown={(e) => down(e)}
+      onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
       onPointerCancel={cancel}
@@ -412,11 +460,6 @@ function StuckNote({
       >
         <Icon name="check" className="icon--sm" />
       </button>
-      {lifted ? (
-        <span className="sticky__turn" aria-hidden="true" onPointerDown={(e) => down(e, true)} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel}>
-          <Icon name="refresh" className="icon--xs" />
-        </span>
-      ) : null}
     </div>
   );
 }

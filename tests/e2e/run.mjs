@@ -552,7 +552,7 @@ try {
     await hila.waitForTimeout(550);
     await hila.mouse.move(box.x - 120, box.y + 260, { steps: 10 });
     await hila.mouse.up();
-    await hila.locator('.stuck.is-lifted .sticky__turn').waitFor({ timeout: 3000 });
+    await hila.mouse.click(5, 400);
     await shot(hila, '32b-note-moved');
     const moved = await stuck.boundingBox();
     if (moved.y < box.y + 200) throw new Error(`the note didn't move: ${box.y} → ${moved.y}`);
@@ -560,29 +560,41 @@ try {
       const n = document.querySelector('.stuck');
       return n && parseFloat(n.style.top) > 250;
     }, null, { timeout: 15000 });
-    // Two fingers: pinch out and twist; it grows and turns (and stays in bounds).
-    await hila.mouse.click(5, 400);
-    const before = await stuck.evaluate((n) => [parseFloat(getComputedStyle(n).getPropertyValue('--scale')), parseFloat(n.style.getPropertyValue('--rot'))]);
+    // A finger holds it and moves it; a second finger, anywhere, turns and sizes it; let go, it's down.
+    const before = await stuck.evaluate((n) => [parseFloat(n.style.getPropertyValue('--scale') || '1'), parseFloat(n.style.getPropertyValue('--rot')), n.getBoundingClientRect().top]);
     await stuck.evaluate(async (n) => {
       const r = n.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const fire = (type, id, x, y) => n.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: id === 11 }));
-      fire('pointerdown', 11, cx - 30, cy);
-      fire('pointerdown', 12, cx + 30, cy);
+      const ax = r.left + r.width / 2;
+      const ay = r.top + r.height / 2;
+      const wait = (ms) => new Promise((r2) => setTimeout(r2, ms));
+      n.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 21, clientX: ax, clientY: ay, bubbles: true, pointerType: 'touch', isPrimary: true }));
+      await wait(500);
+      const t = (id, x, y, target = n) => new Touch({ identifier: id, target, clientX: x, clientY: y });
+      const fire = (type, touches, target = n) => target.dispatchEvent(new TouchEvent(type, { touches, changedTouches: touches, bubbles: true, cancelable: true }));
+      // The holding finger moves down a bit…
+      fire('touchmove', [t(1, ax, ay + 40)]);
+      await wait(16);
+      // …a second finger lands somewhere else on the screen, then twists and spreads.
+      const far = document.querySelector('.band') ?? document.body;
+      fire('touchstart', [t(1, ax, ay + 40), t(2, ax + 60, ay + 40, far)], far);
       for (let i = 1; i <= 10; i++) {
-        const d = 30 + i * 4;
-        const a = (i / 10) * 0.5;
-        fire('pointermove', 11, cx - d * Math.cos(a), cy - d * Math.sin(a));
-        fire('pointermove', 12, cx + d * Math.cos(a), cy + d * Math.sin(a));
-        await new Promise((r2) => setTimeout(r2, 16));
+        const a = (i / 10) * 0.6;
+        const d = 60 + i * 6;
+        fire('touchmove', [t(1, ax, ay + 40), t(2, ax + d * Math.cos(a), ay + 40 + d * Math.sin(a), far)], far);
+        await wait(16);
       }
-      fire('pointerup', 12, cx, cy);
-      fire('pointerup', 11, cx, cy);
+      fire('touchend', [t(1, ax, ay + 40)], far);
+      fire('touchend', []);
     });
     await hila.waitForTimeout(300);
-    const note = await hila.evaluate(() => [...document.querySelectorAll('.stuck')].map((n) => [parseFloat(n.style.getPropertyValue('--scale')), parseFloat(n.style.getPropertyValue('--rot'))])[0]);
-    if (!(note[0] > before[0] * 1.5) || Math.abs(note[1] - before[1]) < 20) throw new Error(`pinch didn't size/turn it: ${before} → ${note}`);
+    const note = await stuck.evaluate((n) => [parseFloat(n.style.getPropertyValue('--scale')), parseFloat(n.style.getPropertyValue('--rot')), n.getBoundingClientRect().top]);
+    if (!(note[0] > before[0] * 1.5) || Math.abs(note[1] - before[1]) < 20) throw new Error(`a second finger didn't size/turn it: ${before} → ${note}`);
+    if (await hila.locator('.stuck.is-lifted').count()) throw new Error('the note stayed up after letting go');
+    // Guy sees it as Hila left it.
+    await guy.waitForFunction((s) => {
+      const n = document.querySelector('.stuck');
+      return n && parseFloat(n.style.getPropertyValue('--scale')) > s;
+    }, before[0] * 1.5, { timeout: 15000 });
     await hila.mouse.click(5, 400);
     await shot(hila, '32b2-note-pinched');
     // The tick: read, collected.

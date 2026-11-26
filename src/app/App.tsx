@@ -2,6 +2,8 @@ import { startTour, tourDone, tourList, tourWatch } from './tour';
 import { updateReady } from './update';
 import { useEffect, useState } from 'react';
 import { seedHousehold } from '../core/actions';
+import { addDays, today as todayStr } from '../core/dates';
+import { afterTick } from './notify';
 import type { Persistence } from '../core/db';
 import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
@@ -222,6 +224,18 @@ function Duties() {
     const relayRetry = setInterval(() => !rt.relay && void rt.ensureSync(), 60_000);
     const onSwMessage = (e: MessageEvent) => {
       if (e.data?.type === 'navigate' && typeof e.data.url === 'string') navigate(e.data.url);
+      // A notification's Done / Tomorrow, tapped while the app sits in the background: done here, quietly.
+      if (e.data?.type === 'act' && typeof e.data.id === 'string') {
+        const it = rt.hub.item(e.data.id);
+        if (it && e.data.act === 'done' && !it.done && rt.hub.canTick(it)) {
+          rt.hub.toggle(it.id);
+          afterTick(rt, rt.hub, it.id);
+          toast(`✓ ${it.title}`);
+        } else if (it && e.data.act === 'later') {
+          rt.hub.snooze(it.id, addDays(todayStr(), 1));
+          toast(`${it.title}: tomorrow`);
+        }
+      }
       // A push while I'm looking: in the app, not over it.
       if (e.data?.type === 'push' && e.data.note?.title) announce({ title: e.data.note.title, body: e.data.note.body, url: e.data.note.url, kind: /^\/i\//.test(e.data.note.url ?? '') ? 'reminder' : 'other' });
     };
@@ -233,7 +247,7 @@ function Duties() {
       clearInterval(relayRetry);
       sw?.removeEventListener('message', onSwMessage);
     };
-  }, [rt]);
+  }, [rt, toast]);
 
   useEffect(() => {
     const onUpdate = () => toast('A new version is ready', { action: { label: 'Refresh', run: () => location.reload() }, ms: 120_000 });

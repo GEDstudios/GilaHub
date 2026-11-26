@@ -3,6 +3,13 @@
  * opens them with the key stored on this device, so neither the push service nor
  * the relay ever sees what a reminder says. */
 
+// Done / Tomorrow from a notification, without the app (src/sw/act.ts, as self.GilaAct).
+try {
+  importScripts('/sw-act.js');
+} catch {
+  /* not built (dev): those buttons open the app instead */
+}
+
 const VERSION = '__VERSION__';
 const PRECACHE = __PRECACHE__;
 const CACHE = `gila-${VERSION}`;
@@ -160,12 +167,43 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const base = (event.notification.data && event.notification.data.url) || '/';
-  // Done / Tomorrow: the app does it when it opens the thing (?do=done / ?do=later).
-  const url = event.action === 'done' || event.action === 'later' ? `${base}?do=${event.action}` : base;
+  const act = event.action === 'done' || event.action === 'later' ? event.action : null;
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const client = all.find((c) => new URL(c.url).origin === location.origin);
+      if (act) {
+        // Done / Tomorrow: done right here, without opening the app.
+        const id = (/^\/i\/([A-Za-z0-9]+)/.exec(base) || [])[1];
+        if (id && client) {
+          // The app is open somewhere (maybe in the background): it does it, quietly.
+          client.postMessage({ type: 'act', act, id });
+          return;
+        }
+        if (id && self.GilaAct) {
+          try {
+            const r = await self.GilaAct.act(act, id);
+            if (r && r.did) {
+              await self.registration.showNotification(`✓ ${r.title}`, {
+                body: act === 'done' ? 'Done' : 'Moved to tomorrow',
+                tag: `${id}-ok`,
+                silent: true,
+                icon: '/icons/icon-192.png',
+                badge: '/icons/badge-96.png',
+                data: { url: base },
+              });
+              // It only says so: gone again in a moment.
+              await new Promise((r2) => setTimeout(r2, 4000));
+              const shown = await self.registration.getNotifications({ tag: `${id}-ok` });
+              shown.forEach((n) => n.close());
+            }
+            return;
+          } catch {
+            /* fall through: open it and let the app do it */
+          }
+        }
+      }
+      const url = act ? `${base}?do=${act}` : base;
       if (client) {
         await client.focus();
         client.postMessage({ type: 'navigate', url });

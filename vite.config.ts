@@ -13,14 +13,31 @@ function serviceWorker(): Plugin {
   return {
     name: 'gila-service-worker',
     apply: 'build',
-    generateBundle(_, bundle) {
+    async generateBundle(_, bundle) {
+      // A notification's Done / Tomorrow, done right in the worker when no window is open
+      // (src/sw/act.ts): a classic script the worker imports, with the core it needs.
+      const { build } = await import('esbuild');
+      const act = await build({
+        entryPoints: ['src/sw/act.ts'],
+        bundle: true,
+        format: 'iife',
+        globalName: 'GilaAct',
+        write: false,
+        minify: true,
+        target: 'es2020',
+        platform: 'browser',
+        legalComments: 'inline',
+        define: { __BUILD__: JSON.stringify(buildId()) },
+      });
+      const actJs = act.outputFiles[0].text;
+      this.emitFile({ type: 'asset', fileName: 'sw-act.js', source: actJs });
       const files = Object.keys(bundle).filter((f) => {
         if (f.endsWith('.map')) return false;
         if (f.endsWith('.woff2')) return /(latin-wght|hebrew-wght)/.test(f) && !/latin-ext/.test(f);
         return !f.endsWith('.woff');
       });
-      const precache = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon.svg', ...files.map((f) => `/${f}`)];
-      const version = createHash('sha256').update(precache.join('|')).digest('hex').slice(0, 12);
+      const precache = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon.svg', '/sw-act.js', ...files.map((f) => `/${f}`)];
+      const version = createHash('sha256').update(precache.join('|')).update(actJs).digest('hex').slice(0, 12);
       const source = readFileSync('src/sw/sw.js', 'utf8').replace('__VERSION__', version).replace('__PRECACHE__', JSON.stringify(precache));
       this.emitFile({ type: 'asset', fileName: 'sw.js', source });
     },
