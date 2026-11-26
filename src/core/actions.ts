@@ -1452,6 +1452,15 @@ export class Hub {
     return () => this.store.mutate('note', id, { peeledAt: null });
   }
 
+  /** Bring a kept note back from the collection: it's on its screen again, where it was. */
+  unpeelNote(id: string): Undo {
+    const n = this.store.get('note', id);
+    if (!n?.peeledAt) return () => {};
+    const was = n.peeledAt;
+    this.store.mutate('note', id, { peeledAt: null });
+    return () => this.store.mutate('note', id, { peeledAt: was });
+  }
+
   // ---------- ideas (for Gila Hub itself) ----------
 
   idea(id: string | null | undefined): Idea | undefined {

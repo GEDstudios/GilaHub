@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { addDays, fromDateStr, humanTime, relativeAgo, today as todayStr } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
 import { useHub, usePartnerHere } from '../context';
@@ -23,6 +23,12 @@ import { QuickAddSheet } from './QuickAddSheet';
 
 const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
+
+/** Open one of Us's colour cards from elsewhere on the page ('asks', 'week', 'did', 'asked'). */
+const US_EVENT = 'gila:us-card';
+export function openUsCard(key: string): void {
+  window.dispatchEvent(new CustomEvent(US_EVENT, { detail: key }));
+}
 
 /** Asks that are mine to do now: undated, or due by today (a later one waits in the week, on its day). */
 const asksNow = (v: TodayView, day: string) => v.asked.filter((i) => !i.due || i.due <= day);
@@ -63,14 +69,15 @@ export function DayCard({ v, day }: { v: TodayView; day: string }) {
       ? `Tomorrow: ${things(tomorrow)}.`
       : 'Nothing due. Enjoy it.';
 
-  // To what they asked: unfold it, then bring it into view.
+  // To what they asked: its card opens (or, with Us hidden, the line under Today), and comes into view.
   const toAsks = () => {
+    openUsCard('asks');
     setPrefs({ asksOpen: true });
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
-        const at = document.querySelector('#today .homeasks') ?? document.querySelector('#today li.is-ask');
+        const at = document.querySelector('.wcard[data-card="asks"]') ?? document.querySelector('#today .homeasks') ?? document.querySelector('li.is-ask');
         at?.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'center' });
-        const row = document.querySelector('#today li.is-ask');
+        const row = document.querySelector('.wcard[data-card="asks"] li.is-ask, #today li.is-ask');
         if (row) {
           row.classList.remove('row--flash');
           void (row as HTMLElement).offsetWidth;
@@ -121,10 +128,11 @@ export function DayCard({ v, day }: { v: TodayView; day: string }) {
 /**
  * Everything I have to do now, as one list in the order to do it: an OK I owe my person (OK /
  * Not yet under it), what's from earlier ("since Tue"), today's in time order. What my person
- * asked of me waits under it, folded in one quiet line ("Hila asked you for 2 things"): it's
- * rarely for right now. An urgent ask is in the list itself. Ticked rows strike and fold.
+ * asked of me is rarely for right now: it waits in Us's colour cards ("Hila asked you for"), or,
+ * with Us hidden, folded in one quiet line under the list. An urgent ask is in the list itself.
+ * Ticked rows strike and fold.
  */
-export function TodayList({ v, day, settle }: { v: TodayView; day: string; settle: Settle<Item> }) {
+export function TodayList({ v, day, settle, asksHere = false }: { v: TodayView; day: string; settle: Settle<Item>; asksHere?: boolean }) {
   const hub = useHub();
   const prefs = usePrefs();
   const partner = hub.partner();
@@ -132,7 +140,7 @@ export function TodayList({ v, day, settle }: { v: TodayView; day: string; settl
   const late = settle.view('earlier', v.earlier);
   const rows = settle.view('today', v.today);
   const loud = settle.view('asked!', asksNow(v, day).filter((i) => i.urgent));
-  const folded = asksFolded(v, day);
+  const folded = asksHere ? asksFolded(v, day) : [];
   const quiet = settle.view('asked', folded);
   const open = prefs.asksOpen;
   const n = v.awaitingOk.length + v.earlier.length + v.today.length + loud.length;
@@ -269,6 +277,7 @@ type Card = { key: string; color: LineColor; num: ReactNode; label: string; deta
 /**
  * Us, as colour cards on a table (each leans a little, the next the other way, overlapping),
  * only the ones with something to say. A tap picks one up and opens it in place:
+ * - what my person asked of me (first: it's mine to do): open, the rows, to tick right there.
  * - the week: how many we did (against last week); open, a chart of the seven days, a bar each,
  *   in our colours, that grow in; a tap on a day says who did what.
  * - what my person did since yesterday: open, each thing with a ♡ to thank them (and one for all).
@@ -284,6 +293,30 @@ export function UsTile({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
   const diff = week - last;
   const vs = !last ? '' : diff > 0 ? `${diff} more than last week` : diff < 0 ? `${-diff} fewer than last week` : 'as many as last week';
   const cards: Card[] = [];
+  const day = todayStr();
+
+  // Open a card from elsewhere (Hila's tag on the day card opens what she asked).
+  useEffect(() => {
+    const on = (e: Event) => setOpen((e as CustomEvent<string>).detail);
+    window.addEventListener(US_EVENT, on);
+    return () => window.removeEventListener(US_EVENT, on);
+  }, []);
+
+  // What my person asked of me (not urgent: an urgent one is in Today's list): first, it's mine to do.
+  const asks = partner ? asksFolded(v, day) : [];
+  if (partner && asks.length) {
+    cards.push({
+      key: 'asks',
+      color: 'amber',
+      num: asks.length,
+      label: `${partner.name} asked you for`,
+      detail: asks
+        .slice(0, 3)
+        .map((i) => i.title)
+        .join(', '),
+      more: <AsksRows items={asks} settle={settle} />,
+    });
+  }
 
   if (week || partner) {
     const people = partner ? hub.members().map((m) => `${m.id === hub.meId ? 'You' : m.name} ${by.get(m.id) ?? 0}`).join(' · ') : '';
@@ -334,7 +367,7 @@ export function UsTile({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
         {cards.map((c, i) => {
           const on = open === c.key;
           return (
-            <div key={c.key} className={`wcard ${on ? 'is-open' : ''}`} style={{ ...lineVars(c.color), '--i': i } as CSSProperties}>
+            <div key={c.key} data-card={c.key} className={`wcard ${on ? 'is-open' : ''}`} style={{ ...lineVars(c.color), '--i': i } as CSSProperties}>
               <button
                 type="button"
                 className="wcard__face"
@@ -463,6 +496,18 @@ function DidList({ v }: { v: TodayView }) {
         </button>
       ) : null}
     </>
+  );
+}
+
+/** What my person asked of me: the rows, to tick right here. */
+function AsksRows({ items, settle }: { items: Item[]; settle: Settle<Item> }) {
+  const rows = settle.view('asked', items);
+  return (
+    <ul className="rows wcard__rows" onClick={(e) => e.stopPropagation()}>
+      {rows.map(({ row: i, settling }) => (
+        <ItemRow key={i.id} item={i} settling={settling} showList liClass="is-ask" />
+      ))}
+    </ul>
   );
 }
 

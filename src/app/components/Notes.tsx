@@ -699,6 +699,21 @@ function CollectedSheet({ id, onClose }: { id: string; onClose: () => void }) {
       <div className="shotview__actions">
         <button
           type="button"
+          className="btn"
+          onClick={() => {
+            // Back where it was left, stuck on its screen again; the toast goes there.
+            const undo = hub.unpeelNote(id);
+            haptic('success');
+            onClose();
+            toast(`Back on ${placeName(hub, n.place)}`, { action: { label: 'Undo', run: undo } });
+            navigate(routeOf(n.place));
+          }}
+        >
+          <Icon name="undo" className="icon--sm" />
+          Put it back on {placeName(hub, n.place)}
+        </button>
+        <button
+          type="button"
           className="textbtn"
           onClick={() => {
             const undo = hub.deleteNote(id);

@@ -93,14 +93,14 @@ async function addVia(p, lines) {
     await p.waitForTimeout(250);
   }
 }
-/** On Today, what my person asked waits folded: open it (if it's there and shut). */
+/** On Today, what my person asked waits in its colour card (Us): open it (if it's there and shut). */
 async function openAsks(p) {
-  const fold = p.locator('#today .homeasks .quietline[aria-expanded="false"]');
+  const card = p.locator('.wcard[data-card="asks"]:not(.is-open) .wcard__face');
   try {
-    await fold.waitFor({ timeout: 8000 });
-    await fold.click();
+    await card.waitFor({ timeout: 8000 });
+    await card.click();
   } catch {
-    // Nothing folded (or already open).
+    // No card (or already open).
   }
 }
 /** Swipe a row sideways with a finger (touch events: what a phone sends). */
@@ -276,8 +276,8 @@ try {
     await addVia(hila, ['Fix the kettle @guy']);
     await hila.locator('li.row', { hasText: 'Fix the kettle' }).getByText('Asked Guy').waitFor({ timeout: 5000 });
     await guy.goto(`${url}/`);
-    // It isn't for right now: it waits folded under Today, one quiet line, and Hila's tag on the card says so.
-    const fold = guy.locator('#today .homeasks .quietline', { hasText: 'Hila asked you for 1 thing' });
+    // It isn't for right now: it waits in Us, a colour card, and Hila's tag on the day card says so.
+    const fold = guy.locator('.wcard[data-card="asks"]', { hasText: 'Hila asked you for' });
     try {
       await fold.waitFor({ timeout: 10000 });
     } catch {
@@ -286,11 +286,11 @@ try {
       await fold.waitFor({ timeout: 10000 });
     }
     await guy.locator('.daycard__tag', { hasText: 'Hila asked 1' }).waitFor({ timeout: 5000 });
-    if (await guy.locator('#today li.row', { hasText: 'Fix the kettle' }).count()) throw new Error('the ask is open before it was asked for');
+    if (await guy.locator('li.row', { hasText: 'Fix the kettle' }).count()) throw new Error('the ask is open before it was asked for');
     await shot(guy, '09a-waiting-on-you');
-    // The tag opens it.
+    // The tag opens its card, in place.
     await guy.locator('.daycard__tag').click();
-    const row = guy.locator('#today li.row', { hasText: 'Fix the kettle' });
+    const row = guy.locator('.wcard[data-card="asks"].is-open li.row', { hasText: 'Fix the kettle' });
     await row.waitFor({ timeout: 5000 });
     await row.getByText('Hila asked').waitFor({ timeout: 5000 });
     await shot(guy, '09a1-asks-open');
@@ -429,7 +429,7 @@ try {
   await check('Today: the "Hila asked" tag on the card finds her ask; "Back to the default" restores the page', async () => {
     await guy.locator('.daycard__tag').click();
     await waitFor(async () => {
-      return guy.locator('#today li.is-ask').first().evaluate((el) => {
+      return guy.locator('.wcard[data-card="asks"] li.is-ask').first().evaluate((el) => {
         const r = el.getBoundingClientRect();
         return r.top >= 0 && r.bottom <= innerHeight;
       });
@@ -754,6 +754,14 @@ try {
     await hila.locator('.pinboard .sticky', { hasText: NOTE }).waitFor({ timeout: 5000 });
     await hila.locator('.collected').scrollIntoViewIfNeeded();
     await shot(hila, '32c-notes-collected');
+    // Brought back from the collection: it's on Shopping again (and the page goes there).
+    await hila.locator('.pinboard__note', { hasText: NOTE }).click();
+    await hila.getByRole('button', { name: /Put it back on Shopping/ }).click();
+    await hila.locator('.stuck', { hasText: NOTE }).waitFor({ timeout: 5000 });
+    await shot(hila, '32d-note-back');
+    // And kept again.
+    await hila.locator('.stuck .sticky__check').click();
+    await hila.locator('.stuck').waitFor({ state: 'detached', timeout: 5000 });
 
     // With the app open, the next one rings in from the top.
     await hila.goto(`${url}/`);
@@ -792,7 +800,8 @@ try {
 
   await check('Today: the lens narrows the page to one person, and remembers it', async () => {
     await hila.goto(`${url}/`);
-    const today = hila.locator('#today');
+    // Guy asked her for them: they wait in Us's "Guy asked you for" card.
+    const today = hila.locator('.homeus');
     await today.getByText('Return the library books').waitFor({ timeout: 5000 });
     // Guy's things only: the books are mine to do, so they step aside.
     await hila.locator('.lens__chip', { hasText: 'Guy' }).click();
@@ -802,7 +811,7 @@ try {
     await hila.reload();
     await hila.locator('.lens__chip.is-on', { hasText: 'Guy' }).waitFor({ timeout: 5000 });
     await hila.locator('.lens__chip', { hasText: 'All' }).click();
-    await hila.locator('#today').getByText('Return the library books').waitFor({ timeout: 3000 });
+    await hila.locator('.homeus').getByText('Return the library books').waitFor({ timeout: 3000 });
   });
 
   await check('The path: a task deep inside nested projects shows every step, and each step goes there', async () => {

@@ -111,7 +111,8 @@ export function Today() {
     if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} show={filter.active ? (i) => filter.test(i, true) : undefined} />;
     switch (key) {
       case 'today':
-        return <TodayList key={key} v={v} day={ref} settle={settle} />;
+        // What my person asked waits in Us's cards; with Us hidden, folded under the list.
+        return <TodayList key={key} v={v} day={ref} settle={settle} asksHere={!slots.some((x) => x.key === 'week')} />;
       case 'upcoming':
         return <WeekStrip key={key} v={v} day={ref} />;
       case 'week':

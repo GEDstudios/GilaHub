@@ -139,3 +139,18 @@ describe('How each of us looks at a folder', () => {
     expect(guy.byAisle(l)).toBe(true);
   });
 });
+
+describe('Notes kept, and brought back', () => {
+  it('a kept note comes back to its screen; Undo keeps it again', async () => {
+    const guy = await person('guy');
+    const id = guy.addNote('shop', 'Milk 💛', 'pink')!;
+    guy.peelNote(id);
+    expect(guy.collectedNotes().map((n) => n.id)).toEqual([id]);
+    expect(guy.notesOn('shop')).toEqual([]);
+    const undo = guy.unpeelNote(id);
+    expect(guy.collectedNotes()).toEqual([]);
+    expect(guy.notesOn('shop').map((n) => n.id)).toEqual([id]);
+    undo();
+    expect(guy.collectedNotes().map((n) => n.id)).toEqual([id]);
+  });
+});
