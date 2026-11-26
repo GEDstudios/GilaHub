@@ -13,6 +13,7 @@ export function AutoTitle({
   className = 'hero__titleinput',
   placeholder,
   optional = false,
+  onDraft,
 }: {
   value: string;
   onSave: (v: string) => void;
@@ -22,6 +23,8 @@ export function AutoTitle({
   placeholder?: string;
   /** It can be left empty (a description), and emptying it saves that. */
   optional?: boolean;
+  /** What's written right now, not saved yet (null once saved or put back): for the page's Back question. */
+  onDraft?: (v: string | null) => void;
 }) {
   const [v, setV] = useState(value);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -44,7 +47,11 @@ export function AutoTitle({
       readOnly={readOnly}
       aria-label={label}
       enterKeyHint="done"
-      onChange={(e) => setV(e.target.value.replace(/\n/g, ' '))}
+      onChange={(e) => {
+        const next = e.target.value.replace(/\n/g, ' ');
+        setV(next);
+        onDraft?.(next.trim() && next.trim() !== value ? next : null);
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -57,10 +64,12 @@ export function AutoTitle({
       }}
       onBlur={() => {
         const t = v.trim();
-        // Left by Back: never mind (it goes back to what it was).
+        // Left by the phone's Back: the page asks (keep or put back), with what's written still here.
+        if (leavingByBack() && onDraft) return;
         if (leavingByBack()) setV(value);
         else if ((t || optional) && t !== value) onSave(t);
         else setV(value);
+        onDraft?.(null);
       }}
     />
   );

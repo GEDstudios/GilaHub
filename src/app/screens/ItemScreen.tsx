@@ -220,7 +220,9 @@ export function ItemScreen({ id }: { id: string }) {
   const tracked = ['title', 'notes', 'due', 'dueTime', 'repeat', 'remind', 'nag', 'assignee', 'urgent', 'private', 'owner', 'tags', 'qty', 'needsOk'] as const;
   const snapOf = (it: typeof item) => (it ? Object.fromEntries(tracked.map((k) => [k, it[k] ?? null])) : null);
   const [snap] = useState(() => snapOf(item));
-  const changed = !!item && !!snap && (JSON.stringify(snapOf(item)) !== JSON.stringify(snap) || notes !== (item.notes ?? ''));
+  // The name being typed counts too (it's only saved once the field lets go).
+  const [titleDraft, setTitleDraft] = useState<string | null>(null);
+  const changed = !!item && !!snap && (JSON.stringify(snapOf(item)) !== JSON.stringify(snap) || notes !== (item.notes ?? '') || titleDraft !== null);
   const upToRef = useRef<() => void>(() => back({ name: 'today' }));
   useBackGuard({
     dirty: changed,
@@ -231,6 +233,8 @@ export function ItemScreen({ id }: { id: string }) {
     onSave: () => {
       const it = hub.item(id);
       if (it && notes !== (it.notes ?? '')) hub.updateItem(id, { notes });
+      if (it && titleDraft?.trim()) hub.updateItem(id, { title: titleDraft.trim() });
+      setTitleDraft(null);
       upToRef.current();
     },
     onDiscard: () => {
@@ -241,6 +245,7 @@ export function ItemScreen({ id }: { id: string }) {
         if (privacy) hub.rescope(id);
         setNotes((snap.notes as string | null) ?? '');
       }
+      setTitleDraft(null);
       upToRef.current();
     },
   });
@@ -429,9 +434,10 @@ export function ItemScreen({ id }: { id: string }) {
     <>
       <Band
         onBack={() => {
-          // The app's own back arrow keeps what was changed (the notes too) and leaves.
+          // The app's own back arrow keeps what was changed (the notes and a name being typed too) and leaves.
           const it = hub.item(id);
           if (it && notes !== (it.notes ?? '')) hub.updateItem(id, { notes });
+          if (it && titleDraft?.trim()) hub.updateItem(id, { title: titleDraft.trim() });
           back(upTo);
         }}
         mini={item.title}
@@ -461,7 +467,7 @@ export function ItemScreen({ id }: { id: string }) {
       >
         <div className={`hero hero--item ${item.done ? 'is-done' : ''}`} style={lineVars(list?.color)}>
           <div className="hero__top">
-            <AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} />
+            <AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} onDraft={setTitleDraft} />
             <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />
           </div>
           <p className="hero__sub">
