@@ -113,20 +113,35 @@ export function ProjectItems({
   };
   // Or onto the middle of another task: it goes under it, as a subtask. (The rows' resting places
   // decide, not where they've slid to make room, so the target holds still.)
+  // Or, as in most to-do apps, drag it to the right: it goes under the task above it.
   const nestRef = useRef<string | null>(null);
+  const liftX = useRef<number | null>(null);
   const nestAt = (p: Point): { el: HTMLElement; id: string } | null => {
     const from = lifted.current;
-    if (!from || hub.childrenOf(from).length) return null;
-    for (const li of document.querySelectorAll<HTMLElement>('.aisle li.row:not(.row--nested)[data-id]')) {
-      const id = li.dataset.id!;
-      if (id === from || li.closest('.dragwrap')) continue;
-      const r = li.getBoundingClientRect();
-      const shift = new DOMMatrixReadOnly(getComputedStyle(li).transform === 'none' ? undefined : getComputedStyle(li).transform).m42;
-      const top = r.top - shift;
-      const band = (p.y - top) / r.height;
-      if (p.x < r.left || p.x > r.right || band < 0.3 || band > 0.7) continue;
+    if (!from) return null;
+    const ok = (id: string) => {
       const it = hub.item(id);
-      return it && !it.parentId && !it.done && hub.canEdit(it) ? { el: li, id } : null;
+      // Never under itself or one of its own subtasks.
+      return !!it && !it.parentId && !it.done && hub.canEdit(it) && !hub.descendants(from).some((d) => d.id === id);
+    };
+    const rows = [...document.querySelectorAll<HTMLElement>('.aisle li.row:not(.row--nested)[data-id]')]
+      .filter((li) => li.dataset.id !== from && !li.closest('.dragwrap'))
+      .map((li) => {
+        const r = li.getBoundingClientRect();
+        const t = getComputedStyle(li).transform;
+        const top = r.top - (t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42);
+        return { li, id: li.dataset.id!, top, height: r.height, left: r.left, right: r.right };
+      });
+    // Right on a task (its middle): under that one.
+    for (const r of rows) {
+      const band = (p.y - r.top) / r.height;
+      if (p.x < r.left || p.x > r.right || band < 0.3 || band > 0.7) continue;
+      return ok(r.id) ? { el: r.li, id: r.id } : null;
+    }
+    // Pulled to the right of where it was picked up: under the task just above.
+    if (liftX.current !== null && p.x - liftX.current > 56) {
+      const above = rows.filter((r) => r.top + r.height / 2 < p.y).sort((a, b) => b.top - a.top)[0];
+      return above && ok(above.id) ? { el: above.li, id: above.id } : null;
     }
     return null;
   };
@@ -167,9 +182,11 @@ export function ProjectItems({
     },
     lift: (id: string) => {
       lifted.current = id;
+      liftX.current = lastPt.current?.[0] ?? null;
     },
     end: () => {
       lifted.current = null;
+      liftX.current = null;
       nestRef.current = null;
       light(null);
     },

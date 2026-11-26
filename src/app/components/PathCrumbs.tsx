@@ -44,7 +44,7 @@ export function PathCrumbs({ steps, onMove, moveLabel = 'Move it' }: { steps: Cr
       {onMove ? (
         <button type="button" className="crumbs__moveto" onClick={onMove} aria-label={moveLabel} title={moveLabel}>
           <Icon name="move" />
-          <span>Move</span>
+          <span>Move to…</span>
         </button>
       ) : null}
     </nav>
