@@ -1,3 +1,4 @@
+import { PathCrumbs } from '../components/PathCrumbs';
 import { PlacePicker } from '../components/PlacePicker';
 import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
@@ -376,22 +377,19 @@ export function ItemScreen({ id }: { id: string }) {
           ) : undefined
         }
         crumbs={
-          // The path is where it lives: tap any part to move it somewhere else (asked first).
-          <nav className="crumbs crumbs--edit" aria-label="Where it lives">
-            <button type="button" disabled={!editable} onClick={() => movePath(list?.id ?? null)} dir="auto" aria-label={`In ${list?.name ?? ''}. Move it`}>
-              {list?.name}
-              {editable ? <Icon name="chevron-down" className="crumbs__caret" /> : null}
-            </button>
-            {ancestors.map((a) => (
-              <span key={a.id} className="crumbs__step">
-                <Icon name="chevron-right" className="icon--sm" />
-                <button type="button" disabled={!editable} onClick={() => movePath(a.id)} dir="auto" aria-label={`Inside ${a.title}. Move it`}>
-                  {a.title}
-                  {editable ? <Icon name="chevron-down" className="crumbs__caret" /> : null}
-                </button>
-              </span>
-            ))}
-          </nav>
+          // Where it lives, from the top: every step goes there; its ⌄ moves the task there (asked first).
+          <PathCrumbs
+            steps={[
+              { key: 'projects', label: 'Projects', go: () => navigate({ name: 'lists' }) },
+              ...[...(list ? hub.listPath(list.id) : []), ...(list ? [list] : [])].map((l) => ({
+                key: l.id,
+                label: l.name,
+                go: () => navigate({ name: 'list', id: l.id }),
+                move: editable ? () => movePath(l.id) : undefined,
+              })),
+              ...ancestors.map((a) => ({ key: a.id, label: a.title, go: () => navigate({ name: 'item', id: a.id }), move: editable ? () => movePath(a.id) : undefined })),
+            ]}
+          />
         }
       >
         <div className={`hero hero--item ${item.done ? 'is-done' : ''}`} style={lineVars(list?.color)}>

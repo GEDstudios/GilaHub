@@ -1,3 +1,4 @@
+import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { useWide } from '../ui/useWide';
 import { openSearch } from '../search';
 import { useState, type ReactNode } from 'react';
@@ -14,6 +15,8 @@ import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Empty, IconButton, lineVars, ListBullet, NewButton, Seg } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
+import { haptic } from '../ui/haptics';
+import { setPrefs, usePrefs } from '../prefs';
 import { Sortable } from '../ui/Sortable';
 import { folderLean, NewProjectSheet, ProjectCard, SortableProject } from './Lists';
 import { coveredByTab, pinsOf, setPins, togglePin } from '../tabs';
@@ -236,6 +239,7 @@ function TaskProject({ id }: { id: string }) {
   useAddAction(openNew, label);
   const [showAll, setShowAll] = useShowAll(id);
   const wide = useWide();
+  const prefs = usePrefs();
 
   if (!list) {
     return (
@@ -261,13 +265,13 @@ function TaskProject({ id }: { id: string }) {
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
         actions={<ProjectActions listId={id} label={label} onNew={openNew} />}
         mini={list.name}
+        crumbs={<PathCrumbs steps={projectPath(hub, id)} />}
       >
         <ProjectHero
           list={list}
           stat={pct !== null && done ? `${pct}%` : undefined}
           sub={
             <>
-              {parent ? <InParent parent={parent} /> : null}
               {`${n ? `${n} open` : all.length ? 'All done' : 'Empty'}${heroVis(hub, list)}`}
             </>
           }
@@ -290,9 +294,33 @@ function TaskProject({ id }: { id: string }) {
             />
           </div>
         ) : null}
-        <Children listId={id} parentId={null} />
+        <ViewToggle />
+        <Children listId={id} parentId={null} cards={prefs.taskView === 'cards'} />
         {everything ? <AllInside lists={nested} /> : <SubProjects list={list} />}
       </div>
+    </div>
+  );
+}
+
+/** List or cards: how a project's tasks are laid out (this device, every project). */
+function ViewToggle() {
+  const prefs = usePrefs();
+  const set = (v: 'list' | 'cards') => {
+    haptic('select');
+    setPrefs({ taskView: v });
+  };
+  return (
+    <div className="viewtoggle" role="radiogroup" aria-label="Show tasks as">
+      {(
+        [
+          ['list', 'lines', 'List'],
+          ['cards', 'folders', 'Cards'],
+        ] as const
+      ).map(([v, icon, label]) => (
+        <button key={v} type="button" role="radio" aria-checked={prefs.taskView === v} aria-label={label} title={label} className={`viewtoggle__btn ${prefs.taskView === v ? 'is-on' : ''}`} onClick={() => set(v)}>
+          <Icon name={icon} className="icon--sm" />
+        </button>
+      ))}
     </div>
   );
 }
@@ -306,15 +334,6 @@ function FilterCount({ text, n }: { text: string; n: number }) {
   );
 }
 
-/** The folder it sits in, on a nested project's hero: a way up. */
-function InParent({ parent }: { parent: List }) {
-  return (
-    <button type="button" className="hero__up" onClick={() => navigate({ name: 'list', id: parent.id })}>
-      <Icon name="folder" className="icon--xs" />
-      <span dir="auto">{parent.name}</span>
-    </button>
-  );
-}
 
 /** Every project inside, its tasks under its own name, as if you opened each in turn. */
 function AllInside({ lists }: { lists: List[] }) {

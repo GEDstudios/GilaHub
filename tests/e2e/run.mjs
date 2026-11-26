@@ -317,6 +317,7 @@ try {
     await shot(guy, '12-project');
   });
 
+
   await check('New: the "+" asks Hila from the composer, with an OK', async () => {
     await guy.goto(`${url}/`);
     await guy.getByRole('button', { name: 'New', exact: true }).click();
@@ -752,6 +753,27 @@ try {
     await hila.locator('#home-asks').getByRole('button', { name: 'Urgent only', pressed: true }).waitFor({ timeout: 5000 });
     await hila.locator('#home-asks').getByRole('button', { name: 'Urgent only' }).click();
     await hila.locator('#home-asks').getByText('Return the library books').waitFor({ timeout: 3000 });
+  });
+
+  await check('The path: a task deep inside nested projects shows every step, and each step goes there', async () => {
+    await guy.goto(`${url}/lists`);
+    await guy.locator('.projcard__name', { hasText: /^Next trip$/ }).click();
+    await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
+    await guy.getByRole('button', { name: /Add a project inside/ }).click();
+    await guy.locator('.sheet .ccard__input').fill('Packing');
+    await guy.getByRole('button', { name: /create project/i }).click();
+    await guy.getByRole('heading', { name: 'Packing', level: 1 }).waitFor({ timeout: 5000 });
+    const path = () => guy.locator('.crumbs--path').innerText().then((t) => t.replace(/\s+/g, ' ').trim());
+    if ((await path()) !== 'Projects Next trip') throw new Error(`Packing's path: ${await path()}`);
+    await addVia(guy, ['Passport']);
+    await guy.locator('li.row', { hasText: 'Passport' }).locator('.row__title').click();
+    await addVia(guy, ['Check the expiry']);
+    await guy.locator('li.row', { hasText: 'Check the expiry' }).locator('.row__title').click();
+    await guy.waitForTimeout(300);
+    if ((await path()) !== 'Projects Next trip Packing Passport') throw new Error(`the task's path: ${await path()}`);
+    await shot(guy, '12b-path');
+    await guy.locator('.crumbs__go', { hasText: 'Next trip' }).click();
+    await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 3000 });
   });
 
   // ---------- Desktop

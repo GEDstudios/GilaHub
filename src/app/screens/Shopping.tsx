@@ -1,3 +1,4 @@
+import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { useWide } from '../ui/useWide';
 import { TwinTag } from '../components/ItemRow';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Ref, type RefObject } from 'react';
@@ -237,6 +238,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
             </>
           }
           mini={scoped.name}
+          crumbs={listId ? <PathCrumbs steps={projectPath(hub, scoped.id)} /> : undefined}
         >
           <ProjectHero list={scoped} sub={mode ? `Shopping now · ${sub}` : `${sub}${heroVis(hub, scoped)}`} />
           {wide && !mode ? <ProjectChips list={scoped} /> : null}

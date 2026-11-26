@@ -312,6 +312,22 @@
     margin-top: 16px;
   }
 
+  /* With the whole path above it, a page needs no Back: the path is the way up, and its
+     actions share the path's line */
+  .band:has(> .crumbs--path) .band__top > .iconbtn:first-child {
+    display: none;
+  }
+
+  .band:has(> .crumbs--path) > .crumbs {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .band:has(> .crumbs--path) > .band__top > .band__actions {
+    align-self: center;
+  }
+
   /* The top bar does these: back to Today from Settings, Search */
   .band--root .band__top > .iconbtn:first-child,
   .band__actions [aria-label='Search'] {
@@ -444,7 +460,8 @@
   }
 
   .home__main > :first-child,
-  .home__side > :first-child {
+  .home__side > :first-child,
+  .home__main > .quickbar + * {
     margin-top: 0;
   }
 
@@ -480,24 +497,69 @@
     font-size: 14.5px;
   }
 
-  /* Coming up: two tidy columns of tiles, not a carousel */
-  .home__side .ahead {
+  /* The head of the day: one line to add a task (the + and N do the same) */
+  .quickbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    height: 52px;
+    margin-bottom: 16px;
+    padding: 0 12px 0 10px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: var(--panel-shadow);
+    color: var(--text-3);
+    font-size: 15px;
+    text-align: start;
+    transition: box-shadow 160ms var(--ease);
+  }
+
+  .quickbar:hover {
+    box-shadow:
+      0 0 0 1px rgb(10 10 4 / 0.12),
+      0 4px 12px -4px rgb(10 10 4 / 0.12);
+    color: var(--text-2);
+  }
+
+  .quickbar__plus {
+    width: 30px;
+    height: 30px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--cta);
+    color: var(--cta-text);
+  }
+
+  .quickbar__text {
+    flex: 1;
+  }
+
+  .quickbar .kbd {
+    background: var(--tile);
+    color: var(--text-3);
+    opacity: 1;
+  }
+
+  /* Coming up, beside the day: a wrapping grid of tiles, not a carousel */
+  .home__main .ahead {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
     margin: 0;
     padding: 0 2px 2px;
     overflow: visible;
   }
 
-  .home__side .ahead__tile {
-    min-height: 96px;
+  .home__main .ahead__tile {
+    min-height: 104px;
     border-radius: 12px;
-    padding: 10px 12px;
+    padding: 11px 12px;
   }
 
-  .home__side .ahead__free {
-    min-height: 48px;
+  .home__main .ahead__free {
+    min-height: 104px;
     border-radius: 12px;
   }
 
@@ -553,10 +615,11 @@
     display: none;
   }
 
+  /* Inside the folder's top corner (below the path above it) */
   .projpage .band__actions {
     position: absolute;
     z-index: 2;
-    top: 64px;
+    top: 98px;
     right: 14px;
   }
 

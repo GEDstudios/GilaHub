@@ -39,8 +39,8 @@ function greeting(): string {
   return 'Evening';
 }
 
-/** On a computer these are glances, in the side column: the week, what's coming, my person's, shopping. */
-const SIDE = new Set(['week', 'upcoming', 'partner', 'shop']);
+/** On a computer these are glances, in the side column: the week, my person's, shopping. */
+const SIDE = new Set(['week', 'partner', 'shop']);
 
 /** Does this block draw anything right now? (Today always does: its add row.) */
 function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<string>): boolean {
@@ -192,6 +192,14 @@ export function Today() {
           </div>
           <div className="home__cols">
             <div className="home__main">
+              {/* A computer's way in: an "add" line at the head of the day (N works from anywhere) */}
+              <button type="button" className="quickbar" onClick={openNew} aria-keyshortcuts="N">
+                <span className="quickbar__plus">
+                  <Icon name="plus" className="icon--sm" />
+                </span>
+                <span className="quickbar__text">Add a task, or ask {hub.partner()?.name ?? 'your person'}…</span>
+                <span className="kbd">N</span>
+              </button>
               {slots.filter((s) => !SIDE.has(s.key)).map((s) => block(s.key))}
               {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
               {editLink}

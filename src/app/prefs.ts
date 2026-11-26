@@ -29,6 +29,8 @@ export interface Prefs {
   asksUrgentOnly: boolean;
   /** A computer's cursor that leans, bounces and waves (null: on, unless motion is turned down). */
   livelyCursor: boolean | null;
+  /** A project's tasks as a list, or as a grid of cards (this device). */
+  taskView: 'list' | 'cards';
 }
 
 const KEY = 'gila-hub:prefs';
@@ -49,6 +51,7 @@ const DEFAULTS: Prefs = {
   sounds: true,
   asksUrgentOnly: false,
   livelyCursor: null,
+  taskView: 'list',
 };
 
 function read(): Prefs {

@@ -4918,35 +4918,70 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
   font-weight: 600;
 }
 
-/* The path on a task: each part a soft pill you can tap to move it */
-.crumbs--edit {
-  gap: 4px;
+/* Where you are: Projects › Home › Kitchen › Fix the tap. Each step a quiet link back up; on a
+   task, a small round ⌄ beside a step moves the task there. Long paths wrap, never cut. */
+.crumbs--path {
+  gap: 2px 3px;
+  margin: -6px 0 14px;
+  line-height: 1.3;
 }
 
-.crumbs--edit button {
+.crumbs__step {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 4px 8px 4px 10px;
-  border-radius: 999px;
+  gap: 1px;
+  min-width: 0;
+}
+
+.crumbs__go {
+  max-width: 220px;
+  padding: 4px 4px;
+  border-radius: 6px;
+  color: var(--text-2);
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+
+.crumbs__go:hover {
+  background: var(--press);
+  color: var(--text);
+}
+
+.crumbs__go:active {
+  background: var(--tile);
+}
+
+.crumbs__move {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
   background: var(--tile);
   color: var(--text-2);
   transition: background 140ms var(--ease), transform 140ms var(--ease);
 }
 
-.crumbs--edit button:disabled {
-  background: transparent;
-  padding: 4px 2px;
-}
-
-.crumbs--edit button:not(:disabled):active {
-  transform: scale(0.96);
-  background: var(--tile-2);
-}
-
-.crumbs__caret {
+.crumbs__move .icon {
   --s: 12;
-  opacity: 0.7;
+}
+
+.crumbs__move:hover {
+  background: var(--tile-2);
+  color: var(--text);
+}
+
+.crumbs__move:active {
+  transform: scale(0.9);
+}
+
+.crumbs .crumbs__sep {
+  --s: 12;
+  flex: none;
+  color: var(--text-4);
 }
 
 .move__open {
@@ -6533,3 +6568,126 @@ textarea.nf__write {
 }
 
 
+
+/* ============================================================ Tasks as cards */
+/* List or cards: a small two-way switch over a project's tasks */
+.viewtoggle {
+  display: flex;
+  gap: 2px;
+  width: max-content;
+  margin: 0 0 10px auto;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--tile);
+}
+
+.viewtoggle__btn {
+  width: 34px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--text-3);
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+
+.viewtoggle__btn.is-on {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(10 10 4 / 0.12);
+}
+
+/* The cards: the tick and its tags along the top, the title and its details under them */
+.rows.rows--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+}
+
+.rows--cards .row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'check trail'
+    'body body';
+  align-content: space-between;
+  align-items: start;
+  gap: 12px 8px;
+  min-height: 128px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px rgb(10 10 4 / 0.07),
+    0 1px 3px rgb(10 10 4 / 0.05);
+  transition:
+    transform 200ms var(--spring),
+    box-shadow 200ms var(--ease);
+}
+
+.rows--cards .row + .row::before {
+  display: none;
+}
+
+.rows--cards .row > .check {
+  grid-area: check;
+}
+
+.rows--cards .row__body {
+  grid-area: body;
+  align-self: end;
+}
+
+.rows--cards .row__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.rows--cards .row__meta {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.rows--cards .row__trail {
+  grid-area: trail;
+  justify-self: end;
+  margin: 0;
+}
+
+.rows--cards .row:hover {
+  box-shadow:
+    0 0 0 1px rgb(10 10 4 / 0.09),
+    0 6px 16px -6px rgb(10 10 4 / 0.18);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 960px) {
+  .rows.rows--cards {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 14px;
+  }
+
+  .main .column > .rows.rows--cards {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .main .rows--cards .row,
+  .main .column > .rows--cards .row {
+    background: #fff;
+  }
+
+  .main .rows--cards .row:hover {
+    background: #fff;
+  }
+}

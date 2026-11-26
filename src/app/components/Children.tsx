@@ -34,7 +34,7 @@ function Count({ n }: { n: number }) {
  * Open items (hold to reorder), then the add row, then a collapsible Done group.
  * Ticked rows settle before they leave.
  */
-export function Children({ listId, parentId, readonly }: { listId: string; parentId: string | null; readonly?: boolean }) {
+export function Children({ listId, parentId, readonly, cards }: { listId: string; parentId: string | null; readonly?: boolean; cards?: boolean }) {
   const hub = useHub();
   const settle = useSettle(idOf);
   const all = parentId ? hub.childrenOf(parentId) : hub.children(listId, null);
@@ -52,7 +52,7 @@ export function Children({ listId, parentId, readonly }: { listId: string; paren
   return (
     <SettleContext.Provider value={settle}>
       {readonly ? (
-        <ul className="rows">
+        <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
           {rows.map(({ row, settling }) => (
             <ItemRow key={row.id} item={row} settling={settling} />
           ))}
@@ -60,19 +60,20 @@ export function Children({ listId, parentId, readonly }: { listId: string; paren
       ) : (
         <Sortable
           ids={open.map(idOf)}
+          layout={cards ? 'grid' : 'rows'}
           onMove={onMove}
           onLift={coached}
           label={(id) => hub.item(id)?.title ?? ''}
           renderOverlay={(id) => {
             const item = hub.item(id);
             return item ? (
-              <ul className="rows">
+              <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
                 <ItemRow item={item} />
               </ul>
             ) : null;
           }}
         >
-          <ul className="rows">
+          <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
             {rows.map(({ row, settling }) => (
               <SortableRow key={row.id} item={row} settling={settling} />
             ))}
@@ -82,7 +83,7 @@ export function Children({ listId, parentId, readonly }: { listId: string; paren
       {coach ? (
         <p className="coach">
           <Icon name="hand" className="icon--sm" />
-          {matchMedia('(pointer: coarse)').matches ? 'Hold any row to reorder' : 'Drag any row to reorder'}
+          {matchMedia('(pointer: coarse)').matches ? `Hold any ${cards ? 'card' : 'row'} to reorder` : `Drag any ${cards ? 'card' : 'row'} to reorder`}
         </p>
       ) : null}
       {doneRows.length ? (
