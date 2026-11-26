@@ -116,6 +116,8 @@ export interface Item {
   dueTime?: string | null;
   /** Minutes before due date/time to remind; null = no reminder. 0 = at time. */
   remind?: number | null;
+  /** Notify again on this rhythm (every day, on set days…) until it's done. Not for repeating things. */
+  nag?: RepeatRule | null;
   repeat?: RepeatRule | null;
   assignee?: Assignee;
   /** For "turns": whose turn it is now. */

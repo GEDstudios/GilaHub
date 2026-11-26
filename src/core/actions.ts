@@ -18,6 +18,7 @@ export interface NewItem {
   due?: string | null;
   dueTime?: string | null;
   remind?: number | null;
+  nag?: Item['nag'];
   repeat?: Item['repeat'];
   assignee?: Item['assignee'];
   urgent?: boolean;
@@ -463,6 +464,7 @@ export class Hub {
       due,
       dueTime: input.dueTime ?? null,
       remind: input.remind ?? null,
+      nag: input.remind != null && !input.repeat ? (input.nag ?? null) : null,
       repeat: input.repeat ?? null,
       assignee: input.assignee ?? null,
       turn: input.assignee === 'turns' ? this.meId : null,

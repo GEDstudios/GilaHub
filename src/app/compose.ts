@@ -23,6 +23,7 @@ export function parsedDraft(p: ParseResult, d: { mode: AddMode; defaultDue?: str
     repeat: p.repeat ?? (d.mode === 'chore' ? CHORE_REPEAT : null),
     // A date in the words (or the screen's day) turns the notification on, "When due".
     remind: (p.due ?? d.defaultDue) ? 0 : null,
+    nag: null,
     assignee: p.assignee ?? null,
     urgent: !!p.urgent,
     visibility: d.visibility,

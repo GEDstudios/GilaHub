@@ -18,6 +18,8 @@ export interface Draft {
   dueTime: string | null;
   repeat: RepeatRule | null;
   remind: number | null;
+  /** Notify again until done (with a notification, on a thing that doesn't repeat). */
+  nag?: RepeatRule | null;
   assignee: Assignee;
   urgent: boolean;
   visibility: VisChoice;
@@ -59,7 +61,7 @@ export function useSummary() {
       parts.push(d.assignee === 'both' ? 'together' : d.assignee === 'turns' ? 'taking turns' : who === 'Me' ? 'for you' : `for ${who}`);
     }
     const r = remindText(d.remind);
-    if (r) parts.push(`notify ${r.toLowerCase()}`);
+    if (r) parts.push(`notify ${r.toLowerCase()}${d.nag && !d.repeat ? `, then ${ruleShort(d.nag).toLowerCase()} until done` : ''}`);
     if (!parts.length) return opts.listName ? `In ${opts.listName}` : 'No date';
     const s = parts.join(', ');
     return `${s[0].toUpperCase()}${s.slice(1)}.`;
@@ -338,12 +340,17 @@ export function InlineEditor({
               value={value.remind == null ? 'none' : String(value.remind)}
               options={[{ value: 'none', label: 'No notification' }, ...REMIND_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))]}
               onPick={(v) => {
-                onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due });
+                onChange({ remind: v === 'none' ? null : Number(v), due: v !== 'none' && !value.due ? ref : value.due, ...(v === 'none' ? { nag: null } : {}) });
                 setOpen(null);
               }}
             />
           </Panel>,
         );
+      // Again and again until it's done: every day, on set days, on days of the month…
+      if (!off && !value.repeat && value.nag !== undefined) {
+        chips.push(chip('nag', value.nag ? `Again ${ruleShort(value.nag).toLowerCase()}` : 'Again until done', 'repeat', !!value.nag));
+        if (open === 'nag') chips.push(<RepeatPanel key="nag:panel" nag rule={value.nag} defaultFrom="schedule" onChange={(nag) => onChange({ nag })} />);
+      }
     }
     if (f === 'who')
       chips.push(
@@ -469,7 +476,19 @@ const SIMPLE: Array<{ key: string; label: string; every: number; unit: RepeatUni
   { key: 'm1', label: 'Every month', every: 1, unit: 'month' },
 ];
 
-export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule | null; onChange: (r: RepeatRule | null) => void; defaultFrom: 'done' | 'schedule' }) {
+export function RepeatPanel({
+  rule,
+  onChange: set,
+  defaultFrom,
+  nag,
+}: {
+  rule: RepeatRule | null;
+  onChange: (r: RepeatRule | null) => void;
+  defaultFrom: 'done' | 'schedule';
+  /** For "notify again until done": once is the other choice, and it always keeps to the calendar. */
+  nag?: boolean;
+}) {
+  const onChange = (r: RepeatRule | null) => set(nag && r?.type === 'interval' ? { ...r, from: 'schedule' } : r);
   const prefs = usePrefs();
   const ws = weekStart(prefs);
   const from = rule?.type === 'interval' ? rule.from : defaultFrom;
@@ -489,7 +508,7 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
       <Options
         value={key}
         options={[
-          { value: 'never', label: 'Never' },
+          { value: 'never', label: nag ? 'Just once' : 'Never' },
           ...SIMPLE.map((s) => ({ value: s.key, label: s.label })),
           { value: 'days', label: 'On set days' },
           { value: 'month', label: 'Days of the month' },
@@ -577,7 +596,7 @@ export function RepeatPanel({ rule, onChange, defaultFrom }: { rule: RepeatRule 
           })}
         </div>
       ) : null}
-      {rule?.type === 'interval' ? (
+      {rule?.type === 'interval' && !nag ? (
         <div className="optrow optrow--panel">
           <span className="optrow__text">Count from when it’s done</span>
           <Switch on={rule.from === 'done'} label="Count from when it’s done" onChange={(v) => onChange({ ...rule, from: v ? 'done' : 'schedule' })} />

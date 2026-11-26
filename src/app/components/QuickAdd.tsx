@@ -112,6 +112,7 @@ export function useCompose({
       dueTime: d.dueTime,
       repeat: d.repeat,
       remind: d.remind,
+      nag: d.nag ?? null,
       assignee: d.assignee,
       urgent: d.urgent,
       ...visFields(hub, d.visibility),

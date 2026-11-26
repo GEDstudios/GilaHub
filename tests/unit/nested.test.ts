@@ -138,3 +138,33 @@ describe('sticky notes', () => {
     expect(hub.collectedNotes()).toHaveLength(1);
   });
 });
+
+describe('notify again until done', () => {
+  it('keeps notifying on its rhythm while it is open, and stops when it is done', async () => {
+    const { desiredReminders } = await import('../../src/app/reminders');
+    const { atLocal } = await import('../../src/core/dates');
+    const hub = await person('guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    const l = hub.createList({ name: 'Home', kind: 'tasks' });
+    // Due Mon 23 Nov at 18:00, nagging every day; now is Thu 26 Nov, noon.
+    const now = atLocal('2026-11-26', '12:00');
+    const id = hub.addItem(l, { title: 'Call the bank', due: '2026-11-23', dueTime: '18:00', remind: 0, nag: { type: 'interval', every: 1, unit: 'day', from: 'schedule' } });
+    const days = desiredReminders(hub, now)
+      .filter((r) => r.id.startsWith(`${id}.n`))
+      .map((r) => r.id.slice(-10));
+    expect(days).toEqual(['2026-11-26', '2026-11-27', '2026-11-28', '2026-11-29', '2026-11-30', '2026-12-01']);
+    expect(desiredReminders(hub, now).find((r) => r.id === `${id}.n2026-11-26`)?.note.body).toMatch(/^Still to do · was due/);
+    // On set days only (Mon, Thu).
+    hub.updateItem(id, { nag: { type: 'weekdays', days: [1, 4] } });
+    expect(desiredReminders(hub, now).filter((r) => r.id.startsWith(`${id}.n`)).map((r) => r.id.slice(-10)).slice(0, 3)).toEqual(['2026-11-26', '2026-11-30', '2026-12-03']);
+    hub.toggle(id);
+    expect(desiredReminders(hub, now).filter((r) => r.id.startsWith(id))).toEqual([]);
+  });
+
+  it('is not for repeating things', async () => {
+    const hub = await person('guy');
+    const l = hub.createList({ name: 'Home', kind: 'tasks' });
+    const id = hub.addItem(l, { title: 'Bins', due: '2026-11-23', remind: 0, repeat: { type: 'interval', every: 1, unit: 'week', from: 'schedule' }, nag: { type: 'interval', every: 1, unit: 'day', from: 'schedule' } });
+    expect(hub.item(id)?.nag).toBeNull();
+  });
+});

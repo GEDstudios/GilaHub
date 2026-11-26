@@ -32,6 +32,10 @@ export function whoToRemind(hub: Hub, item: Item, scope: Scope): string[] {
   return all;
 }
 
+/** Again until done: how many nags ahead are set at a time, and how far ahead at most. */
+const NAGS_AHEAD = 6;
+const NAG_HORIZON = 120 * 86_400_000;
+
 export function reminderTime(item: Item, due: string): number {
   return atLocal(due, item.dueTime || '09:00') - (item.remind ?? 0) * 60_000;
 }
@@ -56,6 +60,26 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
       const when = item.dueTime ? `${humanDate(due)} · ${humanTime(item.dueTime, use24h())}` : humanDate(due);
       out.push({ id: `${item.id}.${i}`, at, members, scope, note: { title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`, body: `${when} · ${list.name}`, url: `/i/${item.id}`, tag: item.id } });
     });
+    // Again until done: the next few times on its rhythm after the first, while it's still open.
+    if (item.nag && !item.repeat) {
+      const rule = item.nag.type === 'interval' ? { ...item.nag, from: 'schedule' as const } : item.nag;
+      let d = item.due;
+      let n = 0;
+      for (let guard = 0; guard < 3000 && n < NAGS_AHEAD; guard++) {
+        d = nextDue(rule, d, d);
+        const at = reminderTime(item, d);
+        if (at > now + NAG_HORIZON) break;
+        if (at < now - 60_000) continue;
+        n++;
+        out.push({
+          id: `${item.id}.n${d}`,
+          at,
+          members,
+          scope,
+          note: { title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`, body: `Still to do · was due ${humanDate(item.due)} · ${list.name}`, url: `/i/${item.id}`, tag: item.id },
+        });
+      }
+    }
   }
   return out;
 }

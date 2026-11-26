@@ -281,6 +281,7 @@ export function ItemScreen({ id }: { id: string }) {
     dueTime: item.dueTime ?? null,
     repeat: item.repeat ?? null,
     remind: item.remind ?? null,
+    nag: item.nag ?? null,
     assignee: item.assignee ?? null,
     urgent: !!item.urgent,
     visibility: visChoice,
