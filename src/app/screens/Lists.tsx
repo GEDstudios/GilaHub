@@ -60,7 +60,8 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
           create();
         }}
       >
-        <div className="ccard ccard--lg ccard--edit" style={lineVars(look.color)}>
+        {/* A folder from the start: the same tab on top as on Projects. */}
+        <div className="ccard ccard--lg ccard--edit ccard--folder" style={lineVars(look.color)}>
           <span className="ccard__top">
             <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
             {showsGlyph(icon) ? <Glyph icon={icon} className="ccard__glyph" /> : null}

@@ -5144,3 +5144,21 @@ html:has(.home--editing, .aislearr) :is(.stickyboard, .notebtn) {
   background: var(--me-light, var(--lemon));
   color: var(--ink);
 }
+
+/* New project: the card is already a folder, its tab on top */
+.ccard--folder {
+  margin-top: 16px;
+  border-top-left-radius: 8px;
+}
+
+.ccard--folder::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -13px;
+  width: 42%;
+  height: 26px;
+  border-radius: 12px 16px 0 0;
+  background: var(--c);
+  clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+}
