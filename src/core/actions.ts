@@ -752,7 +752,14 @@ export class Hub {
 
   /** Where a kept-stocked thing goes when it runs low: its own choice, else Shopping, else its folder. */
   stockList(item: Item): string {
-    return (item.stockTo && this.list(item.stockTo)?.id) || this.shopRoot()?.id || item.listId;
+    return this.stockPlace(item).listId;
+  }
+
+  /** Where exactly: a folder, or under a task in one (the tree picker's choice). */
+  stockPlace(item: Item): { listId: string; parentId: string | null } {
+    const under = item.stockUnder ? this.item(item.stockUnder) : undefined;
+    if (under && !under.archived) return { listId: under.listId, parentId: under.id };
+    return { listId: (item.stockTo && this.list(item.stockTo)?.id) || this.shopRoot()?.id || item.listId, parentId: null };
   }
 
   /**
@@ -760,7 +767,7 @@ export class Hub {
    * itself: low → on the list (urgent when very low); stocked again by hand → off the list, if it
    * put it there. Returns the undo.
    */
-  setStock(id: string, patch: Partial<Pick<Item, 'stock' | 'stockAddAt' | 'stockUrgentAt' | 'stockTo'>>): Undo {
+  setStock(id: string, patch: Partial<Pick<Item, 'stock' | 'stockAddAt' | 'stockUrgentAt' | 'stockTo' | 'stockUnder'>>): Undo {
     return this.stockChange(id, () => {
       const f: Partial<Item> = { ...patch };
       if (typeof f.stock === 'number') f.stock = Math.max(0, Math.round(f.stock));
@@ -777,7 +784,7 @@ export class Hub {
   private stockChange(id: string, fn: () => void): Undo {
     const before = this.item(id);
     if (!before) return () => {};
-    const keep = { stock: before.stock ?? null, stockAddAt: before.stockAddAt ?? null, stockUrgentAt: before.stockUrgentAt ?? null, stockTo: before.stockTo ?? null, stockLink: before.stockLink ?? null, stockMade: !!before.stockMade };
+    const keep = { stock: before.stock ?? null, stockAddAt: before.stockAddAt ?? null, stockUrgentAt: before.stockUrgentAt ?? null, stockTo: before.stockTo ?? null, stockUnder: before.stockUnder ?? null, stockLink: before.stockLink ?? null, stockMade: !!before.stockMade };
     const link = before.stockLink ? this.item(before.stockLink) : undefined;
     const linkWas = link ? { urgent: !!link.urgent, deleted: false } : null;
     let made: string | null = null;
@@ -807,7 +814,13 @@ export class Hub {
         if (!!open.urgent !== urgent) this.store.mutate('item', open.id, { urgent });
         return null;
       }
-      const res = this.add(this.stockList(it), { title: it.title, urgent });
+      const place = this.stockPlace(it);
+      let res: AddResult;
+      if (place.parentId) {
+        // Under a task: one there by that name already will do.
+        const there = this.childrenOf(place.parentId).find((c) => !c.done && !c.archived && c.title.trim().toLowerCase() === it.title.trim().toLowerCase());
+        res = there ? { kind: 'exists', id: there.id, listId: place.listId } : { kind: 'added', id: this.addItem(place.listId, { title: it.title, urgent, parentId: place.parentId }), listId: place.listId };
+      } else res = this.add(place.listId, { title: it.title, urgent });
       if (res.kind === 'exists' && urgent) this.store.mutate('item', res.id, { urgent: true });
       this.store.mutate('item', id, { stockLink: res.id, stockMade: res.kind !== 'exists' });
       return res.kind === 'exists' ? null : res.id;

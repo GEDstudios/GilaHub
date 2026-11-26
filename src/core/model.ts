@@ -171,6 +171,8 @@ export interface Item {
   stockUrgentAt?: number | null;
   /** The list it goes on (unset: Shopping, else its own folder). */
   stockTo?: string | null;
+  /** Or under this task there, as a subtask. */
+  stockUnder?: string | null;
   /** The entry it put on that list, while it's there; and whether it made it (or found it there). */
   stockLink?: string | null;
   stockMade?: boolean;

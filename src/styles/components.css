@@ -8677,3 +8677,18 @@ section.aisle.is-settling-in > .rows {
 .meta__use:active {
   transform: scale(0.92);
 }
+
+/* Where it goes when low: a line that opens the tree */
+.stockline--place {
+  width: 100%;
+  border-top: 1px solid var(--line);
+  text-align: start;
+  color: var(--text-3);
+}
+
+@media (hover: hover) {
+  .stockline--place:hover .stockline__title {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}

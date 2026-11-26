@@ -314,3 +314,17 @@ describe('Kept stocked', () => {
     expect(guy.children(shop, null).filter((i) => i.title === 'Pasta')).toHaveLength(1);
   });
 });
+
+describe('Stock going under a task', () => {
+  it('puts its entry under the task picked in the tree', async () => {
+    const guy = await person('guy');
+    const party = guy.createList({ name: 'Party' });
+    const shopFor = guy.addItem(party, { title: 'Shop for the party' });
+    const pantry = guy.createList({ name: 'Pantry' });
+    const cups = guy.addItem(pantry, { title: 'Paper cups' });
+    guy.setStock(cups, { stock: 5, stockTo: party, stockUnder: shopFor });
+    guy.setStock(cups, { stock: 1 });
+    expect(guy.childrenOf(shopFor).map((c) => c.title)).toEqual(['Paper cups']);
+    expect(guy.stockPlace(guy.item(cups)!)).toEqual({ listId: party, parentId: shopFor });
+  });
+});

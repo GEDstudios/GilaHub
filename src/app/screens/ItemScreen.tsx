@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, Options, Panel, useSummary, type Draft } from '../components/editors';
+import { InlineEditor, Panel, useSummary, type Draft } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
 import { OptRow } from '../components/pickers';
@@ -172,16 +172,18 @@ function StockLine({ title, sub, value, min = 0, onChange }: { title: string; su
  */
 function StockPanel({ id }: { id: string }) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const { toast, openSheet } = useOverlays();
   const item = hub.item(id);
   if (!item) return null;
   const on = item.stock != null;
-  const to = hub.list(hub.stockList(item));
   const set = (patch: Parameters<typeof hub.setStock>[1]) => {
     const before = hub.item(id)?.stockLink ?? null;
     hub.setStock(id, patch);
     const now = hub.item(id);
-    if (now?.stockLink && now.stockLink !== before) toast(`Running low: on ${hub.list(hub.item(now.stockLink)?.listId)?.name ?? 'the list'}`);
+    if (now?.stockLink && now.stockLink !== before) {
+      const at = hub.stockPlace(now);
+      toast(`Running low: ${at.parentId ? `under “${hub.item(at.parentId)?.title ?? ''}”` : `on ${hub.list(at.listId)?.name ?? 'the list'}`}`);
+    }
   };
   if (!on)
     return (
@@ -189,24 +191,43 @@ function StockPanel({ id }: { id: string }) {
         <p className="panel__lede">Count how many you have. When it runs low, it goes on a list by itself.</p>
         <button type="button" className="btn btn--block" onClick={() => set({ stock: 2, stockAddAt: 1, stockUrgentAt: 0 })}>
           <Icon name="package" className="icon--sm" />
-          Keep it stocked
+          Count its stock
         </button>
       </Panel>
     );
-  const choices = [hub.shopRoot(), ...(hub.shopRoot() ? hub.nestedLists(hub.shopRoot()!.id) : []), hub.list(item.listId)].filter((l, i, a): l is NonNullable<typeof l> => !!l && a.findIndex((x) => x?.id === l.id) === i);
+  // Where it goes when low: any folder, or under any task, picked in the tree.
+  const place = hub.stockPlace(item);
+  const placeName = place.parentId ? `“${hub.item(place.parentId)?.title ?? ''}” in ${hub.list(place.listId)?.name ?? ''}` : (hub.list(place.listId)?.name ?? 'the list');
+  const pickPlace = () =>
+    openSheet((close) => (
+      <Sheet onClose={close} title="When it runs low, it goes on…">
+        <PlacePicker
+          itemId={id}
+          initialOpen={[...hub.listPath(place.listId).map((l) => l.id), place.listId]}
+          filter={(l) => !l.owner || l.owner === hub.meId || l.visibility === 'visible'}
+          onPick={(listId, parentId) => {
+            set({ stockTo: listId, stockUnder: parentId });
+            close();
+          }}
+        />
+      </Sheet>
+    ));
   return (
     <Panel>
       <StockLine title="In stock" value={item.stock ?? 0} onChange={(n) => set({ stock: n ?? 0 })} />
-      <StockLine title="Add to the list at" sub={`On ${to?.name ?? 'the list'} at this many or fewer`} value={item.stockAddAt ?? 1} onChange={(n) => set({ stockAddAt: n ?? 0 })} />
+      <StockLine title="Add to the list at" sub="At this many or fewer" value={item.stockAddAt ?? 1} onChange={(n) => set({ stockAddAt: n ?? 0 })} />
       <StockLine title="Urgent at" sub="That entry turns urgent at this many or fewer" value={item.stockUrgentAt ?? null} onChange={(n) => set({ stockUrgentAt: n })} />
-      {choices.length > 1 ? (
-        <div className="stockto">
-          <p className="panel__head">Goes on</p>
-          <Options value={to?.id ?? null} options={choices.map((l) => ({ value: l.id, label: l.name }))} onPick={(v) => set({ stockTo: v })} />
-        </div>
-      ) : null}
+      <button type="button" className="stockline stockline--place" onClick={pickPlace}>
+        <span className="stockline__text">
+          <span className="stockline__title">Goes on</span>
+          <span className="stockline__sub" dir="auto">
+            {placeName}
+          </span>
+        </span>
+        <Icon name="chevron-right" className="icon--sm" />
+      </button>
       <button type="button" className="textbtn stockoff" onClick={() => set({ stock: null })}>
-        Stop keeping it stocked
+        Stop counting its stock
       </button>
     </Panel>
   );
@@ -600,7 +621,7 @@ export function ItemScreen({ id }: { id: string }) {
                 ? [
                     {
                       key: 'stock',
-                      label: item.stock != null ? `${item.stock} in stock` : 'Keep stocked',
+                      label: item.stock != null ? `${item.stock} in stock` : 'Stock',
                       icon: 'package' as const,
                       set: item.stock != null,
                       panel: () => <StockPanel id={id} />,
