@@ -1,6 +1,6 @@
 import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { openSearch } from '../search';
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Item, List } from '../../core/model';
 import { Lens, useFilter } from '../components/Filter';
 import { useAddAction } from '../addAction';
@@ -21,7 +21,7 @@ import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewB
 import { Icon } from '../ui/Icon';
 import { setPrefs, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
-import { Sortable } from '../ui/Sortable';
+import { Sortable, type Outside, type Point } from '../ui/Sortable';
 import { barTabOf, folderLean, NewProjectSheet, ProjectCard, SortableProject, useBarDrop } from './Lists';
 import { TabChip } from '../components/BarEdit';
 import { pinsOf, setPins, togglePin } from '../tabs';
@@ -473,6 +473,94 @@ function ProjectPage({ id }: { id: string }) {
   );
 }
 
+/** A step of the path at the hand: a folder (its id), or the top (null). */
+function crumbAt(p: Point): { el: HTMLElement; to: string | null } | null {
+  for (const e of document.elementsFromPoint(p.x, p.y)) {
+    const t = e.closest<HTMLElement>('.crumbs [data-drop-list], .crumbs [data-drop-root]');
+    if (t) return { el: t, to: t.dataset.dropList ?? null };
+  }
+  return null;
+}
+
+/**
+ * Drag a folder up onto the path (Folders › Home › …): dropped on a step it moves into that
+ * folder; on Folders, out to the top. As a task does. `from` is the folder they're in now.
+ */
+function useCrumbDrop(from: string): { target: Outside; over: { current: string | null | undefined } } {
+  const hub = useHub();
+  const { toast } = useOverlays();
+  const lit = useRef<HTMLElement | null>(null);
+  // Where it would land while over a step (undefined: not over one), for the lifted chip.
+  const over = useRef<string | null | undefined>(undefined);
+  return useMemo(() => {
+    const light = (el: HTMLElement | null) => {
+      if (lit.current === el) return;
+      lit.current?.classList.remove('is-droptarget');
+      el?.classList.add('is-droptarget');
+      if (el) haptic('select');
+      lit.current = el;
+    };
+    const target: Outside = {
+      hit: (p) => {
+        const t = crumbAt(p);
+        const on = !!t && t.to !== from;
+        over.current = on ? t!.to : undefined;
+        return on;
+      },
+      aim: (p) => {
+        const t = p ? crumbAt(p) : null;
+        light(t && t.to !== from ? t.el : null);
+        over.current = t && t.to !== from ? t.to : undefined;
+      },
+      drop: (id, p) => {
+        const t = crumbAt(p);
+        light(null);
+        over.current = undefined;
+        const l = hub.list(id);
+        if (!t || !l || t.to === from) return;
+        const was = hub.parentOf(id)?.id ?? null;
+        hub.setListParent(id, t.to);
+        haptic('success');
+        toast(t.to ? `${l.name} is in ${hub.list(t.to)?.name ?? 'there'}` : `${l.name} is back in Folders`, { action: { label: 'Undo', run: () => hub.setListParent(id, was) } });
+      },
+      end: () => {
+        light(null);
+        over.current = undefined;
+      },
+    };
+    return { target, over };
+  }, [hub, toast, from]);
+}
+
+/** Two places outside a list a dragged thing can go (the bar, the path): whichever is under the hand. */
+function either(a: Outside, b: Outside): Outside {
+  let cur: Outside | null = null;
+  return {
+    // Both asked every time (each keeps its own idea of where the hand is).
+    hit: (p) => {
+      const inB = b.hit(p);
+      const inA = a.hit(p);
+      return inA || inB;
+    },
+    aim: (p, id) => {
+      const next = p ? (b.hit(p) ? b : a.hit(p) ? a : null) : null;
+      if (cur && cur !== next) cur.aim(null, id);
+      cur = next;
+      next?.aim(p, id);
+    },
+    drop: (id, p) => (b.hit(p) ? b : a).drop(id, p),
+    lift: (id) => {
+      a.lift?.(id);
+      b.lift?.(id);
+    },
+    end: () => {
+      cur = null;
+      a.end?.();
+      b.end?.();
+    },
+  };
+}
+
 /** The folders inside a project, after its own tasks: open one, drag to reorder, or make another. */
 function SubProjects({ list }: { list: List }) {
   const hub = useHub();
@@ -480,8 +568,11 @@ function SubProjects({ list }: { list: List }) {
   const subs = hub.subLists(list.id);
   const pins = pinsOf(hub);
   const make = () => openSheet((close) => <NewProjectSheet onClose={close} parentId={list.id} />);
-  // Drag one down onto the bar: it's pinned there, like a folder from the Folders page.
+  // Drag one down onto the bar: it's pinned there, like a folder from the Folders page. Or up
+  // onto the path: it moves there.
   const toBar = useBarDrop();
+  const crumbs = useCrumbDrop(list.id);
+  const outside = useMemo(() => either(toBar.folders, crumbs.target), [toBar, crumbs]);
   // None yet: the + makes one ("Folder inside …").
   if (!subs.length) return null;
   return (
@@ -492,10 +583,18 @@ function SubProjects({ list }: { list: List }) {
         layout="grid"
         lean={folderLean}
         label={(id) => hub.list(id)?.name ?? ''}
-        outside={toBar.folders}
-        renderOverlay={(id, { outside }) => {
+        outside={outside}
+        renderOverlay={(id, { outside: away }) => {
           const l = hub.list(id);
-          const t = outside ? barTabOf(hub, `l:${id}`) : undefined;
+          // Over the path: small, going in. Over the bar: the tab it'll be.
+          if (l && away && crumbs.over.current !== undefined)
+            return (
+              <span className="dropchip">
+                <Icon name="move" className="icon--sm" />
+                <span dir="auto">{l.name}</span>
+              </span>
+            );
+          const t = away ? barTabOf(hub, `l:${id}`) : undefined;
           return t ? <TabChip t={t} /> : l ? <ProjectCard list={l} /> : null;
         }}
       >
