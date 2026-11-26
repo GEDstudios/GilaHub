@@ -253,35 +253,11 @@ html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *::after {
   height: 32px;
 }
 
-/* Left alone, it waves: from the wrist, back and forth, settling */
-.livecursor__body.is-waving img {
+/* Left alone, it waves: liveCursor.ts turns the picture from the wrist */
+.livecursor__body img {
   transform-origin: 50% 90%;
-  animation: cursor-wave 1.3s cubic-bezier(0.36, 0, 0.3, 1) both;
 }
 
-@keyframes cursor-wave {
-  0% {
-    transform: rotate(0deg);
-  }
-  14% {
-    transform: rotate(-14deg);
-  }
-  30% {
-    transform: rotate(12deg);
-  }
-  46% {
-    transform: rotate(-12deg);
-  }
-  62% {
-    transform: rotate(9deg);
-  }
-  80% {
-    transform: rotate(-3deg);
-  }
-  100% {
-    transform: rotate(0deg);
-  }
-}
 
 /* Holding something that lifts with a hold: the cursor itself turns into a timer that fills,
    then the thing lifts and the cursor becomes the hand that holds it */

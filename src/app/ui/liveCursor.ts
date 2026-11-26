@@ -14,6 +14,28 @@ const TEXT = "input:not([type='checkbox']):not([type='radio']):not([type='range'
 /** Left alone this long it turns into the hand and waves; then it waves again every WAVE_EVERY. */
 const IDLE_MS = 1500;
 const WAVE_EVERY = 3000;
+const WAVE_MS = 1300;
+/** The wave's swing at t (0–1): left, right, left, right, settling, eased between the turns. */
+const WAVE_KEYS: Array<[number, number]> = [
+  [0, 0],
+  [0.14, -14],
+  [0.3, 12],
+  [0.46, -12],
+  [0.62, 9],
+  [0.8, -3],
+  [1, 0],
+];
+function waveAngle(t: number): number {
+  for (let i = 1; i < WAVE_KEYS.length; i++) {
+    const [t1, a1] = WAVE_KEYS[i];
+    const [t0, a0] = WAVE_KEYS[i - 1];
+    if (t <= t1) {
+      const u = (t - t0) / (t1 - t0);
+      return a0 + (a1 - a0) * (u * u * (3 - 2 * u));
+    }
+  }
+  return 0;
+}
 /** Things that need a hold to pick up (with the mouse: a note, a note's photo), and how long. */
 const HOLD = '.stuck:not(.is-lifted), .nf__photo.is-editable:not(.is-lifted)';
 export const MOUSE_HOLD_MS = 380;
@@ -79,6 +101,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   let kind: CursorKind | 'text' = 'arrow';
   let shown: CursorKind | null = null;
   let waving = false;
+  let waveAt = 0;
   let pressed = false;
   let visible = false;
   // The body hangs from the pointer's tip like a little pendulum on a spring: it trails a move
@@ -100,10 +123,27 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   let raf = 0;
   let idle: ReturnType<typeof setTimeout> | undefined;
 
+  // One picture per shape, made once and shown or hidden (swapping a picture's source is a bigger
+  // change to the page than a style).
+  const pics = new Map<CursorKind, HTMLImageElement>();
+  let pic: HTMLImageElement = img;
   const picture = (k: CursorKind) => {
     const im = cursorImage(k);
     if (!im) return;
-    img.src = im.src;
+    let p = pics.get(k);
+    if (!p || p.dataset.src !== im.src) {
+      p = p ?? (pics.size === 0 ? img : (img.cloneNode() as HTMLImageElement));
+      p.src = im.src;
+      p.dataset.src = im.src;
+      if (!p.parentNode) body.append(p);
+      pics.set(k, p);
+    }
+    if (pic !== p) {
+      pic.style.display = 'none';
+      pic.style.transform = '';
+      p.style.display = '';
+      pic = p;
+    }
     body.style.transformOrigin = `${im.hx}px ${im.hy}px`;
     el.style.setProperty('--hx', `${im.hx}px`);
     el.style.setProperty('--hy', `${im.hy}px`);
@@ -150,9 +190,18 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     scV = (scV + (scTarget - sc) * 0.3) * 0.62;
     sc += scV;
     const shown = 30 * Math.tanh(rot / 30);
+    // The wave, drawn here too (no animation classes): from the wrist, back and forth, settling.
+    if (waveAt) {
+      const t = (now - waveAt) / WAVE_MS;
+      if (t >= 1) {
+        waveAt = 0;
+        pic.style.transform = '';
+        stopWave();
+      } else pic.style.transform = `rotate(${waveAngle(t).toFixed(2)}deg)`;
+    }
     el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     body.style.transform = `translate(calc(-1 * var(--hx, 0px)), calc(-1 * var(--hy, 0px))) rotate(${shown.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
-    if (Math.abs(rot) > 0.04 || Math.abs(rotV) > 0.4 || Math.abs(vel) > 2 || Math.abs(sc - scTarget) > 0.002 || Math.abs(scV) > 0.002) kick();
+    if (waveAt || Math.abs(rot) > 0.04 || Math.abs(rotV) > 0.4 || Math.abs(vel) > 2 || Math.abs(sc - scTarget) > 0.002 || Math.abs(scV) > 0.002) kick();
     else lastT = 0;
   };
   const kick = () => {
@@ -173,20 +222,18 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     waving = true;
     shown = null;
     setKind(kind);
-    body.classList.remove('is-waving');
-    void body.offsetWidth;
-    body.classList.add('is-waving');
+    waveAt = performance.now();
+    kick();
     idle = setTimeout(wave, WAVE_EVERY);
   };
   const stopWave = () => {
     if (!waving) return;
     waving = false;
-    body.classList.remove('is-waving');
+    waveAt = 0;
+    pic.style.transform = '';
     shown = null;
     setKind(kind);
   };
-  // A wave ends: back to the arrow (the next wave is already timed).
-  body.addEventListener('animationend', stopWave);
   const restartIdle = () => {
     clearTimeout(idle);
     idle = setTimeout(wave, IDLE_MS);

@@ -39,9 +39,6 @@ function greeting(): string {
   return 'Evening';
 }
 
-/** On a computer these sit in the rail beside the day: the week ahead and the glances. */
-const RAIL = new Set(['week', 'upcoming', 'partner', 'shop']);
-
 /** Does this block draw anything right now? (Today always does: its add row.) */
 function hasContent(key: string, hub: Hub, v: TodayView, shown: ReadonlySet<string>): boolean {
   switch (key) {
@@ -123,7 +120,7 @@ export function Today() {
       case 'asks':
         return <AsksWidget key={key} v={v} settle={settle} />;
       case 'today':
-        return <TodayWidget key={key} v={v} day={ref} settle={settle} bare={first === 'today'} />;
+        return <TodayWidget key={key} v={v} day={ref} settle={settle} bare={first === 'today' && !wide} />;
       case 'week':
         return <WeekStrips key={key} v={v} shown={shown} />;
       case 'upcoming':
@@ -182,19 +179,19 @@ export function Today() {
         mini={date}
       />
       {wide ? (
-        // A computer: what needs doing on the left, the week and the rest in a rail beside it.
+        // A computer: the day's line across the top, then every block as a panel on a board,
+        // flowing into columns in the order they're arranged.
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
-          <div className="home__main">
+          <div className="home__lead">
             <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
             <HomeNotices />
-            {slots.filter((s) => !RAIL.has(s.key)).map((s) => block(s.key))}
-            {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
-            {editLink}
           </div>
-          <aside className="home__rail" aria-label="This week and more">
-            {slots.filter((s) => RAIL.has(s.key)).map((s) => block(s.key))}
+          <div className="home__board">
+            {slots.map((s) => block(s.key))}
             <InviteCard />
-          </aside>
+          </div>
+          {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
+          {editLink}
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>

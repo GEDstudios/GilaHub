@@ -621,9 +621,9 @@ function SizeRail({ value, color, min, max, onChange }: { value: number; color: 
 
 // ---------------------------------------------------------------- the editor
 
-/** Pens: the app's own colours, plus black, white and a red. A custom one comes from the rainbow. */
+/** Pens: black, white and the app's own colours. Any other comes from the rainbow. */
 const BRAND = ['lemon', 'pink', 'sky', 'mint', 'lilac'] as const;
-const PEN_FIXED = ['#0a0a04', '#ffffff', '#ff9500', '#34c759', '#007aff', '#af52de', '#8e8e93', '#a2845e'];
+const PEN_FIXED = ['#0a0a04', '#ffffff'];
 
 const brandHex = (c: string) => (typeof document === 'undefined' ? '#000' : getComputedStyle(document.documentElement).getPropertyValue(`--${c}`).trim() || '#000');
 
