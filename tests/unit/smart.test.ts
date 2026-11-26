@@ -31,7 +31,17 @@ describe('quick add parser', () => {
     expect(r.tokens.map((t) => t.kind).sort()).toEqual(['date', 'time']);
   });
 
-  it('parses weekdays, assignees and urgency', () => {
+  it('keeps a little word that is the title\'s own ("ב", "on"), and drops one left before a date', () => {
+    expect(parseQuickAdd('להתקשר לדנה ב', ctx).title).toBe('להתקשר לדנה ב');
+    expect(parseQuickAdd('Put the kettle on', ctx).title).toBe('Put the kettle on');
+    expect(parseQuickAdd('On call week', ctx).title).toBe('On call week');
+    const he = parseQuickAdd('להתקשר לדנה ב 5/12', ctx);
+    expect(he).toMatchObject({ title: 'להתקשר לדנה', due: '2026-12-05' });
+    expect(parseQuickAdd('Dentist on friday', ctx)).toMatchObject({ title: 'Dentist', due: '2026-11-27' });
+    expect(parseQuickAdd('tomorrow at the bank', ctx).title).toBe('the bank');
+  });
+
+    it('parses weekdays, assignees and urgency', () => {
     const r = parseQuickAdd('Book dinner friday @hila !', ctx);
     expect(r).toMatchObject({ title: 'Book dinner', due: '2026-11-27', assignee: 'h', urgent: true });
   });

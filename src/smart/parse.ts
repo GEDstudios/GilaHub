@@ -324,17 +324,20 @@ export function parseQuickAdd(input: string, ctx: ParseContext = {}): ParseResul
   });
 
   // ---------- title ----------
+  // A little word left in front of what was taken out ("at" 5pm, "ב" 5/12) goes with it; the
+  // same word anywhere else is the title's own ("Call Dana ב", "Put it on").
   let title = '';
   let cursor = 0;
-  for (const t of [...tokens].sort((a, b) => a.start - b.start)) {
-    title += text.slice(cursor, t.start) + ' ';
+  const sorted = [...tokens].sort((a, b) => a.start - b.start);
+  for (const t of sorted) {
+    title += text.slice(cursor, t.start).replace(/(^|\s)(?:at|on|by|due|for|ב)\s*$/i, '$1') + ' ';
     cursor = t.end;
   }
   title += text.slice(cursor);
+  const ledByToken = sorted.length > 0 && !text.slice(0, sorted[0].start).trim();
+  title = title.replace(/\s+/g, ' ');
+  if (ledByToken) title = title.trimStart().replace(/^(?:at|on|by|due)\s+/i, '');
   title = title
-    .replace(/\s+/g, ' ')
-    .replace(/\s+(?:at|on|by|due|for|ב)$/i, '')
-    .replace(/^(?:at|on|by|due)\s+/i, '')
     .replace(/\s+([,.;:!?])/g, '$1')
     .replace(/^[,.;:\s]+|[,;:\s]+$/g, '')
     .trim();
