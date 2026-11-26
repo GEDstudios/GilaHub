@@ -560,6 +560,20 @@ export function ItemScreen({ id }: { id: string }) {
           <PathCrumbs
             onMove={editable ? () => movePath(null) : undefined}
             moveLabel="Move this task"
+            also={
+              editable
+                ? {
+                    label: alsoChip.label,
+                    on: !!alsoChip.set,
+                    onClick: () =>
+                      openSheet((close) => (
+                        <Sheet onClose={close} title={alsoChip.set ? alsoChip.label : 'Also in…'}>
+                          {alsoChip.panel(close)}
+                        </Sheet>
+                      )),
+                  }
+                : undefined
+            }
             steps={[
               { key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }) },
               ...[...(list ? hub.listPath(list.id) : []), ...(list ? [list] : [])].map((l) => ({
@@ -582,7 +596,30 @@ export function ItemScreen({ id }: { id: string }) {
         <div className={`hero hero--item ${item.done ? 'is-done' : ''}`} style={lineVars(list?.color)}>
           <div className="hero__top">
             <AutoTitle value={item.title} onSave={(t) => hub.updateItem(id, { title: t })} readOnly={!editable} onDraft={setTitleDraft} />
-            {item.stock != null ? <StockCount item={item} readonly={!editable} /> : <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />}
+            <span className="hero__tools">
+              {/* Highlights (on my Today) and a photo: small, on the card, by the tick */}
+              <button
+                type="button"
+                className={`herotool ${inQuick ? 'is-on' : ''}`}
+                aria-pressed={inQuick}
+                aria-label={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
+                title={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
+                onClick={() => {
+                  haptic('select');
+                  const undo = setQuick(id, !inQuick);
+                  toast(inQuick ? 'Out of your Highlights' : 'In your Highlights, on Today', { action: { label: 'Undo', run: undo } });
+                }}
+              >
+                <Icon name="star" lit={inQuick} />
+              </button>
+              {editable ? (
+                <button type="button" className="herotool" aria-label={photoN ? `Add a photo (${photoN})` : 'Add a photo'} title="Add a photo" onClick={() => void addPhoto()}>
+                  <Icon name="image" />
+                  {photoN ? <span className="herotool__n num">{photoN}</span> : null}
+                </button>
+              ) : null}
+              {item.stock != null ? <StockCount item={item} readonly={!editable} /> : <Check on={item.done} onToggle={onToggle} label={item.done ? 'Mark not done' : 'Mark done'} />}
+            </span>
           </div>
           <p className="hero__sub">
             {item.submittedAt && !item.done
@@ -630,43 +667,12 @@ export function ItemScreen({ id }: { id: string }) {
                   ]
                 : []),
               tagsChip,
-              alsoChip,
-              {
-                key: 'photo',
-                label: photoN ? `Photos ${photoN}` : 'Photo',
-                icon: 'image' as const,
-                set: photoN > 0,
-                toggle: () => void addPhoto(),
-              },
-              {
-                key: 'quick',
-                label: 'Highlights',
-                icon: 'sparkle' as const,
-                set: inQuick,
-                toggle: () => {
-                  haptic('select');
-                  const undo = setQuick(id, !inQuick);
-                  toast(inQuick ? 'Out of your Highlights' : 'In your Highlights, on Today', { action: { label: 'Undo', run: undo } });
-                },
-              },
-              ...(!item.parentId && (!item.done || item.ongoingAt)
-                ? [
-                    {
-                      key: 'ongoing',
-                      label: 'Ongoing',
-                      icon: 'play-circle' as const,
-                      set: !!item.ongoingAt,
-                      toggle: () => {
-                        haptic('select');
-                        hub.setOngoing(id, !item.ongoingAt);
-                      },
-                    },
-                  ]
-                : []),
             ]}
+            more
             value={draft}
             onChange={change}
-            fields={(['when', 'repeat', 'remind', 'who', 'vis', 'urgent'] as const).filter(
+            // First: when, urgent, who (and who sees it); the rest under More.
+            fields={(['when', 'repeat', 'remind', 'urgent', 'who', 'vis'] as const).filter(
               (f) => (f !== 'vis' || hub.canSetPrivacy(item)) && (f !== 'who' || vis !== 'private'),
             )}
             allowedVis={allowed}

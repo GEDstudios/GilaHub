@@ -22,7 +22,19 @@ export interface Crumb {
  * Where you are: every step from the top down to here (Projects › Home › Kitchen › Fix the tap),
  * each one a way back up. On a task, a small ⌄ beside a step moves the task there.
  */
-export function PathCrumbs({ steps, onMove, moveLabel = 'Move it' }: { steps: Crumb[]; /** A small move button at the end of the path. */ onMove?: () => void; moveLabel?: string }) {
+export function PathCrumbs({
+  steps,
+  onMove,
+  moveLabel = 'Move it',
+  also,
+}: {
+  steps: Crumb[];
+  /** A small move button at the end of the path. */
+  onMove?: () => void;
+  moveLabel?: string;
+  /** "Also in…" beside it (a task): where else it is, or putting it somewhere else too. */
+  also?: { label: string; on: boolean; onClick: () => void };
+}) {
   if (!steps.length) return null;
   return (
     <nav className="crumbs crumbs--path" aria-label="Where you are">
@@ -41,11 +53,22 @@ export function PathCrumbs({ steps, onMove, moveLabel = 'Move it' }: { steps: Cr
           </span>
         </Fragment>
       ))}
-      {onMove ? (
-        <button type="button" className="crumbs__moveto" onClick={onMove} aria-label={moveLabel} title={moveLabel}>
-          <Icon name="move" />
-          <span>Move to…</span>
-        </button>
+      {onMove || also ? (
+        // The path's own actions, kept together (they wrap as one).
+        <span className="crumbs__acts">
+          {onMove ? (
+            <button type="button" className="crumbs__moveto" onClick={onMove} aria-label={moveLabel} title={moveLabel}>
+              <Icon name="move" />
+              <span>Move to…</span>
+            </button>
+          ) : null}
+          {also ? (
+            <button type="button" className={`crumbs__moveto ${also.on ? 'is-on' : ''}`} onClick={also.onClick}>
+              <Icon name="link" />
+              <span dir="auto">{also.label}</span>
+            </button>
+          ) : null}
+        </span>
       ) : null}
     </nav>
   );

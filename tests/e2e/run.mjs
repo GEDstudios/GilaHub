@@ -218,24 +218,15 @@ try {
     if (n !== 1) throw new Error(`expected 1 milk row, found ${n}`);
   });
 
-  await check('Hila swipes milk right: it goes into Ongoing; ticked there, Guy sees it done', async () => {
-    // Nothing swiped in: a tick is just done, no card.
-    if (await hila.locator('.cartcard').count()) throw new Error('an Ongoing card before anything went in');
-    await swipeRow(hila, hilaCtx, hila.locator('li.row', { has: hila.locator('.row__title', { hasText: /^milk/i }) }).first(), 150);
-    await hila.locator('.cartcard', { hasText: 'Ongoing' }).locator('li.row', { hasText: /milk/i }).waitFor({ timeout: 3000 });
-    await shot(hila, '07a-shop-ongoing');
-    await hila.locator('.cartcard li.row', { hasText: /milk/i }).getByRole('checkbox').click();
-    await hila.locator('.cartcard .cartchip', { hasText: /milk/i }).waitFor({ timeout: 3000 });
+  await check('Hila ticks milk off; Guy sees it done', async () => {
+    await hila.locator('li.row', { has: hila.locator('.row__title', { hasText: /^milk/i }) }).first().getByRole('checkbox').click();
     await shot(hila, '07-shop-hila');
     await guy.goto(`${url}/shop`);
     try {
-      await waitFor(async () => (await guy.locator('li.row', { hasText: /^milk/ }).count()) === 0, 15000, 'milk done on guy');
+      await waitFor(async () => (await guy.locator('li.row:not(.is-done)', { hasText: /^milk/ }).count()) === 0, 15000, 'milk done on guy');
     } finally {
       await shot(guy, '07b-shop-guy');
     }
-    // Clear files it away; the card goes.
-    await hila.locator('.cartcard').getByRole('button', { name: 'Clear', exact: true }).click();
-    await hila.locator('.cartcard').waitFor({ state: 'detached', timeout: 3000 });
   });
 
   // ---------- Privacy

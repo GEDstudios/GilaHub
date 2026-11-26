@@ -12,7 +12,7 @@ import { InlineEditor, Options, Panel, RepeatPanel, ruleShort, TimeField, type D
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
-import { OngoingTray, ProjectItems } from '../components/ProjectItems';
+import { ProjectItems } from '../components/ProjectItems';
 import { Photos, useAddPhoto } from '../components/Photos';
 import { ItemRow } from '../components/ItemRow';
 import { useHub, usePartnerHere, useRt } from '../context';
@@ -624,7 +624,7 @@ function usePartnerNews(open: Item[], saying: boolean): Set<string> {
 function ProjectPage({ id }: { id: string }) {
   const hub = useHub();
   const prefs = usePrefs();
-  const { openSheet, toast } = useOverlays();
+  const { openSheet } = useOverlays();
   const list = hub.list(id);
   const nested = hub.nestedLists(id);
   // A folder shows everything inside it; the lens narrows it to one project.
@@ -632,10 +632,7 @@ function ProjectPage({ id }: { id: string }) {
   const view = hub.viewOf(list);
   const v = projectView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(`l:${id}`);
-  // Ongoing: what's swiped in (being done now), and what was ticked from it, until cleared.
-  const ongoingOpen = v.open.filter((i) => i.ongoingAt);
-  const ongoingDone = v.tray.filter((i) => i.ongoingAt);
-  const focus = ongoingOpen.some((i) => i.ongoingBy === hub.meId);
+  const focus = false;
   useOnIt(focus, id, list?.name ?? '');
   const flash = usePartnerNews(v.open, focus);
   const partnerHere = usePartnerHere();
@@ -652,8 +649,7 @@ function ProjectPage({ id }: { id: string }) {
     );
   }
 
-  // What's ongoing is in its card, not in the lists below.
-  const keep = (i: Item) => !i.ongoingAt && filter.test(i, true);
+  const keep = (i: Item) => filter.test(i, true);
   const groups = v.groups.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length || g.listId === id || !filter.active);
   const urgent = v.urgent.filter(keep);
   const shownN = groups.reduce((n, g) => n + g.items.length, 0);
@@ -661,25 +657,15 @@ function ProjectPage({ id }: { id: string }) {
   const parent = hub.parentOf(id);
   const n = v.open.length;
   // Everything else done is just Done.
-  const done = [...v.tray.filter((i) => !i.ongoingAt), ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
-  const total = ongoingOpen.length + ongoingDone.length;
-  const pct = total && ongoingDone.length ? Math.round((ongoingDone.length / total) * 100) : null;
+  const done = [...v.tray, ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
+  const total = 0;
+  const pct: number | null = null;
   const shopper = partnerHere && partnerHere.listId === id ? hub.member(partnerHere.member) : undefined;
 
   const again = (name: string) => {
     const res = hub.add(inside ? hub.placeFor(name, id) : id, { title: name });
     markFresh(res.id);
     playSound('add');
-  };
-  /** Clear: what's been done from Ongoing is filed away (Again? remembers it); the rest stays on. */
-  const clear = () => {
-    const k = ongoingDone.length;
-    const undo = hub.clearDone(
-      v.lists.map((l) => l.id),
-      ongoingDone.map((i) => i.id),
-    );
-    haptic('success');
-    toast(k ? `Cleared ${k}` : 'Done for now', { action: { label: 'Undo', run: undo } });
   };
 
   return (
@@ -730,7 +716,6 @@ function ProjectPage({ id }: { id: string }) {
 
         <Photos on={`list:${id}`} />
 
-        {total ? <OngoingTray open={ongoingOpen} done={ongoingDone} onOut={(i) => hub.toggle(i.id)} onClear={clear} /> : null}
 
         <ProjectItems
           pageId={id}

@@ -8916,3 +8916,103 @@ section.aisle.is-settling-in > .rows {
   font-size: 13px;
   color: var(--text-3);
 }
+
+/* The path's actions: together, readable, wrapping as one */
+.crumbs__acts {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.crumbs__acts .crumbs__moveto + .crumbs__moveto {
+  margin-inline-start: 10px;
+}
+
+.crumbs__moveto > span {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumbs__moveto.is-on {
+  color: var(--text);
+}
+
+/* A task's card: a star (Highlights) and a photo, small, beside the tick */
+.hero__tools {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.herotool {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.4);
+  color: var(--ink);
+  transition: background 140ms var(--ease), transform 160ms var(--spring);
+}
+
+.herotool .icon {
+  --s: 18;
+}
+
+.herotool:active {
+  transform: scale(0.9);
+}
+
+@media (hover: hover) {
+  .herotool:hover {
+    background: rgb(255 255 255 / 0.65);
+  }
+}
+
+.herotool.is-on {
+  background: var(--ink);
+  color: var(--lemon);
+}
+
+.herotool.is-on .icon__light {
+  fill: var(--lemon);
+  opacity: 1;
+}
+
+.herotool__n {
+  position: absolute;
+  top: -3px;
+  inset-inline-end: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cta-text);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+.echip--more {
+  color: var(--text-2);
+}
+
+/* A time on a phone, in a row: the phone's own picker, in a field */
+.timefield {
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}

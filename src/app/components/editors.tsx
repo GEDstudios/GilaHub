@@ -315,7 +315,10 @@ export function InlineEditor({
   compact,
   after,
   className,
+  more,
 }: {
+  /** The fields lead; the extras wait behind a "More" chip (those already set stay in sight). */
+  more?: boolean;
   value: Draft;
   onChange: (patch: Partial<Draft>) => void;
   fields: Field[];
@@ -351,11 +354,15 @@ export function InlineEditor({
     <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} disabled={readOnly} compact={compact} />
   );
 
-  const chips: ReactNode[] = [];
+  const [moreOpen, setMoreOpen] = useState(false);
+  const extraChips: ReactNode[] = [];
+  const hiddenChips: ReactNode[] = [];
   for (const x of extras) {
-    chips.push(chip(x.key, x.label, x.icon, x.set ?? true, x.lead, x.toggle));
-    if (open === x.key && x.panel) chips.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
+    const into = more && !(x.set ?? true) && open !== x.key ? hiddenChips : extraChips;
+    into.push(chip(x.key, x.label, x.icon, x.set ?? true, x.lead, x.toggle));
+    if (open === x.key && x.panel) into.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
+  const chips: ReactNode[] = more ? [] : extraChips;
   for (const f of fields) {
     // One "When" chip holds the day, the time, the repeat and the notification (when this editor
     // has a date at all; new chores, with no date chip, keep Repeat and Notification as chips).
@@ -458,6 +465,19 @@ export function InlineEditor({
       );
   }
 
+  if (more) {
+    chips.push(...extraChips);
+    if (hiddenChips.length) {
+      chips.push(
+        <button key="more" type="button" className={`echip echip--more ${moreOpen ? 'is-open' : ''} ${compact ? 'echip--sm' : ''}`} aria-expanded={moreOpen} onClick={() => setMoreOpen(!moreOpen)}>
+          <Icon name={moreOpen ? 'chevron-up' : 'more'} className="icon--sm" />
+          <span>{moreOpen ? 'Less' : 'More'}</span>
+        </button>,
+      );
+      if (moreOpen) chips.push(...hiddenChips);
+    }
+  }
+
   return (
     <div className={`inline ${className ?? ''}`}>
       {prompt ? <p className="inline__prompt">{prompt}</p> : null}
@@ -528,6 +548,7 @@ export function WhenCard({
   const ref = todayStr();
   const [part, setPart] = useState<'time' | 'repeat' | 'notify' | 'again' | null>(null);
   const flip = (p: 'time' | 'repeat' | 'notify' | 'again') => setPart(part === p ? null : p);
+  const mouse = useMouse();
 
   const setDay = (due: string | null) => onChange(due ? { due, ...withNotification(value, due) } : { due: null, dueTime: null, remind: null, nag: null });
   const setTime = (dueTime: string | null) => onChange(dueTime ? { dueTime, due: value.due ?? ref, ...withNotification(value, value.due ?? ref) } : { dueTime: null });
@@ -557,7 +578,24 @@ export function WhenCard({
       <MonthPicker value={value.due} onPick={(d) => setDay(d === value.due ? null : d)} />
 
       <div className="whencard__rows">
-        {/* The time: a part of the day in one tap, or − / + by a quarter hour */}
+        {/* The time. A phone: its own picker. A computer: a part of the day in one tap, or − / + by a quarter hour. */}
+        {!mouse ? (
+          <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
+            <div className="whenrow__line">
+              <label className="whenrow__btn whenrow__btn--time">
+                <Icon name="clock" className="icon--sm" lit={!!value.dueTime} />
+                <span className="whenrow__title">Time</span>
+                <span className="whenrow__value">{value.dueTime ? humanTime(value.dueTime, h24) : 'Any time'}</span>
+                <input type="time" className="whenrow__native" value={value.dueTime ?? ''} onChange={(e) => setTime(e.target.value || null)} aria-label="Time" />
+              </label>
+              {value.dueTime ? (
+                <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
+                  <Icon name="x" className="icon--xs" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : (
         <WhenRow
           icon="clock"
           title="Time"
@@ -575,6 +613,7 @@ export function WhenCard({
         >
           <TimePicker value={value.dueTime} h24={h24} onChange={setTime} />
         </WhenRow>
+        )}
         {repeat ? (
           <WhenRow icon="repeat" title="Repeat" value={value.repeat ? ruleShort(value.repeat) : 'Never'} on={!!value.repeat} open={part === 'repeat'} onOpen={() => flip('repeat')}>
             <RepeatPanel bare rule={value.repeat} defaultFrom={repeatFrom} onChange={onRepeat} />
@@ -701,6 +740,20 @@ function WhenRow({
       {open ? <div className="whenrow__body">{children}</div> : null}
     </div>
   );
+}
+
+/** A mouse to point with (a computer): pickers made for it; a phone keeps its own. */
+const MOUSE = '(hover: hover) and (pointer: fine)';
+function useMouse(): boolean {
+  const [on, setOn] = useState(() => typeof matchMedia === 'function' && matchMedia(MOUSE).matches);
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return;
+    const m = matchMedia(MOUSE);
+    const fn = () => setOn(m.matches);
+    m.addEventListener('change', fn);
+    return () => m.removeEventListener('change', fn);
+  }, []);
+  return on;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -839,8 +892,11 @@ export function TimePicker({ value, h24, onChange, compact }: { value: string | 
 }
 
 /** A time on its own (Settings, a template): just − time +. */
-export function TimeField({ value, onChange }: { value: string | null; onChange: (t: string | null) => void; label?: string }) {
+export function TimeField({ value, onChange, label = 'Time' }: { value: string | null; onChange: (t: string | null) => void; label?: string }) {
   const h24 = use24h(usePrefs());
+  const mouse = useMouse();
+  // A phone: its own time picker.
+  if (!mouse) return <input type="time" className="timefield" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)} aria-label={label} />;
   return <TimePicker compact value={value} h24={h24} onChange={onChange} />;
 }
 

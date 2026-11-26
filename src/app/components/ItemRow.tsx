@@ -48,7 +48,6 @@ export const ItemRow = memo(function ItemRow({
   liStyle,
   liClass,
   dragProps,
-  inTray,
   nested,
   listLink = true,
 }: {
@@ -109,17 +108,7 @@ export const ItemRow = memo(function ItemRow({
   const twin = hub.linked(item);
   const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
 
-  // Swipe right: it's ongoing (I'm doing it now). In the Ongoing card, swipe left: not now.
-  const canGo = !nested && !item.parentId && !item.done && !settling && hub.canEdit(item);
-  const intoOngoing = canGo && !item.ongoingAt ? () => {
-    const undo = hub.setOngoing(item.id, true);
-    toast(`${item.title} is ongoing`, { ms: 2200, action: { label: 'Undo', run: undo } });
-  } : undefined;
-  const outOfOngoing = inTray && !nested && item.ongoingAt && !item.done ? () => {
-    const undo = hub.setOngoing(item.id, false);
-    toast(`${item.title}: not now`, { ms: 2200, action: { label: 'Undo', run: undo } });
-  } : undefined;
-  const swipeRef = useSwipe<HTMLLIElement>({ right: intoOngoing, left: outOfOngoing });
+  const swipeRef = useSwipe<HTMLLIElement>({});
   // A subtask unfolded here can be dragged out from under its task: onto the page (its own task),
   // onto another group or a step of the path (its own task there), or onto another task (under that one).
   const overlays = useOverlays();
@@ -185,8 +174,6 @@ export const ItemRow = memo(function ItemRow({
   const kids = unfolded ? hub.childrenOf(item.id) : [];
   const photo = hub.photosOf(`item:${item.id}`)[0];
   const thumb = photo ? hub.shotOf('photo', photo.id) : null;
-  const ongoing = !!item.ongoingAt && !item.done && !inTray;
-  const onBy = ongoing && item.ongoingBy && item.ongoingBy !== hub.meId ? hub.member(item.ongoingBy) : undefined;
 
   return (
     <li
@@ -198,23 +185,13 @@ export const ItemRow = memo(function ItemRow({
       className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh row--flash' : flash ? 'row--flash' : ''} ${settling ? 'is-settling' : ''} ${unfolded ? 'row--unfolded' : ''} ${nested ? 'row--nested' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
-      {intoOngoing ? (
-        <span className="row__swipe row__swipe--right" aria-hidden="true">
-          <Icon name="play-circle" className="row__swipeicon" />
-        </span>
-      ) : null}
-      {outOfOngoing ? (
-        <span className="row__swipe row__swipe--left" aria-hidden="true">
-          <Icon name="x" className="row__swipeicon" />
-        </span>
-      ) : null}
       {item.stock != null ? <StockCount item={item} readonly={readonly} /> : <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />}
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
           {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
-        {(showList && list) || item.stock != null || req || vis || due || item.repeat || steps.total || twin || tags.length || ongoing ? (
+        {(showList && list) || item.stock != null || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} /> : null}
             {showList && list && !listLink ? (
@@ -250,12 +227,6 @@ export const ItemRow = memo(function ItemRow({
                 <Icon name="repeat" />
               </span>
             ) : null}
-            {ongoing ? (
-              <span className="meta meta--ongoing">
-                <Icon name="play-circle" />
-                {onBy ? `${onBy.name}’s on it` : 'Ongoing'}
-              </span>
-            ) : null}
             {steps.total ? (
               nested ? (
                 <span className="meta">
@@ -281,27 +252,12 @@ export const ItemRow = memo(function ItemRow({
         ) : null}
         {below}
       </div>
-      {trailing || (item.urgent && !inUrgent && !item.done) || avatar || thumb || intoOngoing ? (
+      {trailing || (item.urgent && !inUrgent && !item.done) || avatar || thumb ? (
         <span className="row__trail">
           {trailing}
           {item.urgent && !inUrgent && !item.done ? <UrgentTag /> : null}
           {avatar ? <Avatar member={avatar} size="xs" /> : null}
           {thumb ? <img className="row__thumb" src={thumb} alt="" /> : null}
-          {intoOngoing ? (
-            // With a mouse (no swipe): the same, from a button that shows on hover.
-            <button
-              type="button"
-              className="row__ongo"
-              aria-label={`Put ${item.title} in Ongoing`}
-              title="Ongoing"
-              onClick={(e) => {
-                e.stopPropagation();
-                intoOngoing();
-              }}
-            >
-              <Icon name="play-circle" />
-            </button>
-          ) : null}
         </span>
       ) : null}
       {unfolded && kids.length ? (

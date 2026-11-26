@@ -113,14 +113,15 @@ function Tasks({
           key={t.id}
           depth={depth}
           label={<span dir="auto">{t.title}</span>}
-          expandable={depth < 3 && hub.childrenOf(t.id).some((c) => !c.done && !banned.has(c.id))}
-          expanded={open.has(t.id)}
-          onExpand={() => toggle(t.id)}
+          // A task's subtasks show from the start (any depth); its ⌄ folds them.
+          expandable={hub.childrenOf(t.id).some((c) => !c.done && !banned.has(c.id))}
+          expanded={!open.has(`shut:${t.id}`)}
+          onExpand={() => toggle(`shut:${t.id}`)}
           onPick={() => onPick(list.id, t.id)}
           disabled={current === t.id}
           hint={current === t.id ? 'here now' : 'inside'}
         >
-          {open.has(t.id) ? <Tasks list={list} parentId={t.id} depth={depth + 1} banned={banned} open={open} toggle={toggle} onPick={onPick} current={current} /> : null}
+          {!open.has(`shut:${t.id}`) ? <Tasks list={list} parentId={t.id} depth={depth + 1} banned={banned} open={open} toggle={toggle} onPick={onPick} current={current} /> : null}
         </PlaceRow>
       ))}
     </>
