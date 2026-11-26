@@ -4,6 +4,7 @@ import type { Item } from '../core/model';
 import { isFlexible } from '../smart/recurrence';
 import { useHub, useRt } from './context';
 import { afterTick } from './notify';
+import { navigate } from './router';
 import { doneMany, useOverlays, type ToastOpts } from './ui/overlays';
 
 /**
@@ -26,7 +27,7 @@ export function ticksAway(hub: Hub, item: Item): boolean {
 /**
  * The one tick: every row, the chores list and the item page say the same thing after it.
  * Repeating → "Laundry is fresh again…"; a request waiting for an OK → "Sent to X for an OK";
- * taking that back → "Taken back"; open steps → "Done. n steps open" with Finish them; otherwise
+ * taking that back → "Taken back"; open subtasks → "Done. n subtasks open" with Finish them and See them; otherwise
  * "Done", folding into "3 done". All with Undo.
  */
 export function useTick(): (item: Item) => void {
@@ -59,6 +60,8 @@ export function useTick(): (item: Item) => void {
               hub.toggle(item.id, { withChildren: true });
             },
           },
+          // Have a look first: the task, done, with its open subtasks.
+          { label: 'See them', run: () => navigate({ name: 'item', id: item.id }) },
         ],
       });
     else say('Done', { group: 'done', many: doneMany });

@@ -1,3 +1,4 @@
+import { NotesElsewhere } from './Notes';
 import { useState } from 'react';
 import { addDays, humanTime, relativeAgo } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
@@ -106,27 +107,19 @@ export function SummaryCard({ v, day, asksShown }: { v: TodayView; day: string; 
   );
 }
 
-/** Live notices under the summary: the partner is in the store; we're away. */
+/** Live notices under the summary: the partner is in the store. */
 export function HomeNotices() {
   const hub = useHub();
   const shopping = usePartnerShopping();
   const shopper = shopping ? hub.member(shopping.member) : undefined;
   return (
     <>
+      <NotesElsewhere />
       {shopper ? (
         <button type="button" className="notice" onClick={() => navigate({ name: 'shop' })}>
           <Avatar member={shopper} size="sm" />
           <span className="notice__text">
             <strong>{shopper.name} is shopping now.</strong> Need anything?
-          </span>
-          <Icon name="chevron-right" />
-        </button>
-      ) : null}
-      {hub.isAway() ? (
-        <button type="button" className="notice" onClick={() => navigate({ name: 'chores' })}>
-          <Icon name="plane" />
-          <span className="notice__text">
-            <strong>Away mode is on.</strong> Chore clocks are paused.
           </span>
           <Icon name="chevron-right" />
         </button>

@@ -10,7 +10,7 @@ import { setPrefs, use24h, usePrefs, weekStart } from '../prefs';
 import { ideasView } from '../views';
 import { back, navigate } from '../router';
 import { disablePush, enablePush, isIOS, isStandalone, pushState, swContainer, testPush, type PushState, type Runtime } from '../runtime';
-import { AWAY_ON, awaySub, backupSub, needsBackup, syncAria, syncLabel, usSentence, welcomeBack } from '../settingsCopy';
+import { backupSub, needsBackup, syncAria, syncLabel, usSentence } from '../settingsCopy';
 import { checkForUpdate, updateReady, useUpdateReady, type UpdateCheck } from '../update';
 import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
@@ -431,42 +431,6 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
   );
 }
 
-// ---------------------------------------------------------------- Together
-
-function Together({ partner }: { partner: Member | undefined }) {
-  const hub = useHub();
-  const { toast } = useOverlays();
-  const s = hub.settings();
-  const away = hub.isAway() && s?.awaySince ? { since: s.awaySince, by: s.awayBy ?? null } : null;
-  return (
-    <Section title="Together">
-      <div className="group">
-        <OptRow
-          icon="plane"
-          title="Away mode"
-          sub={awaySub(away, hub.meId, partner?.name ?? null)}
-          trail={
-            <Switch
-              on={!!away}
-              label="Away mode"
-              onChange={(on) => {
-                if (on) {
-                  hub.setAway(true);
-                  toast(AWAY_ON);
-                  return;
-                }
-                const msg = welcomeBack(s?.awaySince);
-                hub.setAway(false);
-                toast(msg);
-              }}
-            />
-          }
-        />
-      </div>
-    </Section>
-  );
-}
-
 // ---------------------------------------------------------------- On this device
 
 function ThisDevice() {
@@ -726,7 +690,6 @@ export function Settings() {
         <MeCard me={me} partner={partner} />
 
         <Notifications me={me} partner={partner} />
-        <Together partner={partner} />
         <ThisDevice />
         <YourData />
         <About me={me} partner={partner} />

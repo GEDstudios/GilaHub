@@ -58,3 +58,43 @@ describe('projects inside projects', () => {
     expect(hub.topLists().map((l) => l.name)).toEqual(['House', 'Top']);
   });
 });
+
+describe('a project for my person', () => {
+  it('gives a project to my partner, keeps it in sight, and either of us can say whose it is', async () => {
+    const hub = await person('guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    hub.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });
+    const id = hub.createList({ name: 'Her garden', kind: 'tasks', visibility: 'visible', owner: 'hila' });
+    expect(hub.list(id)).toMatchObject({ visibility: 'visible', owner: 'hila' });
+    expect(hub.store.scopeOf('list', id)).toBe('h');
+    // Hiding is never done to someone else's.
+    hub.setListVisibility(id, 'private');
+    expect(hub.list(id)).toMatchObject({ visibility: 'visible', owner: 'hila' });
+    hub.setListVisibility(id, 'visible', 'guy');
+    expect(hub.list(id)?.owner).toBe('guy');
+    hub.setListVisibility(id, 'visible', 'hila');
+    hub.setListVisibility(id, 'shared');
+    expect(hub.list(id)).toMatchObject({ visibility: 'shared', owner: null });
+  });
+});
+
+describe('the backlog', () => {
+  it('keeps someday things out of Today and the counts, all in one place, till they come back', async () => {
+    const { backlogOf, openCount, todayView } = await import('../../src/app/views');
+    const { today } = await import('../../src/core/dates');
+    const hub = await person('guy');
+    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    const l = hub.createList({ name: 'House', kind: 'tasks' });
+    const a = hub.addItem(l, { title: 'Paint the fence', due: today() });
+    hub.addItem(l, { title: 'Fix the tap' });
+    expect(openCount(hub, l)).toBe(2);
+    const undo = hub.setSomeday(a, true);
+    expect(openCount(hub, l)).toBe(1);
+    expect(backlogOf(hub).map((i) => i.title)).toEqual(['Paint the fence']);
+    expect(backlogOf(hub, l)).toHaveLength(1);
+    expect(todayView(hub, today()).today.map((i) => i.title)).not.toContain('Paint the fence');
+    undo();
+    expect(backlogOf(hub)).toEqual([]);
+    expect(openCount(hub, l)).toBe(2);
+  });
+});

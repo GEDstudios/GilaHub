@@ -514,6 +514,35 @@ try {
     if (await guy.locator('.ideatag__dot').count()) throw new Error('the new-dot stayed after Guy looked');
   });
 
+  await check('Notes: Guy sticks one on Shopping; Hila finds it from Today, reads it and peels it off', async () => {
+    const NOTE = 'Don’t forget the milk 💛';
+    await guy.goto(`${url}/shop`);
+    await guy.locator('.notebtn').click();
+    await guy.getByRole('dialog', { name: 'A note for Hila' }).waitFor();
+    await guy.getByRole('textbox', { name: 'Your note' }).fill(NOTE);
+    await guy.getByRole('radio', { name: 'pink' }).click();
+    await shot(guy, '28-note-write');
+    await guy.getByRole('button', { name: 'Stick it' }).click();
+    await guy.locator('.stickies').waitFor({ timeout: 3000 });
+    await shot(guy, '29-note-guy-shop');
+
+    await hila.goto(`${url}/`);
+    const notice = hila.locator('.notice--note');
+    await notice.waitFor({ timeout: 15000 });
+    if (!/Guy left you a note on Shopping/.test(await notice.innerText())) throw new Error(`Today says: ${await notice.innerText()}`);
+    await shot(hila, '30-note-hila-today');
+    await notice.click();
+    await hila.locator('.stickies').waitFor({ timeout: 3000 });
+    await shot(hila, '31-note-hila-shop');
+    await hila.locator('.stickies').click();
+    await hila.getByRole('dialog', { name: 'A note' }).getByText(NOTE).waitFor({ timeout: 3000 });
+    await shot(hila, '32-note-hila-read');
+    await hila.getByRole('button', { name: 'Peel it off' }).click();
+    await hila.getByRole('dialog').waitFor({ state: 'detached', timeout: 3000 });
+    await hila.locator('.stickies').waitFor({ state: 'detached', timeout: 3000 });
+    await guy.locator('.stickies').waitFor({ state: 'detached', timeout: 15000 });
+  });
+
   // ---------- Desktop
   const desk = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const deskPage = await desk.newPage();

@@ -17,9 +17,10 @@ import { Band, Disclosure, lineVars, ListBullet, NewButton } from '../ui/primiti
 import { SyncBadge } from '../components/SyncBadge';
 import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
-import { LIST_VIS, listVisLabel, visLabel } from '../privacy';
+import { listVisLabel } from '../privacy';
 import { coveredByTab, MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
-import { projectCount } from '../views';
+import { backlogOf, projectCount } from '../views';
+import { ItemRow } from '../components/ItemRow';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
 
@@ -44,7 +45,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
 
   const create = () => {
     if (!name.trim()) return;
-    const id = hub.createList({ name, kind, color: look.color, icon, flavor: kind === 'shopping' ? look.flavor : undefined, visibility: look.visibility, parentId: parent?.id });
+    const id = hub.createList({ name, kind, color: look.color, icon, flavor: kind === 'shopping' ? look.flavor : undefined, visibility: look.visibility, owner: look.owner, parentId: parent?.id });
     if (look.pinned) togglePin(hub, `l:${id}`);
     onClose();
     navigate({ name: 'list', id });
@@ -64,7 +65,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
             {showsGlyph(icon) ? <Glyph icon={icon} className="ccard__glyph" /> : null}
           </span>
           <span className="ccard__sub">
-            {KIND[kind]} · {visLabel(LIST_VIS[look.visibility])}
+            {KIND[kind]} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
           </span>
         </div>
 
@@ -241,6 +242,8 @@ export function Lists() {
   const newProject = () => openSheet((close) => <NewProjectSheet onClose={close} />);
 
   const archived = hub.store.all('list').filter((l) => l.archived);
+  // Everything in every project's backlog, in one place, closed till you want it.
+  const backlog = backlogOf(hub);
   const onMove = (next: string[], id: string) => hub.moveList(id, next[next.indexOf(id) + 1] ?? null);
 
   const arrangeRef = useRef<HTMLButtonElement>(null);
@@ -344,6 +347,16 @@ export function Lists() {
             </button>
           </p>
         )}
+
+        {backlog.length ? (
+          <Disclosure title="Backlog" count={backlog.length}>
+            <ul className="rows rows--backlog">
+              {backlog.map((i) => (
+                <ItemRow key={i.id} item={i} showList />
+              ))}
+            </ul>
+          </Disclosure>
+        ) : null}
 
         {archived.length ? (
           <Disclosure title="Archived" count={archived.length}>

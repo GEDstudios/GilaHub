@@ -4101,39 +4101,30 @@ html:has(.sheet) .ideatag {
   z-index: 36;
   right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px);
-  width: 68px;
-  height: 68px;
+  width: 64px;
+  height: 64px;
   display: grid;
   place-items: center;
-  /* A little card of its own: rounded like the folders, tilted like them, straight when pressed. */
-  border-radius: 24px;
+  border-radius: 50%;
   background: var(--cta);
-  color: var(--me-light, var(--lemon));
-  transform: rotate(-7deg);
+  color: var(--cta-text);
   box-shadow:
-    0 14px 28px -10px rgb(10 10 4 / 0.5),
-    0 3px 8px rgb(10 10 4 / 0.2);
-  transition: transform 220ms var(--spring), opacity 160ms var(--ease), box-shadow 200ms var(--ease);
+    0 12px 26px -8px rgb(10 10 4 / 0.5),
+    0 2px 6px rgb(10 10 4 / 0.2);
+  transition: transform 200ms var(--spring), opacity 160ms var(--ease);
 }
 
 .fab .icon {
-  --s: 32;
+  --s: 30;
 }
 
 /* A bold plus: the main thing in the app. */
 .fab .icon__line {
-  stroke-width: 1.6px;
-}
-
-@media (hover: hover) {
-  .fab:hover {
-    transform: rotate(0deg) translateY(-2px);
-  }
+  stroke-width: 1.4px;
 }
 
 .fab:active {
-  transform: rotate(0deg) scale(0.9);
-  box-shadow: 0 6px 14px -6px rgb(10 10 4 / 0.5);
+  transform: scale(0.9);
 }
 
 /* Out of the way while something else has the stage */
@@ -4146,7 +4137,7 @@ html:has(.shopmode) .fab,
 html:has(.iconlib) .fab {
   opacity: 0;
   pointer-events: none;
-  transform: rotate(-7deg) scale(0.8);
+  transform: scale(0.8);
 }
 
 /* A computer has New in the sidebar */
@@ -4297,4 +4288,245 @@ html:has(.iconlib) .fab {
 
 .iconlib__more {
   justify-self: center;
+}
+
+/* ============================================================ Sticky notes (for each other) */
+/* The little paper by the Ideas tag: a post-it with a +, to leave one on this screen. */
+.notebtn {
+  position: absolute;
+  z-index: 19;
+  top: calc(var(--safe-top) + 12px);
+  left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) + 112px);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.notebtn__paper {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(225deg, transparent 6px, var(--lemon) 6px);
+  color: var(--ink);
+  transform: rotate(5deg);
+  filter: drop-shadow(0 0 0.6px rgb(10 10 4 / 0.4)) drop-shadow(0 3px 5px rgb(10 10 4 / 0.14));
+  transition: transform 380ms var(--spring);
+}
+
+.notebtn__paper .icon {
+  --s: 13;
+}
+
+.notebtn:active .notebtn__paper {
+  transform: rotate(0deg) scale(0.92);
+  transition-duration: 160ms;
+}
+
+/* A note: square paper in its color, taped on, a little crooked, the writing a touch handwritten. */
+.sticky {
+  --tilt: 3deg;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  width: 124px;
+  min-height: 112px;
+  padding: 16px 12px 10px;
+  background: var(--c);
+  color: var(--ink);
+  text-align: start;
+  transform: rotate(var(--tilt));
+  box-shadow:
+    0 1px 1px rgb(10 10 4 / 0.08),
+    0 10px 18px -10px rgb(10 10 4 / 0.45);
+  /* The bottom corner curls up a little */
+  border-bottom-right-radius: 22px 6px;
+}
+
+/* The tape */
+.sticky::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 46px;
+  height: 16px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgb(255 255 255 / 0.55);
+  box-shadow: 0 0 0 0.5px rgb(10 10 4 / 0.08);
+  backdrop-filter: blur(1px);
+}
+
+.sticky__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.22;
+  overflow-wrap: anywhere;
+}
+
+.sticky__by {
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.62;
+}
+
+/* Stuck up by the top corner of the screen, over the header; it scrolls away with it. */
+.stickies {
+  position: absolute;
+  z-index: 18;
+  top: calc(var(--safe-top) + 62px);
+  right: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) - 4px);
+  display: grid;
+  -webkit-tap-highlight-color: transparent;
+  animation: sticky-in 620ms var(--spring) both;
+}
+
+.stickies > .sticky {
+  grid-area: 1 / 1;
+}
+
+.stickies > .sticky.is-under {
+  transform: rotate(var(--tilt)) translate(calc(var(--under) * 5px), calc(var(--under) * 4px));
+  filter: brightness(0.94);
+}
+
+.stickies:active > .sticky:last-of-type {
+  transform: rotate(0deg) scale(0.97);
+}
+
+.stickies__n {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 1;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--white, #fff);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@keyframes sticky-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px) rotate(-10deg) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(2px) rotate(3deg) scale(1.02);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Big, in its sheet: to write on, and to read */
+.sticky--big {
+  width: min(100%, 300px);
+  min-height: 220px;
+  margin: 14px auto 18px;
+  padding: 26px 22px 16px;
+}
+
+.sticky--big .sticky__text {
+  -webkit-line-clamp: unset;
+  font-size: 24px;
+}
+
+.sticky--big .sticky__by {
+  font-size: 13px;
+}
+
+.sticky__write {
+  flex: 1;
+  width: 100%;
+  min-height: 140px;
+  border: 0;
+  background: none;
+  color: inherit;
+  resize: none;
+  outline: none;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.sticky__write::placeholder {
+  color: rgb(10 10 4 / 0.36);
+}
+
+.sticky.is-peeling {
+  transition:
+    transform 380ms var(--ease),
+    opacity 380ms var(--ease);
+  transform-origin: 0% 0%;
+  transform: rotate(-18deg) translate(-30px, -60px) scale(0.85);
+  opacity: 0;
+}
+
+.note__where {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14.5px;
+  text-align: center;
+}
+
+.note__colors {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.note__swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--c);
+  transform: rotate(-4deg);
+  box-shadow: 0 0 0 1px rgb(10 10 4 / 0.08);
+  transition: transform 220ms var(--spring);
+}
+
+.note__swatch.is-on {
+  transform: rotate(0deg) scale(1.12);
+  box-shadow:
+    0 0 0 2px var(--bg, #fff),
+    0 0 0 3.5px var(--ink);
+}
+
+.notesheet {
+  display: grid;
+  gap: 18px;
+}
+
+/* On Today: a note waits for me on another screen */
+.notice__sticky {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(225deg, transparent 5px, var(--c) 5px);
+  transform: rotate(-6deg);
+  box-shadow: 0 2px 4px -1px rgb(10 10 4 / 0.25);
+}
+
+html:has(.sheet) .stickies,
+html.is-searching .stickies,
+html.is-editing .stickies {
+  visibility: hidden;
 }

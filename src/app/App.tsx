@@ -7,6 +7,7 @@ import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
 import { IdeaTag } from './components/Ideas';
+import { NoteButton, NotesLayer } from './components/Notes';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
 import { QuickAddSheet } from './components/QuickAddSheet';
@@ -282,6 +283,8 @@ function Shell() {
       <TabBar />
       {route.name === 'settings' ? null : <Fab label={addLabel} onClick={add} />}
       <IdeaTag />
+      <NoteButton />
+      <NotesLayer />
       <SearchLayer />
       <Duties />
     </div>

@@ -154,7 +154,8 @@ export function ProjectHero({ list, sub, stat, children }: { list: List; sub: Re
   );
 }
 
-const canSetListVis = (hub: ReturnType<typeof useHub>, list: List) => !list.owner || list.owner === hub.meId;
+/** Ours, mine, or my person's-but-in-sight: either of us can say whose it is. Only Only me is the owner's alone. */
+const canSetListVis = (hub: ReturnType<typeof useHub>, list: List) => !list.owner || list.owner === hub.meId || list.visibility === 'visible';
 
 /** " · Hila's" on the hero, only when the privacy chip isn't there to say whose it is. */
 export const heroVis = (hub: ReturnType<typeof useHub>, list: List): string => (canSetListVis(hub, list) ? '' : ` · ${listVisLabel(hub, list)}`);
@@ -173,7 +174,8 @@ export function ProjectChips({ list }: { list: List }) {
     if (p.icon !== undefined) hub.updateList(list.id, { icon: p.icon });
     if (p.visibility) {
       if (p.visibility === 'private' && list.visibility !== 'private' && partner) toast(`Hidden from ${partner.name}`);
-      hub.setListVisibility(list.id, p.visibility);
+      else if (partner && p.owner === partner.id && list.owner !== partner.id) toast(`${list.name} is ${partner.name}’s now`);
+      hub.setListVisibility(list.id, p.visibility, p.owner);
     }
     if (p.pinned !== undefined) {
       const before = pinsOf(hub);
@@ -181,7 +183,7 @@ export function ProjectChips({ list }: { list: List }) {
       toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
     }
   };
-  return <ProjectFields value={{ color: list.color, icon: list.icon, visibility: list.visibility, pinned }} onChange={onChange} canVis={canSetListVis(hub, list)} />;
+  return <ProjectFields value={{ color: list.color, icon: list.icon, visibility: list.visibility, owner: list.owner, pinned }} onChange={onChange} canVis={canSetListVis(hub, list)} />;
 }
 
 export function ListScreen({ id }: { id: string }) {

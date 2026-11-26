@@ -120,4 +120,31 @@ describe('our aisles', () => {
     expect(hub.aisleOrder('grocery')).not.toContain(mine);
     expect(hub.categoryFor(hub.item(id)!).category).not.toBe(mine);
   });
+
+  it('takes a built-in category away (its things go to Other), keeps it away, and Undo brings it back', async () => {
+    const { Hub } = await import('../../src/core/actions');
+    const { Store } = await import('../../src/core/store');
+    const { MemoryPersistence } = await import('../../src/core/db');
+    const store = await Store.load(new MemoryPersistence(), 'dev-g', ['h', 'p:g']);
+    const hub = new Hub(store, 'g');
+    const list = hub.createList({ name: 'Groceries', kind: 'shopping' });
+    const milk = hub.addItem(list, { title: 'milk' });
+    const dairy = hub.categoryFor(hub.item(milk)!).category;
+    expect(dairy).not.toBe('other');
+    const undo = hub.removeAisle('grocery', dairy);
+    expect(hub.aisleOrder('grocery')).not.toContain(dairy);
+    expect(hub.categoryFor(hub.item(milk)!).category).toBe('other');
+    // Arranging, renaming or adding keeps it away.
+    const order = hub.aisleOrder('grocery');
+    hub.arrangeAisles('grocery', [order[1], order[0], ...order.slice(2)]);
+    hub.renameAisle('grocery', order[0], 'Greens');
+    hub.addAisle('grocery', 'Party');
+    expect(hub.aisleOrder('grocery')).not.toContain(dairy);
+    // Other never goes.
+    hub.removeAisle('grocery', 'other');
+    expect(hub.aisleOrder('grocery')).toContain('other');
+    undo();
+    expect(hub.aisleOrder('grocery')).toContain(dairy);
+    expect(hub.categoryFor(hub.item(milk)!).category).toBe(dairy);
+  });
 });

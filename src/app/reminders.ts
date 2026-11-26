@@ -40,7 +40,7 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
   const out: ReminderSpec[] = [];
   const lists = new Map<string, List>(hub.lists().map((l) => [l.id, l]));
   for (const item of hub.store.all('item')) {
-    if (item.remind === null || item.remind === undefined || !item.due || item.done || item.paused || item.archived) continue;
+    if (item.remind === null || item.remind === undefined || !item.due || item.done || item.paused || item.archived || item.someday) continue;
     const list = lists.get(item.listId);
     if (!list) continue;
     const scope = hub.store.scopeOf('item', item.id);

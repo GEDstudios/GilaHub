@@ -5,7 +5,7 @@
  * Lists hold items; items nest infinitely through `parentId`.
  */
 
-export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea' | 'moment';
+export type Table = 'member' | 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'idea' | 'moment' | 'note';
 
 /** Encryption scope: 'h' = household key (both partners), 'p:<memberId>' = personal key. */
 export type Scope = 'h' | `p:${string}`;
@@ -126,6 +126,9 @@ export interface Item {
   private?: boolean;
   /** Urgent / important flag. */
   urgent?: boolean;
+  /** In the backlog: someday, out of sight (Today, counts, reminders) until brought back. */
+  someday?: boolean;
+  somedayAt?: number | null;
   /** Who last turned urgent on (the other one's Shopping flashes it). */
   urgentBy?: string | null;
   /** Shopping: who brought it back onto the list, and when (a re-added staple; a first add is createdBy/createdAt). */
@@ -201,6 +204,8 @@ export interface AisleConf {
   emoji?: string;
   /** Our pick of icon: "i:<glyph>" or an emoji (as projects have). */
   icon?: string;
+  /** A built-in one we took away: out of the walk; what it held goes to Other. */
+  hidden?: boolean;
 }
 
 /** Learned category for a normalized item name — shared by both partners. */
@@ -258,6 +263,25 @@ export interface Moment {
   deleted?: boolean;
 }
 
+/**
+ * A sticky note one of us left on a screen for the other ("Don't forget the milk 💛" on
+ * Shopping). It stays stuck there until they peel it off. Household scope; not in backups.
+ */
+export interface Note {
+  id: string;
+  text: string;
+  by: string;
+  /** Who it's for (my partner). */
+  to: string | null;
+  /** The screen it's on: "today", "shop", "chores", "lists", "list:<id>", "item:<id>". */
+  place: string;
+  color: LineColor;
+  createdAt: number;
+  /** Read and peeled off by the one it was for. */
+  peeledAt?: number | null;
+  deleted?: boolean;
+}
+
 export interface TableTypes {
   member: Member;
   list: List;
@@ -268,4 +292,5 @@ export interface TableTypes {
   settings: Settings;
   idea: Idea;
   moment: Moment;
+  note: Note;
 }

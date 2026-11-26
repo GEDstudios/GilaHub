@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { LineColor, ListKind, ShoppingFlavor, Visibility } from '../../core/model';
 import { useHub } from '../context';
-import { LIST_VIS, visHint, visLabel, VIS_ICON } from '../privacy';
+import { listDefaultVis, visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
 import { parseGlyph, showsGlyph } from '../ui/ProjectMark';
@@ -10,18 +10,30 @@ import { EChip, Options, Panel } from './editors';
 import { IconPicker } from './IconPicker';
 import { Swatches } from './pickers';
 
-/** Who sees a project: Ours, Mine or Only me, with one line on what that means. */
-export function ListVisOptions({ value, onPick }: { value: Visibility; onPick: (v: Visibility) => void }) {
+/** What a choice means for a project: who sees it, and whose it is. */
+export function listVisOf(hub: ReturnType<typeof useHub>, v: VisChoice): { visibility: Visibility; owner: string | null } {
+  if (v === 'ours') return { visibility: 'shared', owner: null };
+  if (v === 'theirs') return { visibility: 'visible', owner: hub.partner()?.id ?? hub.meId };
+  return { visibility: v === 'private' ? 'private' : 'visible', owner: hub.meId };
+}
+
+/**
+ * Who sees a project and whose it is: Ours, Mine, my person's, or Only me, with one line on
+ * what that means. Giving it to my person keeps it in sight for both; only hiding needs it mine.
+ */
+export function ListVisOptions({ value, owner, onPick }: { value: Visibility; owner?: string | null; onPick: (v: { visibility: Visibility; owner: string | null }) => void }) {
   const hub = useHub();
   const partner = hub.partner();
+  const now = listDefaultVis(hub, { visibility: value, owner: owner ?? null });
+  const choices: VisChoice[] = ['ours', 'mine', ...(partner ? (['theirs'] as const) : []), ...(now === 'theirs' ? [] : (['private'] as const))];
   return (
     <>
       <Options
-        value={value}
-        onPick={onPick}
-        options={(['shared', 'visible', 'private'] as const).map((v) => ({ value: v, label: visLabel(LIST_VIS[v]), icon: VIS_ICON[LIST_VIS[v]] }))}
+        value={now}
+        onPick={(v) => onPick(listVisOf(hub, v))}
+        options={choices.map((v) => ({ value: v, label: visLabel(v, partner?.name), icon: VIS_ICON[v] }))}
       />
-      <p className="panel__hint">{visHint(LIST_VIS[value], partner?.name ?? null)}</p>
+      <p className="panel__hint">{now === 'theirs' && partner ? `${partner.name}’s project. You both see it and can help.` : visHint(now, partner?.name ?? null)}</p>
     </>
   );
 }
@@ -31,6 +43,8 @@ export interface ProjectLook {
   color: LineColor;
   icon?: string;
   visibility: Visibility;
+  /** Whose it is, when it's someone's (Mine, or my person's). */
+  owner?: string | null;
   pinned: boolean;
   kind?: ListKind;
   flavor?: ShoppingFlavor;
@@ -63,7 +77,8 @@ export function ProjectFields({
 }) {
   const [open, setOpen] = useState<Field | null>(null);
   const toggle = (k: Field) => setOpen(open === k ? null : k);
-  const vis = LIST_VIS[value.visibility];
+  const hub = useHub();
+  const vis = listDefaultVis(hub, { visibility: value.visibility, owner: value.owner ?? (value.visibility === 'shared' ? null : hub.meId) });
   const glyph = parseGlyph(value.icon);
   const kind = value.kind ?? 'tasks';
   return (
@@ -117,10 +132,10 @@ export function ProjectFields({
         ) : null}
         {canVis ? (
           <>
-            <EChip label={visLabel(vis)} icon={VIS_ICON[vis]} set={value.visibility !== 'shared'} open={open === 'vis'} onToggle={() => toggle('vis')} />
+            <EChip label={visLabel(vis, hub.partner()?.name)} icon={VIS_ICON[vis]} set={value.visibility !== 'shared'} open={open === 'vis'} onToggle={() => toggle('vis')} />
             {open === 'vis' ? (
               <Panel>
-                <ListVisOptions value={value.visibility} onPick={(visibility) => onChange({ visibility })} />
+                <ListVisOptions value={value.visibility} owner={value.owner} onPick={(v) => onChange(v)} />
               </Panel>
             ) : null}
           </>

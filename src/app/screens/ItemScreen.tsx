@@ -379,6 +379,21 @@ export function ItemScreen({ id }: { id: string }) {
                   ]
                 : []),
               alsoChip,
+              // Someday: out of sight (Today, counts, reminders) till it's brought back.
+              ...(list?.kind === 'tasks' && !item.parentId && !item.done
+                ? [
+                    {
+                      key: 'backlog',
+                      label: item.someday ? 'In the backlog' : 'Backlog',
+                      icon: 'inbox' as const,
+                      set: !!item.someday,
+                      toggle: () => {
+                        const undo = hub.setSomeday(id, !item.someday);
+                        toast(item.someday ? `Back in ${list.name}` : 'In the backlog, out of sight', { action: { label: 'Undo', run: undo } });
+                      },
+                    },
+                  ]
+                : []),
             ]}
             value={draft}
             onChange={change}

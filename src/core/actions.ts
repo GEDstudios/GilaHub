@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { LINE_COLORS, type AisleConf, type Idea, type Item, type Moment, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
+import { LINE_COLORS, type AisleConf, type Idea, type Item, type Moment, type Note, type LineColor, type List, type ListKind, type LogEntry, type Member, type Scope, type ShoppingFlavor, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { categorize, categoryMeta, categoryOrder, routeFlavor, type Flavor } from '../smart/categorize';
@@ -105,10 +105,12 @@ export class Hub {
     visibility?: Visibility;
     /** Make it inside this project. */
     parentId?: string | null;
+    /** Whose a "Mine" project is (mine unless said). */
+    owner?: string | null;
     id?: string;
   }): string {
     const visibility = input.visibility ?? 'shared';
-    const owner = visibility === 'shared' ? null : this.meId;
+    const owner = visibility === 'shared' ? null : visibility === 'visible' ? (input.owner ?? this.meId) : this.meId;
     const last = this.lists().at(-1);
     const id = input.id ?? newId();
     this.store.batch(() => {
@@ -232,14 +234,16 @@ export class Hub {
     this.store.mutate('list', id, fields);
   }
 
-  /** Change who can see a list. Its items follow (re-sealed under the right key). */
-  setListVisibility(id: string, visibility: Visibility): void {
+  /** Change who can see a list, and whose it is (Mine can be my partner's). Its items follow (re-sealed under the right key). */
+  setListVisibility(id: string, visibility: Visibility, owner?: string | null): void {
     const list = this.list(id);
     if (!list) return;
-    const owner = visibility === 'shared' ? null : (list.owner ?? this.meId);
+    // Only Only me is kept to its owner: hiding is never done to someone else.
+    if (visibility === 'private' && list.owner && list.owner !== this.meId) return;
+    const who = visibility === 'shared' ? null : visibility === 'private' ? this.meId : (owner ?? list.owner ?? this.meId);
     this.store.batch(() => {
-      this.store.mutate('list', id, { visibility, owner });
-      this.store.setScope('list', id, this.listScope({ visibility, owner }));
+      this.store.mutate('list', id, { visibility, owner: who });
+      this.store.setScope('list', id, this.listScope({ visibility, owner: who }));
       for (const it of this.store.all('item')) if (it.listId === id && !it.parentId) this.rescope(it.id);
     });
   }
@@ -487,6 +491,11 @@ export class Hub {
       this.store.mutate('item', id, fields);
     });
     return id;
+  }
+
+  /** Into the backlog (someday, out of sight) or back out of it. */
+  setSomeday(id: string, on: boolean): Undo {
+    return this.updateItem(id, { someday: on, somedayAt: on ? Date.now() : null });
   }
 
   updateItem(id: string, fields: Partial<Item>): Undo {
@@ -828,7 +837,10 @@ export class Hub {
   categoryFor(item: Item): { category: string; emoji: string } {
     const flavor = this.flavorOf(this.list(item.listId));
     const auto = categorize(item.title, flavor, this.learned);
-    return { category: item.category ?? auto.category, emoji: auto.emoji };
+    const category = item.category ?? auto.category;
+    // A category we took away hands what it held to Other.
+    if (this.hiddenAisles(flavor).has(category)) return { category: 'other', emoji: categoryMeta(flavor, 'other').e };
+    return { category, emoji: auto.emoji };
   }
 
   /** Pick the destination list when adding from the combined view. */
@@ -944,11 +956,16 @@ export class Hub {
     return Array.isArray(raw) ? raw.filter((a) => a && typeof a.id === 'string') : [];
   }
 
-  /** The aisles in our walking order: ours as arranged, then any built-in ones not placed yet. */
+  /** The aisles in our walking order: ours as arranged, then any built-in ones not placed yet (not the ones we took away). */
   aisleOrder(flavor: Flavor): string[] {
-    const conf = this.aisleConf(flavor).map((a) => a.id);
-    const seen = new Set(conf);
-    return [...conf, ...categoryOrder(flavor).filter((c) => !seen.has(c))];
+    const all = this.aisleConf(flavor);
+    const seen = new Set(all.map((a) => a.id));
+    return [...all.filter((a) => !a.hidden).map((a) => a.id), ...categoryOrder(flavor).filter((c) => !seen.has(c))];
+  }
+
+  /** Built-in categories we took away. */
+  hiddenAisles(flavor: Flavor): Set<string> {
+    return new Set(this.aisleConf(flavor).flatMap((a) => (a.hidden ? [a.id] : [])));
   }
 
   /** An aisle's name and emoji: ours if we renamed it or made it, else the built-in one. */
@@ -968,8 +985,12 @@ export class Hub {
     );
   }
 
-  private saveAisles(flavor: Flavor, conf: AisleConf[]): void {
-    this.store.mutate('settings', 'house', flavor === 'grocery' ? { groceryAisles: conf } : { homeAisles: conf });
+  /** Save the walk; built-ins we took away stay away (unless `exact`, for Undo). */
+  private saveAisles(flavor: Flavor, conf: AisleConf[], exact = false): void {
+    const ids = new Set(conf.map((a) => a.id));
+    const keep = exact ? [] : this.aisleConf(flavor).filter((a) => a.hidden && !ids.has(a.id));
+    const all = [...conf, ...keep];
+    this.store.mutate('settings', 'house', flavor === 'grocery' ? { groceryAisles: all } : { homeAisles: all });
   }
 
   /** Our whole order (ids as they now read), keeping names. */
@@ -1005,17 +1026,39 @@ export class Hub {
     return id;
   }
 
-  /** Take away one of our own aisles; what was in it goes back to being sorted by itself. */
-  removeAisle(flavor: Flavor, id: string): void {
-    if (!id.startsWith('c:')) return;
+  /**
+   * Take a category away: one of our own goes; a built-in one is put out of the walk. What it
+   * held goes back to being sorted by itself (into Other, for a built-in). Other always stays.
+   * Returns the way back.
+   */
+  removeAisle(flavor: Flavor, id: string): () => void {
+    if (id === 'other') return () => undefined;
+    const conf = this.aisleConf(flavor);
+    const items = this.store.all('item').filter((i) => i.category === id);
+    const memories = this.store.all('memory').filter((m) => m.category === id);
     this.store.batch(() => {
-      for (const i of this.store.all('item')) if (i.category === id) this.store.mutate('item', i.id, { category: null });
-      for (const m of this.store.all('memory')) if (m.category === id) this.store.mutate('memory', m.id, { category: 'other' });
-      this.saveAisles(
-        flavor,
-        this.aisleConf(flavor).filter((a) => a.id !== id),
-      );
+      for (const i of items) this.store.mutate('item', i.id, { category: null });
+      for (const m of memories) this.store.mutate('memory', m.id, { category: 'other' });
+      const rest = conf.filter((a) => a.id !== id);
+      if (id.startsWith('c:')) this.saveAisles(flavor, rest, true);
+      else {
+        // Keep the walk as it was, with this one marked away.
+        const order = this.aisleOrder(flavor);
+        const byId = new Map(conf.map((a) => [a.id, a]));
+        this.saveAisles(flavor, [...order.filter((x) => x !== id).map((x) => byId.get(x) ?? { id: x }), { ...(byId.get(id) ?? { id }), hidden: true }]);
+      }
     });
+    return () =>
+      this.store.batch(() => {
+        this.saveAisles(flavor, conf, true);
+        for (const i of items) this.store.mutate('item', i.id, { category: id });
+        for (const m of memories) this.store.mutate('memory', m.id, { category: id });
+      });
+  }
+
+  /** Away mode is gone: one left on (from before) ends, its chore clocks caught up. */
+  endAwayMode(): void {
+    if (this.isAway()) this.setAway(false);
   }
 
   isAway(): boolean {
@@ -1065,6 +1108,42 @@ export class Hub {
     if (!this.store.get('moment', id)) return () => {};
     this.store.mutate('moment', id, { deleted: true });
     return () => this.store.mutate('moment', id, { deleted: false });
+  }
+
+  // ---------- sticky notes (left on a screen for each other) ----------
+
+  /** The notes still stuck on a screen, newest on top. */
+  notesOn(place: string): Note[] {
+    return this.store
+      .all('note')
+      .filter((n) => !n.deleted && !n.peeledAt && n.place === place)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  /** Notes for me, still stuck, wherever they are. */
+  notesForMe(): Note[] {
+    return this.store
+      .all('note')
+      .filter((n) => !n.deleted && !n.peeledAt && n.to === this.meId)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  addNote(place: string, text: string, color: LineColor): string | null {
+    const t = text.trim();
+    if (!t) return null;
+    return this.store.create('note', { text: t, by: this.meId, to: this.partner()?.id ?? null, place, color, createdAt: Date.now() });
+  }
+
+  /** Read it, peel it off (the one it was for); the one who left it takes it down. Returns the way back. */
+  peelNote(id: string): Undo {
+    const n = this.store.get('note', id);
+    if (!n) return () => {};
+    if (n.by === this.meId) {
+      this.store.mutate('note', id, { deleted: true });
+      return () => this.store.mutate('note', id, { deleted: false });
+    }
+    this.store.mutate('note', id, { peeledAt: Date.now() });
+    return () => this.store.mutate('note', id, { peeledAt: null });
   }
 
   // ---------- ideas (for Gila Hub itself) ----------

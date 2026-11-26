@@ -17,7 +17,6 @@ import { choresView, type ChoreRow } from '../views';
 import { heroVis, ProjectActions, ProjectChips, ProjectHero } from './ListScreen';
 import { NewProjectSheet } from './Lists';
 import { SyncBadge } from '../components/SyncBadge';
-import { AWAY_ON, welcomeBack } from '../settingsCopy';
 
 /** One chore row; ticking it gives the "Laundry is fresh again. Next: …" toast (useTick). Also on Today (Chores ready). */
 export function ChoreItem({ row, settling, onHold }: { row: ChoreRow; settling: boolean; onHold: (id: string) => void }) {
@@ -77,7 +76,7 @@ const STARTERS = ['Dishes', 'Laundry', 'Bins', 'Sheets'];
 
 export function Chores({ listId }: { listId?: string } = {}) {
   const hub = useHub();
-  const { openSheet, toast } = useOverlays();
+  const { openSheet } = useOverlays();
   const ref = todayStr();
   const all = choresView(hub, ref);
   // With one chores project, the Chores tab is that project, and looks like it.
@@ -91,7 +90,6 @@ export function Chores({ listId }: { listId?: string } = {}) {
     paused: only(all.paused),
   };
   const rows = [...v.now, ...v.soon, ...v.fresh, ...v.paused];
-  const away = hub.isAway();
   const list = scoped ?? all.lists[0];
   const openNew = (text?: string) =>
     list
@@ -99,17 +97,7 @@ export function Chores({ listId }: { listId?: string } = {}) {
       : openSheet((close) => <NewProjectSheet onClose={close} initial={{ kind: 'chores' }} />);
   useAddAction(() => openNew(), 'New chore');
 
-  const toggleAway = () => {
-    if (!away) {
-      hub.setAway(true);
-      toast(AWAY_ON);
-      return;
-    }
-    const msg = welcomeBack(hub.settings()?.awaySince);
-    hub.setAway(false);
-    toast(msg);
-  };
-  const sub = away ? 'Away · clocks paused' : v.now.length ? `${v.now.length} ready` : rows.length ? 'All fresh' : undefined;
+  const sub = v.now.length ? `${v.now.length} ready` : rows.length ? 'All fresh' : undefined;
   // A finished chore stays a moment in its group (check, strike, fold), then shows up fresh.
   const settle = useSettle(choreId);
   const titles = new Set(rows.map((r) => r.item.title.toLowerCase()));
@@ -148,14 +136,6 @@ export function Chores({ listId }: { listId?: string } = {}) {
       )}
       <div className="column">
         {scoped ? <ProjectChips list={scoped} /> : null}
-        {away ? (
-          <button type="button" className="notice" onClick={toggleAway}>
-            <Icon name="plane" />
-            <span className="notice__text">
-              <strong>Away mode is on.</strong> Tap when you’re home.
-            </span>
-          </button>
-        ) : null}
 
         {group('Today', v.now)}
         {group('Soon', v.soon)}
@@ -172,11 +152,6 @@ export function Chores({ listId }: { listId?: string } = {}) {
                   </button>
                 ))}
               </div>
-            ) : null}
-            {!away && rows.length ? (
-              <button type="button" className="textbtn away" onClick={toggleAway}>
-                <Icon name="plane" className="icon--sm" /> Going away? Pause chores
-              </button>
             ) : null}
           </div>
         ) : (

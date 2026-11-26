@@ -11,7 +11,7 @@ import { Sortable, useSortableItem } from '../ui/Sortable';
 /**
  * Manage categories, on Shopping itself: the categories in your walk through the store, as
  * rows you drag into order; tap a name to rename it, its icon to pick another; add categories
- * of your own at the end, with an icon picked as you name them (and take them away with ×). Each change saves at
+ * of your own at the end, with an icon picked as you name them. Any but Other can be taken away with ×. Each change saves at
  * once and shows for both of you.
  */
 export function AisleArrange({ flavors, counts, onDone }: { flavors: Array<{ flavor: Flavor; name: string }>; counts: Map<string, number>; onDone: () => void }) {
@@ -56,10 +56,10 @@ function FlavorAisles({ flavor, name, counts }: { flavor: Flavor; name: string |
               id={id}
               n={counts.get(`${flavor}:${id}`) ?? 0}
               onRemove={() => {
-                const was = hub.aisleOrder(flavor);
                 const meta = hub.aisleMeta(flavor, id);
-                hub.removeAisle(flavor, id);
-                toast(`${meta.name} is gone`, { action: { label: 'Undo', run: () => hub.arrangeAisles(flavor, was) } });
+                const n = counts.get(`${flavor}:${id}`) ?? 0;
+                const undo = hub.removeAisle(flavor, id);
+                toast(n ? `${meta.name} is gone · ${n} moved to ${hub.aisleMeta(flavor, 'other').name}` : `${meta.name} is gone`, { action: { label: 'Undo', run: undo } });
               }}
             />
           ))}
@@ -136,7 +136,7 @@ function AisleRow({ flavor, id, n, onRemove }: { flavor: Flavor; id: string; n: 
         aria-label={`Rename ${meta.name}`}
       />
       {n ? <span className="aislearr__n num">{n}</span> : null}
-      {meta.custom ? (
+      {id !== 'other' ? (
         <button type="button" className="homecard__x" aria-label={`Remove ${meta.name}`} onClick={onRemove}>
           <Icon name="x" className="icon--sm" />
         </button>
