@@ -155,7 +155,12 @@ html.has-livecursor.has-livecursor.has-livecursor.has-livecursor,
 html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *,
 html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *::before,
 html.has-livecursor.has-livecursor.has-livecursor.has-livecursor *::after {
-  cursor: none !important;
+  /* A clear 1px picture rather than plain "none": on a Mac, Chrome can bring its own arrow back
+     over a hidden pointer while the mouse rests and the page changes (our wave); a picture
+     that happens to be empty is never swapped back for the arrow. */
+  cursor:
+    url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7') 0 0,
+    none !important;
 }
 
 

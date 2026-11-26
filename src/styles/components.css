@@ -6425,16 +6425,19 @@ textarea.nf__write {
   flex: none;
 }
 
-/* Colours: one row of dots that scrolls, like a story's */
+/* Colours: one row of dots that scrolls, like a story's, beside Undo and Done */
 .draw__colors {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  align-items: center;
   gap: 10px;
-  margin: 0 -14px;
-  padding: 4px 14px 6px;
+  margin: -6px 0;
+  padding: 8px 6px 8px 4px;
   overflow-x: auto;
   scrollbar-width: none;
   scroll-snap-type: x proximity;
-  scroll-padding-inline: 14px;
+  scroll-padding-inline: 4px;
 }
 
 .draw__colors::-webkit-scrollbar {
@@ -6490,31 +6493,37 @@ textarea.nf__write {
   pointer-events: none;
 }
 
-/* The eraser: one toggle beside Undo (the line itself is always the pen) */
-.draw__eraser {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 14px 0 8px;
-  border-radius: 19px;
+/* The eraser: the last dot in the row */
+.draw__dot--eraser {
+  display: grid;
+  place-items: center;
   background: var(--tile);
   color: var(--text);
-  font-size: 13.5px;
-  font-weight: 600;
-  transition: transform 200ms var(--spring);
 }
 
-.draw__eraser svg {
-  width: 26px;
-  height: 26px;
+.draw__dot--eraser svg {
+  width: 24px;
+  height: 24px;
 }
 
-.draw__eraser:active {
-  transform: scale(0.94);
+.draw__dot--eraser.is-on {
+  background: var(--ink);
+  color: #fff;
 }
 
-.draw__eraser.is-on {
-  background: var(--cta);
-  color: var(--cta-text);
+/* The tray never makes the sheet wider than the screen: its column is the tray's width, so a
+   scrolling row inside it scrolls instead of pushing Undo and Done out */
+.noteedit__tray {
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.draw__bar {
+  min-width: 0;
+}
+
+/* More colours that way: the row fades out at its edge rather than cutting a dot in half */
+.draw__colors {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
 }

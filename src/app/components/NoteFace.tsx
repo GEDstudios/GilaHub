@@ -622,8 +622,8 @@ function SizeRail({ value, color, min, max, onChange }: { value: number; color: 
 // ---------------------------------------------------------------- the editor
 
 /** Pens: the app's own colours, plus black, white and a red. A custom one comes from the rainbow. */
-const BRAND = ['lemon', 'pink', 'sky', 'mint', 'lilac', 'amber'] as const;
-const PEN_FIXED = ['#0a0a04', '#ffffff', '#ff3b30', '#ff9500', '#34c759', '#007aff', '#af52de', '#8e8e93', '#a2845e'];
+const BRAND = ['lemon', 'pink', 'sky', 'mint', 'lilac'] as const;
+const PEN_FIXED = ['#0a0a04', '#ffffff', '#ff9500', '#34c759', '#007aff', '#af52de', '#8e8e93', '#a2845e'];
 
 const brandHex = (c: string) => (typeof document === 'undefined' ? '#000' : getComputedStyle(document.documentElement).getPropertyValue(`--${c}`).trim() || '#000');
 
@@ -786,10 +786,31 @@ export function NoteEditor({
 
           {tool === 'pen' ? (
             <>
+              {/* One row: the colours (scrolling, the eraser last), then Undo and Done */}
               <div className="draw__bar">
+                <div className="draw__colors" role="radiogroup" aria-label="Colour">
+                  <label className={`draw__dot draw__dot--any ${brush !== 'eraser' && ![...BRAND.map(brandHex), ...PEN_FIXED].includes(pen) ? 'is-on' : ''}`} title="Any colour">
+                    <input type="color" value={pen.startsWith('#') && pen.length === 7 ? pen : '#7a5cff'} aria-label="Any colour" onChange={(e) => { setPen(e.target.value); if (brush === 'eraser') setBrush('pen'); }} />
+                  </label>
+                  {[...PEN_FIXED.slice(0, 2).map((hex) => ({ id: hex, hex })), ...BRAND.map((c) => ({ id: c, hex: brandHex(c) })), ...PEN_FIXED.slice(2).map((hex) => ({ id: hex, hex }))].map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={brush !== 'eraser' && pen === c.hex}
+                      aria-label={c.id}
+                      className={`draw__dot ${brush !== 'eraser' && pen === c.hex ? 'is-on' : ''}`}
+                      style={{ background: c.hex }}
+                      onClick={() => {
+                        haptic('select');
+                        setPen(c.hex);
+                        if (brush === 'eraser') setBrush('pen');
+                      }}
+                    />
+                  ))}
                 <button
                   type="button"
-                  className={`draw__eraser ${brush === 'eraser' ? 'is-on' : ''}`}
+                  className={`draw__dot draw__dot--eraser ${brush === 'eraser' ? 'is-on' : ''}`}
                   aria-label="Eraser"
                   aria-pressed={brush === 'eraser'}
                   title="Eraser: wipe a line away"
@@ -800,40 +821,18 @@ export function NoteEditor({
                 >
                   <svg viewBox="0 0 32 32" aria-hidden="true">
                     <g transform="rotate(-35 16 16)">
-                      <rect x="7" y="11" width="18" height="10" rx="2.5" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
-                      <rect x="7" y="11" width="7" height="10" rx="2.5" fill="var(--pink)" stroke="currentColor" strokeWidth="1.6" />
+                      <rect x="6" y="11" width="20" height="10" rx="2.5" fill="#fff" stroke="currentColor" strokeWidth="1.8" />
+                      <rect x="6" y="11" width="8" height="10" rx="2.5" fill="var(--pink)" stroke="currentColor" strokeWidth="1.8" />
                     </g>
                   </svg>
-                  <span>Eraser</span>
                 </button>
-                <span className="noteedit__grow" />
+                </div>
                 <button type="button" className="draw__icon" aria-label="Undo" title="Undo" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
                   <Icon name="undo" />
                 </button>
                 <button type="button" className="btn btn--sm draw__done" aria-label="Done drawing" onClick={() => setTool(null)}>
                   Done
                 </button>
-              </div>
-              <div className="draw__colors" role="radiogroup" aria-label="Colour">
-                <label className={`draw__dot draw__dot--any ${![...BRAND.map(brandHex), ...PEN_FIXED].includes(pen) ? 'is-on' : ''}`} title="Any colour">
-                  <input type="color" value={pen.startsWith('#') && pen.length === 7 ? pen : '#7a5cff'} aria-label="Any colour" onChange={(e) => { setPen(e.target.value); if (brush === 'eraser') setBrush('pen'); }} />
-                </label>
-                {[...PEN_FIXED.slice(0, 2).map((hex) => ({ id: hex, hex })), ...BRAND.map((c) => ({ id: c, hex: brandHex(c) })), ...PEN_FIXED.slice(2).map((hex) => ({ id: hex, hex }))].map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={pen === c.hex}
-                    aria-label={c.id}
-                    className={`draw__dot ${pen === c.hex ? 'is-on' : ''}`}
-                    style={{ background: c.hex }}
-                    onClick={() => {
-                      haptic('select');
-                      setPen(c.hex);
-                      if (brush === 'eraser') setBrush('pen');
-                    }}
-                  />
-                ))}
               </div>
             </>
           ) : null}

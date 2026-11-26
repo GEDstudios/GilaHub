@@ -589,9 +589,11 @@ try {
     const paths = () => guy.locator('.sheet .sticky .nf__ink').first().locator('path').count();
     if ((await paths()) !== 2) throw new Error(`expected two lines, found ${await paths()} paths`);
     await guy.getByRole('button', { name: 'Eraser' }).click();
-    await guy.mouse.move(pad.x + pad.width * 0.35, pad.y + pad.height * 0.22);
+    // (Reaching the eraser can scroll the sheet: measure the note again.)
+    const pad2 = await guy.locator('.sheet .nf__draw').boundingBox();
+    await guy.mouse.move(pad2.x + pad2.width * 0.35, pad2.y + pad2.height * 0.22);
     await guy.mouse.down();
-    await guy.mouse.move(pad.x + pad.width * 0.35, pad.y + pad.height * 0.4, { steps: 6 });
+    await guy.mouse.move(pad2.x + pad2.width * 0.35, pad2.y + pad2.height * 0.4, { steps: 6 });
     await guy.mouse.up();
     if ((await paths()) !== 1) throw new Error(`the eraser should have left just the first line, found ${await paths()} paths`);
     await guy.getByRole('button', { name: 'Done drawing' }).click();
@@ -768,7 +770,7 @@ try {
   // …and the system's pointer never shows anywhere on the page (the live one is the only cursor).
   const leaks = await deskPage.evaluate(() => {
     if (!document.documentElement.classList.contains('has-livecursor')) return ['no live cursor'];
-    return [document.documentElement, ...document.querySelectorAll('*')].filter((e) => getComputedStyle(e).cursor !== 'none').map((e) => e.tagName + '.' + String(e.className).slice(0, 30));
+    return [document.documentElement, ...document.querySelectorAll('*')].filter((e) => !/^url\("data:image\/gif;base64,R0lGOD[^)]*\) 0 0, none$/.test(getComputedStyle(e).cursor)).map((e) => e.tagName + '.' + String(e.className).slice(0, 30));
   });
   if (leaks.length) throw new Error(`the system cursor shows on: ${leaks.slice(0, 5).join(', ')}`);
   console.log('· ✓ Desktop: the system pointer is hidden everywhere');

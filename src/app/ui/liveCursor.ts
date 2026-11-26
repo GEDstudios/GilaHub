@@ -127,7 +127,7 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   };
 
   const OMEGA = 2 * Math.PI * 3; // how fast it swings
-  const ZETA = 0.3; // how soon it settles: one clear swing back, by as much as the move was quick, then still
+  const ZETA = 0.375; // how soon it settles: one swing back (about a third of the lean), then still
   const LEAN = 20; // the most it ever trails, in degrees
   const V0 = 1500; // px/s for about three quarters of that
   const frame = (now: number) => {
