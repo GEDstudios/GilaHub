@@ -6766,9 +6766,10 @@ textarea.nf__write {
   flex: none;
 }
 
-/* A folder's tab stands up above its card: give it the same air under the path a task gets */
+/* A folder's tab stands up 13px above its card: the same air under the path a task gets, above
+   the tab. (On a phone the header's margins collapse into one, so this is the whole gap.) */
 .crumbs--path ~ .hero--folder {
-  margin-top: 12px;
+  margin-top: 28px;
 }
 
 /* ============================================================ The +: what to make */
