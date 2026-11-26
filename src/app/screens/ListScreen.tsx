@@ -8,7 +8,7 @@ import { OptRow } from '../components/pickers';
 import { ListVisOptions } from '../components/ProjectFields';
 import { Swatches } from '../components/pickers';
 import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
-import { InlineEditor, Options, Panel, RepeatPanel, ruleShort, type Draft } from '../components/editors';
+import { InlineEditor, Options, Panel, RepeatPanel, ruleShort, TimeField, type Draft } from '../components/editors';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
@@ -139,7 +139,7 @@ function TemplateDayPanel({ listId }: { listId: string }) {
       <label className="tpltime">
         <Icon name="clock" className="icon--sm" />
         <span>Time</span>
-        <input type="time" value={t.dueTime ?? ''} onChange={(e) => hub.setListTemplate(listId, { dueTime: e.target.value || null })} aria-label="Time" />
+        <TimeField value={t.dueTime ?? null} onChange={(v) => hub.setListTemplate(listId, { dueTime: v })} />
         {t.dueTime ? (
           <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => hub.setListTemplate(listId, { dueTime: null })}>
             <Icon name="x" className="icon--xs" />

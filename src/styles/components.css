@@ -8161,86 +8161,153 @@ textarea.nf__write {
   padding-right: 2px;
 }
 
-/* ============================================================ Time, on a computer: a field, and the list it opens */
-.whenrow__line--combo {
-  gap: 10px;
+/* ============================================================ Time: parts of the day, then − / + by a quarter hour */
+.tpick {
+  display: grid;
+  gap: 14px;
+  padding-top: 4px;
 }
 
-.whenrow__lead {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.tpick__parts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tpick__part {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
   min-width: 0;
-}
-
-.timecombo {
-  position: relative;
-  flex: none;
-}
-
-.timecombo__field {
-  width: 112px;
-  height: 36px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 10px;
+  padding: 9px 2px 8px;
+  border-radius: 14px;
   background: var(--tile);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  color: var(--text);
-  outline: none;
-  box-shadow: inset 0 0 0 1.5px transparent;
-  transition: box-shadow 140ms var(--ease), background 140ms var(--ease);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 120ms var(--ease), transform 120ms var(--ease);
 }
 
-.timecombo__field::placeholder {
+.tpick__part > span:first-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpick__parttime {
+  font-size: 12px;
+  font-weight: 500;
   color: var(--text-3);
 }
 
-.timecombo__field:hover {
+.tpick__part:active {
+  transform: scale(0.96);
+}
+
+.tpick__part.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.tpick__part.is-on .tpick__parttime {
+  color: inherit;
+  opacity: 0.7;
+}
+
+.tpick__step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.tpick__btn {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--ink);
+  touch-action: manipulation;
+  user-select: none;
+  transition: background 120ms var(--ease), transform 120ms var(--ease);
+}
+
+.tpick__btn .icon {
+  --s: 20;
+}
+
+.tpick__btn:active {
+  transform: scale(0.92);
   background: var(--tile-2);
 }
 
-.timecombo__field:focus {
-  background: var(--card);
-  box-shadow: inset 0 0 0 1.5px var(--ink);
-}
-
-.timecombo__list {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 6px);
-  inset-inline-end: 0;
-  width: 140px;
-  max-height: 248px;
-  overflow-y: auto;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
+.tpick__time {
+  width: 128px;
+  height: 52px;
+  border: 0;
   border-radius: 14px;
-  background: var(--card);
-  box-shadow: var(--lift-2), 0 0 0 1px var(--line);
-  overscroll-behavior: contain;
-  animation: fade-in 120ms var(--ease) both;
+  background: transparent;
+  font: inherit;
+  font-family: var(--serif);
+  font-size: 34px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink);
+  outline: none;
+  transition: background 140ms var(--ease);
 }
 
-.timecombo__opt {
-  padding: 8px 12px;
-  border-radius: 9px;
-  font-size: 15px;
-  color: var(--text);
-  cursor: var(--cur-point, pointer);
+.tpick__time::placeholder {
+  color: var(--text-4);
 }
 
-.timecombo__opt.is-hi {
+.tpick__time:focus {
   background: var(--tile);
 }
 
-.timecombo__opt.is-on {
-  font-weight: 700;
-  background: var(--me-light, var(--tile-2));
+.tpick__hint {
+  margin: -4px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+@media (hover: hover) {
+  .tpick__part:hover,
+  .tpick__btn:hover {
+    background: var(--tile-2);
+  }
+
+  .tpick__part.is-on:hover {
+    background: var(--cta);
+  }
+}
+
+/* Small, in a row (Settings, a template's time): − 09:00 + */
+.tpick--compact .tpick__step {
+  gap: 4px;
+}
+
+.tpick--compact .tpick__btn {
+  width: 32px;
+  height: 32px;
+}
+
+.tpick--compact .tpick__btn .icon {
+  --s: 15;
+}
+
+.tpick--compact .tpick__time {
+  width: 72px;
+  height: 34px;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 600;
 }
 
 /* ============================================================ Shortcuts */
@@ -8365,12 +8432,6 @@ textarea.nf__write {
   color: var(--text);
 }
 
-.tpltime input {
-  border: 0;
-  background: none;
-  font: inherit;
-  color: var(--text);
-}
 
 .tpltext {
   margin: 0;
@@ -8508,4 +8569,19 @@ section.aisle.is-settling-in > .rows {
   background: var(--me-light, var(--tile-2));
   box-shadow: inset 0 0 0 2px var(--ink);
   border-radius: 14px;
+}
+
+/* Five parts of the day across a phone: the names fit whole */
+@media (max-width: 480px) {
+  .tpick__part {
+    font-size: 12px;
+    letter-spacing: -0.01em;
+    padding-inline: 0;
+  }
+}
+
+/* In a grey row (Settings): its − and + stand out from the row */
+.optrow .tpick--compact .tpick__btn {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
 }

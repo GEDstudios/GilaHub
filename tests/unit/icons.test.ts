@@ -7,7 +7,7 @@ import { MemoryPersistence } from '../../src/core/db';
 import { suggestIcon } from '../../src/core/projectIcons';
 import { Store } from '../../src/core/store';
 
-const CONTROLS: IconName[] = ['plus', 'check', 'x', 'chevron-right', 'chevron-left', 'chevron-down', 'chevron-up', 'arrow', 'arrow-back', 'more', 'grip', 'undo', 'refresh', 'swap'];
+const CONTROLS: IconName[] = ['plus', 'minus', 'check', 'x', 'chevron-right', 'chevron-left', 'chevron-down', 'chevron-up', 'arrow', 'arrow-back', 'more', 'grip', 'undo', 'refresh', 'swap'];
 
 /** Icons a project could store as "i:<name>" before Gila Duo: they must keep parsing. */
 const OLD_PROJECT_ICONS = [
