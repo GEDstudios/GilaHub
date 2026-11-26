@@ -350,7 +350,7 @@ try {
   });
 
   // ---------- Today, arranged
-  await check('Today: Guy hides "Next 7 days" and moves "This week" up; it sticks after a reload', async () => {
+  await check('Today: Guy hides "Coming up" and moves "This week" up; it sticks after a reload', async () => {
     await guy.goto(`${url}/`);
     await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
     await guy.waitForTimeout(1000);
@@ -362,10 +362,10 @@ try {
     await shot(guy, '15-edit-today');
     const rows = () => guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
     const before = await rows();
-    if (before.join() !== 'Waiting on you,Today,Next 7 days,This week') throw new Error(`unexpected slots: ${before.join(', ')}`);
-    await guy.getByRole('button', { name: 'Hide Next 7 days' }).click();
-    await waitFor(async () => !(await rows()).includes('Next 7 days'), 3000, 'Next 7 days hidden');
-    await guy.locator('.homeghost', { hasText: 'Next 7 days' }).waitFor({ timeout: 3000 });
+    if (before.join() !== 'Waiting on you,Today,Coming up,This week') throw new Error(`unexpected slots: ${before.join(', ')}`);
+    await guy.getByRole('button', { name: 'Hide Coming up' }).click();
+    await waitFor(async () => !(await rows()).includes('Coming up'), 3000, 'Coming up hidden');
+    await guy.locator('.homeghost', { hasText: 'Coming up' }).waitFor({ timeout: 3000 });
     // Keyboard reorder from the grip: pick up, up twice, drop.
     await guy.getByRole('button', { name: 'Move This week' }).focus();
     for (const key of ['Space', 'ArrowUp', 'ArrowUp', 'Space']) {
@@ -379,15 +379,15 @@ try {
     await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
     await guy.waitForTimeout(1000);
     const titles = await guy.locator('.home h2.section__title, .home h2.weekcard__title').allInnerTexts();
-    if (titles.some((t) => t.startsWith('Next 7 days'))) throw new Error('Next 7 days is back after a reload');
+    if (titles.some((t) => t.startsWith('Coming up'))) throw new Error('Coming up is back after a reload');
     const week = titles.findIndex((t) => t.startsWith('This week'));
     const asks = titles.findIndex((t) => t.startsWith('Waiting on you'));
     if (week < 0 || asks < 0 || week > asks) throw new Error(`order after reload: ${titles.join(' | ')}`);
     await shot(guy, '16-today-arranged');
   });
 
-  await check('Today: the "Hila" chip finds her asks, on the page or in a sheet; "Back to the default" restores it', async () => {
-    await guy.locator('.daychip--person').click();
+  await check('Today: the "Hila" tag finds her asks, on the page or in a sheet; "Back to the default" restores it', async () => {
+    await guy.locator('.tag--person').click();
     await waitFor(async () => {
       // Scrolled to it: at the top, or as far as the page goes with it fully in view.
       return guy.locator('#home-asks').evaluate((el) => {
@@ -400,7 +400,7 @@ try {
     await guy.getByRole('button', { name: 'Hide Waiting on you' }).click();
     await guy.waitForTimeout(400);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
-    await guy.locator('.daychip--person').click();
+    await guy.locator('.tag--person').click();
     await guy.locator('.sheet', { hasText: 'Fix the kettle' }).waitFor({ timeout: 3000 });
     await shot(guy, '17-asks-sheet');
     await guy.keyboard.press('Escape');
@@ -409,7 +409,7 @@ try {
     await guy.getByRole('button', { name: 'Back to the default' }).click();
     await guy.getByText('Today is back to the default').waitFor({ timeout: 3000 });
     const slots = await guy.locator('.homecards .homecard:not(.is-lifted) .homecard__title').allInnerTexts();
-    if (slots.join() !== 'Waiting on you,Today,Next 7 days,This week') throw new Error(`after reset: ${slots.join(', ')}`);
+    if (slots.join() !== 'Waiting on you,Today,Coming up,This week') throw new Error(`after reset: ${slots.join(', ')}`);
     await guy.getByRole('button', { name: 'Done', exact: true }).click();
   });
 
@@ -473,6 +473,9 @@ try {
   await check('Settings: Hila sees Guy on her card and can turn request alerts off', async () => {
     await hila.goto(`${url}/settings`);
     await hila.getByRole('heading', { name: 'Settings', level: 1 }).waitFor();
+    // Guy's cursor on her card is alive: it waves hello.
+    await hila.locator('.mecard__tag .pcursor.is-wave').waitFor({ timeout: 4000 });
+    await shot(hila, '23a-settings-guy-waves');
     await hila.locator('.mecard__tag', { hasText: 'Guy' }).waitFor({ timeout: 5000 });
     await hila.getByText('You and Guy · together since').waitFor({ timeout: 5000 });
     const alerts = hila.getByRole('switch', { name: 'Request alerts' });
@@ -708,8 +711,11 @@ try {
     }, before[0] * 1.5, { timeout: 15000 });
     await hila.mouse.click(5, 400);
     await shot(hila, '32b2-note-pinched');
-    // The tick: read, collected.
+    // The tick: read, collected. It flies into Projects, which catches it.
     await stuck.locator('.sticky__check').click();
+    await hila.waitForTimeout(330);
+    await shot(hila, '32b3-note-flying');
+    await hila.locator('nav.tabbar [data-key="projects"].is-catch').waitFor({ timeout: 3000 });
     await stuck.waitFor({ state: 'detached', timeout: 3000 });
     await guy.locator('.stuck').waitFor({ state: 'detached', timeout: 15000 });
     await hila.goto(`${url}/lists`);

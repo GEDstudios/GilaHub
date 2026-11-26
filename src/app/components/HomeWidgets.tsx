@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { addDays, humanTime, relativeAgo } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
 import { byOrder } from '../../core/order';
-import { useHub } from '../context';
+import { useHub, usePartnerHere } from '../context';
 import { AHEAD_MAX, aheadDay, aheadOf, summaryOf, things, weekBands } from '../home';
 import { setPrefs, use24h, usePrefs } from '../prefs';
 import { navigate } from '../router';
@@ -62,6 +62,11 @@ export function SummaryCard({ v, day, asksShown }: { v: TodayView; day: string; 
   const { openSheet } = useOverlays();
   const partner = hub.partner();
   const s = summaryOf(hub, v);
+  const prefs = usePrefs();
+  // What's next: the next thing with a time still ahead today, else the first thing left.
+  const now = new Date();
+  const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const next = v.today.find((i) => i.dueTime && i.dueTime >= hm) ?? v.today[0] ?? v.earlier[0];
   const openAsks = () => {
     const el = asksShown ? document.getElementById('home-asks') : null;
     if (el) el.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'start' });
@@ -99,14 +104,43 @@ export function SummaryCard({ v, day, asksShown }: { v: TodayView; day: string; 
           ) : null}
         </span>
       ) : null}
+      {next ? (
+        <button type="button" className="summary__next" onClick={() => navigate({ name: 'item', id: next.id })}>
+          <span className="summary__nextlabel">Next</span>
+          <span className="summary__nexttitle" dir="auto">
+            {next.title}
+          </span>
+          {next.dueTime && v.today.includes(next) ? <span className="summary__nexttime num">{humanTime(next.dueTime, use24h(prefs))}</span> : null}
+          <Icon name="chevron-right" className="icon--sm" />
+        </button>
+      ) : null}
     </div>
   );
 }
 
 /** Live notices under the summary: the partner is in the store. */
 export function HomeNotices() {
-  // My person on a project right now is a chip on the day card.
-  return <NotesElsewhere />;
+  const hub = useHub();
+  const here = usePartnerHere();
+  const shopper = here ? hub.member(here.member) : undefined;
+  const on = here?.listId ? hub.list(here.listId) : undefined;
+  return (
+    <>
+      <NotesElsewhere />
+      {shopper && on ? (
+        <button type="button" className="notice" onClick={() => navigate({ name: 'list', id: on.id })}>
+          <Avatar member={shopper} size="sm" />
+          <span className="notice__text">
+            <strong>
+              {shopper.name} is on {on.name} now.
+            </strong>{' '}
+            Need anything?
+          </span>
+          <Icon name="chevron-right" />
+        </button>
+      ) : null}
+    </>
+  );
 }
 
 // ---------------------------------------------------------------- today

@@ -33,8 +33,8 @@ export interface WidgetDef {
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   asks: { title: () => 'Waiting on you', icon: 'hand', needsPartner: true },
   today: { title: () => 'Today', icon: 'sun' },
-  week: { title: () => 'This week', icon: 'heart' },
-  upcoming: { title: () => 'Next 7 days', icon: 'calendar' },
+  week: { title: () => 'This week', icon: 'stack' },
+  upcoming: { title: () => 'Coming up', icon: 'calendar' },
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);

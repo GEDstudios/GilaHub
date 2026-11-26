@@ -2517,319 +2517,10 @@ html.is-dragging .bartray {
   }
 }
 
-/* ============================================================ Today, rebuilt: the day, then the doing, then us */
+/* ============================================================ Today: the summary's next, and labels inside a block */
 
-/* The page's one colour moment: what's left today, big; done against left; what else needs me. */
-.daycard {
-  margin-top: 4px;
-  padding: 22px 22px 20px;
-  border-radius: var(--r-xl);
-  background: var(--lemon);
-  color: var(--ink);
-}
-
-.daycard__big {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  margin: 0;
-}
-
-.daycard__n {
-  font-family: var(--serif);
-  font-size: 96px;
-  font-weight: 400;
-  line-height: 0.78;
-  letter-spacing: -0.045em;
-}
-
-.daycard__what {
-  padding-bottom: 4px;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.12;
-}
-
-.daycard__big--calm {
-  font-family: var(--serif);
-  font-size: 46px;
-  line-height: 1;
-  letter-spacing: -0.025em;
-}
-
-.daycard__progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.daycard__bar {
-  flex: 1;
-  height: 8px;
-  border-radius: 999px;
-  background: rgb(10 10 4 / 0.12);
-  overflow: hidden;
-}
-
-.daycard__bar > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--ink);
-  transition: width 520ms var(--spring);
-}
-
-.daycard__done {
-  font-size: 13.5px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.daycard__sub {
-  margin: 12px 0 0;
-  font-size: 15px;
-}
-
-.daycard__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.daychip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.6);
-  color: var(--ink);
-  font-size: 13.5px;
-  font-weight: 500;
-  transition:
-    transform 140ms var(--ease),
-    background 140ms var(--ease);
-}
-
-.daychip:hover {
-  background: rgb(255 255 255 / 0.85);
-}
-
-.daychip:active {
-  transform: scale(0.96);
-}
-
-.daychip .avatar {
-  margin-left: -5px;
-}
-
-.daychip__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #18a957;
-  box-shadow: 0 0 0 0 rgb(24 169 87 / 0.5);
-  animation: live-dot 1.8s var(--ease) infinite;
-}
-
-@keyframes live-dot {
-  70% {
-    box-shadow: 0 0 0 7px rgb(24 169 87 / 0);
-  }
-}
-
-/* Today's blocks read as chapters: a serif heading in ink, the count beside it. */
-.home .section__title {
-  font-family: var(--serif);
-  font-size: 23px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.home .section__head {
-  align-items: center;
-}
-
-/* A quiet label inside a block: From earlier, Today, a day of the week ahead. */
-.daylabel {
-  margin: 14px 4px 7px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-
-.section__head + .daylabel,
-.agenda__day:first-child .daylabel {
-  margin-top: 2px;
-}
-
-.daylabel--late {
-  color: #b2471a;
-}
-
-.agenda__day + .agenda__day {
-  margin-top: 4px;
-}
-
-/* The week, us: a calm white card at the end of the page (beside it, on a computer). */
-.weekcard {
-  margin-top: 36px;
-  padding: 20px 20px 18px;
-  border-radius: var(--r-xl);
-  background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
-}
-
-.weekcard__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.weekcard__title {
-  margin: 0;
-  font-family: var(--serif);
-  font-size: 23px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
-
-.weekcard__vs {
-  font-size: 12.5px;
-  color: var(--text-3);
-}
-
-.weekcard__big {
-  margin: 12px 0 0;
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text-2);
-}
-
-.weekcard__big .num {
-  margin-right: 4px;
-  font-family: var(--serif);
-  font-size: 52px;
-  font-weight: 400;
-  line-height: 0.9;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-}
-
-.weekcard__split {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.weekcard__bar {
-  display: flex;
-  gap: 3px;
-  height: 10px;
-}
-
-.weekcard__bar > span {
-  border-radius: 999px;
-  background: var(--c);
-  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.08);
-}
-
-.weekcard__people {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  font-size: 13.5px;
-  color: var(--text-2);
-}
-
-.weekcard__who {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.weekcard__who .num {
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.weekcard__did {
-  margin-top: 14px;
-  padding-top: 6px;
-  border-top: 1px solid var(--line);
-}
-
-.weekcard__did .row {
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.weekcard__moment {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: var(--tile);
-  text-align: start;
-  transition: background 140ms var(--ease);
-}
-
-.weekcard__moment:hover {
-  background: var(--tile-2);
-}
-
-.weekcard__feel {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--card);
-  font-size: 20px;
-}
-
-.weekcard__mtext {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.weekcard__mtext > span:first-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.weekcard__mmeta {
-  font-size: 12.5px;
-  font-weight: 400;
-  color: var(--text-3);
-}
-
-.weekcard__moment > .icon {
-  color: var(--text-3);
-}
-
-.daychip--person {
-  background: var(--c);
-}
-
-/* What's next, on the day card: one line, a way straight to it. */
-.daycard__next {
+/* What's next, on the summary: one white line, a way straight to it. */
+.summary__next {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2837,26 +2528,27 @@ html.is-dragging .bartray {
   margin-top: 14px;
   padding: 11px 12px 11px 14px;
   border-radius: 16px;
-  background: rgb(255 255 255 / 0.6);
+  background: var(--card);
   color: var(--ink);
   text-align: start;
-  transition: background 140ms var(--ease);
+  box-shadow: var(--lift-1);
+  transition: transform 140ms var(--ease);
 }
 
-.daycard__next:hover {
-  background: rgb(255 255 255 / 0.85);
+.summary__next:active {
+  transform: scale(0.98);
 }
 
-.daycard__nextlabel {
+.summary__nextlabel {
   flex: none;
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  opacity: 0.6;
+  color: var(--text-3);
 }
 
-.daycard__nexttitle {
+.summary__nexttitle {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -2866,15 +2558,42 @@ html.is-dragging .bartray {
   font-weight: 500;
 }
 
-.daycard__nexttime {
+.summary__nexttime {
   flex: none;
   font-size: 13.5px;
   font-weight: 500;
 }
 
-/* The lens under the day card, a breath apart. */
-.daycard ~ .lens {
-  margin-top: 18px;
+.summary__next > .icon {
+  color: var(--text-3);
+}
+
+/* A quiet label inside a block: From earlier, then Today. */
+.daylabel {
+  margin: 14px 4px 7px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.section__head + .daylabel {
+  margin-top: 2px;
+}
+
+.daylabel--late {
+  color: #b2471a;
+}
+
+/* The week and what my person did: one place for us. */
+.homeweek > .section + .section {
+  margin-top: 22px;
+}
+
+.home .summary + .notice,
+.home .summary ~ .lens {
+  margin-top: 16px;
 }
 
 .cartcard__hint {

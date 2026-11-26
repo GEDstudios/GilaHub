@@ -7,6 +7,7 @@ import { useOpenIdeas } from '../components/Ideas';
 import { PairSheet } from '../components/PairSheet';
 import { OptRow, Swatches } from '../components/pickers';
 import { TagManager } from '../components/Tags';
+import { PersonCursor } from '../ui/PersonCursor';
 import { useHub, useRt, useSync } from '../context';
 import { setPrefs, use24h, usePrefs, weekStart } from '../prefs';
 import { ideasView } from '../views';
@@ -236,7 +237,7 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
               replay(e.currentTarget, 'is-wiggle');
             }}
           >
-            <Cursor />
+            <PersonCursor color={partner.color} />
             {here ? <span className="live" /> : null}
             <span dir="auto">{partner.name}</span>
           </span>

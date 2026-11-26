@@ -197,6 +197,7 @@ function TopNav() {
               aria-current={on === t.key ? 'page' : undefined}
               onClick={() => navigate(t.path)}
               data-drop-list={t.key.startsWith('l:') ? t.key.slice(2) : undefined}
+              data-tab={t.key}
             >
               {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
               <span dir="auto">{t.label}</span>

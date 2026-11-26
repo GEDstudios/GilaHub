@@ -6,8 +6,8 @@ import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { AsksWidget } from '../components/Asks';
-import { HomeNotices, InviteCard, ProjectWidget } from '../components/HomeWidgets';
-import { DayCard, NextDays, TodayBlock, WeekCard } from '../components/Home';
+import { ComingUp, HomeNotices, InviteCard, PartnerDid, ProjectWidget, SummaryCard, WeekStrips } from '../components/HomeWidgets';
+import { TodayBlock } from '../components/Home';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
 import { TodayArrange } from '../components/TodayArrange';
@@ -106,6 +106,7 @@ export function Today() {
 
   const wide = useWide();
   const slots = visibleHome(hub);
+  const shown = new Set(slots.map((x) => x.key));
 
   const block = (key: string) => {
     const listId = listIdOf(key);
@@ -116,9 +117,15 @@ export function Today() {
       case 'today':
         return <TodayBlock key={key} v={v} day={ref} settle={settle} />;
       case 'week':
-        return <WeekCard key={key} v={v} />;
+        // The week, and what my person did in it: one place for us.
+        return (
+          <div key={key} className="homeweek">
+            <WeekStrips v={v} shown={shown} />
+            <PartnerDid v={v} />
+          </div>
+        );
       case 'upcoming':
-        return <NextDays key={key} v={v} day={ref} />;
+        return <ComingUp key={key} v={v} day={ref} />;
       default:
         return null;
     }
@@ -147,7 +154,7 @@ export function Today() {
           mini="Edit Today"
         />
         <div className="column home home--editing">
-          <DayCard v={v} />
+          <SummaryCard v={v} day={ref} asksShown={false} />
           <TodayArrange peek={block} />
         </div>
       </>
@@ -189,7 +196,7 @@ export function Today() {
               {editLink}
             </div>
             <aside className="home__side" aria-label="Your day and your week">
-              <DayCard v={v} />
+              <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
               {slots.filter((s) => SIDE.has(s.key)).map((s) => block(s.key))}
               <InviteCard />
             </aside>
@@ -197,7 +204,7 @@ export function Today() {
         </div>
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
-          <DayCard v={v} />
+          <SummaryCard v={v} day={ref} asksShown={shown.has('asks')} />
           <HomeNotices />
           {lens}
           {slots.map((s) => block(s.key))}
