@@ -149,15 +149,13 @@ textarea::placeholder {
   }
 }
 
-/* The live cursor (ui/liveCursor.ts): the page draws it, so the system's is hidden (text fields keep their I-beam) */
+/* The live cursor (ui/liveCursor.ts): the page draws it, I-beam included, so the system's never shows */
 html.has-livecursor.has-livecursor,
 html.has-livecursor.has-livecursor * {
   cursor: none !important;
 }
 
-html.has-livecursor.has-livecursor :is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), textarea, [contenteditable='true']):not(:disabled, [readonly]) {
-  cursor: text !important;
-}
+
 
 .livecursor {
   position: fixed;
@@ -181,6 +179,36 @@ html.has-livecursor.has-livecursor :is(input:not([type='checkbox'], [type='radio
   width: 32px;
   height: 32px;
   will-change: transform;
+}
+
+.livecursor.is-text .livecursor__body {
+  opacity: 0;
+}
+
+/* Over words you can type in: our own I-beam, centred on the pointer */
+.livecursor__beam {
+  position: absolute;
+  top: -12px;
+  left: -8px;
+  width: 16px;
+  height: 24px;
+  opacity: 0;
+}
+
+.livecursor.is-text .livecursor__beam {
+  opacity: 1;
+}
+
+.livecursor__beam svg {
+  display: block;
+  width: 16px;
+  height: 24px;
+  fill: none;
+  stroke: #0a0a04;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
 }
 
 .livecursor__body img {

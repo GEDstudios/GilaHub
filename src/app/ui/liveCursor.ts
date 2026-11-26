@@ -54,19 +54,31 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   img.alt = '';
   img.width = 32;
   img.height = 32;
+  // Text fields get our own I-beam too: the system's pointer never shows on the page.
+  const beam = document.createElement('div');
+  beam.className = 'livecursor__beam';
+  beam.innerHTML = `<svg viewBox="0 0 16 24"><path d="M5 2.5h1.6c.6 0 1.1.3 1.4.7.3-.4.8-.7 1.4-.7H11M5 21.5h1.6c.6 0 1.1-.3 1.4-.7.3.4.8.7 1.4.7H11M8 3.4v17.2M6.2 12h3.6"/></svg>`;
   body.append(img);
   // While a hold is under way the cursor is a timer: it fills, and then the thing lifts.
   const timer = document.createElement('div');
   timer.className = 'livecursor__timer';
   timer.innerHTML = `<svg viewBox="0 0 24 24"><circle class="livecursor__track" cx="12" cy="12" r="9"/><circle class="livecursor__fill" cx="12" cy="12" r="9"/></svg>`;
   timer.style.setProperty('--hold', `${MOUSE_HOLD_MS}ms`);
-  el.append(body, timer);
+  el.append(body, beam, timer);
   document.body.append(el);
   document.documentElement.classList.add('has-livecursor');
 
   let x = -100;
   let y = -100;
   let lastX = x;
+  let lastY = y;
+  // The settle wiggle: when a move stops, a swing the other way and two smaller ones.
+  let fast = 0;
+  let peak = 0;
+  let movedAt = 0;
+  let dir = 1;
+  let wiggleAt = 0;
+  let wiggleAmp = 0;
   let kind: CursorKind | 'text' = 'arrow';
   let shown: CursorKind | null = null;
   let waving = false;
@@ -91,7 +103,8 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   const setKind = (k: CursorKind | 'text') => {
     kind = k;
     const want: CursorKind | null = k === 'text' ? null : waving ? 'grab' : k;
-    el.classList.toggle('is-hidden', k === 'text' || !visible);
+    el.classList.toggle('is-hidden', !visible);
+    el.classList.toggle('is-text', k === 'text');
     if (want && want !== shown) {
       shown = want;
       picture(want);
@@ -105,17 +118,41 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
   const frame = () => {
     raf = 0;
     const vx = x - lastX;
+    const vy = y - lastY;
     lastX = x;
+    lastY = y;
+    const speed = Math.hypot(vx, vy);
+    if (speed > 3) {
+      fast++;
+      peak = Math.max(peak, speed);
+      if (Math.abs(vx) > 1) dir = Math.sign(vx);
+    }
+    // No mouse news for a moment after a real move: it stopped. Wiggle, as big as the move was quick.
+    if (fast && performance.now() - movedAt > 55) {
+      if (fast >= 3 && !waving) {
+        wiggleAt = performance.now();
+        wiggleAmp = Math.min(16, 5 + peak * 0.35) * -dir;
+      }
+      fast = 0;
+      peak = 0;
+    }
     // Lean into a sideways move; when it stops, swing back well past straight and wiggle to a
     // stop (a loose spring: a clear swing back, then a smaller one, then still).
     const lean = Math.max(-13, Math.min(13, vx * 0.55));
     rotV = (rotV + (lean - rot) * 0.22) * 0.84;
     rot = Math.max(-17, Math.min(17, rot + rotV));
+    // On top of the lean, the settle wiggle: a quick sine that dies away in about half a second.
+    let wig = 0;
+    if (wiggleAt) {
+      const t = (performance.now() - wiggleAt) / 1000;
+      if (t > 0.7) wiggleAt = 0;
+      else wig = wiggleAmp * Math.exp(-t / 0.17) * Math.sin(2 * Math.PI * 3.6 * t + 0.35);
+    }
     scV = (scV + (scTarget - sc) * 0.3) * 0.62;
     sc += scV;
     el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    body.style.transform = `translate(calc(-1 * var(--hx, 0px)), calc(-1 * var(--hy, 0px))) rotate(${rot.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
-    if (Math.abs(rot) > 0.05 || Math.abs(rotV) > 0.05 || Math.abs(sc - scTarget) > 0.002 || Math.abs(scV) > 0.002 || vx) kick();
+    body.style.transform = `translate(calc(-1 * var(--hx, 0px)), calc(-1 * var(--hy, 0px))) rotate(${(rot + wig).toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+    if (wiggleAt || fast || Math.abs(rot) > 0.05 || Math.abs(rotV) > 0.05 || Math.abs(sc - scTarget) > 0.002 || Math.abs(scV) > 0.002 || vx) kick();
   };
   const kick = () => {
     if (!raf) raf = requestAnimationFrame(frame);
@@ -158,11 +195,13 @@ export function startLiveCursor(pref: boolean | null = null): () => void {
     }
     x = e.clientX;
     y = e.clientY;
+    movedAt = performance.now();
     // Moved off before the hold landed: no hold.
     if (holdAt && Math.hypot(x - holdAt[0], y - holdAt[1]) > 8) endHold();
     if (!visible) {
       visible = true;
       lastX = x;
+      lastY = y;
     }
     stopWave();
     setKind(kindAt(e.target));
