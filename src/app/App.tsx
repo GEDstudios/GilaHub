@@ -33,6 +33,7 @@ import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
 import { Fab, lightVar, Logo } from './ui/primitives';
 import { setCursors } from './ui/cursors';
+import { startLiveCursor } from './ui/liveCursor';
 import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, coveredByTab, tabsOf } from './tabs';
 import { projectCount, todayRef, todayView } from './views';
@@ -176,6 +177,9 @@ function Duties() {
     // The mouse wears our hands, lit in my colour.
     setCursors(lightVar(me.color));
   }, [me?.color, me, partnerColor]);
+
+  // On a computer, the cursor comes alive: it leans, bounces and waves (ui/liveCursor.ts).
+  useEffect(() => startLiveCursor(), []);
 
   useEffect(() => {
     void updateBadge(todayView(hub, todayRef()).dueCount, prefs.badge);

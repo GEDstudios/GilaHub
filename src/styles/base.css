@@ -148,3 +148,73 @@ textarea::placeholder {
     cursor: var(--cur-grab, grab) !important;
   }
 }
+
+/* The live cursor (ui/liveCursor.ts): the page draws it, so the system's is hidden (text fields keep their I-beam) */
+html.livecursor.livecursor,
+html.livecursor.livecursor * {
+  cursor: none !important;
+}
+
+html.livecursor.livecursor :is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), textarea, [contenteditable='true']):not(:disabled, [readonly]) {
+  cursor: text !important;
+}
+
+.livecursor {
+  position: fixed;
+  z-index: 2147483647;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.livecursor.is-hidden {
+  visibility: hidden;
+}
+
+.livecursor__body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  will-change: transform;
+}
+
+.livecursor__body img {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+/* Left alone, it waves: from the wrist, back and forth, settling */
+.livecursor__body.is-waving img {
+  transform-origin: 50% 90%;
+  animation: cursor-wave 1.3s cubic-bezier(0.36, 0, 0.3, 1) both;
+}
+
+@keyframes cursor-wave {
+  0% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(-20deg);
+  }
+  32% {
+    transform: rotate(16deg);
+  }
+  48% {
+    transform: rotate(-16deg);
+  }
+  64% {
+    transform: rotate(12deg);
+  }
+  80% {
+    transform: rotate(-6deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}

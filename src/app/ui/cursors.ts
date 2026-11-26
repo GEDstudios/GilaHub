@@ -26,6 +26,16 @@ function cursorUrl(name: keyof typeof GLYPHS, light: string, turn?: string, plai
 /** Where each one "points", on its 256 grid. */
 const at = (x: number, y: number) => `${Math.round(((x + PAD) / (256 + PAD * 2)) * SIZE)} ${Math.round(((y + PAD) / (256 + PAD * 2)) * SIZE)}`;
 
+export type CursorKind = 'arrow' | 'point' | 'grab' | 'grabbing' | 'rotate' | 'scale';
+/** The same pictures, for the live cursor (ui/liveCursor.ts): image and hotspot, in pixels. */
+const images: Partial<Record<CursorKind, { src: string; hx: number; hy: number }>> = {};
+export const cursorImage = (k: CursorKind) => images[k];
+const keep = (k: CursorKind, css: string) => {
+  const m = /^url\("(.*)"\) (\d+) (\d+)/.exec(css);
+  if (m) images[k] = { src: m[1], hx: Number(m[2]), hy: Number(m[3]) };
+  return css;
+};
+
 /** Paint the cursors in this colour (any CSS colour; resolved here so the images can use it). */
 export function setCursors(color: string): void {
   if (typeof document === 'undefined') return;
@@ -37,11 +47,12 @@ export function setCursors(color: string): void {
   probe.remove();
   const root = document.documentElement.style;
   // The arrow, stood up a little from Phosphor's 45° (about where a computer's own arrow leans), round its tip.
-  root.setProperty('--cur-arrow', `${cursorUrl('cursor-arrow', light, 'translate(34 34) rotate(22) scale(0.84) translate(-34 -34)')} ${at(34, 34)}, auto`);
+  root.setProperty('--cur-arrow', keep('arrow', `${cursorUrl('cursor-arrow', light, 'translate(34 34) rotate(22) scale(0.84) translate(-34 -34)')} ${at(34, 34)}, auto`));
   // Turning and sizing a note
-  root.setProperty('--cur-rotate', `${cursorUrl('cursor-rotate', light)} ${at(128, 128)}, alias`);
-  root.setProperty('--cur-scale', `${cursorUrl('cursor-scale', light, undefined, true)} ${at(128, 128)}, nwse-resize`);
-  root.setProperty('--cur-point', `${cursorUrl('hand-pointing', light)} ${at(116, 18)}, pointer`);
-  root.setProperty('--cur-grab', `${cursorUrl('hand', light)} ${at(128, 120)}, grab`);
-  root.setProperty('--cur-grabbing', `${cursorUrl('hand-grabbing', light)} ${at(128, 140)}, grabbing`);
+  root.setProperty('--cur-rotate', keep('rotate', `${cursorUrl('cursor-rotate', light)} ${at(128, 128)}, alias`));
+  root.setProperty('--cur-scale', keep('scale', `${cursorUrl('cursor-scale', light, undefined, true)} ${at(128, 128)}, nwse-resize`));
+  root.setProperty('--cur-point', keep('point', `${cursorUrl('hand-pointing', light)} ${at(116, 18)}, pointer`));
+  root.setProperty('--cur-grab', keep('grab', `${cursorUrl('hand', light)} ${at(128, 120)}, grab`));
+  root.setProperty('--cur-grabbing', keep('grabbing', `${cursorUrl('hand-grabbing', light)} ${at(128, 140)}, grabbing`));
+  window.dispatchEvent(new Event('gila:cursors'));
 }
