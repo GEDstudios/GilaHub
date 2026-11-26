@@ -9152,3 +9152,9 @@ section.aisle.is-settling-in > .rows {
   font-size: 13px;
   color: var(--text-3);
 }
+
+/* A subtask pulled out to the left of its task: the task shows where it lands (right after it) */
+.aisle li.row.is-droptarget:has(.row--nested.is-lifted-out) {
+  box-shadow: inset 0 -3px 0 var(--ink);
+  background: transparent;
+}

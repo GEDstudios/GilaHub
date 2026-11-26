@@ -120,7 +120,19 @@ export const ItemRow = memo(function ItemRow({
     if (el) haptic('select');
     lit.current = el;
   };
-  const outTarget = (p: { x: number; y: number }): { el: HTMLElement | null; listId: string; parentId: string | null } | null => {
+  const outTarget = (p: { x: number; y: number }): { el: HTMLElement | null; listId: string; parentId: string | null; before?: string | null } | null => {
+    // Beside its own task: out to the left (past its edge) takes it out, right after that task;
+    // anywhere else beside it is a slip of the hand, and nothing changes.
+    const own = item.parentId ? document.querySelector<HTMLElement>(`li.row:not(.row--nested)[data-id="${item.parentId}"]`) : null;
+    const box = own?.getBoundingClientRect();
+    if (box && p.y >= box.top && p.y <= box.bottom) {
+      if (p.x >= box.left) return null;
+      const parent = hub.item(item.parentId);
+      if (!parent) return null;
+      const sisters = parent.parentId ? hub.childrenOf(parent.parentId) : hub.children(parent.listId, null);
+      const after = sisters[sisters.findIndex((x) => x.id === parent.id) + 1]?.id ?? null;
+      return { el: own, listId: parent.listId, parentId: parent.parentId ?? null, before: after };
+    }
     const els = document.elementsFromPoint(p.x, p.y);
     for (const e of els) {
       const crumb = e.closest<HTMLElement>('.crumbs [data-drop-list]');
@@ -146,7 +158,7 @@ export const ItemRow = memo(function ItemRow({
       const t = outTarget(p);
       if (!t) return;
       const was = { listId: item.listId, parentId: item.parentId ?? null };
-      hub.move(item.id, { listId: t.listId, parentId: t.parentId });
+      hub.move(item.id, { listId: t.listId, parentId: t.parentId, before: t.before ?? undefined });
       haptic('success');
       const where = t.parentId ? `under “${hub.item(t.parentId)?.title ?? 'it'}”` : `its own task${t.listId !== was.listId ? ` in ${hub.list(t.listId)?.name ?? 'there'}` : ''}`;
       movedTo(hub, overlays, item.id, was.listId, t.parentId ? was.listId : t.listId, `${item.title}: ${where}`, () => hub.move(item.id, was));
