@@ -552,10 +552,27 @@ try {
     await hila.waitForTimeout(550);
     await hila.mouse.move(box.x - 120, box.y + 260, { steps: 10 });
     await hila.mouse.up();
+    // Still lifted (mouse): press anywhere else and drag round and in; it turns and shrinks.
+    const lifted0 = await stuck.evaluate((n) => [parseFloat(n.style.getPropertyValue('--scale') || '1'), parseFloat(n.style.getPropertyValue('--rot'))]);
+    const c = await stuck.boundingBox();
+    const cx = c.x + c.width / 2;
+    const cy = c.y + c.height / 2;
+    await hila.mouse.move(cx + 160, cy);
+    await hila.mouse.down();
+    for (let i = 1; i <= 10; i++) {
+      const ang = (i / 10) * 0.7;
+      const d = 160 - i * 7;
+      await hila.mouse.move(cx + d * Math.cos(ang), cy + d * Math.sin(ang));
+    }
+    await hila.mouse.up();
+    const twisted = await stuck.evaluate((n) => [parseFloat(n.style.getPropertyValue('--scale')), parseFloat(n.style.getPropertyValue('--rot'))]);
+    if (!(twisted[0] < lifted0[0] * 0.7) || Math.abs(twisted[1] - lifted0[1]) < 25) throw new Error(`dragging elsewhere didn't turn/size it: ${lifted0} → ${twisted}`);
+    // A plain click elsewhere puts it down.
     await hila.mouse.click(5, 400);
+    await hila.locator('.stuck.is-lifted').waitFor({ state: 'detached', timeout: 3000 });
     await shot(hila, '32b-note-moved');
-    const moved = await stuck.boundingBox();
-    if (moved.y < box.y + 200) throw new Error(`the note didn't move: ${box.y} → ${moved.y}`);
+    const top = await stuck.evaluate((n) => parseFloat(n.style.top));
+    if (top < 250) throw new Error(`the note didn't move: top is ${top}`);
     await guy.waitForFunction(() => {
       const n = document.querySelector('.stuck');
       return n && parseFloat(n.style.top) > 250;

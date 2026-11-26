@@ -67,6 +67,7 @@ export function ProjectFields({
   onChange,
   canVis,
   withKind,
+  noIcon,
 }: {
   value: ProjectLook;
   onChange: (patch: Partial<ProjectLook>) => void;
@@ -74,6 +75,8 @@ export function ProjectFields({
   canVis: boolean;
   /** New project: what kind it is, too. */
   withKind?: boolean;
+  /** The icon is picked on the card itself (New project): no chip for it. */
+  noIcon?: boolean;
 }) {
   const [open, setOpen] = useState<Field | null>(null);
   const toggle = (k: Field) => setOpen(open === k ? null : k);
@@ -117,6 +120,8 @@ export function ProjectFields({
             <Swatches value={value.color} onChange={(color) => onChange({ color })} big />
           </Panel>
         ) : null}
+        {noIcon ? null : (
+          <>
         <EChip
           label="Icon"
           icon={glyph?.kind === 'icon' ? glyph.name : 'folder'}
@@ -130,6 +135,8 @@ export function ProjectFields({
             <IconPicker value={value.icon} color={value.color} onChange={(icon) => onChange({ icon })} />
           </Panel>
         ) : null}
+          </>
+        )}
         {canVis ? (
           <>
             <EChip label={visLabel(vis, hub.partner()?.name)} icon={VIS_ICON[vis]} set={value.visibility !== 'shared'} open={open === 'vis'} onToggle={() => toggle('vis')} />

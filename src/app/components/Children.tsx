@@ -38,9 +38,7 @@ export function Children({ listId, parentId, readonly }: { listId: string; paren
   const hub = useHub();
   const settle = useSettle(idOf);
   const all = parentId ? hub.childrenOf(parentId) : hub.children(listId, null);
-  // The backlog keeps its someday things out of the way, closed, at the bottom.
-  const open = all.filter((i) => !i.done && !i.someday);
-  const someday = all.filter((i) => !i.done && i.someday);
+  const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
   const rows = settle.view('open', open);
   const doneRows = settle.view('done', done);
@@ -86,15 +84,6 @@ export function Children({ listId, parentId, readonly }: { listId: string; paren
           <Icon name="hand" className="icon--sm" />
           {matchMedia('(pointer: coarse)').matches ? 'Hold any row to reorder' : 'Drag any row to reorder'}
         </p>
-      ) : null}
-      {someday.length ? (
-        <Disclosure title="Backlog" count={<Count n={someday.length} />}>
-          <ul className="rows rows--backlog">
-            {someday.map((row) => (
-              <ItemRow key={row.id} item={row} />
-            ))}
-          </ul>
-        </Disclosure>
       ) : null}
       {doneRows.length ? (
         <Disclosure title="Done" count={<Count n={doneRows.length} />}>

@@ -68,7 +68,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
     if (away && l?.kind === 'chores') return false;
-    return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.someday && !i.paused && !i.submittedAt && i.due;
+    return l && l.kind !== 'shopping' && !i.done && !i.archived && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
   const todayAll = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
@@ -78,7 +78,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const items = hub.store.all('item');
   const live = (i: Item) => {
     const l = lists.get(i.listId);
-    return !!l && !i.done && !i.archived && !i.someday && !i.repeat && l.kind !== 'shopping';
+    return !!l && !i.done && !i.archived && !i.repeat && l.kind !== 'shopping';
   };
   const asked = partnerId
     ? items
@@ -339,18 +339,9 @@ export function ideasMarkdown(hub: Hub): string {
 
 // ---------------------------------------------------------------- Lists
 
-/** The backlog: someday things, out of sight. One project's, or (no id) everything's. */
-export function backlogOf(hub: Hub, listId?: string): Item[] {
-  const lists = new Set(hub.lists().map((l) => l.id));
-  return hub.store
-    .all('item')
-    .filter((i) => i.someday && !i.done && !i.archived && !i.parentId && lists.has(i.listId) && (!listId || i.listId === listId))
-    .sort((a, b) => (b.somedayAt ?? 0) - (a.somedayAt ?? 0));
-}
-
 export function openCount(hub: Hub, listId: string): number {
   let n = 0;
-  for (const i of hub.store.all('item')) if (i.listId === listId && !i.done && !i.archived && !i.someday && !i.parentId) n++;
+  for (const i of hub.store.all('item')) if (i.listId === listId && !i.done && !i.archived && !i.parentId) n++;
   return n;
 }
 

@@ -6,6 +6,7 @@ import { useAddAction } from '../addAction';
 import { barTarget, getAim, setAim, setArranging, useBarEdit } from '../barEdit';
 import { BarToken, BarTokenLifted, TabChip } from '../components/BarEdit';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
+import { IconPicker } from '../components/IconPicker';
 import { useHub } from '../context';
 import { navigate } from '../router';
 import { AddDisc, DoneButton } from '../ui/edit';
@@ -19,8 +20,7 @@ import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { listVisLabel } from '../privacy';
 import { coveredByTab, MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
-import { backlogOf, projectCount } from '../views';
-import { ItemRow } from '../components/ItemRow';
+import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
 
 const KIND: Record<ListKind, string> = { tasks: 'Tasks', shopping: 'Shopping', chores: 'Chores' };
@@ -40,6 +40,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
     pinned: false,
   }));
   const kind = look.kind ?? 'tasks';
+  const [picking, setPicking] = useState(false);
   const icon = look.icon ?? suggestIcon(name, kind, look.flavor, hub.lists().at(-1)?.icon, hub.iconsInUse());
   const taken = new Set(hub.lists().map((l) => l.name.toLowerCase()));
   const starts = PROJECT_TEMPLATES.filter((t) => !taken.has(t.name.toLowerCase())).slice(0, 4);
@@ -64,12 +65,34 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
         <div className="ccard ccard--lg ccard--edit ccard--folder" style={lineVars(look.color)}>
           <span className="ccard__top">
             <input className="ccard__input" dir="auto" placeholder="Name it" value={name} onChange={(e) => setName(e.target.value)} data-autofocus aria-label="Project name" />
-            {showsGlyph(icon) ? <Glyph icon={icon} className="ccard__glyph" /> : null}
+            {/* Its icon, right on the card: tap it to pick another. */}
+            <button
+              type="button"
+              className={`ccard__iconbtn ${showsGlyph(icon) ? '' : 'is-empty'} ${picking ? 'is-open' : ''}`}
+              aria-label="Icon"
+              aria-expanded={picking}
+              onClick={() => setPicking(!picking)}
+            >
+              {showsGlyph(icon) ? <Glyph icon={icon} className="ccard__glyph" /> : <Icon name="plus" className="icon--sm" />}
+            </button>
           </span>
           <span className="ccard__sub">
             {KIND[kind]} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
           </span>
         </div>
+
+        {picking ? (
+          <div className="panel ccard__pick">
+            <IconPicker
+              value={icon}
+              color={look.color}
+              onChange={(v) => {
+                setLook((l) => ({ ...l, icon: v }));
+                setPicking(false);
+              }}
+            />
+          </div>
+        ) : null}
 
         {!name && starts.length ? (
           <div className="tokens">
@@ -90,7 +113,7 @@ export function NewProjectSheet({ onClose, initial, parentId }: { onClose: () =>
           </div>
         ) : null}
 
-        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis withKind />
+        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis withKind noIcon />
 
         <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim()}>
           Create project
@@ -244,8 +267,6 @@ export function Lists() {
   const newProject = () => openSheet((close) => <NewProjectSheet onClose={close} />);
 
   const archived = hub.store.all('list').filter((l) => l.archived);
-  // Everything in every project's backlog, in one place, closed till you want it.
-  const backlog = backlogOf(hub);
   const onMove = (next: string[], id: string) => hub.moveList(id, next[next.indexOf(id) + 1] ?? null);
 
   const arrangeRef = useRef<HTMLButtonElement>(null);
@@ -352,15 +373,6 @@ export function Lists() {
           </p>
         )}
 
-        {backlog.length ? (
-          <Disclosure title="Backlog" count={backlog.length}>
-            <ul className="rows rows--backlog">
-              {backlog.map((i) => (
-                <ItemRow key={i.id} item={i} showList />
-              ))}
-            </ul>
-          </Disclosure>
-        ) : null}
 
         {archived.length ? (
           <Disclosure title="Archived" count={archived.length}>

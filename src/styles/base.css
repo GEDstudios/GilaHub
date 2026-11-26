@@ -38,7 +38,7 @@ button {
   background: none;
   border: 0;
   padding: 0;
-  cursor: pointer;
+  cursor: var(--cur-point, pointer);
   touch-action: manipulation;
 }
 
@@ -103,5 +103,30 @@ textarea::placeholder {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* A computer's mouse wears our hands (ui/cursors.ts): an arrow, a pointing hand on what you tap,
+   an open hand on what you can pick up, a closed one while carrying it. */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    cursor: var(--cur-arrow, auto);
+  }
+
+  :is(a, button, summary, select, label, [role='button'], [role='radio'], [role='checkbox'], [role='switch'], [role='tab'], .row--tap):not(:disabled) {
+    cursor: var(--cur-point, pointer);
+  }
+
+  :is([data-drag], [data-grip], .stuck, .slot__grip, .homecard__grip) {
+    cursor: var(--cur-grab, grab);
+  }
+
+  :is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']), textarea, [contenteditable='true']) {
+    cursor: text;
+  }
+
+  html.is-dragging,
+  html.is-dragging * {
+    cursor: var(--cur-grabbing, grabbing) !important;
   }
 }

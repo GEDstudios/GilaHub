@@ -499,11 +499,6 @@ export class Hub {
     return id;
   }
 
-  /** Into the backlog (someday, out of sight) or back out of it. */
-  setSomeday(id: string, on: boolean): Undo {
-    return this.updateItem(id, { someday: on, somedayAt: on ? Date.now() : null });
-  }
-
   updateItem(id: string, fields: Partial<Item>): Undo {
     const before = this.item(id);
     if (fields.urgent && !before?.urgent) fields = { ...fields, urgentBy: this.meId };

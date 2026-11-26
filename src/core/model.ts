@@ -128,9 +128,6 @@ export interface Item {
   private?: boolean;
   /** Urgent / important flag. */
   urgent?: boolean;
-  /** In the backlog: someday, out of sight (Today, counts, reminders) until brought back. */
-  someday?: boolean;
-  somedayAt?: number | null;
   /** Who last turned urgent on (the other one's Shopping flashes it). */
   urgentBy?: string | null;
   /** Shopping: who brought it back onto the list, and when (a re-added staple; a first add is createdBy/createdAt). */

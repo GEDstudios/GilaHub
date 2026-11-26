@@ -40,6 +40,8 @@ const MAP = {
   layout: ['layout', 'duo'], sliders: ['sliders-horizontal', 'duo'], inbox: ['tray', 'duo'], stack: ['rows', 'duo'],
   request: ['hand-waving', 'duo'], 'user-plus': ['user-plus', 'duo'], badge: ['notification', 'duo'],
   lightbulb: ['lightbulb', 'duo'], image: ['image', 'duo'], scribble: ['scribble-loop', 'duo'],
+  // cursors (a computer's mouse): drawn in my colour, ui/cursors.ts
+  'cursor-arrow': ['cursor', 'duo'], 'hand-pointing': ['hand-pointing', 'duo'], 'hand-grabbing': ['hand-grabbing', 'duo'],
   // projects
   home: ['house', 'duo'], gift: ['gift', 'duo'], book: ['book-open', 'duo'], car: ['car', 'duo'],
   paw: ['paw-print', 'duo'], wallet: ['wallet', 'duo'], film: ['film-slate', 'duo'], utensils: ['fork-knife', 'duo'],
@@ -57,7 +59,13 @@ const MAP = {
 };
 
 // 0.1 unit on a 256 grid is 0.01 px at 24 px: invisible, and ~10% smaller.
-const round = (d) => d.replace(/-?\d*\.\d+/g, (m) => String(Math.round(parseFloat(m) * 10) / 10 || 0));
+// A rounded number that loses its sign or point ("-.05" → "0", "8.27.04" → "8.3" + "0") would run
+// into the number before it, so it gets a space when it follows a digit or a point.
+const round = (d) =>
+  d.replace(/-?\d*\.\d+/g, (m, at, all) => {
+    const v = String(Math.round(parseFloat(m) * 10) / 10 || 0);
+    return !v.startsWith('-') && /[\d.]/.test(all[at - 1] ?? '') ? ` ${v}` : v;
+  });
 
 const out = [];
 for (const [name, [ph, mode]] of Object.entries(MAP)) {

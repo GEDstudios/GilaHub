@@ -32,6 +32,7 @@ import { Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
 import { Fab, lightVar, Logo } from './ui/primitives';
+import { setCursors } from './ui/cursors';
 import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, coveredByTab, tabsOf } from './tabs';
 import { projectCount, todayRef, todayView } from './views';
@@ -172,6 +173,8 @@ function Duties() {
     // Icons light up in my color; my partner's things carry theirs (docs/03, Icons).
     root.setProperty('--me-light', lightVar(me.color));
     root.setProperty('--them', partnerColor ? lightVar(partnerColor) : 'var(--tile-2)');
+    // The mouse wears our hands, lit in my colour.
+    setCursors(lightVar(me.color));
   }, [me?.color, me, partnerColor]);
 
   useEffect(() => {

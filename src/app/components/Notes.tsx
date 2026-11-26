@@ -152,17 +152,6 @@ export function NotesLayer() {
   const place = placeOf(route);
   const [lifted, setLifted] = useState<string | null>(null);
   const board = useRef<HTMLDivElement>(null);
-  // Tap anywhere else: put it down.
-  useEffect(() => {
-    if (!lifted) return;
-    const off = (e: PointerEvent) => {
-      // Fingers put it down by letting go (a second finger is for turning it, not for this).
-      if (e.pointerType !== 'mouse') return;
-      if (!(e.target as Element)?.closest?.(`[data-note="${lifted}"]`)) setLifted(null);
-    };
-    document.addEventListener('pointerdown', off, true);
-    return () => document.removeEventListener('pointerdown', off, true);
-  }, [lifted]);
   if (!place) return null;
   const notes = hub.notesOn(place).slice(0, 8).reverse();
   if (!notes.length) return null;
@@ -208,6 +197,9 @@ function StuckNote({
     rot: note.rot ?? tiltOf(note.id),
     scale: note.scale ?? 1,
   });
+  // The latest "where it is", for handlers set up earlier (the twist and the wheel).
+  const homeRef = useRef(home);
+  homeRef.current = home;
   const [live, setLive] = useState<Place | null>(null);
   const liveRef = useRef<Place | null>(null);
   const show = (p: Place | null) => {
@@ -250,13 +242,64 @@ function StuckNote({
     return () => n.removeEventListener('touchmove', stop);
   }, []);
 
+  // Lifted with the mouse: press anywhere else and drag to turn it (round its middle) and size it
+  // (nearer, smaller; further, bigger). A plain click elsewhere puts it down.
+  useEffect(() => {
+    const n = el.current;
+    if (!n || !lifted || release.current) return;
+    let twist: { cx: number; cy: number; a0: number; d0: number; sx: number; sy: number; start: Place; moved: boolean } | null = null;
+    const opts: AddEventListenerOptions = { capture: true };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse' || n.contains(e.target as Node)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const r = n.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      twist = { cx, cy, a0: Math.atan2(e.clientY - cy, e.clientX - cx), d0: Math.max(12, Math.hypot(e.clientX - cx, e.clientY - cy)), sx: e.clientX, sy: e.clientY, start: liveRef.current ?? homeRef.current(), moved: false };
+    };
+    const move = (e: PointerEvent) => {
+      const t = twist;
+      if (!t) return;
+      if (!t.moved && Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 5) return;
+      t.moved = true;
+      const a = Math.atan2(e.clientY - t.cy, e.clientX - t.cx);
+      const d = Math.hypot(e.clientX - t.cx, e.clientY - t.cy);
+      show(keep({ ...t.start, rot: t.start.rot + ((a - t.a0) * 180) / Math.PI, scale: t.start.scale * (d / t.d0) }));
+    };
+    const up = (e: PointerEvent) => {
+      const t = twist;
+      if (!t) return;
+      twist = null;
+      e.stopPropagation();
+      // Nothing under it gets this click.
+      const eat = (c: Event) => {
+        c.stopPropagation();
+        c.preventDefault();
+      };
+      document.addEventListener('click', eat, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', eat, { capture: true }), 0);
+      if (t.moved) put();
+      else onLift(false);
+    };
+    document.addEventListener('pointerdown', down, opts);
+    document.addEventListener('pointermove', move, opts);
+    document.addEventListener('pointerup', up, opts);
+    return () => {
+      document.removeEventListener('pointerdown', down, opts);
+      document.removeEventListener('pointermove', move, opts);
+      document.removeEventListener('pointerup', up, opts);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lifted]);
+
   // The wheel, while it's lifted (mouse): size, or with Shift, turn.
   useEffect(() => {
     const n = el.current;
     if (!n || !lifted) return;
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
-      const p = liveRef.current ?? home();
+      const p = liveRef.current ?? homeRef.current();
       const next = e.shiftKey ? { ...p, rot: p.rot + e.deltaY * 0.15 } : { ...p, scale: p.scale * Math.exp(-e.deltaY * 0.0015) };
       show(keep(next));
       hub.placeNote(note.id, keep(next));

@@ -631,7 +631,7 @@
   background: var(--card);
   box-shadow: var(--lift-1), 0 0 0 1px var(--line);
   touch-action: pan-y;
-  cursor: grab;
+  cursor: var(--cur-grab, grab);
 }
 
 .homecard.is-ghost {
@@ -690,7 +690,7 @@
 }
 
 .homecard__grip {
-  cursor: grab;
+  cursor: var(--cur-grab, grab);
   touch-action: none;
 }
 

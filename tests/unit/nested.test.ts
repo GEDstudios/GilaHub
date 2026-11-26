@@ -78,27 +78,6 @@ describe('a project for my person', () => {
   });
 });
 
-describe('the backlog', () => {
-  it('keeps someday things out of Today and the counts, all in one place, till they come back', async () => {
-    const { backlogOf, openCount, todayView } = await import('../../src/app/views');
-    const { today } = await import('../../src/core/dates');
-    const hub = await person('guy');
-    hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
-    const l = hub.createList({ name: 'House', kind: 'tasks' });
-    const a = hub.addItem(l, { title: 'Paint the fence', due: today() });
-    hub.addItem(l, { title: 'Fix the tap' });
-    expect(openCount(hub, l)).toBe(2);
-    const undo = hub.setSomeday(a, true);
-    expect(openCount(hub, l)).toBe(1);
-    expect(backlogOf(hub).map((i) => i.title)).toEqual(['Paint the fence']);
-    expect(backlogOf(hub, l)).toHaveLength(1);
-    expect(todayView(hub, today()).today.map((i) => i.title)).not.toContain('Paint the fence');
-    undo();
-    expect(backlogOf(hub)).toEqual([]);
-    expect(openCount(hub, l)).toBe(2);
-  });
-});
-
 describe('pictures on ideas', () => {
   it('stores a big picture in parts and puts it back together; a new one never mixes with the old', async () => {
     const hub = await person('guy');
