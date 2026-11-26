@@ -56,12 +56,12 @@ function useAdd() {
 function MenuGlyph({ kind }: { kind: 'task' | 'buy' | 'project' | 'note' }) {
   if (kind === 'task')
     return (
-      // Gila Duo, like the app's icons: an ink tick circle, open at the top right where the
-      // check's tip passes out, over a disc of brand green slipped off-register.
+      // Same language as the folder and note: a flat lilac disc with one thin ink outline, left
+      // open at the top right where the check's tip passes out of it.
       <svg className="addmenu__glyph" aria-hidden="true" viewBox="0 0 40 40">
-        <circle cx="21.2" cy="23.2" r="13" fill="var(--mint)" />
-        <circle cx="19" cy="21" r="13" fill="none" stroke="#0a0a04" strokeWidth="2.2" strokeLinecap="round" strokeDasharray="65.80 15.88" transform="rotate(-9.3 19 21)" />
-        <path d="M11.3 20.8L16.5 26L31.5 8.1" fill="none" stroke="#0a0a04" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="19.5" cy="21" r="14" fill="var(--lilac)" />
+        <circle cx="19.5" cy="21" r="14" fill="none" stroke="#0a0a04" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="72.82 15.15" transform="rotate(-16.3 19.5 21)" />
+        <path d="M12.1 21.4L16.9 26.2L31.8 7.2" fill="none" stroke="#0a0a04" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   if (kind === 'buy')
