@@ -15,8 +15,8 @@ import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Band, Empty, IconButton, lineVars, ListBullet, NewButton, Seg } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
-import { haptic } from '../ui/haptics';
-import { setPrefs, usePrefs } from '../prefs';
+import { usePrefs } from '../prefs';
+import { ViewToggle } from '../components/ViewToggle';
 import { Sortable } from '../ui/Sortable';
 import { folderLean, NewProjectSheet, ProjectCard, SortableProject } from './Lists';
 import { coveredByTab, pinsOf, setPins, togglePin } from '../tabs';
@@ -294,33 +294,10 @@ function TaskProject({ id }: { id: string }) {
             />
           </div>
         ) : null}
-        <ViewToggle />
+        <ViewToggle which="taskView" />
         <Children listId={id} parentId={null} cards={prefs.taskView === 'cards'} />
         {everything ? <AllInside lists={nested} /> : <SubProjects list={list} />}
       </div>
-    </div>
-  );
-}
-
-/** List or cards: how a project's tasks are laid out (this device, every project). */
-function ViewToggle() {
-  const prefs = usePrefs();
-  const set = (v: 'list' | 'cards') => {
-    haptic('select');
-    setPrefs({ taskView: v });
-  };
-  return (
-    <div className="viewtoggle" role="radiogroup" aria-label="Show tasks as">
-      {(
-        [
-          ['list', 'lines', 'List'],
-          ['cards', 'folders', 'Cards'],
-        ] as const
-      ).map(([v, icon, label]) => (
-        <button key={v} type="button" role="radio" aria-checked={prefs.taskView === v} aria-label={label} title={label} className={`viewtoggle__btn ${prefs.taskView === v ? 'is-on' : ''}`} onClick={() => set(v)}>
-          <Icon name={icon} className="icon--sm" />
-        </button>
-      ))}
     </div>
   );
 }
@@ -368,16 +345,8 @@ function SubProjects({ list }: { list: List }) {
   const subs = hub.subLists(list.id);
   const pins = pinsOf(hub);
   const make = () => openSheet((close) => <NewProjectSheet onClose={close} parentId={list.id} />);
-  if (!subs.length) {
-    return (
-      <p className="editlink">
-        <button type="button" className="textbtn" onClick={make}>
-          Add a project inside
-          <Icon name="folder" className="icon--xs" />
-        </button>
-      </p>
-    );
-  }
+  // None yet: the + makes one ("Project inside …").
+  if (!subs.length) return null;
   return (
     <section className="subprojects" aria-label={`Inside ${list.name}`}>
       <Sortable

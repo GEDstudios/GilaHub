@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { LineColor, List, Member } from '../../core/model';
 import { haptic } from './haptics';
-import { primeKeyboard } from './keyboard';
 import { Icon, type IconName } from './Icon';
 
 export const lineVars = (c: LineColor | undefined): CSSProperties =>
@@ -115,24 +114,6 @@ export function NewButton(_props: { onClick: () => void; label?: string }) {
   return null;
 }
 
-/** The one +: big, round, bottom right, where the thumb is. */
-export function Fab({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      className="fab"
-      onClick={() => {
-        primeKeyboard();
-        onClick();
-      }}
-      aria-label={label}
-      title={label}
-      aria-keyshortcuts="N"
-    >
-      <Icon name="plus" />
-    </button>
-  );
-}
 
 /**
  * A screen header: a quiet top row (back or avatar, actions) and a serif title.

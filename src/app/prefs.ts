@@ -31,6 +31,8 @@ export interface Prefs {
   livelyCursor: boolean | null;
   /** A project's tasks as a list, or as a grid of cards (this device). */
   taskView: 'list' | 'cards';
+  /** The shopping as a list, or as cards (this device). */
+  shopView: 'list' | 'cards';
 }
 
 const KEY = 'gila-hub:prefs';
@@ -52,6 +54,7 @@ const DEFAULTS: Prefs = {
   asksUrgentOnly: false,
   livelyCursor: null,
   taskView: 'list',
+  shopView: 'list',
 };
 
 function read(): Prefs {

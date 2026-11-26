@@ -6691,3 +6691,248 @@ textarea.nf__write {
     background: #fff;
   }
 }
+
+/* ============================================================ Where it goes: the tree */
+/* Projects in their folders (folded), a task project's open tasks under it: pick a project, or a
+   task to add a subtask under it */
+.desttree {
+  display: grid;
+  gap: 1px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 2px;
+}
+
+.desttree__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 10px;
+}
+
+.desttree__row.is-on {
+  background: var(--tile);
+}
+
+.desttree__fold {
+  flex: none;
+  width: 28px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+
+.desttree__fold .icon {
+  --s: 14;
+  transition: transform 180ms var(--ease);
+}
+
+.desttree__fold.is-open .icon {
+  transform: rotate(90deg);
+}
+
+.desttree__pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 10px 0 2px;
+  border-radius: 8px;
+  font-size: 15px;
+  text-align: start;
+}
+
+.desttree__pick:hover {
+  background: var(--press);
+}
+
+.desttree__pick > span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.desttree__task {
+  color: var(--text-2);
+}
+
+.desttree__on {
+  margin-left: auto;
+  flex: none;
+}
+
+/* A folder's tab stands up above its card: give it the same air under the path a task gets */
+.crumbs--path ~ .hero--folder {
+  margin-top: 12px;
+}
+
+/* ============================================================ The +: what to make */
+.fab .icon {
+  transition: transform 260ms var(--spring);
+}
+
+.fab.is-open .icon {
+  transform: rotate(45deg);
+}
+
+.addmenu__veil {
+  position: fixed;
+  z-index: 35;
+  inset: 0;
+  background: rgb(250 250 248 / 0.72);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fade-in 160ms var(--ease) both;
+}
+
+/* The choices stand on the + : right-aligned, the nearest first */
+.addmenu {
+  position: fixed;
+  z-index: 36;
+  right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px + 76px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.addmenu__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px 0 0;
+  animation: addmenu-in 260ms var(--spring) both;
+}
+
+@keyframes addmenu-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+  }
+}
+
+.addmenu__label {
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px rgb(10 10 4 / 0.06),
+    0 6px 16px -6px rgb(10 10 4 / 0.25);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.addmenu__face {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--text);
+  box-shadow:
+    0 0 0 1px rgb(10 10 4 / 0.06),
+    0 6px 16px -6px rgb(10 10 4 / 0.3);
+  transition: transform 200ms var(--spring);
+}
+
+.addmenu__item:active .addmenu__face {
+  transform: scale(0.9);
+}
+
+.addmenu__item--task .addmenu__face {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.addmenu__note {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(225deg, transparent 5px, var(--lemon) 5px);
+  box-shadow: 0 1px 2px rgb(10 10 4 / 0.3);
+  transform: rotate(-6deg);
+}
+
+@media (min-width: 960px) {
+  .addmenu {
+    right: 28px;
+    bottom: 104px;
+  }
+
+  .addmenu__item:hover .addmenu__face {
+    transform: scale(1.06);
+  }
+}
+
+/* Cards are white, whatever they sit in (an aisle, the lemon Urgent group, a panel) and however
+   they're touched */
+.rows.rows--cards,
+.aisle--urgent .rows.rows--cards {
+  background: transparent;
+}
+
+.rows--cards .row,
+.rows--cards .row:hover,
+.rows--cards .row:active,
+.aisle--urgent .rows--cards .row,
+.main .rows--cards .row,
+.main .rows--cards .row:hover {
+  background: #fff;
+}
+
+.rows--cards .row:active {
+  transform: scale(0.98);
+}
+
+/* Urgent things as cards: white with a lemon edge; the Urgent title spans the row */
+.aisle--urgent .rows--cards .row {
+  box-shadow:
+    0 0 0 2px var(--lemon),
+    0 1px 3px rgb(10 10 4 / 0.08);
+}
+
+.rows--cards .aisle__cap {
+  grid-column: 1 / -1;
+  padding: 2px 4px;
+  background: transparent;
+}
+
+/* Things to buy are short: smaller cards */
+.aisle .rows--cards .row {
+  min-height: 96px;
+}
+
+.aisle .rows--cards .row__title {
+  font-size: 15.5px;
+}
+
+/* Taking the date off: a plain pill that says so */
+.whencard__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px 0 10px;
+  border-radius: 17px;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.whencard__clear:hover {
+  background: var(--tile-2);
+}
+
+.whencard__clear:active {
+  transform: scale(0.96);
+}

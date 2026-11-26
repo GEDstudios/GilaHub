@@ -13,7 +13,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
 import { EChip, InlineEditor, useSummary, type Field } from './editors';
-import { listChip, ParsedToken, useCompose } from './QuickAdd';
+import { aisleChip, listChip, ParsedToken, useCompose } from './QuickAdd';
 
 /**
  * New: the one way to add, from the black + on every screen. You write straight onto the
@@ -204,7 +204,7 @@ function Composer({
 
   let sub: string;
   if (shopping) {
-    const aisle = title && dest ? hub.aisleMeta(hub.flavorOf(dest), hub.categoryFor({ title, listId: dest.id } as Item).category) : null;
+    const aisle = title && dest ? hub.aisleMeta(hub.flavorOf(dest), c.category ?? hub.categoryFor({ title, listId: dest.id } as Item).category) : null;
     const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
     sub = aisle ? [aisle.name, qty].filter(Boolean).join(' · ') : `In ${dest?.name ?? 'your list'}`;
   } else if (c.parent) {
@@ -224,7 +224,12 @@ function Composer({
           .map((s) => s.name)
     : [];
 
-  const extras = c.parent ? [] : [listChip(c, hub.lists())];
+  // Where it goes (a project, or a task in one): not when it's already a subtask being added in place.
+  const extras = [
+    ...(c.fixedParent ? [] : [listChip(c, hub.lists())]),
+    // Something to buy: its aisle, picked here (or as the words make it).
+    ...(shopping && dest && title ? [aisleChip(c, hub, dest, hub.categoryFor({ title, listId: dest.id } as Item).category)] : []),
+  ];
 
   return (
     <form

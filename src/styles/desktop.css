@@ -219,30 +219,9 @@
     bottom: 28px;
   }
 
+  /* A note for my person: one of the +'s choices here */
   .notebtn {
-    position: fixed;
-    z-index: 36;
-    top: auto;
-    left: auto;
-    right: 108px;
-    bottom: 32px;
-    width: 56px;
-    height: 56px;
-  }
-
-  .notebtn__paper {
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(225deg, transparent 11px, var(--lemon) 11px);
-    filter: drop-shadow(0 0 0.6px rgb(10 10 4 / 0.4)) drop-shadow(0 8px 12px rgb(10 10 4 / 0.2));
-  }
-
-  .notebtn__paper .icon {
-    --s: 20;
-  }
-
-  .notebtn:hover .notebtn__paper {
-    transform: rotate(-3deg) scale(1.05);
+    display: none;
   }
 
   /* ---------------------------------------------------------- Pages, on the grid */
@@ -361,6 +340,17 @@
   .main .aisle {
     margin-top: 16px;
     padding: 12px 10px 10px;
+  }
+
+  /* Urgent stays the screen's one lemon card */
+  .main .aisle--urgent {
+    background: var(--lemon);
+    box-shadow: 0 1px 3px rgb(10 10 4 / 0.08);
+  }
+
+  .main .aisle--urgent .rows,
+  .main .aisle--urgent .row {
+    background: transparent;
   }
 
   .main .column > .rows,
@@ -619,7 +609,7 @@
   .projpage .band__actions {
     position: absolute;
     z-index: 2;
-    top: 98px;
+    top: 110px;
     right: 14px;
   }
 
@@ -634,7 +624,7 @@
   }
 
   .projpage .band > .hero {
-    margin-top: 14px;
+    margin-top: 26px;
   }
 
   .projpage .hero {

@@ -1,3 +1,5 @@
+import type { Flavor } from '../../smart/categorize';
+import { ViewToggle } from '../components/ViewToggle';
 import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { useWide } from '../ui/useWide';
 import { TwinTag } from '../components/ItemRow';
@@ -344,7 +346,10 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               onDone={() => setArranging(false)}
             />
           ) : v.urgent.length || v.groups.length ? (
+            <>
+            <ViewToggle which="shopView" />
             <ShopList
+              cards={prefs.shopView === 'cards'}
               groups={[
                 ...(v.urgent.length
                   ? [
@@ -365,6 +370,8 @@ export function Shopping({ listId }: { listId?: string } = {}) {
                     key: g.key,
                     label: g.label,
                     items: g.items,
+                    category: g.category,
+                    flavor: g.flavor,
                     icon: categoryMark(hub, g.flavor, g.category).icon,
                     emoji: categoryMark(hub, g.flavor, g.category).emoji,
                     showList: many && !one,
@@ -378,6 +385,7 @@ export function Shopping({ listId }: { listId?: string } = {}) {
               draggable={!mode}
               settle={settle}
             />
+            </>
           ) : null}
 
           {!mode && !arranging && lists.length ? (
@@ -414,6 +422,9 @@ interface ShopGroup {
   /** The aisle's glyph; aisles without one keep their emoji. */
   icon?: IconName;
   emoji?: string;
+  /** An aisle's category and which kind of list it's for (dragging between aisles changes it). */
+  category?: string;
+  flavor?: Flavor;
 }
 
 function SortableShopRow(props: Parameters<typeof ShopRow>[0]) {
@@ -429,7 +440,9 @@ function ShopList({
   flash,
   draggable,
   settle,
+  cards,
 }: {
+  cards?: boolean;
   groups: ShopGroup[];
   onTick: (i: Item) => void;
   onOpen: (i: Item) => void;
@@ -450,13 +463,47 @@ function ShopList({
    * tie, so the aisle as dropped is what gets its keys (views.ts). The Urgent card isn't
    * arranged: it reads in walking order.
    */
-  const onMove = (next: string[], id: string) => hub.reorderIn(next, id);
-  return (
+  // One drag across every aisle: drop a thing in another aisle and it moves there (and is
+  // remembered there, for both of us). The Urgent card isn't arranged: it reads in walking order.
+  const labeled = groups.filter((g) => g.label);
+  const ids = labeled.flatMap((g) => g.items.map((i) => i.id));
+  const groupOf = new Map(labeled.flatMap((g) => g.items.map((i) => [i.id, g] as const)));
+  const lastPt = useRef<[number, number] | null>(null);
+  useEffect(() => {
+    const track = (e: PointerEvent) => {
+      lastPt.current = [e.clientX, e.clientY];
+    };
+    window.addEventListener('pointermove', track, { capture: true, passive: true });
+    return () => window.removeEventListener('pointermove', track, { capture: true });
+  }, []);
+  const { toast } = useOverlays();
+  const onMove = (next: string[], id: string) => {
+    const from = groupOf.get(id);
+    if (!from) return;
+    const at = next.indexOf(id);
+    // Where it landed: the aisle under the hand, else the one it now sits beside.
+    const pt = lastPt.current;
+    const key = pt ? document.elementsFromPoint(pt[0], pt[1]).map((e) => e.closest('[data-aisle]')?.getAttribute('data-aisle')).find(Boolean) : null;
+    const to = labeled.find((g) => g.key === key) ?? groupOf.get(next[at - 1]) ?? groupOf.get(next[at + 1]) ?? from;
+    const item = hub.item(id);
+    if (to !== from) {
+      // Only between aisles of its own kind of list (groceries' aisles aren't the home shop's).
+      if (!item || !to.category || to.flavor !== hub.flavorOf(hub.list(item.listId))) return;
+      hub.setCategory(id, to.category);
+      haptic('drop');
+      toast(`Moved to ${to.label}`);
+    }
+    hub.reorderIn(
+      next.filter((x) => x === id || groupOf.get(x) === to),
+      id,
+    );
+  };
+  const aisles = (
     <>
       {groups.map((g) => {
         const shown = settle.view(g.key, g.items);
         return shown.length ? (
-          <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--urgent'}`} aria-label={g.label ?? 'Urgent'} data-sort-bounds>
+          <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--urgent'}`} aria-label={g.label ?? 'Urgent'} data-aisle={g.label ? g.key : undefined}>
             {g.label ? (
               <h2 className="aisle__head">
                 {g.icon ? (
@@ -471,22 +518,7 @@ function ShopList({
                 {g.dot ? <ListBullet list={g.dot} size="xs" /> : null}
               </h2>
             ) : null}
-            <Sortable
-              ids={g.items.map((i) => i.id)}
-              onMove={onMove}
-              bounds="refuse"
-              disabled={!draggable || !g.label}
-              label={(id) => hub.item(id)?.title ?? ''}
-              renderOverlay={(id) => {
-                const item = g.items.find((i) => i.id === id);
-                return item ? (
-                  <ul className="rows">
-                    <ShopRow item={item} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={!g.label} />
-                  </ul>
-                ) : null;
-              }}
-            >
-              <ul className="rows">
+              <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
                 {/* The Urgent card is the screen's one lemon card: its title sits inside it. */}
                 {g.label ? null : (
                   <li className="aisle__cap">
@@ -504,11 +536,31 @@ function ShopList({
                   ),
                 )}
               </ul>
-            </Sortable>
           </section>
         ) : null;
       })}
     </>
+  );
+  if (!draggable) return aisles;
+  return (
+    <Sortable
+      ids={ids}
+      onMove={onMove}
+      layout={cards ? 'grid' : 'rows'}
+      bounds="none"
+      label={(id) => hub.item(id)?.title ?? ''}
+      renderOverlay={(id) => {
+        const item = hub.item(id);
+        const g = groupOf.get(id);
+        return item && g ? (
+          <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
+            <ShopRow item={item as Row} onTick={onTick} onOpen={onOpen} showList={g.showList} inUrgent={false} />
+          </ul>
+        ) : null;
+      }}
+    >
+      {aisles}
+    </Sortable>
   );
 }
 

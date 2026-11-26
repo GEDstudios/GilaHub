@@ -1,6 +1,6 @@
 import { startTour, tourDone, tourList, tourWatch } from './tour';
 import { updateReady } from './update';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { seedHousehold } from '../core/actions';
 import { addDays, today as todayStr } from '../core/dates';
 import { afterTick } from './notify';
@@ -9,7 +9,7 @@ import type { LineColor } from '../core/model';
 import { loadSession, newSession, saveSession, sessionFromInvite } from '../core/session';
 import { runAdd, useAddLabel } from './addAction';
 import { IdeaTag, useIdeasBadge, useOpenIdeas } from './components/Ideas';
-import { NoteButton, NotesLayer } from './components/Notes';
+import { NoteButton, NotesLayer, useNoteHere } from './components/Notes';
 import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
@@ -22,7 +22,7 @@ import { currentPath, navigate, useRoute } from './router';
 import { openPersistence, startRuntime, swContainer, updateBadge, type Runtime } from './runtime';
 import { ItemScreen } from './screens/ItemScreen';
 import { ListScreen } from './screens/ListScreen';
-import { Lists } from './screens/Lists';
+import { Lists, NewProjectSheet } from './screens/Lists';
 import { Onboarding, type OnboardResult } from './screens/Onboarding';
 import { Settings } from './screens/Settings';
 import { Shopping } from './screens/Shopping';
@@ -30,7 +30,9 @@ import { SyncDot } from './components/SyncBadge';
 import { Today } from './screens/Today';
 import { Icon } from './ui/Icon';
 import { OverlayProvider, useOverlays } from './ui/overlays';
-import { Avatar, Fab, lightVar, lineVars, Logo } from './ui/primitives';
+import { Avatar, lightVar, lineVars, Logo } from './ui/primitives';
+import { primeKeyboard } from './ui/keyboard';
+import { haptic } from './ui/haptics';
 import { cursorImage, setCursors } from './ui/cursors';
 import { startLiveCursor } from './ui/liveCursor';
 import { ProjectMark } from './ui/ProjectMark';
@@ -50,6 +52,91 @@ function useAdd() {
  * (Today, your pins, Projects) in the middle; search, ideas and the two of us on the right.
  * Adding (the black +) and a note for my person float bottom right, as they do on the phone.
  */
+/**
+ * The +: what to make. A tap opens three choices over it (the + turns into an x): a task (or a
+ * thing to buy, or a subtask, as the screen says), a project (inside this one, on a project's
+ * page), or a sticky note for my person on this screen. N still makes a task straight away.
+ */
+function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
+  const route = useRoute();
+  const hub = useHub();
+  const { openSheet } = useOverlays();
+  const note = useNoteHere();
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [open]);
+  // A new page closes it (by where it is, not by the route object, which is new every render).
+  const where = JSON.stringify(route);
+  useEffect(() => setOpen(false), [where]);
+  const here = route.name === 'list' ? hub.list(route.id) : route.name === 'item' ? hub.list(hub.item(route.id)?.listId) : undefined;
+  const buying = route.name === 'shop' || here?.kind === 'shopping';
+  const choices: Array<{ key: string; label: string; face: ReactNode; run: () => void }> = [
+    {
+      key: 'task',
+      label: buying ? 'Something to buy' : addLabel === 'New' ? 'Task' : addLabel,
+      face: <Icon name={buying ? 'basket' : 'check'} className="icon--sm" />,
+      run: () => {
+        primeKeyboard();
+        add();
+      },
+    },
+    {
+      key: 'project',
+      label: here && route.name === 'list' ? `Project inside ${here.name}` : 'Project',
+      face: <Icon name="folder" className="icon--sm" />,
+      run: () => openSheet((close) => <NewProjectSheet onClose={close} parentId={route.name === 'list' ? here?.id : undefined} />),
+    },
+    ...(note ? [{ key: 'note', label: `Sticky note for ${note.to}`, face: <span className="addmenu__note" aria-hidden="true" />, run: note.open }] : []),
+  ];
+  return (
+    <>
+      {open ? <div className="addmenu__veil" onClick={() => setOpen(false)} aria-hidden="true" /> : null}
+      {open ? (
+        <div className="addmenu" role="menu" aria-label="New">
+          {choices.map((c, i) => (
+            <button
+              key={c.key}
+              type="button"
+              role="menuitem"
+              className={`addmenu__item addmenu__item--${c.key}`}
+              style={{ animationDelay: `${(choices.length - 1 - i) * 35}ms` } as CSSProperties}
+              onClick={() => {
+                haptic('select');
+                setOpen(false);
+                c.run();
+              }}
+            >
+              <span className="addmenu__label" dir="auto">
+                {c.label}
+              </span>
+              <span className="addmenu__face">{c.face}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <button
+        type="button"
+        className={`fab ${open ? 'is-open' : ''}`}
+        aria-label={open ? 'Close' : 'New'}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        title={open ? 'Close' : 'New: a task, a project or a note'}
+        aria-keyshortcuts="N"
+        onClick={() => {
+          haptic('select');
+          setOpen(!open);
+        }}
+      >
+        <Icon name="plus" />
+      </button>
+    </>
+  );
+}
+
 function TopNav() {
   const route = useRoute();
   const hub = useHub();
@@ -288,7 +375,7 @@ function Shell() {
         <Screen />
       </main>
       <TabBar />
-      {route.name === 'settings' ? null : <Fab label={addLabel} onClick={add} />}
+      {route.name === 'settings' ? null : <AddMenu add={add} addLabel={addLabel} />}
       <IdeaTag />
       <NoteButton />
       <NotesLayer />

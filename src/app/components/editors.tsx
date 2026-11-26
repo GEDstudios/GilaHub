@@ -538,8 +538,9 @@ export function WhenCard({
 
       {value.due ? (
         <div className="whencard__foot">
-          <button type="button" className="textbtn" onClick={() => setDay(null)}>
-            No date
+          <button type="button" className="whencard__clear" onClick={() => setDay(null)}>
+            <Icon name="x" className="icon--sm" />
+            Remove date
           </button>
         </div>
       ) : null}

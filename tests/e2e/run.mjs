@@ -76,11 +76,17 @@ for (const [name, p] of [
 }
 const shot = (p, name) => p.screenshot({ path: resolve(shots, `${name}.png`) });
 
+/** The +, then what to make: 'task' (or a thing to buy), 'project' or 'note'. */
+async function plus(p, what = 'task') {
+  await p.locator('.fab').first().click();
+  await p.locator(`.addmenu__item--${what}`).click();
+}
+
 /** Add through the black + (the only way to add): write on the card, Enter. Shopping stays open: Done closes it. */
 async function addVia(p, lines, { shopping = false } = {}) {
   for (let i = 0; i < lines.length; i++) {
     if (!shopping || i === 0) {
-      await p.locator('.fab').first().click();
+      await plus(p);
       await p.locator('.composer__input').waitFor({ timeout: 5000 });
     }
     await p.locator('.composer__input').fill(lines[i]);
@@ -175,7 +181,7 @@ try {
   });
 
   await check('No duplicates: adding milk again says it exists', async () => {
-    await hila.locator('.fab').first().click();
+    await plus(hila);
     await hila.locator('.composer__input').fill('Milk');
     await hila.locator('.composer__input').press('Enter');
     await hila.getByText(/already on the list/).waitFor({ timeout: 5000 });
@@ -249,7 +255,7 @@ try {
   await check('Requests: Guy asks Hila; it shows under "You asked Hila…" on his Today', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
-    await guy.locator('.fab').first().click();
+    await plus(guy);
     await guy.locator('.composer__input').fill('Water the balcony plants @hila today');
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
@@ -320,7 +326,7 @@ try {
 
   await check('New: the "+" asks Hila from the composer, with an OK', async () => {
     await guy.goto(`${url}/`);
-    await guy.getByRole('button', { name: 'New', exact: true }).click();
+    await plus(guy);
     await guy.getByRole('textbox', { name: 'What needs doing?' }).fill('Return the library books @hila');
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
     await guy.getByRole('switch', { name: 'Needs my OK when done' }).click();
@@ -759,14 +765,26 @@ try {
     await guy.goto(`${url}/lists`);
     await guy.locator('.projcard__name', { hasText: /^Next trip$/ }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
-    await guy.getByRole('button', { name: /Add a project inside/ }).click();
+    // The + makes a project inside this one.
+    await guy.locator('.fab').first().click();
+    await guy.getByRole('menuitem', { name: 'Project inside Next trip' }).click();
     await guy.locator('.sheet .ccard__input').fill('Packing');
     await guy.getByRole('button', { name: /create project/i }).click();
     await guy.getByRole('heading', { name: 'Packing', level: 1 }).waitFor({ timeout: 5000 });
     const path = () => guy.locator('.crumbs--path').innerText().then((t) => t.replace(/\s+/g, ' ').trim());
     if ((await path()) !== 'Projects Next trip') throw new Error(`Packing's path: ${await path()}`);
     await addVia(guy, ['Passport']);
+    // A new task can go under one: pick Passport in the composer's tree, and it's a subtask.
+    await plus(guy);
+    await guy.locator('.composer__input').fill('Visa photos');
+    await guy.locator('.sheet .echip', { hasText: 'Packing' }).click();
+    await guy.locator('.desttree__pick', { hasText: 'Passport' }).click();
+    await guy.locator('.sheet .echip', { hasText: '↳ Passport' }).waitFor({ timeout: 3000 });
+    await shot(guy, '12a-subtask-pick');
+    await guy.locator('.composer__input').press('Enter');
+    await guy.keyboard.press('Escape');
     await guy.locator('li.row', { hasText: 'Passport' }).locator('.row__title').click();
+    await guy.locator('li.row', { hasText: 'Visa photos' }).waitFor({ timeout: 3000 });
     await addVia(guy, ['Check the expiry']);
     await guy.locator('li.row', { hasText: 'Check the expiry' }).locator('.row__title').click();
     await guy.waitForTimeout(300);
