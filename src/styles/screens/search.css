@@ -82,21 +82,34 @@
   margin: 0 0 10px;
 }
 
+/* A white card under the field. What it holds decides its padding: a list runs edge to edge
+   (the card is the list), words and tokens get a card's 16. */
 .searchlayer__card {
   pointer-events: auto;
-  padding: 6px 4px;
+  padding: 4px 0;
+  overflow: hidden;
   border-radius: var(--r-m);
   background: var(--card);
   box-shadow: var(--lift-2), var(--edge);
   animation: row-in var(--dur-base) var(--ease) both;
 }
 
+.searchlayer__card .rows {
+  border-radius: 0;
+  background: none;
+}
+
+.searchlayer__card .row {
+  background: none;
+}
+
 .searchlayer__card .rows + .rows {
   margin-top: 4px;
 }
 
+.searchlayer__ideas,
 .searchlayer__recent {
-  padding: 4px 12px 12px;
+  padding: var(--space-3);
 }
 
 .searchlayer__forget {
@@ -105,7 +118,7 @@
 
 .searchlayer__none {
   margin: 0;
-  padding: 20px 14px;
+  padding: var(--space-3);
   color: var(--text-3);
 }
 

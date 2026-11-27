@@ -161,7 +161,6 @@
 .whencard__head {
   display: flex;
   justify-content: flex-end;
-  margin: 0 0 6px;
 }
 
 .whencard__clear {

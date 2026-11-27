@@ -92,7 +92,8 @@
 
 .homecard__peek > :not(.homecard__sub) {
   transform: scale(0.94);
-  transform-origin: top left;
+  /* Small, and in the middle of its card (the card's own edges are 16 either side) */
+  transform-origin: top center;
 }
 
 .homecard__sub {
