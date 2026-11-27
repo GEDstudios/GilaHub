@@ -112,7 +112,6 @@
   height: 40px;
   display: grid;
   place-items: center;
-  border: 1.5px solid rgb(10 10 4 / 0.72);
   border-radius: 50%;
   background: rgb(255 255 255 / 0.45);
   color: var(--ink);
@@ -318,7 +317,7 @@ button.stockcount:disabled {
   text-align: center;
 }
 
-/* On the task's card: the card's tick, exactly (color-card.css): its 40px ring, its glass, its
+/* On the task's card: the card's tick, exactly (color-card.css): its 40px disc of glass, its
    place. Open, − n + stays that height and grows to the left. How low it runs shows in the
    lists; here the card's own color would clash, so it's always ink. */
 .hero .stockcount {
@@ -334,7 +333,7 @@ button.stockcount:disabled {
   min-width: 40px;
   height: 40px;
   padding: 0 10px;
-  border-color: rgb(10 10 4 / 0.72);
+  border: 0;
   background: rgb(255 255 255 / 0.45);
   color: var(--ink);
   font-size: 17px;

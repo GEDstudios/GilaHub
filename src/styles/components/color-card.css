@@ -193,7 +193,7 @@ textarea.ccard__input {
 }
 
 /* The task card's buttons, its tick, its photo and its count, are one look and one size on one
-   line down the card's right edge (the padding's edge): a 40px ring of ink on white glass.
+   line down the card's right edge (the padding's edge): a 40px disc of white glass, no stroke.
    (The photo: stock.css .herophoto; the count: stock.css .hero .stockcount.) */
 .hero .check {
   width: 40px;
@@ -207,7 +207,7 @@ textarea.ccard__input {
 .hero .check::before {
   width: 40px;
   height: 40px;
-  border-color: rgb(10 10 4 / 0.72);
+  border: 0;
   background: rgb(255 255 255 / 0.45);
 }
 
