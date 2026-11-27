@@ -14,8 +14,6 @@
   pointer-events: none;
   padding: 0 16px;
 }
-
-/* No floating bar (Settings): they sit lower. */
 /* Typing near the bottom: the keyboard would hide them, so they show at the top. */
 .toasts.toasts--top {
   top: calc(var(--safe-top) + 12px);

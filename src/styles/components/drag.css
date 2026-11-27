@@ -8,8 +8,6 @@
   -webkit-user-select: none;
   user-select: none;
 }
-
-/* A grip lifts at once, so the page must not scroll from it */
 /* A flick from a grip still scrolls the page; a short press lifts the row (Sortable.tsx). In the
    bar's dock a flick scrolls the dock instead. */
 [data-grip] {
@@ -378,54 +376,6 @@ li.row:has(> .dropgap) {
   color: var(--text-4);
 }
 
-/* Locked: an outline and a lock, no buttons; a tap shakes it (is-nudge) */
-
-/* Found from a preview (the bar in Settings): a short gray flash */
-
-@keyframes slot-flash {
-  0%,
-  45% {
-    background: var(--tile-2);
-  }
-}
-
-/* Where a lifted slot came from */
-
-/* The lifted copy (in the drag overlay): white, the grip in ink */
-
-/* Hidden with ×: it folds away */
-
-/* Brought back: a lemon flash */
-
-@keyframes slot-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-
-@keyframes slot-out {
-  from {
-    height: var(--h, 66px);
-  }
-  to {
-    height: 0;
-    min-height: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    margin-bottom: -8px;
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-
-@keyframes slot-fresh {
-  0%,
-  30% {
-    background: var(--lemon-soft);
-  }
-}
-
 /*
  * The tray: + tokens to bring things back; one can open a panel of choices under it. It belongs
  * to the list above it: a quiet label close under the rows, not a section of its own.
@@ -438,10 +388,6 @@ li.row:has(> .dropgap) {
 
 .token.is-open .icon {
   color: inherit;
-}
-
-.token.is-new {
-  animation: pop 220ms var(--spring) both;
 }
 
 .token.is-ghost {
@@ -464,10 +410,4 @@ li.row:has(> .dropgap) {
   pointer-events: none;
   opacity: 0;
   transform: scale(0.9);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .token.is-new {
-    animation: none;
-  }
 }

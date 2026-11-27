@@ -197,8 +197,6 @@ section.aisle.is-settling-in > .rows {
     transition: none;
   }
 }
-
-/* A group folded to its heading: its tasks are a tap away */
 /* The one fold arrow (FoldButton): a folder's groups, Done, In stock… */
 .foldbtn {
   flex: none;

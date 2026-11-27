@@ -13,14 +13,6 @@
   transition: background 140ms var(--ease);
 }
 
-/*
- * What letting go will do, in the space the row uncovers: a start icon on my colour (Ongoing),
- * or an × on a quiet band (Not now). It grows in as the row moves (--swipe-p) and pops once
- * letting go would do it.
- */
-
-/* With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). */
-
 /* A task's photo, small, at the row's end. */
 .row__thumb {
   width: 34px;

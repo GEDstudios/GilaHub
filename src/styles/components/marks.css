@@ -135,12 +135,6 @@
   --s: 14;
 }
 
-.urgent--short {
-  width: 22px;
-  padding: 0;
-  justify-content: center;
-}
-
 .vtag .icon {
   --s: 12;
 }

@@ -67,8 +67,8 @@ const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const WEEKDAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export function weekdayName(n: number, long = false): string {
-  return (long ? WEEKDAYS_LONG : WEEKDAYS_SHORT)[n];
+export function weekdayName(n: number): string {
+  return WEEKDAYS_SHORT[n];
 }
 
 /** "Today", "Tomorrow", "Yesterday", "Thursday", "Mon 30 Nov", "12 Jan 2027". */

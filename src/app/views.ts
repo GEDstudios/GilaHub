@@ -3,7 +3,7 @@ import { addDays, fromDateStr, today as todayStr } from '../core/dates';
 import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
 import { itemKey } from '../smart/normalize';
-import { buyAgain, purchaseStats, type BuyAgainSuggestion, type PurchaseStats } from '../smart/suggest';
+import { buyAgain, purchaseStats, type BuyAgainSuggestion } from '../smart/suggest';
 import { isOpen, isStocked, isTodo } from '../core/model';
 import { listKey } from '../core/keys';
 
@@ -43,7 +43,6 @@ export interface TodayView {
   today: Item[];
   earlier: Item[];
   upcoming: Array<{ date: string; items: Item[] }>;
-  together: number;
   recent: Array<{ log?: LogEntry; item: Item; by: string; at: number }>;
   dueCount: number;
   /** My requests my partner says are done — waiting for my OK. */
@@ -115,8 +114,6 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const weekAgo = Date.now() - 7 * 86_400_000;
   const logs = hub.store.all('log');
   const doneTasks = hub.store.all('item').filter((i) => i.done && i.doneAt && i.doneAt > weekAgo && lists.has(i.listId));
-  // A tick is logged (older ones weren't): each counts once.
-  const together = logs.filter((l) => l.at > weekAgo).length + doneTasks.filter((i) => !i.logId).length;
 
   const partner = hub.partner();
   const dayAgo = Date.now() - 36 * 3600_000;
@@ -135,7 +132,6 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
     today,
     earlier,
     upcoming,
-    together,
     recent: recent.slice(0, 3),
     dueCount: today.length + earlier.length,
     awaitingOk: items
@@ -189,7 +185,6 @@ interface ProjectView {
   tray: Item[];
   /** Done and cleared, newest first. */
   cleared: Item[];
-  stats: Map<string, PurchaseStats>;
   /** Again? Things done here before, about due again. */
   again: BuyAgainSuggestion[];
 }
@@ -239,7 +234,6 @@ export const projectView = memo((hub: Hub, listId: string, inside: boolean, view
   groups.forEach((g, at) => g.items.forEach((i, n) => walk.set(i.id, at * 10_000 + n)));
 
   const logs = hub.store.all('log').filter((l) => l.kind === 'bought' && (!l.listId || ids.has(l.listId)));
-  const stats = purchaseStats(logs);
   const onList = new Set(open.map((i) => itemKey(i.title)));
   return {
     lists,
@@ -252,8 +246,7 @@ export const projectView = memo((hub: Hub, listId: string, inside: boolean, view
       .filter((i) => i.done && i.archived)
       .sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0))
       .slice(0, 40),
-    stats,
-    again: buyAgain(stats, onList, { isDismissed: (key, lastAt) => dismissed[key] === lastAt }),
+    again: buyAgain(purchaseStats(logs), onList, { isDismissed: (key, lastAt) => dismissed[key] === lastAt }),
   };
 });
 

@@ -101,15 +101,11 @@
   margin: 0;
 }
 
-/* The tray's name, beside its count. */
-
 /* A group's project, as a link (Everything inside). */
 .aisle__go {
   display: inline-grid;
   place-items: center;
 }
-
-/* On Today, the lens sits under the summary card, a breath apart. */
 
 /* A project a dragged task would land in: it lifts and rings in gray, so where it goes is plain. */
 .projgrid .projcard.is-droptarget,

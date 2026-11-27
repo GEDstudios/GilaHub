@@ -32,8 +32,6 @@ export const DEFAULT_HOME: readonly HomeSlot[] = [
 interface WidgetDef {
   title: (hub: Hub) => string;
   icon: IconName;
-  /** Only while there are two of us. */
-  needsPartner?: boolean;
 }
 
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
@@ -97,17 +95,15 @@ export function homeOf(hub: Hub): HomeSlot[] {
   return out;
 }
 
-const available = (hub: Hub, s: HomeSlot) => !isWidget(s.key) || !WIDGETS[s.key].needsPartner || !!hub.partner();
-
-/** What Today draws, in order: on, and not waiting for a partner who isn't here. */
+/** What Today draws, in order: what's on. */
 export function visibleHome(hub: Hub): HomeSlot[] {
-  return homeOf(hub).filter((s) => s.on && available(hub, s));
+  return homeOf(hub).filter((s) => s.on);
 }
 
 /** Widgets I could bring back (the tray), in their stored order. */
 export function hiddenWidgets(hub: Hub): WidgetKey[] {
   return homeOf(hub)
-    .filter((s) => !s.on && isWidget(s.key) && available(hub, s))
+    .filter((s) => !s.on && isWidget(s.key))
     .map((s) => s.key as WidgetKey);
 }
 
@@ -146,7 +142,7 @@ export function isDefaultHome(hub: Hub): boolean {
   return now.length === DEFAULT_HOME.length && now.every((s, i) => s.key === DEFAULT_HOME[i].key && s.on === DEFAULT_HOME[i].on);
 }
 
-/** A new order for what's visible; hidden and unavailable entries keep their places. One write. */
+/** A new order for what's visible; hidden entries keep their places. One write. */
 export function reorderHome(hub: Hub, visibleKeys: readonly string[]): void {
   const all = homeOf(hub);
   const shown = new Set(visibleHome(hub).map((s) => s.key));

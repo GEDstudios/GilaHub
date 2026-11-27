@@ -84,10 +84,6 @@ span.aislearr__name {
   margin-bottom: 14px;
 }
 
-/* First thing on Shopping: one wide switch, all lists or one */
-
-/* Each choice gets its share of the width; a long name is cut, never scrolled */
-
 /* "Both" needs only its word; the lists share the rest */
 
 .buyagain {
@@ -119,7 +115,3 @@ span.aislearr__name {
 .aisle .row {
   min-height: 54px;
 }
-
-/* Outside the store a tick swaps Start shopping for this note, the same size, for a moment */
-/* Light on ink: the Urgent card stays the screen's one lemon moment */
-/* What just went in the cart, for a moment */

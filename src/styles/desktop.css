@@ -205,7 +205,7 @@
   }
 
   /* The phone's bar and floating corner pieces: here the top bar has them */
-  .tabbar:not(.tabbar--preview),
+  .tabbar,
   .ideatag,
   .miniband,
   .band__corner {
@@ -457,16 +457,6 @@
     background: rgb(255 255 255 / 0.5);
   }
 
-  /* The week, compact: the same tilted cards, smaller */
-
-  .home__side .strip__label {
-    font-size: 15px;
-  }
-
-  /* The head of the day: one line to add a task (the + and N do the same) */
-
-  /* Coming up, beside the day: a wrapping grid of tiles, not a carousel */
-
   /* ---------------------------------------------------------- Projects: as many folders as fit */
   .projgrid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -561,8 +551,6 @@
     margin-top: 14px;
   }
 
-  /* ---------------------------------------------------------- Shopping */
-
   /* ---------------------------------------------------------- Quiet links line up with the content */
   .homeedit,
   .column > .editlink {
@@ -628,8 +616,6 @@
   .projpage .hero--project .hero__foot {
     padding-right: 140px;
   }
-
-  /* Us inside its panel: the panel is the tile. */
 }
 
 /* A folder held over the top bar: the places make room for it, a line where it'll land. */

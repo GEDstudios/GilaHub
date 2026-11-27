@@ -1,15 +1,9 @@
 /* ============================================================ Today */
 
-/* The tags sit beside the sentence when they fit, and drop below it when they don't */
-
-/* The person tag: a project-style pill in their color, with Tasky's cursor */
-
 /* Waiting on you, reached from the person tag: clear of the compact header */
 #home-asks {
   scroll-margin-top: 72px;
 }
-
-/* Today with nothing due and nothing above it: no label, the add row right under the summary */
 
 /* Waiting on you: a quiet one-line follow-up under a tile ("You asked Hila for 2 things") */
 .quietline {
@@ -63,14 +57,6 @@
   margin-top: 6px;
 }
 
-.asks-quiet {
-  margin-top: 16px;
-}
-
-.asks-quiet:empty {
-  display: none;
-}
-
 .notice {
   display: flex;
   align-items: center;
@@ -104,14 +90,6 @@
 .stack {
   display: flex;
   flex-direction: column;
-}
-
-.strip__label {
-  font-size: 16px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* ---- Moments (components/Moments.tsx): the good bits, kept to look back on */
@@ -330,10 +308,6 @@
 .invite__main > .icon {
   color: var(--text-3);
 }
-
-/* ------------------------------------------------------------ Coming up: Tasky's tiles */
-
-/* The last tile: a hatched free slot to plan something for tomorrow */
 
 /* ------------------------------------------------------------ The quiet way in, and the page's end */
 

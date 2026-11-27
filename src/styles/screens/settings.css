@@ -167,10 +167,6 @@
   cursor: not-allowed;
 }
 
-/* The bottom bar on a gray stage, where it is edited; phone-sized on a computer too */
-
-/* One line, on a computer only: there the bar is the sidebar's order */
-
 /* Rows: chevrons on the ones that open something; white tokens and compact segmented controls as trailers */
 .optrow > .token {
   flex: 0 0 auto;
@@ -290,5 +286,3 @@
     animation: none;
   }
 }
-
-/* A quiet label inside a block: From earlier, then Today. */

@@ -10,7 +10,7 @@ import { calm } from './tokens';
 
 /** The bar's (or the computer's top bar's) place for a tab, if it's on screen. */
 export function tabTarget(key: string): HTMLElement | null {
-  const els = [...document.querySelectorAll<HTMLElement>(`nav.tabbar:not(.tabbar--preview) [data-key="${key}"], .topnav [data-tab="${key}"]`)];
+  const els = [...document.querySelectorAll<HTMLElement>(`nav.tabbar [data-key="${key}"], .topnav [data-tab="${key}"]`)];
   return els.find((e) => {
     const r = e.getBoundingClientRect();
     return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;

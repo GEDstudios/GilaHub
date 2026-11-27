@@ -124,7 +124,7 @@
 }
 
 /* While search is open the floating things below it rest. */
-html.is-searching :is(.tabbar:not(.tabbar--preview), .ideatag) {
+html.is-searching :is(.tabbar, .ideatag) {
   visibility: hidden;
 }
 

@@ -458,7 +458,7 @@ try {
   });
 
   await check('Projects: Guy drags To do onto his bar; Hila’s bar stays hers', async () => {
-    const keys = (p) => p.locator('nav.tabbar:not(.tabbar--preview) [data-key]').evaluateAll((els) => els.map((e) => e.dataset.key).filter((k) => k !== '__gap'));
+    const keys = (p) => p.locator('nav.tabbar [data-key]').evaluateAll((els) => els.map((e) => e.dataset.key).filter((k) => k !== '__gap'));
     await hila.goto(`${url}/`);
     await hila.getByRole('heading', { name: /Hila!/, level: 1 }).waitFor();
     const hilaBefore = (await keys(hila)).join();

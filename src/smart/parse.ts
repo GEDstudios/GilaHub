@@ -34,7 +34,6 @@ export interface ParseContext {
   weekStart?: 0 | 1;
   /** Working days for "every weekday" (Israel: Sun–Thu). */
   workdays?: number[];
-  mode?: 'task' | 'shopping';
   /** Default anchor for interval repeats ("after it's done" for chores). */
   repeatFrom?: 'done' | 'schedule';
   ignore?: Set<string>;

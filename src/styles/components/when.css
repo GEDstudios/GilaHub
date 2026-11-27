@@ -5,8 +5,6 @@
   padding: 14px 14px 10px;
 }
 
-/* The usual days, the usual times: one row each, sliding sideways if they don't fit */
-
 /* "Pick…" / "Other": the phone's own date or time picker, opened by the chip itself */
 
 .whencard__rows {

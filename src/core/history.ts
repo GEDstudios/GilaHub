@@ -26,8 +26,6 @@ export class History {
   private redos: Step[] = [];
   private open: Map<string, Change> | null = null;
   private applying = false;
-  private listeners = new Set<() => void>();
-  private version = 0;
 
   constructor(
     private readonly store: Store,
@@ -64,7 +62,6 @@ export class History {
     this.undos.push(step);
     if (this.undos.length > (this.opts.limit ?? 100)) this.undos.shift();
     this.redos = [];
-    this.changed();
   }
 
   canUndo(): boolean {
@@ -82,7 +79,6 @@ export class History {
     if (!step) return false;
     this.apply(step, 'before');
     this.redos.push(step);
-    this.changed();
     return true;
   }
 
@@ -93,20 +89,7 @@ export class History {
     if (!step) return false;
     this.apply(step, 'after');
     this.undos.push(step);
-    this.changed();
     return true;
-  }
-
-  subscribe = (fn: () => void): (() => void) => {
-    this.listeners.add(fn);
-    return () => this.listeners.delete(fn);
-  };
-
-  getVersion = (): number => this.version;
-
-  private changed(): void {
-    this.version++;
-    for (const fn of this.listeners) fn();
   }
 
   private apply(step: Step, side: 'before' | 'after'): void {

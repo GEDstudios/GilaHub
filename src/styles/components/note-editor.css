@@ -19,14 +19,6 @@
   min-height: 0;
 }
 
-/* The photo: taped on at the top, a little crooked */
-
-/* Writing one: add a photo from its corner */
-
-/* A note's photo is part of the paper: never dragged off on its own */
-
-/* A photo on a small note: a shorter strip, and the words get the by-line's room */
-
 /* ============================================================ The note, one design everywhere (NoteFace) */
 /* A 124-point square of paper, scaled into place: on a screen 1×, in its sheet 2.3×, on the board 0.8× */
 .nf-wrap {
@@ -207,8 +199,6 @@ textarea.nf__write {
 .noteedit__go {
   margin-top: 10px;
 }
-
-/* On the board */
 /* Kept notes on the board: an even grid in a shuffled order, each turned, pinned or taped. */
 .pinboard__note {
   position: relative;
@@ -310,10 +300,6 @@ textarea.nf__write {
   border-radius: 4px;
   pointer-events: none;
 }
-
-/* One quiet row under the note: paper colours (or pens), photo, pencil */
-
-/* The photo's few choices, when it's tapped */
 
 /* ============================================================ Note editor: a desk, four tools, one tray */
 /* Words never touch the paper's edge: room for an italic's swash on every side */
@@ -540,8 +526,6 @@ textarea.nf__write {
   font-size: 13px;
   color: var(--text-2);
 }
-
-/* Pens: round dabs of ink; the rainbow one is any colour */
 
 /* A note, opened: the note (and its tools) first, a clear gap, then what to do with it */
 .notesheet__one {

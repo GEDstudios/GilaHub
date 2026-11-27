@@ -93,10 +93,6 @@ export class Store {
     return this.readable.has(scope);
   }
 
-  setReadableScopes(scopes: Scope[]): void {
-    this.readable = new Set(scopes);
-  }
-
   /**
    * Told of every local write, with what it changes from and to (field by field; `_s` is the
    * privacy scope) and whether the entity is new. For undo and redo (core/history.ts).
@@ -270,23 +266,6 @@ export class Store {
   onOutbox(fn: Listener): () => void {
     this.outboxListeners.add(fn);
     return () => this.outboxListeners.delete(fn);
-  }
-
-  /**
-   * Replace the outbox with one compact op per readable entity (full state, original clocks).
-   * Used before the first sync after a long local-only period, and by "repair sync".
-   */
-  requeueAll(): void {
-    this.batch(() => {
-      for (const cid of this.outbox.keys()) this.pending.outboxRemove.push(cid);
-      this.outbox.clear();
-      for (const rec of this.records.values()) {
-        const scope = ((rec.v._s as Scope | undefined) ?? 'h') as Scope;
-        if (!this.canRead(scope)) continue;
-        const h = this.clock.now();
-        this.enqueue({ cid: newId(12), s: scope, op: { t: rec.t, id: rec.id, f: { ...rec.v }, h, fc: { ...rec.c } } });
-      }
-    });
   }
 
   /** Wait until everything written so far is on disk. */

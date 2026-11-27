@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import type { Hub } from '../core/hub';
 import { History } from '../core/history';
 import type { Store } from '../core/store';
@@ -28,16 +27,12 @@ function historyOf(hub: Hub): History {
     watchInput();
     h = new History(hub.store, { record: (t) => t !== 'settings' && performance.now() - lastInput < 4000 });
     histories.set(hub.store, h);
-    // For a look from the console (and tests).
-    (globalThis as { __gilaHistory?: History }).__gilaHistory = h;
   }
   return h;
 }
 
 export function useHistory(hub: Hub): History {
-  const h = historyOf(hub);
-  useEffect(() => void historyOf(hub), [hub]);
-  return h;
+  return historyOf(hub);
 }
 
 const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);

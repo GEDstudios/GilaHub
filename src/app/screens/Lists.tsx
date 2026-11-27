@@ -119,7 +119,7 @@ function tilt(id: string): number {
 
 /** Where a folder is dropped to pin it: the bottom bar, or on a computer the top bar's places. */
 const liveBar = () => {
-  const bar = document.querySelector<HTMLElement>('.tabbar:not(.tabbar--preview)');
+  const bar = document.querySelector<HTMLElement>('.tabbar');
   if (bar && bar.getBoundingClientRect().width) return bar;
   return document.querySelector('.topnav__tabs');
 };

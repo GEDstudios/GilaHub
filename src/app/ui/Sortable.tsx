@@ -140,7 +140,7 @@ const REFUSE_AT = 24;
  */
 function scrollEdge(): number {
   if (typeof window === 'undefined' || !window.innerHeight) return 0.1;
-  const bar = document.querySelector('.tabbar:not(.tabbar--preview)')?.getBoundingClientRect();
+  const bar = document.querySelector('.tabbar')?.getBoundingClientRect();
   const under = bar && bar.height ? window.innerHeight - bar.top : 0;
   return Math.min(0.14, Math.max(0.08, (under + 12) / window.innerHeight));
 }
