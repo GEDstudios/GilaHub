@@ -839,6 +839,49 @@ try {
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 3000 });
   });
 
+  await check('The … menus: a task moves and lives in a second place from its menu; a folder’s settings open from its own', async () => {
+    // Still on Next trip. Into Packing, then its task.
+    await guy.locator('.foldercard__name', { hasText: /^Packing$/ }).click();
+    await guy.getByRole('heading', { name: 'Packing', level: 1 }).waitFor({ timeout: 5000 });
+    await guy.locator('li.row', { hasText: 'Passport' }).locator('.row__title').click();
+    await guy.locator('.hero--item').waitFor({ timeout: 5000 });
+    const path = () => guy.locator('.crumbs--path .crumbs__go').allInnerTexts().then((t) => t.join(' ').replace(/\s+/g, ' ').trim());
+    // The path is only a path: nothing in it but its steps.
+    if (await guy.locator('.crumbs--path button:not(.crumbs__go)').count()) throw new Error('the path still carries actions');
+    const more = () => guy.getByRole('button', { name: 'More', exact: true }).and(guy.locator('.iconbtn')).click();
+    await more();
+    await guy.locator('.sheet').getByRole('button', { name: /^Move to/ }).click();
+    await guy.getByRole('heading', { name: 'Where it lives' }).waitFor({ timeout: 3000 });
+    await guy.locator('.sheet .place__pick', { hasText: /^Next trip/ }).first().click();
+    await guy.locator('.moveask').getByRole('button', { name: 'Move', exact: true }).click();
+    await guy.getByText(/Moved to Next trip/).waitFor({ timeout: 4000 });
+    if ((await path()) !== 'Folders Next trip') throw new Error(`after the move, its path: ${await path()}`);
+    // Its subtasks came along.
+    await guy.locator('li.row', { hasText: 'Visa photos' }).waitFor({ timeout: 3000 });
+    await guy.locator('.toast').first().waitFor({ state: 'detached', timeout: 9000 }).catch(() => {});
+    // Also in a second folder: then (and only then) the path says so.
+    await more();
+    await guy.locator('.sheet').getByRole('button', { name: /^Also in/ }).click();
+    await guy.locator('.sheet .place__pick', { hasText: /^To do/ }).first().click();
+    await guy.locator('.crumbs__also', { hasText: 'Also in To do' }).waitFor({ timeout: 4000 });
+    await shot(guy, '12c-also-in');
+    // The folder's own settings, from its menu.
+    await guy.locator('.crumbs__go', { hasText: 'Next trip' }).click();
+    await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 3000 });
+    if (await guy.locator('main .echip', { hasText: /Task template|Show tasks from/ }).count()) throw new Error('the folder still shows its settings as chips');
+    await guy.getByRole('button', { name: 'Folder settings' }).click();
+    await shot(guy, '12d-folder-menu');
+    await guy.locator('.sheet').getByRole('button', { name: /^Task template/ }).click();
+    await guy.getByRole('heading', { name: 'New tasks in Next trip' }).waitFor({ timeout: 3000 });
+    await guy.keyboard.press('Escape');
+    await guy.locator('.sheet').first().waitFor({ state: 'detached', timeout: 4000 });
+    await guy.getByRole('button', { name: 'Folder settings' }).click();
+    await guy.locator('.sheet').getByRole('button', { name: /^Show tasks from/ }).click();
+    await guy.locator('.sheet .place__pick').first().waitFor({ timeout: 3000 });
+    await guy.keyboard.press('Escape');
+    await guy.locator('.sheet').first().waitFor({ state: 'detached', timeout: 4000 });
+  });
+
   // ---------- Recovery
   await check('Recovery: Guy makes a code; a brand-new phone comes back as Guy, private things and all', async () => {
     await guy.goto(`${url}/settings`);

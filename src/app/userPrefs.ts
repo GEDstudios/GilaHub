@@ -19,10 +19,11 @@ export function bindUserPrefs(hub: Hub): () => void {
     if (Object.keys(fields).length) hub.store.mutate('settings', id, fields as never);
   };
 
-  if (!hub.store.record('settings', id)) {
-    hub.store.init('settings', id, `p:${hub.meId}`);
-    write(getPrefs());
-  }
+  // Mine alone, sealed with my key from its first write. (One that a restore once brought back
+  // under the household's key is sealed again here.)
+  const first = !hub.store.record('settings', id);
+  hub.store.init('settings', id, `p:${hub.meId}`);
+  if (first) write(getPrefs());
 
   const pull = () => {
     const rec = hub.store.get('settings', id) as Record<string, unknown> | undefined;

@@ -352,10 +352,18 @@ export class Hub {
       .sort(byOrder);
   }
 
+  /**
+   * Everything under a task, all the way down. Each thing once: two devices nesting two tasks
+   * into each other at the same moment leaves a loop (Hub.untangle opens it), and a walk must
+   * come back from one.
+   */
   descendants(id: string): Item[] {
     const out: Item[] = [];
+    const seen = new Set([id]);
     const walk = (pid: string) => {
       for (const c of this.childrenOf(pid)) {
+        if (seen.has(c.id)) continue;
+        seen.add(c.id);
         out.push(c);
         walk(c.id);
       }
@@ -374,13 +382,13 @@ export class Hub {
     return parentId ? this.childrenOf(parentId) : this.children(listId, null);
   }
 
+  /** The tasks a subtask sits under, from the top down (each once, even in a loop). */
   ancestors(item: Item): Item[] {
     const out: Item[] = [];
-    let cur = this.item(item.parentId);
-    let guard = 0;
-    while (cur && guard++ < 1000) {
+    const seen = new Set([item.id]);
+    for (let cur = this.item(item.parentId); cur && !seen.has(cur.id); cur = this.item(cur.parentId)) {
+      seen.add(cur.id);
       out.unshift(cur);
-      cur = this.item(cur.parentId);
     }
     return out;
   }

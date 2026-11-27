@@ -63,13 +63,10 @@ Hub.prototype.canSetPrivacy = function (this: Hub, item: Item): boolean {
 Hub.prototype.scopeForItem = function (this: Hub, item: Item): Scope {
   const list = this.list(item.listId);
   if (list?.visibility === 'private' && list.owner) return `p:${list.owner}`;
-  let node: Item | undefined = item;
-  let guard = 0;
-  while (node && guard++ < 1000) {
-    if (node.private) return `p:${node.owner ?? node.createdBy}`;
-    node = this.item(node.parentId);
-  }
-  return 'h';
+  if (item.private) return `p:${item.owner ?? item.createdBy}`;
+  // The nearest private task above it decides.
+  const above = this.ancestors(item).reverse().find((a) => a.private);
+  return above ? `p:${above.owner ?? above.createdBy}` : 'h';
 };
 
 Hub.prototype.rescope = function (this: Hub, id: string): void {

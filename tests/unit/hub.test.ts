@@ -210,6 +210,64 @@ describe('Hub: chores', () => {
   });
 });
 
+describe('Hub: a loop in the tree', () => {
+  it('two phones nest two tasks into each other at once: nothing hangs, and both open the loop the same way', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const a = guy.addItem(todo.id, { title: 'Pack' });
+    const b = guy.addItem(todo.id, { title: 'Passport' });
+    const step = guy.addItem(todo.id, { title: 'Check the expiry', parentId: b });
+    sync(guy, hila);
+    // Each move is fine where it's made; together they are a loop.
+    guy.move(a, { parentId: b });
+    hila.move(b, { parentId: a });
+    sync(guy, hila);
+    for (const hub of [guy, hila]) {
+      expect(hub.item(a)?.parentId).toBe(b);
+      expect(hub.item(b)?.parentId).toBe(a);
+      // The walks come back.
+      expect(hub.descendants(a).map((i) => i.id).sort()).toEqual([b, step].sort());
+      expect(hub.ancestors(hub.item(step)!).map((i) => i.id).sort()).toEqual([a, b].sort());
+      expect(hub.isUnder(step, a)).toBe(true);
+      // Out of sight until it's opened: neither hangs from the folder.
+      expect(hub.children(todo.id, null).some((i) => i.id === a || i.id === b)).toBe(false);
+    }
+    guy.untangle();
+    hila.untangle();
+    sync(guy, hila);
+    const head = a < b ? a : b;
+    for (const hub of [guy, hila]) {
+      expect(hub.item(head)?.parentId).toBeNull();
+      expect(hub.children(todo.id, null).map((i) => i.id)).toContain(head);
+      expect(hub.descendants(head).map((i) => i.id).sort()).toEqual([a, b, step].filter((x) => x !== head).sort());
+    }
+    // Nothing left to open.
+    const before = guy.store.pendingOutbox().length;
+    guy.untangle();
+    expect(guy.store.pendingOutbox().length).toBe(before);
+  });
+
+  it('folders too: two nested into each other come back into Folders', async () => {
+    const { guy, hila } = await couple();
+    const one = guy.createList({ name: 'Trip' });
+    const two = guy.createList({ name: 'Packing' });
+    sync(guy, hila);
+    guy.setListParent(one, two);
+    hila.setListParent(two, one);
+    sync(guy, hila);
+    expect(guy.topLists().some((l) => l.id === one || l.id === two)).toBe(false);
+    expect(guy.nestedLists(one).map((l) => l.id)).toEqual([two]);
+    guy.untangle();
+    hila.untangle();
+    sync(guy, hila);
+    const head = one < two ? one : two;
+    for (const hub of [guy, hila]) {
+      expect(hub.topLists().map((l) => l.id)).toContain(head);
+      expect(hub.list(head)?.parentId ?? null).toBeNull();
+    }
+  });
+});
+
 describe('Hub: backup import', () => {
   it('re-imports private items under the personal key, never shared', async () => {
     const { guy, hila } = await couple();
@@ -232,6 +290,47 @@ describe('Hub: backup import', () => {
     expect(fresh.item(secret)).toBeUndefined();
     expect(fresh.item(step)).toBeUndefined();
     expect(fresh.lists().some((l) => l.name === 'To do')).toBe(true);
+  });
+
+  it('a backup carries everything, and what was private comes back private: preferences, notes, photos', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do');
+    const secret = guy.addItem(todo.id, { title: 'Ring', visibility: 'private' });
+    const open = guy.addItem(todo.id, { title: 'Book dinner' });
+    guy.addPhoto(`item:${secret}`, 'data:image/jpeg;base64,RING');
+    guy.addPhoto(`item:${open}`, 'data:image/jpeg;base64,MENU');
+    const note = guy.addNote('today', 'Back at six', 'lemon');
+    // My preferences: one record, sealed with my key.
+    guy.store.init('settings', 'prefs:guy', 'p:guy');
+    guy.store.mutate('settings', 'prefs:guy', { todayScope: 'mine' } as never);
+    sync(guy, hila);
+    const backup = JSON.parse(JSON.stringify(guy.exportBackup()));
+    expect(Object.keys(backup)).toEqual(expect.arrayContaining(['note', 'photo', 'settings', 'tag', 'moment']));
+
+    const phone = await person('guy');
+    phone.importBackup(backup);
+    expect(phone.store.scopeOf('settings', 'prefs:guy')).toBe('p:guy');
+    expect(phone.store.get('settings', 'prefs:guy')).toMatchObject({ todayScope: 'mine' });
+    expect(phone.store.get('note', note!)?.text).toBe('Back at six');
+    const [ring] = phone.photosOf(`item:${secret}`);
+    const [menu] = phone.photosOf(`item:${open}`);
+    expect(phone.store.scopeOf('photo', ring.id)).toBe('p:guy');
+    expect(phone.store.scopeOf('photo', menu.id)).toBe('h');
+
+    // What the restored phone sends on: my person gets the shared photo and the note, nothing private.
+    const fresh = await person('hila');
+    sync(phone, fresh);
+    expect(fresh.store.get('settings', 'prefs:guy')).toBeUndefined();
+    expect(fresh.photosOf(`item:${secret}`)).toHaveLength(0);
+    expect(fresh.photosOf(`item:${open}`)).toHaveLength(1);
+    expect(fresh.store.get('note', note!)?.text).toBe('Back at six');
+  });
+
+  it('someone else’s preferences in a backup are not mine to bring in', async () => {
+    const phone = await person('guy');
+    phone.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
+    phone.importBackup({ member: [{ id: 'guy', name: 'Guy' }], settings: [{ id: 'prefs:hila', todayScope: 'mine' }] });
+    expect(phone.store.record('settings', 'prefs:hila')).toBeUndefined();
   });
 
   it('restoring my own backup on a new device makes nobody new, no second projects, and my private things mine', async () => {

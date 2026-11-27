@@ -86,3 +86,22 @@ describe('sync: the cursor never runs ahead of the data', () => {
     expect(persistence.entities.has('item/req1')).toBe(true);
   });
 });
+
+describe('sync: knowing when everything has arrived', () => {
+  it('is caught up only after the last page of the first backlog, not on connecting', async () => {
+    const { client, store } = await setup();
+    let done = false;
+    void client.whenCaughtUp().then(() => (done = true));
+    await tick();
+    // Connected, nothing received: a new device knows nothing of what's mine yet.
+    expect(done).toBe(false);
+    FakeWS.last.onmessage?.({ data: JSON.stringify({ type: 'ops', ops: [], cursor: 3, more: true }) });
+    for (let i = 0; i < 5; i++) await tick();
+    expect(done).toBe(false);
+    expect(FakeWS.last.sent.at(-1)).toMatchObject({ type: 'pull' });
+    FakeWS.last.onmessage?.({ data: JSON.stringify({ type: 'ops', ops: [], cursor: 6 }) });
+    for (let i = 0; i < 20 && !done; i++) await tick();
+    expect(done).toBe(true);
+    expect(store.outboxSize()).toBe(0);
+  });
+});

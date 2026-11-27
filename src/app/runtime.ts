@@ -39,6 +39,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
   hub.uniformProjects();
   hub.endAwayMode();
   hub.stockInPlace();
+  hub.untangle();
   const relayListeners = new Set<() => void>();
 
   /**
@@ -85,6 +86,8 @@ export async function startRuntime(persistence: Persistence, session: Session): 
         return;
       }
       const everSynced = (await persistence.getMeta<boolean>('everSynced')) ?? false;
+      // Has this device ever had the whole backlog? A device from before this was recorded has.
+      const caughtUp = (await persistence.getMeta<boolean>('caughtUp')) ?? everSynced;
       const available = await relayAvailable(session.apiBase);
       if (!available && !(everSynced && !navigator.onLine)) {
         // On this device only (no relay): it's all here already.
@@ -92,7 +95,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
         return;
       }
       rt.relay = true;
-      if (!everSynced) await persistence.commit({ meta: { everSynced: true } });
+      if (!everSynced) await persistence.commit({ meta: { everSynced: true, caughtUp: false } });
       const sync = new SyncClient(store, persistence, {
         apiBase: session.apiBase,
         householdId: session.householdId,
@@ -103,11 +106,20 @@ export async function startRuntime(persistence: Persistence, session: Session): 
       });
       rt.sync = sync;
       await sync.start();
-      hub.renameOldDefaults();
-      hub.uniformProjects();
-      hub.endAwayMode();
-      hub.stockInPlace();
-      settle();
+      // A device that has been here before has what's mine already: no waiting (it may be offline).
+      if (caughtUp) settle();
+      // What arrives may be from an older app: tidy it once it's all here. A new device settles
+      // only now, so it never stamps its defaults over preferences (or makes a second private
+      // To-Do beside the one) that just hadn't arrived yet.
+      void sync.whenCaughtUp().then(async () => {
+        hub.renameOldDefaults();
+        hub.uniformProjects();
+        hub.endAwayMode();
+        hub.stockInPlace();
+        hub.untangle();
+        if (!caughtUp) await persistence.commit({ meta: { caughtUp: true } });
+        settle();
+      });
       for (const fn of relayListeners) fn();
       void registerPush(rt);
     },

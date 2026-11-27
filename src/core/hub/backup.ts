@@ -1,10 +1,13 @@
 
-import type { Item, Scope, Visibility } from '../model';
+import type { Item, Scope, Table, Visibility } from '../model';
 import { fold } from '../../smart/normalize';
 import { listKey, listIdOf } from '../keys';
 import { Hub } from './base';
 
 /** A backup file: what it holds, and bringing one back in. */
+
+/** Every table a backup carries (and a restore reads): all of them. A new table goes here too. */
+export const BACKUP_TABLES = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment', 'tag', 'note', 'photo'] as const satisfies readonly Table[];
 
 declare module './base' {
   interface Hub {
@@ -31,8 +34,15 @@ declare module './base' {
      * sealed again under mine, so restoring again repairs them.
      */
     importBackup(data: BackupData, opts?: { me?: string }): number;
+
+    /** Everything this device can read, table by table: what a backup file holds. */
+    exportBackup(): BackupData;
   }
 }
+
+Hub.prototype.exportBackup = function (this: Hub): BackupData {
+  return Object.fromEntries(BACKUP_TABLES.map((t) => [t, this.store.all(t) as unknown as Array<{ id: string } & Record<string, unknown>>]));
+};
 
 Hub.prototype.backupOwner = function (this: Hub, data: BackupData): string | null {
   const members = data.member ?? [];
@@ -74,7 +84,9 @@ Hub.prototype.importBackup = function (this: Hub, data: BackupData, opts: { me?:
     if ('listId' in out) out.listId = listOf(out.listId);
     return out;
   };
-  const put = (t: 'list' | 'item' | 'log' | 'memory' | 'store' | 'settings' | 'member' | 'idea' | 'moment' | 'tag', row: { id: string } & Record<string, unknown>, scope: Scope) => {
+  /** "list:<id>" and "item:<id>" (where a note is stuck, what a photo is on), through the folder map. */
+  const placeOf = (v: unknown) => (typeof v === 'string' && v.startsWith('list:') ? `list:${listOf(v.slice(5))}` : v);
+  const put = (t: (typeof BACKUP_TABLES)[number], row: { id: string } & Record<string, unknown>, scope: Scope) => {
     if (!row?.id) return;
     const stranded = !!from && from !== this.meId && this.store.scopeOf(t, row.id) === `p:${from}`;
     if (this.store.record(t, row.id) && !stranded) return;
@@ -110,10 +122,28 @@ Hub.prototype.importBackup = function (this: Hub, data: BackupData, opts: { me?:
     }
     for (const m of data.memory ?? []) put('memory', m, m.id.startsWith('p:') ? `p:${this.meId}` : 'h');
     for (const st of data.store ?? []) put('store', st, 'h');
-    for (const st of data.settings ?? []) put('settings', fix(st), 'h');
+    for (const st of data.settings ?? []) {
+      // A person's own preferences ("prefs:<them>") are theirs alone: mine come back under my key,
+      // never the household's; anyone else's aren't mine to bring in.
+      if (st.id.startsWith('prefs:')) {
+        if (who(st.id.slice(6)) === this.meId) put('settings', { ...st, id: `prefs:${this.meId}` }, `p:${this.meId}`);
+        continue;
+      }
+      put('settings', fix(st), 'h');
+    }
     for (const idea of data.idea ?? []) put('idea', fix(idea), 'h');
     for (const m of data.moment ?? []) put('moment', fix(m), 'h');
     for (const t of data.tag ?? []) put('tag', fix(t), 'h');
+    for (const raw of data.note ?? []) {
+      const note = fix(raw);
+      put('note', { ...note, place: placeOf(note.place) }, 'h');
+    }
+    // A photo is sealed like what it's on (a private task's photo stays private): after the tasks.
+    for (const raw of data.photo ?? []) {
+      const photo = fix(raw);
+      const on = placeOf(photo.on);
+      if (typeof on === 'string') put('photo', { ...photo, on }, this.photoScope(on));
+    }
   });
   this.uniformProjects();
   return n;
@@ -139,4 +169,5 @@ const PERSON_FIELDS = [
   'reopenedBy',
   'editedBy',
   'awayBy',
+  'to',
 ] as const;

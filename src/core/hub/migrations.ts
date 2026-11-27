@@ -40,6 +40,15 @@ declare module './base' {
     /** Away mode is gone: one left on (from before) ends, its chore clocks caught up. */
     endAwayMode(): void;
 
+    /**
+     * Open any loop in the trees. One device can't make one (a move into its own insides is
+     * refused), but two can: I put A under B while my person puts B under A, and both arrive.
+     * Nothing in a loop hangs from a folder any more, so its tasks (or folders) are out of sight.
+     * The one with the smallest id steps out to the top; the choice is the same wherever this
+     * runs, so two phones doing it at once agree.
+     */
+    untangle(): void;
+
     isAway(): boolean;
 
     /** Away mode: freeze every chore clock; on return, shift flexible chores and collapse fixed ones. */
@@ -143,6 +152,37 @@ Hub.prototype.viewsFromKinds = function (this: Hub): void {
   if (!todo.length) return;
   this.store.batch(() => {
     for (const l of todo) this.store.mutate('list', l.id, { view: 'tags' });
+  });
+};
+
+/** Of each loop of parents among these rows, its smallest id. */
+function loopHeads(rows: Array<{ id: string; parentId?: string | null }>): string[] {
+  const parent = new Map(rows.map((r) => [r.id, r.parentId ?? null]));
+  const heads = new Set<string>();
+  const settled = new Set<string>();
+  for (const r of rows) {
+    const path: string[] = [];
+    let cur: string | null = r.id;
+    while (cur && parent.has(cur) && !settled.has(cur) && !path.includes(cur)) {
+      path.push(cur);
+      cur = parent.get(cur) ?? null;
+    }
+    if (cur && path.includes(cur)) heads.add(path.slice(path.indexOf(cur)).reduce((a, b) => (a < b ? a : b)));
+    for (const p of path) settled.add(p);
+  }
+  return [...heads];
+}
+
+Hub.prototype.untangle = function (this: Hub): void {
+  const items = loopHeads(this.store.all('item'));
+  const lists = loopHeads(this.store.all('list'));
+  if (!items.length && !lists.length) return;
+  this.store.batch(() => {
+    for (const id of lists) this.store.mutate('list', id, { parentId: null });
+    for (const id of items) {
+      this.store.mutate('item', id, { parentId: null });
+      this.rescope(id);
+    }
   });
 };
 

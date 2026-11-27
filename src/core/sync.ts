@@ -51,6 +51,8 @@ export class SyncClient {
   private sealing = false;
   /** Messages are handled strictly in arrival order (decryption is async). */
   private inbox: Promise<void> = Promise.resolve();
+  private caughtUp!: () => void;
+  private readonly firstBacklog = new Promise<void>((done) => (this.caughtUp = done));
 
   constructor(
     private readonly store: Store,
@@ -73,6 +75,15 @@ export class SyncClient {
       this.status = s;
       this.emit();
     }
+  }
+
+  /**
+   * Once everything the relay already held has arrived (the last page of the first backlog).
+   * `start` returns as soon as it's connecting, long before that: whatever must not act on a
+   * half-filled store (writing defaults, making what "isn't there yet") waits for this.
+   */
+  whenCaughtUp(): Promise<void> {
+    return this.firstBacklog;
   }
 
   async start(): Promise<void> {
@@ -168,6 +179,7 @@ export class SyncClient {
         } else {
           if (!this.ready) {
             this.ready = true;
+            this.caughtUp();
             void this.flush();
           }
           this.markSynced();

@@ -98,6 +98,8 @@ server → {type:"ops", ops:[…], cursor}                      // everyone else
 - The relay only sends a device the scopes it may read (`h` + its member's personal scope).
 - Pages are small (≤ 250 ops) to stay well inside the free plan's 10 ms CPU per invocation.
 - WebSocket Hibernation keeps the Durable Object asleep between messages, so idle connections cost nothing.
+- **Caught up** (`SyncClient.whenCaughtUp`): `start` returns while the backlog is still on its way. Whatever must not act on a half-filled store waits for the last page: a new device binding its preferences, making its private To-Do, the migrations that tidy older data, and `Hub.untangle` (two devices nesting two things into each other leaves a loop; the smallest id steps out, the same on every device). A device that has been caught up before doesn't wait, so it works offline.
+- **Backups** carry every table (`BACKUP_TABLES`, `Hub.exportBackup`), and a restore seals each row the way its privacy says: private tasks and their photos, and a person's own preferences, under the personal key.
 
 ## Reminders & push
 
