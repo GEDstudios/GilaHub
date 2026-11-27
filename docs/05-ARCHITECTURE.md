@@ -33,7 +33,7 @@
   - Two people editing different fields of one item never conflict. For the same field, the same winner is chosen on every device.
   - Deletes are tombstones. Ordering uses fractional index keys (`src/core/order.ts`), so a reorder touches one item.
 - **Outbox**: every local write is queued as an op, so the app works offline indefinitely. Ops are sealed only at send time.
-- **Domain layer (`src/core/hub/`, the `Hub`)**: every change anyone makes (add, tick, move, set privacy, count stock…) expressed as store writes, with every privacy rule in one place. `base.ts` is the class and its core (people, folders, the tree: `isLive`, `treeIds`, `isWithin`, `isUnder`, `siblings`); each subject adds its methods from its own file (`privacy`, `requests`, `items`, `tick`, `twins`, `stock`, `adding`, `tags`, `notes`, `ideas`, `photos`, `backup`, `migrations`). Import it from `core/hub`. Where a household starts lives in `src/core/seed.ts`; folder keys (`l:<id>`) in `src/core/keys.ts`.
+- **Domain layer (`src/core/hub/`, the `Hub`)**: every change anyone makes (add, tick, move, set privacy, count stock…) expressed as store writes, with every privacy rule in one place. `base.ts` is the class and its core (people, folders, the tree: `isLive`, `treeIds`, `isWithin`, `isUnder`, `siblings`); each subject adds its methods from its own file (`privacy`, `requests`, `items`, `tick`, `twins`, `stock`, `adding`, `tags`, `notes`, `ideas`, `photos`, `backup`, `migrations`). Import it from `core/hub`. Where a household starts lives in `src/core/seed.ts`; folder keys (`l:<id>`) and preferences record ids (`prefs:<member>`) in `src/core/keys.ts`.
 - **App layer (`src/app/`)**: what screens show (`views.ts`, `query.ts`, `home.ts`), how it's said (`labels.ts`), privacy rules (`privacy.ts`), and the UI: shared building blocks in `ui/` and `components/` (see 03 · Design system), screens in `screens/`.
 - **Smart layer (`src/smart/`)**: quick-add parser, bilingual categorizer, recurrence engine, buy-again suggestions. All pure functions with unit tests and no network.
 - **Service worker (`src/sw/sw.js`)**: precaches the app shell for offline use, receives push and decrypts it with the household or personal key from IndexedDB, and handles notification taps.
@@ -60,6 +60,7 @@ A device that meets a table it doesn't know yet (an op from a newer version) kee
   - `h`: sealed with the household key.
   - `p:<member>`: sealed with that member's personal key.
   - Scope is derived from privacy: a private list, a private item, or any private ancestor puts the entity in the owner's personal scope.
+  - Each person's preferences (the `settings` record `prefs:<member>`: Highlights, filtered lists, per-folder filters, what's folded) are always in their personal scope. A backup holds only its owner's, and a restore brings them back as the importer's own record under the importer's personal key, never under `h`; anyone else's are left out.
 - **Changing scope** (`Store.setScope`) does two things. It announces the move under the *old* scope, so devices that could see the item learn it left. Then it replays the full state under the *new* scope.
   - A device that can't read the new scope **purges** the entity and keeps only a marker, so stale ops can't resurrect it.
   - Making something shared again replays it under the household key.

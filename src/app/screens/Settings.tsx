@@ -38,9 +38,7 @@ type Toast = ReturnType<typeof useOverlays>['toast'];
 const wide = () => typeof matchMedia === 'function' && matchMedia('(min-width: 960px)').matches;
 
 function exportData(rt: Runtime) {
-  const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment', 'tag'] as const;
-  const data: Record<string, unknown[]> = {};
-  for (const t of tables) data[t] = rt.store.all(t);
+  const data = rt.hub.exportBackup();
   // `me`: whose backup it is, so restoring it on a new device makes those things mine again.
   const blob = new Blob([JSON.stringify({ app: 'gila-hub', v: 2, me: rt.session.memberId, exportedAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');

@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { Hub } from '../../src/core/hub';
 import { seedHousehold } from '../../src/core/seed';
+import { applyPrefs, setPrefs, type Prefs } from '../../src/app/prefs';
+import { bindUserPrefs } from '../../src/app/userPrefs';
 import { isForMe, projectView } from '../../src/app/views';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
@@ -318,6 +320,121 @@ describe('Hub: backup import', () => {
     phone.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
     phone.importBackup(data);
     expect(phone.partner()).toBeUndefined();
+  });
+});
+
+describe('Hub: backup, my preferences', () => {
+  const MINE: Partial<Prefs> = { quick: ['t1', 't2'], savedLists: { a1: { name: 'Gift ideas', query: { text: 'gift' } } }, foldedGroups: ['todo|later'] };
+  /** As the app does once I'm known: my preferences record, with a few that aren't the defaults. */
+  const setMine = (hub: Hub) => {
+    const off = bindUserPrefs(hub);
+    setPrefs(MINE);
+    off();
+  };
+  /** A backup file's data, as it comes back from one. */
+  const backupOf = (hub: Hub) => JSON.parse(JSON.stringify(hub.exportBackup()));
+  const prefsIds = (hub: Hub) => hub.store.all('settings').map((s) => s.id).filter((id) => id.startsWith('prefs:'));
+  afterEach(() => applyPrefs({ quick: [], savedLists: {}, foldedGroups: [] }));
+
+  it('come back under my personal key on a fresh device, and never reach my person', async () => {
+    const { guy, hila } = await couple();
+    setMine(guy);
+    guy.store.mutate('settings', 'house', { homeAisles: [{ id: 'c:tools', name: 'Tools' }] });
+    sync(guy, hila);
+    const data = backupOf(guy);
+    expect(data.settings.map((s: { id: string }) => s.id).sort()).toEqual(['house', 'prefs:guy']);
+
+    // Guy's fresh install (same member and keys), restored before anything of his arrived.
+    const phone = await person('guy', { device: 'phone' });
+    phone.importBackup(data);
+    expect(phone.store.scopeOf('settings', 'prefs:guy')).toBe('p:guy');
+    expect(phone.store.get('settings', 'prefs:guy')).toMatchObject(MINE);
+    // Every op for it waits under his own key; what's the household's stays the household's.
+    const queued = phone.store.pendingOutbox().filter((e) => e.op.id === 'prefs:guy');
+    expect(queued.length).toBeGreaterThan(0);
+    expect(queued.every((e) => e.s === 'p:guy')).toBe(true);
+    expect(phone.store.scopeOf('settings', 'house')).toBe('h');
+
+    // Hila's replica gets the household's things from the restored phone, and none of his preferences.
+    const fresh = await person('hila', { device: 'hila-new' });
+    sync(phone, fresh);
+    expect(fresh.store.record('settings', 'prefs:guy')).toBeUndefined();
+    expect(prefsIds(fresh)).toEqual([]);
+    expect(fresh.settings()?.homeAisles).toEqual([{ id: 'c:tools', name: 'Tools' }]);
+    expect(fresh.lists().some((l) => l.name === 'To do')).toBe(true);
+  });
+
+  it('after starting again as a new me they are mine: the old me’s record never comes in', async () => {
+    const old = await person('old');
+    old.upsertMember('old', { name: 'Guy', color: 'sky', createdAt: 1 });
+    seedHousehold(old, ['todo']);
+    setMine(old);
+    const data = backupOf(old);
+
+    for (const me of ['old', undefined]) {
+      const phone = await person('new');
+      phone.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
+      phone.importBackup(data, { me });
+      expect(phone.store.record('settings', 'prefs:old')).toBeUndefined();
+      expect(phone.store.scopeOf('settings', 'prefs:new')).toBe('p:new');
+      expect(phone.store.get('settings', 'prefs:new')).toMatchObject(MINE);
+
+      const hila = await person('hila');
+      sync(phone, hila);
+      expect(hila.lists().some((l) => l.name === 'To do')).toBe(true);
+      expect(hila.store.record('settings', 'prefs:old')).toBeUndefined();
+      expect(hila.store.record('settings', 'prefs:new')).toBeUndefined();
+    }
+  });
+
+  it('never replace the ones this device already has', async () => {
+    const old = await person('old');
+    old.upsertMember('old', { name: 'Guy', color: 'sky', createdAt: 1 });
+    setMine(old);
+    const data = backupOf(old);
+
+    // The app has made my record here already (as it does at start), with what I chose since.
+    const phone = await person('new');
+    phone.upsertMember('new', { name: 'Guy', color: 'lemon', createdAt: 5 });
+    applyPrefs({ quick: ['t7'], savedLists: {}, foldedGroups: [] });
+    bindUserPrefs(phone)();
+    phone.importBackup(data, { me: 'old' });
+    expect(phone.store.get('settings', 'prefs:new')).toMatchObject({ quick: ['t7'], savedLists: {} });
+    expect(phone.store.scopeOf('settings', 'prefs:new')).toBe('p:new');
+    expect(prefsIds(phone)).toEqual(['prefs:new']);
+  });
+
+  it('my person’s, in a backup of theirs, are left out', async () => {
+    const { guy, hila } = await couple();
+    setMine(hila);
+    const data = backupOf(hila);
+    expect(data.settings.map((s: { id: string }) => s.id)).toContain('prefs:hila');
+
+    guy.importBackup(data);
+    expect(guy.store.record('settings', 'prefs:hila')).toBeUndefined();
+    expect(guy.store.record('settings', 'prefs:guy')).toBeUndefined();
+  });
+
+  it('a backup holds no one else’s, even where an older restore put them in the household’s scope', async () => {
+    const { guy, hila } = await couple();
+    setMine(guy);
+    // What a restore used to do: the old me's record, sealed with the household key.
+    guy.store.mutate('settings', 'prefs:old', { quick: ['t9'] });
+    guy.store.mutate('settings', 'house', { homeAisles: [{ id: 'c:tools', name: 'Tools' }] });
+    sync(guy, hila);
+    expect(hila.store.get('settings', 'prefs:old')).toBeDefined();
+
+    const ids = (hub: Hub) => hub.exportBackup().settings!.map((s) => s.id).sort();
+    expect(ids(guy)).toEqual(['house', 'prefs:guy']);
+    expect(ids(hila)).toEqual(['house']);
+
+    // And one made before this (the stray record still in it) brings none of it back.
+    const data = JSON.parse(JSON.stringify({ member: guy.store.all('member'), settings: guy.store.all('settings') }));
+    expect(data.settings.map((s: { id: string }) => s.id)).toContain('prefs:old');
+    const phone = await person('guy', { device: 'phone' });
+    phone.importBackup(data);
+    expect(prefsIds(phone)).toEqual(['prefs:guy']);
+    expect(phone.store.record('settings', 'prefs:old')).toBeUndefined();
   });
 });
 

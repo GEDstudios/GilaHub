@@ -1,13 +1,20 @@
 
 import { type Item, type Scope, type Visibility } from '../model';
 import { fold } from '../../smart/normalize';
-import { listKey, listIdOf } from '../keys';
+import { listKey, listIdOf, prefsId, prefsOwnerOf } from '../keys';
 import { Hub } from './base';
 
 /** A backup file: what it holds, and bringing one back in. */
 
 declare module './base' {
   interface Hub {
+    /**
+     * What a backup file holds: everything this device can read in BACKUP_TABLES, except other
+     * people's preferences (theirs alone; this device only holds one when an older restore put
+     * it in the household's scope).
+     */
+    exportBackup(): BackupData;
+
     /**
      * Whose backup is this, for one that doesn't say (`me` came with newer backups)? Nobody's to
      * map when it has me in it already. Otherwise: whoever its private things belong to (only
@@ -29,10 +36,21 @@ declare module './base' {
      * has (same kind and name) takes the backup's items instead of coming in a second time.
      * Things an earlier restore sealed under that old person's key (unreadable here) are
      * sealed again under mine, so restoring again repairs them.
+     *
+     * Preferences (a `prefs:<member>` settings record) are private like an "Only me" item: the
+     * backup's own person's become my record under my personal key, when this device has none
+     * yet; anyone else's are left out. None ever goes in the household's scope.
      */
     importBackup(data: BackupData, opts?: { me?: string }): number;
   }
 }
+
+Hub.prototype.exportBackup = function (this: Hub): BackupData {
+  const data: BackupData = {};
+  for (const t of BACKUP_TABLES) data[t] = this.store.all(t) as unknown as BackupRow[];
+  data.settings = data.settings?.filter((s) => (prefsOwnerOf(s.id) ?? this.meId) === this.meId);
+  return data;
+};
 
 Hub.prototype.backupOwner = function (this: Hub, data: BackupData): string | null {
   const members = data.member ?? [];
@@ -110,7 +128,12 @@ Hub.prototype.importBackup = function (this: Hub, data: BackupData, opts: { me?:
     }
     for (const m of data.memory ?? []) put('memory', m, m.id.startsWith('p:') ? `p:${this.meId}` : 'h');
     for (const st of data.store ?? []) put('store', st, 'h');
-    for (const st of data.settings ?? []) put('settings', fix(st), 'h');
+    for (const st of data.settings ?? []) {
+      const owner = typeof st?.id === 'string' ? prefsOwnerOf(st.id) : null;
+      if (owner === null) put('settings', fix(st), 'h');
+      // Preferences are their owner's alone: mine become my record, under my key; anyone else's stay out.
+      else if (who(owner) === this.meId) put('settings', { ...st, id: prefsId(this.meId) }, `p:${this.meId}`);
+    }
     for (const idea of data.idea ?? []) put('idea', fix(idea), 'h');
     for (const m of data.moment ?? []) put('moment', fix(m), 'h');
     for (const t of data.tag ?? []) put('tag', fix(t), 'h');
@@ -119,7 +142,11 @@ Hub.prototype.importBackup = function (this: Hub, data: BackupData, opts: { me?:
   return n;
 };
 
-export type BackupData = Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>;
+export type BackupRow = { id: string } & Record<string, unknown>;
+export type BackupData = Partial<Record<string, BackupRow[]>>;
+
+/** The tables a backup holds. */
+const BACKUP_TABLES = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment', 'tag'] as const;
 
 const PERSON_FIELDS = [
   'by',

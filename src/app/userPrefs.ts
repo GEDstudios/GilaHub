@@ -1,4 +1,5 @@
 import type { Hub } from '../core/hub';
+import { prefsId } from '../core/keys';
 import { applyPrefs, DEVICE_ONLY, getPrefs, PREF_KEYS, setPrefsWriter, type Prefs } from './prefs';
 
 /**
@@ -11,7 +12,7 @@ import { applyPrefs, DEVICE_ONLY, getPrefs, PREF_KEYS, setPrefsWriter, type Pref
  * device doesn't stamp its defaults over what I already have.
  */
 export function bindUserPrefs(hub: Hub): () => void {
-  const id = `prefs:${hub.meId}`;
+  const id = prefsId(hub.meId);
   const synced = PREF_KEYS.filter((k) => !DEVICE_ONLY.includes(k));
   const pick = (from: Partial<Prefs>) => Object.fromEntries(synced.filter((k) => k in from).map((k) => [k, from[k] ?? null])) as Partial<Prefs>;
   const write = (patch: Partial<Prefs>) => {
