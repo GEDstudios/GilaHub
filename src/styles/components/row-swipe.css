@@ -63,22 +63,34 @@
   transition: transform var(--dur-slow) var(--spring);
 }
 
-/* With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). */
+/*
+ * With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). Its place
+ * is kept while it's hidden, and it adds nothing to the row's height, so nothing moves as the
+ * mouse passes over.
+ */
 .row__ongo {
   display: none;
   width: var(--ctl-s);
   height: var(--ctl-s);
+  margin-block: -6px;
   place-items: center;
   border-radius: 50%;
   color: var(--text-2);
+  opacity: 0;
   transition:
+    opacity var(--dur-quick) var(--ease),
     color var(--dur-quick) var(--ease),
     scale var(--dur-quick) var(--ease);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .row:hover > .row__trail > .row__ongo {
+  .row__ongo {
     display: grid;
+  }
+
+  .row:hover > .row__trail > .row__ongo,
+  .row__ongo:focus-visible {
+    opacity: 1;
   }
 
   .row__ongo:hover {
