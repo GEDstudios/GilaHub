@@ -20,7 +20,7 @@
   width: 96px;
   height: 72px;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--r-s);
   background: var(--tile);
   box-shadow: inset 0 0 0 2px transparent;
   font-family: var(--serif);
@@ -53,7 +53,7 @@
   grid-template-rows: 1fr 1fr;
   height: 72px;
   margin-inline-start: 6px;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   overflow: hidden;
   box-shadow: inset 0 0 0 1.5px var(--line);
 }

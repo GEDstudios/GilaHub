@@ -192,7 +192,7 @@
   justify-content: center;
   gap: 24px 20px;
   padding: 24px 14px 24px;
-  border-radius: 22px;
+  border-radius: var(--r-m);
   background:
     radial-gradient(rgb(10 10 4 / 0.05) 1px, transparent 1.4px) 0 0 / 10px 10px,
     var(--tile);
@@ -342,7 +342,7 @@ html.is-editing .stickyboard {
   max-width: 100%;
   max-height: 62vh;
   margin: 6px auto 20px;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   box-shadow: 0 0 0 1px rgb(10 10 4 / 0.08), 0 12px 30px -14px rgb(10 10 4 / 0.4);
 }
 
@@ -366,7 +366,7 @@ html.is-editing .stickyboard {
   max-width: 100%;
   max-height: 58vh;
   margin: 0 auto;
-  border-radius: 12px;
+  border-radius: var(--r-s);
   touch-action: none;
   cursor: crosshair;
   box-shadow: 0 0 0 1px rgb(10 10 4 / 0.1);

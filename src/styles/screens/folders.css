@@ -74,7 +74,7 @@ button.foldercard:active {
   justify-content: space-between;
   align-items: flex-start;
   padding: 20px;
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   border: 1.5px dashed var(--tile-2);
   color: var(--text-2);
   font-size: var(--type-chip);

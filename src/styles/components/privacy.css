@@ -140,7 +140,7 @@
 .recovery__code {
   margin: 20px 0 10px;
   padding: 20px 14px;
-  border-radius: 16px;
+  border-radius: var(--r-s);
   background: var(--me-light);
   box-shadow: var(--ring-ink);
   font-size: 21px;

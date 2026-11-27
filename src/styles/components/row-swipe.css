@@ -49,7 +49,7 @@
 .rows.rows--sub {
   flex-basis: 100%;
   margin: 2px 0 -4px 24px;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   background: transparent;
   overflow: visible;
   animation: row-in 220ms var(--ease) both;
@@ -58,7 +58,7 @@
 .rows--sub .row {
   min-height: 44px;
   padding: 6px 8px 6px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-s);
   background: transparent;
 }
 

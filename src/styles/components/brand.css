@@ -139,7 +139,7 @@ div[dir='auto'] {
   height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   background: var(--tile);
   color: var(--text-2);
   transition:

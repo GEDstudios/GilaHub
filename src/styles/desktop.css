@@ -28,9 +28,9 @@
     --column: 760px;
     /* A computer's header is tighter */
     --ctl-l: 36px;
-    --r-m: 12px;
-    --r-l: 16px;
-    --r-xl: 20px;
+    --r-s: 10px;
+    --r-m: 14px;
+    --r-l: 20px;
   }
 
   /* ---------------------------------------------------------- The top bar: logo, tabs | search, ideas, us */
@@ -81,7 +81,7 @@
     gap: 8px;
     height: 36px;
     padding: 0 12px 0 10px;
-    border-radius: 10px;
+    border-radius: var(--r-s);
     color: var(--text-2);
     font-size: var(--type-chip);
     font-weight: 500;
@@ -132,7 +132,7 @@
     width: 220px;
     height: 36px;
     padding: 0 8px 0 12px;
-    border-radius: 10px;
+    border-radius: var(--r-s);
     background: var(--tile);
     color: var(--text-3);
     font-size: var(--type-label);
@@ -160,7 +160,7 @@
     height: 36px;
     display: grid;
     place-items: center;
-    border-radius: 10px;
+    border-radius: var(--r-s);
     color: var(--text);
     transition: scale var(--dur-quick) var(--ease);
   }
@@ -207,7 +207,7 @@
     gap: 6px;
     height: 36px;
     padding: 0 8px 0 4px;
-    border-radius: 18px;
+    border-radius: 999px;
     transition: scale var(--dur-quick) var(--ease);
   }
 
@@ -330,7 +330,7 @@
   }
 
   .band .iconbtn {
-    border-radius: 10px;
+    border-radius: var(--r-s);
     background: var(--card);
     box-shadow: var(--panel-shadow);
   }
@@ -345,7 +345,7 @@
   .main .settings > .group,
   .main .column > .rows,
   .main .column > .group {
-    border-radius: 14px;
+    border-radius: var(--r-m);
     background: var(--card);
     box-shadow: var(--panel-shadow);
   }
@@ -380,7 +380,7 @@
   .main .aisle--urgent .rows:not(.rows--cards) {
     padding: 0 10px 10px;
     background: var(--lemon);
-    border-radius: 14px;
+    border-radius: var(--r-m);
   }
 
   .main .aisle--urgent .rows:not(.rows--cards) .row {
@@ -433,7 +433,7 @@
 
   .main .row {
     min-height: 48px;
-    border-radius: 10px;
+    border-radius: var(--r-s);
   }
 
   html:not(.is-dragging) .main .rows .row:hover:not(:has(.row--nested:hover)),
@@ -592,34 +592,34 @@
   .pinboard,
   .noteedit__desk,
   .noteedit__tray {
-    border-radius: var(--r-l);
+    border-radius: var(--r-m);
   }
 
   .invite__main {
-    border-radius: var(--r-l) 0 0 var(--r-l);
+    border-radius: var(--r-m) 0 0 var(--r-m);
   }
 
   .arrival,
   .toast.toast--stack {
-    border-radius: 14px;
+    border-radius: var(--r-m);
   }
 
   /* Dialogs, not sheets */
   .sheet__panel {
     max-width: 560px;
-    border-radius: var(--r-xl);
+    border-radius: var(--r-l);
   }
 
   .btn {
     height: 44px;
-    border-radius: 12px;
+    border-radius: var(--r-s);
     font-size: var(--type-chip);
   }
 
   .btn--sm {
     height: var(--ctl-s);
     padding: 0 14px;
-    border-radius: 10px;
+    border-radius: var(--r-s);
   }
 
   /* The folder's top corner holds search, Start and its menu: its settings line up along the bottom. */
@@ -640,7 +640,7 @@
 
 /* A folder held over the top bar: the places make room for it, a line where it'll land. */
 .topnav__tabs.is-receiving {
-  border-radius: 14px;
+  border-radius: var(--r-s);
   box-shadow: 0 0 0 2px var(--me-light);
   background: rgb(10 10 4 / 0.03);
 }

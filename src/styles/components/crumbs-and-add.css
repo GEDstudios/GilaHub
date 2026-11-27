@@ -53,7 +53,7 @@
 
 .addmenu__label {
   padding: 8px 14px;
-  border-radius: 12px;
+  border-radius: var(--r-s);
   background: var(--card);
   box-shadow:
     0 0 0 1px rgb(10 10 4 / 0.06),
@@ -127,7 +127,7 @@
 /* Urgent things as cards: the whole group is one lemon card, its things white cards inside */
 .aisle--urgent:has(.rows--cards) {
   padding: 4px 12px 12px;
-  border-radius: 20px;
+  border-radius: var(--r-m);
   background: var(--lemon);
 }
 
@@ -170,7 +170,7 @@
   gap: 6px;
   height: var(--ctl-s);
   padding: 0 14px 0 10px;
-  border-radius: 18px;
+  border-radius: 999px;
   background: var(--tile);
   color: var(--text);
   font-size: var(--type-label);
@@ -198,15 +198,15 @@
 }
 
 .aisle--urgent .rows:not(.rows--cards) .aisle__cap + .row {
-  border-radius: 14px 14px 0 0;
+  border-radius: var(--r-s) var(--r-s) 0 0;
 }
 
 .aisle--urgent .rows:not(.rows--cards) .row:last-child {
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 var(--r-s) var(--r-s);
 }
 
 .aisle--urgent .rows:not(.rows--cards) .aisle__cap + .row:last-child {
-  border-radius: 14px;
+  border-radius: var(--r-s);
 }
 
 .aisle--urgent .rows:not(.rows--cards) .row + .row::before {

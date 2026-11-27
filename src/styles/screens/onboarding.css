@@ -88,7 +88,7 @@
   gap: 14px;
   width: 100%;
   padding: 12px 16px 12px 12px;
-  border-radius: 22px;
+  border-radius: var(--r-m);
   background: var(--tile);
   text-align: start;
   transition:
@@ -110,7 +110,7 @@
   width: 40px;
   height: 40px;
   flex: 0 0 40px;
-  border-radius: 12px;
+  border-radius: var(--r-s);
   background: var(--c);
 }
 
@@ -378,7 +378,7 @@ html.is-dragging .bartray {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 8px var(--r-l) var(--r-l) var(--r-l);
+  border-radius: 8px var(--r-m) var(--r-m) var(--r-m);
   transform: rotate(var(--tilt));
 }
 

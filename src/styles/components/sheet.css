@@ -24,7 +24,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--bg);
-  border-radius: 30px 30px 0 0;
+  border-radius: var(--r-l) var(--r-l) 0 0;
   box-shadow: var(--lift-sheet);
   padding: 10px var(--gutter) calc(var(--safe-bottom) + 28px);
   animation: sheet-up var(--dur-slow) var(--ease) both;
@@ -112,7 +112,7 @@
     padding: 24px;
   }
   .sheet__panel {
-    border-radius: 30px;
+    border-radius: var(--r-l);
     padding-bottom: 28px;
     animation-name: pop-in;
   }
@@ -169,7 +169,7 @@
   margin-top: 16px;
   padding: 0 16px;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   background: var(--tile);
   font-size: var(--type-body);
 }
@@ -181,7 +181,7 @@
   margin-top: 24px;
   padding: 16px 16px;
   border: 0;
-  border-radius: 20px;
+  border-radius: var(--r-m);
   background: var(--tile);
   font-size: var(--type-body);
   line-height: 1.5;

@@ -85,7 +85,7 @@
 .searchlayer__card {
   pointer-events: auto;
   padding: 6px 4px;
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   background: var(--card);
   box-shadow: var(--lift-2), var(--edge);
   animation: row-in var(--dur-base) var(--ease) both;

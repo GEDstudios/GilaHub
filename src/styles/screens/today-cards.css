@@ -6,7 +6,7 @@
   position: relative;
   margin: 4px 0 32px;
   padding: 24px 24px 32px;
-  border-radius: var(--r-xl);
+  border-radius: var(--r-l);
   background: var(--c);
   color: var(--ink);
 }
@@ -89,7 +89,7 @@
   align-items: center;
   gap: 4px;
   padding: 10px 0 10px;
-  border-radius: 18px;
+  border-radius: var(--r-m);
   background: var(--tile);
   color: var(--ink);
   transition:
@@ -184,7 +184,7 @@
 .wcard {
   --lean: -1.4deg;
   position: relative;
-  border-radius: 22px;
+  border-radius: var(--r-m);
   background: var(--c);
   color: var(--ink);
   box-shadow:
@@ -306,7 +306,7 @@
 /* The week's chart: a bar a day, our colours stacked, growing in one after another. */
 .wchart {
   padding: 12px 12px 10px;
-  border-radius: 16px;
+  border-radius: var(--r-s);
   background: rgb(255 255 255 / 0.55);
 }
 
@@ -379,7 +379,7 @@
   list-style: none;
   margin: 0;
   padding: 6px 4px 6px 14px;
-  border-radius: 16px;
+  border-radius: var(--r-s);
   background: rgb(255 255 255 / 0.55);
 }
 

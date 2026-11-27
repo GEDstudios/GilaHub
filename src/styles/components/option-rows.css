@@ -1,7 +1,7 @@
 /* ============================================================ Grouped settings rows */
 
 .group {
-  border-radius: 20px;
+  border-radius: var(--r-m);
   background: var(--tile);
   overflow: hidden;
 }

@@ -50,7 +50,7 @@
   gap: 8px;
   min-height: 44px;
   padding-inline-start: calc(var(--depth, 0) * 24px);
-  border-radius: 12px;
+  border-radius: var(--r-s);
 }
 
 /* A folder a level in: a faint line back to its parent (a task's row has its subtask mark). */
@@ -79,7 +79,7 @@
   gap: 10px;
   min-height: 44px;
   padding: 0 8px;
-  border-radius: 12px;
+  border-radius: var(--r-s);
   text-align: start;
   font-size: var(--type-chip);
   color: var(--text);

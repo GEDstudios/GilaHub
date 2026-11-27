@@ -116,9 +116,14 @@
   --ctl-s: 32px;
   --ctl-m: 38px;
   --ctl-l: 42px;
-  --r-m: 18px;
-  --r-l: 24px;
-  --r-xl: 30px;
+  /* Corners. Three sizes for surfaces: s inside a card (a field, a row, a tile) · m a card (a
+     list, a group, a panel) · l the colour cards and sheets. A floating bar (the tab bar, a toast
+     stack) has its own. Tiny marks (10px and under) and pills say theirs; the folder's tab and a
+     sticky note are shapes of their own. */
+  --r-s: 14px;
+  --r-m: 20px;
+  --r-l: 30px;
+  --r-bar: 24px;
   --tabbar-h: 62px;
   --column: 600px;
   --safe-top: env(safe-area-inset-top, 0px);

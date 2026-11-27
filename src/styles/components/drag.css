@@ -41,7 +41,7 @@ html.is-dragging * {
   --lift-scale: 1.035;
   position: relative;
   transform: rotate(var(--lean)) scale(var(--lift-scale));
-  border-radius: 16px;
+  border-radius: var(--r-s);
   background: var(--card);
   box-shadow: var(--lift-3);
   animation: lift-in var(--dur-base) var(--spring);
@@ -88,7 +88,7 @@ html.is-dragging * {
   content: '';
   position: absolute;
   inset: 5px 8px;
-  border-radius: 14px;
+  border-radius: var(--r-s);
 }
 
 /* ============================================================ Landing (ui/dropMark.ts)
@@ -107,14 +107,14 @@ li.row.is-droptarget::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   background: var(--drop-fill);
   pointer-events: none;
   animation: fade-in 120ms var(--ease) both;
 }
 
 .rows--sub li.row.is-droptarget::after {
-  border-radius: 12px;
+  border-radius: var(--r-s);
 }
 
 /* No separator lines through a darkened row */
@@ -149,7 +149,7 @@ li.row:has(> .dropgap) {
   content: '';
   position: absolute;
   inset: 3px 4px;
-  border-radius: 12px;
+  border-radius: var(--r-s);
   background: var(--drop-fill);
 }
 
@@ -340,7 +340,7 @@ li.row:has(> .dropgap) {
   flex: 0 0 40px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--r-s);
   color: var(--text-3);
   transition: transform var(--dur-quick) var(--ease);
 }

@@ -18,7 +18,7 @@
 .codepanel {
   margin-top: 20px;
   padding: 28px 20px 20px;
-  border-radius: 28px;
+  border-radius: var(--r-l);
   background: var(--lemon);
   color: var(--ink);
   text-align: center;
@@ -63,7 +63,7 @@
   height: 92px;
   flex: 0 0 92px;
   padding: 6px;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   background: #fff;
   box-shadow: var(--lift-1);
 }

@@ -13,7 +13,7 @@
 .homecard {
   position: relative;
   padding: 10px 8px 14px 16px;
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   background: var(--card);
   box-shadow: var(--lift-1), var(--edge);
   touch-action: pan-y;
@@ -113,7 +113,7 @@
   width: 100%;
   min-height: 64px;
   padding: 12px 16px;
-  border-radius: var(--r-l);
+  border-radius: var(--r-m);
   text-align: start;
 }
 

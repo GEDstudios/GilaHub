@@ -14,7 +14,7 @@
   min-height: 44px;
   margin-top: 6px;
   padding: 8px 12px 8px 16px;
-  border-radius: 16px;
+  border-radius: var(--r-s);
   font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-2);
@@ -53,7 +53,7 @@
   width: 100%;
   margin-top: 12px;
   padding: 14px 14px 14px 16px;
-  border-radius: 20px;
+  border-radius: var(--r-m);
   background: var(--card);
   box-shadow: var(--lift-1), var(--edge-faint);
   text-align: start;
@@ -86,7 +86,7 @@
   display: flex;
   align-items: center;
   margin-top: 36px;
-  border-radius: 22px;
+  border-radius: var(--r-m);
   border: 1.5px dashed var(--tile-2);
   transition: background var(--dur-quick) var(--ease);
 }
@@ -104,7 +104,7 @@
   align-items: center;
   gap: 14px;
   padding: 14px 4px 14px 16px;
-  border-radius: 22px 0 0 22px;
+  border-radius: var(--r-m) 0 0 var(--r-m);
   text-align: start;
 }
 

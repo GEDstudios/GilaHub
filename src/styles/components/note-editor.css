@@ -320,7 +320,7 @@ textarea.nf__write {
   place-items: center;
   padding: 32px 20px;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: var(--r-m);
   background-color: var(--tile);
   background-image: radial-gradient(circle, rgb(10 10 4 / 0.09) 1px, transparent 1.3px);
   background-size: 14px 14px;
@@ -382,7 +382,7 @@ textarea.nf__write {
   display: grid;
   gap: 14px;
   padding: 14px;
-  border-radius: 20px;
+  border-radius: var(--r-m);
   background: var(--card);
   box-shadow: var(--lift-1), var(--edge-faint);
   animation: pop var(--dur-base) var(--spring) both;
@@ -402,7 +402,7 @@ textarea.nf__write {
   flex: none;
   height: var(--ctl-s);
   padding: 0 14px;
-  border-radius: 18px;
+  border-radius: 999px;
   background: var(--tile);
   color: var(--text);
   font-weight: 600;
@@ -473,7 +473,7 @@ textarea.nf__write {
   min-width: 0;
   padding: 0;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   background: var(--tile);
   transition:
     transform var(--dur-base) var(--spring),
@@ -513,7 +513,7 @@ textarea.nf__write {
   justify-items: center;
   gap: 4px;
   padding: 10px 4px 8px;
-  border-radius: 14px;
+  border-radius: var(--r-s);
   background: var(--tile);
   color: var(--text);
   font-size: var(--type-meta);
