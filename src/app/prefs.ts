@@ -17,7 +17,7 @@ export interface Prefs {
   haptics: boolean;
   /** Today: what my person asked of me is open (it waits folded; it's rarely for right now). */
   asksOpen: boolean;
-  /** Tasks whose subtasks are unfolded in lists (this device). */
+  /** Tasks whose subtasks are unfolded in lists, and folders whose "In stock" is open (`stock:<id>`) (this device). */
   unfolded: string[];
   /** Today: the invite card stays away until then (ms; 0 = shown). */
   inviteHiddenUntil: number;

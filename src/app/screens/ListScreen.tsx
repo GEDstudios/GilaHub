@@ -666,14 +666,15 @@ function ProjectPage({ id }: { id: string }) {
 
         {v.stocked.length ? (
           // Kept stocked, with enough in: not tasks. At their buy-at count they join the tasks above.
+          // Folded until it's opened (this device remembers, per folder).
           <Disclosure
             title="In stock"
             count={v.stocked.length}
-            open={!prefs.foldedGroups.includes(`stock:${id}`)}
+            open={prefs.unfolded.includes(`stock:${id}`)}
             onToggle={(open) => {
               const k = `stock:${id}`;
-              const now = getPrefs().foldedGroups.filter((x) => x !== k);
-              setPrefs({ foldedGroups: open ? now : [...now, k].slice(-300) });
+              const now = getPrefs().unfolded.filter((x) => x !== k);
+              setPrefs({ unfolded: open ? [...now, k].slice(-200) : now });
             }}
           >
             <ul className="rows">
