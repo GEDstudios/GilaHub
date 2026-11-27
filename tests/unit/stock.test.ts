@@ -1,99 +1,92 @@
 import { describe, expect, it } from 'vitest';
+import { isStocked, isTodo } from '../../src/core/model';
+import { openCount, projectView } from '../../src/app/views';
 import { person } from './_helpers';
 
-describe('Kept stocked', () => {
-  it('goes on Shopping when low, turns urgent when very low, and is stocked up when bought', async () => {
+const page = (hub: Awaited<ReturnType<typeof person>>, listId: string) => projectView(hub, listId, false, 'list', {});
+
+describe('Kept stocked: one item, in its own folder', () => {
+  it('waits in "In stock" while there are enough, and is one of the tasks at its buy-at count', async () => {
     const guy = await person('guy');
-    const shop = guy.createList({ name: 'Shopping' });
-    guy.store.mutate('list', shop, { shopRoot: true });
     const pantry = guy.createList({ name: 'Pantry' });
     const oil = guy.addItem(pantry, { title: 'Olive oil' });
     guy.setStock(oil, { stock: 3, stockAddAt: 1, stockUrgentAt: 0 });
-    const onList = () => guy.children(shop, null).filter((i) => !i.done && i.title === 'Olive oil');
-    expect(onList()).toHaveLength(0);
-    guy.setStock(oil, { stock: Math.max(0, (guy.item(oil)!.stock ?? 0) - 1) });
-    expect(onList()).toHaveLength(0);
-    const undo = guy.setStock(oil, { stock: Math.max(0, (guy.item(oil)!.stock ?? 0) - 1) });
-    expect(guy.item(oil)?.stock).toBe(1);
-    expect(onList()).toHaveLength(1);
-    expect(onList()[0].urgent ?? false).toBe(false);
-    // Undo takes it back off.
+    expect(isStocked(guy.item(oil)!)).toBe(true);
+    expect(page(guy, pantry).stocked.map((i) => i.id)).toEqual([oil]);
+    expect(page(guy, pantry).open).toHaveLength(0);
+    expect(openCount(guy, pantry)).toBe(0);
+
+    guy.setStock(oil, { stock: 2 });
+    expect(page(guy, pantry).open).toHaveLength(0);
+    const undo = guy.setStock(oil, { stock: 1 });
+    expect(isTodo(guy.item(oil)!)).toBe(true);
+    expect(page(guy, pantry).open.map((i) => i.id)).toEqual([oil]);
+    expect(page(guy, pantry).stocked).toHaveLength(0);
+    expect(openCount(guy, pantry)).toBe(1);
+    // No second item anywhere: the thing itself is the task.
+    expect(guy.store.all('item').filter((i) => i.title === 'Olive oil')).toHaveLength(1);
+
     undo();
     expect(guy.item(oil)?.stock).toBe(2);
-    expect(onList()).toHaveLength(0);
-    guy.setStock(oil, { stock: Math.max(0, (guy.item(oil)!.stock ?? 0) - 1) });
-    guy.setStock(oil, { stock: Math.max(0, (guy.item(oil)!.stock ?? 0) - 1) });
-    expect(guy.item(oil)?.stock).toBe(0);
-    expect(onList()).toHaveLength(1);
-    expect(onList()[0].urgent).toBe(true);
-    // Bought two: stocked up by two, and off the list.
-    const entry = onList()[0].id;
-    guy.updateItem(entry, { qty: '2' });
-    guy.toggle(entry);
-    expect(guy.item(oil)).toMatchObject({ stock: 2, stockLink: null });
+    expect(page(guy, pantry).stocked).toHaveLength(1);
   });
 
-  it('stocked again by hand: its entry leaves the list; one that was already there stays', async () => {
+  it('turns urgent at its urgent count, and back off when stocked up again; urgent by hand stays', async () => {
     const guy = await person('guy');
-    const shop = guy.createList({ name: 'Shopping' });
-    guy.store.mutate('list', shop, { shopRoot: true });
     const pantry = guy.createList({ name: 'Pantry' });
+    const oil = guy.addItem(pantry, { title: 'Olive oil' });
+    guy.setStock(oil, { stock: 2, stockAddAt: 1, stockUrgentAt: 0 });
+    guy.setStock(oil, { stock: 1 });
+    expect(guy.item(oil)?.urgent ?? false).toBe(false);
+    const undo = guy.setStock(oil, { stock: 0 });
+    expect(guy.item(oil)?.urgent).toBe(true);
+    undo();
+    expect(guy.item(oil)?.urgent ?? false).toBe(false);
+    guy.setStock(oil, { stock: 0 });
+    guy.setStock(oil, { stock: 4 });
+    expect(guy.item(oil)?.urgent).toBe(false);
+
+    // Made urgent by hand, while there are some: a count that doesn't cross the line leaves it.
+    guy.updateItem(oil, { urgent: true });
+    guy.setStock(oil, { stock: 3 });
+    expect(guy.item(oil)?.urgent).toBe(true);
+  });
+
+  it('is never ticked done (it is counted, so never cleared away)', async () => {
+    const guy = await person('guy');
+    const pantry = guy.createList({ name: 'Pantry' });
+    const oil = guy.addItem(pantry, { title: 'Olive oil' });
+    guy.setStock(oil, { stock: 0 });
+    guy.toggle(oil);
+    expect(guy.item(oil)?.done).toBe(false);
+  });
+
+  it('added again by name while stocked up: it comes down to its buy-at count, one to buy now', async () => {
+    const guy = await person('guy');
+    const pantry = guy.createList({ name: 'Pantry' });
+    const oil = guy.addItem(pantry, { title: 'Olive oil' });
+    guy.setStock(oil, { stock: 5, stockAddAt: 2 });
+    const res = guy.add(pantry, { title: 'olive oil' });
+    expect(res).toMatchObject({ kind: 'exists', id: oil });
+    expect(guy.item(oil)?.stock).toBe(2);
+    expect(page(guy, pantry).open.map((i) => i.id)).toEqual([oil]);
+  });
+
+  it('older data: what it had put on a shopping list goes, and the old fields are cleared', async () => {
+    const guy = await person('guy');
+    const pantry = guy.createList({ name: 'Pantry' });
+    const shop = guy.createList({ name: 'Shopping' });
+    const oil = guy.addItem(pantry, { title: 'Olive oil' });
+    const entry = guy.addItem(shop, { title: 'Olive oil' });
+    const kept = guy.addItem(shop, { title: 'Rice' });
     const rice = guy.addItem(pantry, { title: 'Rice' });
-    guy.setStock(rice, { stock: 1 });
-    expect(guy.children(shop, null).filter((i) => i.title === 'Rice')).toHaveLength(1);
-    guy.setStock(rice, { stock: 5 });
-    expect(guy.children(shop, null).filter((i) => i.title === 'Rice')).toHaveLength(0);
-    // Already on the list before it ran low: left alone.
-    guy.addItem(shop, { title: 'Pasta' });
-    const pasta = guy.addItem(pantry, { title: 'Pasta' });
-    guy.setStock(pasta, { stock: 0 });
-    guy.setStock(pasta, { stock: 4 });
-    expect(guy.children(shop, null).filter((i) => i.title === 'Pasta')).toHaveLength(1);
-  });
-});
-
-describe('Stock going under a task', () => {
-  it('puts its entry under the task picked in the tree', async () => {
-    const guy = await person('guy');
-    const party = guy.createList({ name: 'Party' });
-    const shopFor = guy.addItem(party, { title: 'Shop for the party' });
-    const pantry = guy.createList({ name: 'Pantry' });
-    const cups = guy.addItem(pantry, { title: 'Paper cups' });
-    guy.setStock(cups, { stock: 5, stockTo: party, stockUnder: shopFor });
-    guy.setStock(cups, { stock: 1 });
-    expect(guy.childrenOf(shopFor).map((c) => c.title)).toEqual(['Paper cups']);
-    expect(guy.stockPlace(guy.item(cups)!)).toEqual({ listId: party, parentId: shopFor });
-  });
-});
-
-describe('Counted things stay', () => {
-  it('a counted thing is never ticked done (so never cleared away)', async () => {
-    const guy = await person('guy');
-    const l = guy.createList({ name: 'Pantry' });
-    const id = guy.addItem(l, { title: 'Rice' });
-    guy.setStock(id, { stock: 4 });
-    guy.toggle(id);
-    expect(guy.item(id)?.done).toBe(false);
-    guy.clearDone([l]);
-    expect(guy.item(id)?.archived ?? false).toBe(false);
-    expect(guy.stockItems().map((i) => i.title)).toEqual(['Rice']);
-  });
-});
-
-describe('Stock with how many we like to have', () => {
-  it('asks the list for what is missing, and buying it fills back up', async () => {
-    const guy = await person('guy');
-    const shop = guy.createList({ name: 'Shopping' });
-    guy.store.mutate('list', shop, { shopRoot: true });
-    const pantry = guy.createList({ name: 'Pantry' });
-    const eggs = guy.addItem(pantry, { title: 'Eggs' });
-    guy.setStock(eggs, { stock: 6, stockFull: 6, stockAddAt: 2 });
-    guy.setStock(eggs, { stock: 2 });
-    const entry = () => guy.children(shop, null).find((i) => i.title === 'Eggs' && !i.done);
-    expect(entry()?.qty).toBe('4');
-    guy.setStock(eggs, { stock: Math.max(0, (guy.item(eggs)!.stock ?? 0) - 1) });
-    expect(entry()?.qty).toBe('5');
-    guy.toggle(entry()!.id);
-    expect(guy.item(eggs)?.stock).toBe(6);
+    guy.store.mutate('item', oil, { stock: 0, stockLink: entry, stockMade: true, stockFull: 4, stockTo: shop } as never);
+    // One that was on the list already (not made by it) stays.
+    guy.store.mutate('item', rice, { stock: 0, stockLink: kept, stockMade: false } as never);
+    guy.stockInPlace();
+    expect(guy.item(entry)).toBeUndefined();
+    expect(guy.item(kept)).toBeDefined();
+    expect(guy.item(oil)).toMatchObject({ stock: 0, stockLink: null, stockFull: null, stockTo: null });
+    guy.stockInPlace();
   });
 });

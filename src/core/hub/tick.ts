@@ -65,14 +65,6 @@ Hub.prototype.toggle = function (this: Hub, id: string, opts: { withChildren?: b
     const fields = this.tickFields(item, done, now, logs);
     touched.push([id, { done: item.done, doneAt: item.doneAt ?? null, doneBy: item.doneBy ?? null, logId: item.logId ?? null }]);
     this.store.mutate('item', id, fields);
-    // Bought what a kept-stocked thing put on the list: it's stocked up by that many.
-    if (done) {
-      for (const k of this.store.all('item').filter((x) => x.stockLink === id && x.stock != null)) {
-        const got = parseFloat(item.qty ?? '') || 1;
-        touched.push([k.id, { stock: k.stock ?? 0, stockLink: id, stockMade: !!k.stockMade }]);
-        this.store.mutate('item', k.id, { stock: Math.max(0, (k.stock ?? 0) + Math.round(got)), stockLink: null, stockMade: false });
-      }
-    }
     // The same thing elsewhere goes with it (bought on Shopping = done on the chore, and back).
     const twin = this.linked(item);
     if (twin && !twin.repeat && twin.done !== done) {

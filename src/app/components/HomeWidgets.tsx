@@ -15,7 +15,7 @@ import { todayView } from '../views';
 import { AsksWidget } from './Asks';
 import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
-import { isOpen } from '../../core/model';
+import { isTodo } from '../../core/model';
 import { listKey } from '../../core/keys';
 import { G } from '../ui/glyphs';
 
@@ -103,7 +103,7 @@ export function ProjectWidget({ listId, settle, show }: { listId: string; day?: 
   if (!list) return null;
   // What's open in it, and in the projects inside it.
   const ids = new Set(hub.treeIds(listId));
-  const open = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId && isOpen(i) && (!show || show(i)));
+  const open = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId && isTodo(i) && (!show || show(i)));
   // Its name is the way in.
   const head = (
     <button type="button" className="section__go" onClick={() => navigate({ name: 'list', id: listId })}>

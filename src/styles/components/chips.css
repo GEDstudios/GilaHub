@@ -563,7 +563,7 @@
   gap: 6px;
 }
 
-/* A long "Tasks from Groceries" gives way first */
+/* A long "Showing tasks from Groceries" gives way first */
 .foldertools .echip {
   flex-shrink: 0;
   min-width: 0;

@@ -19,11 +19,11 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 ## 1 · Smart shared grocery list
 
 - **●** One bar for adding *and* searching. As you type it filters what's on the list, then your history, then a built-in catalog of ~550 items in English and Hebrew.
-- **●** No duplicates. An item already on the list is highlighted with **+1**. One you crossed off comes back with **Bring back**.
-- **●** Quantities are optional and parsed in English and Hebrew: `2 milk`, `milk x2`, `500g cheese`, `1 ק"ג עגבניות`, `חצי קילו גבינה`.
+- **●** No duplicates. An item already on the list says so. One you crossed off comes back with **Bring back**. There are no amounts: what you type is the name (`2 milk` stays `2 milk`).
+- **●** **Kept stocked**: any task can be counted instead of ticked (Stock on its page: *Have · Buy at · Urgent*). Its count sits where the tick would be; tap it for − n +. Above its buy-at count it waits in its folder's **In stock** section; at or under it, it's one of the folder's tasks, to buy, and at its urgent count it's urgent. Adding it again by name brings it down to its buy-at count.
 - **●** Auto-aisles, ordered the way an Israeli supermarket is walked. Correct an item once and both phones remember it.
 - **●** A card per aisle. Priority means a single **Urgent** flag: the item shows in a lemon **Urgent** card on top *and* stays in its aisle with an Urgent tag. Drag to reorder within an aisle; the Urgent card follows the walk through the store. When your partner marks something urgent while you look, it flashes (and in the store, says who).
-- **●** Tap an item for its sheet: name, then *quantity · aisle · Urgent · list · who sees it* chips that open in place, a note, and Remove from list.
+- **●** Tap an item for its sheet: name, then *aisle · Urgent · list · who sees it* chips that open in place, a note, and Remove from list.
 - **●** Search matches across spelling variants (עגבניה / עגבנייה, with or without geresh or niqqud, final letters, plurals).
 - **●** Paste a list from WhatsApp and it splits into items, each sorted into its aisle.
 - **●** **Buy again**: at most 6 calm, dismissible suggestions. They're based on how often *you* buy things, appear only after two purchases, and never show during a trip.

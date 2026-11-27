@@ -4,7 +4,7 @@ import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
 import { itemKey } from '../smart/normalize';
 import { buyAgain, purchaseStats, type BuyAgainSuggestion, type PurchaseStats } from '../smart/suggest';
-import { isOpen } from '../core/model';
+import { isOpen, isStocked, isTodo } from '../core/model';
 import { listKey } from '../core/keys';
 
 /** Cache a derived view per store version (and args). */
@@ -64,7 +64,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const lists = new Map(hub.lists().map((l) => [l.id, l]));
   const open = hub.store.all('item').filter((i) => {
     const l = lists.get(i.listId);
-    return l && isOpen(i) && !i.paused && !i.submittedAt && i.due;
+    return l && isTodo(i) && !i.paused && !i.submittedAt && i.due;
   });
   const mine = open.filter((i) => isForMe(hub, i));
   const todayAll = mine.filter((i) => i.due === ref).sort(byUrgentThenTime);
@@ -74,7 +74,7 @@ export const todayView = memo((hub: Hub, ref: string): TodayView => {
   const items = hub.store.all('item');
   const live = (i: Item) => {
     const l = lists.get(i.listId);
-    return !!l && isOpen(i) && !i.repeat;
+    return !!l && isTodo(i) && !i.repeat;
   };
   const asked = partnerId
     ? items
@@ -180,6 +180,8 @@ export interface ProjectView {
   /** The project, and the projects inside it when they're shown too. */
   lists: List[];
   open: Item[];
+  /** Kept-stocked things with enough in: not tasks, in their own section at the foot. */
+  stocked: Item[];
   /** Urgent ones, in the page's order (by tag: the walk through the store). */
   urgent: Item[];
   groups: ProjectGroup[];
@@ -209,7 +211,7 @@ export const projectView = memo((hub: Hub, listId: string, inside: boolean, view
   const lists = [...own, ...hub.shownIn(listId).filter((l) => !own.some((o) => o.id === l.id))];
   const ids = new Set(lists.map((l) => l.id));
   const items = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
-  const open = items.filter(isOpen);
+  const open = items.filter(isTodo);
   const groups: ProjectGroup[] = [];
   if (view === 'tags') {
     const rank = new Map(hub.tags().map((t, n) => [t.id, n]));
@@ -242,6 +244,7 @@ export const projectView = memo((hub: Hub, listId: string, inside: boolean, view
   return {
     lists,
     open,
+    stocked: items.filter((i) => isOpen(i) && isStocked(i)).sort(byOrder),
     urgent: open.filter((i) => i.urgent).sort((a, b) => (walk.get(a.id) ?? 0) - (walk.get(b.id) ?? 0)),
     groups: groups.filter((g) => g.items.length || g.listId === listId),
     tray: items.filter((i) => i.done && !i.archived).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0)),
@@ -300,7 +303,7 @@ export function ideasMarkdown(hub: Hub): string {
 
 export function openCount(hub: Hub, listId: string): number {
   let n = 0;
-  for (const i of hub.store.all('item')) if (i.listId === listId && isOpen(i) && !i.parentId) n++;
+  for (const i of hub.store.all('item')) if (i.listId === listId && isTodo(i) && !i.parentId) n++;
   return n;
 }
 

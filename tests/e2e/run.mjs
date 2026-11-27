@@ -177,7 +177,7 @@ try {
   // ---------- Shopping sync, both ways
   await check('Guy adds groceries; Hila sees them live', async () => {
     await guy.goto(`${url}/shop`);
-    await addVia(guy, ['2 milk', 'עגבניות', 'light bulbs']);
+    await addVia(guy, ['milk', 'עגבניות', 'light bulbs']);
     await hila.goto(`${url}/shop`);
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'milk' }).count()) > 0, 15000, 'milk on hila');
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'עגבניות' }).count()) > 0, 15000, 'tomatoes on hila');

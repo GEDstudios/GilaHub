@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addMonths } from '../../src/core/dates';
-import { itemKey, parseQuantity, splitPasted } from '../../src/smart/normalize';
+import { itemKey, splitPasted } from '../../src/smart/normalize';
 import { parseQuickAdd, type ParseContext } from '../../src/smart/parse';
 import { describeRule, firstDue, nextDue, shiftForAway, skipDue } from '../../src/smart/recurrence';
 import { buyAgain, purchaseStats } from '../../src/smart/suggest';
@@ -105,31 +105,13 @@ describe('quick add parser', () => {
     expect(r).toMatchObject({ title: 'Pay tomorrow', tokens: [] });
   });
 
-  it('reads quantities the same everywhere, but never a bare number at the end', () => {
-    expect(parseQuickAdd('2 milk !', ctx)).toMatchObject({ title: 'milk', qty: '2', urgent: true });
-    expect(parseQuickAdd('milk x3', ctx)).toMatchObject({ title: 'milk', qty: '3' });
-    const rent = parseQuickAdd('Pay rent 3500', ctx);
-    expect(rent.title).toBe('Pay rent 3500');
-    expect(rent.qty ?? null).toBeNull();
+  it('keeps numbers in the title as written (there are no amounts)', () => {
+    expect(parseQuickAdd('2 milk !', ctx)).toMatchObject({ title: '2 milk', urgent: true });
+    expect(parseQuickAdd('Pay rent 3500', ctx).title).toBe('Pay rent 3500');
   });
 });
 
-describe('quantities & normalization', () => {
-  it.each([
-    ['2 milk', 'milk', '2'],
-    ['milk x2', 'milk', '2'],
-    ['eggs (12)', 'eggs', '12'],
-    ['500g cheese', 'cheese', '500 g'],
-    ['1 ק"ג עגבניות', 'עגבניות', '1 kg'],
-    ['חצי קילו גבינה צהובה', 'גבינה צהובה', '½ kg'],
-    ['Coca cola 1.5 L', 'Coca cola', '1.5 L'],
-    ['3 tomatoes', 'tomatoes', '3'],
-    ['7up', '7up', null],
-    ['Bread', 'Bread', null],
-  ])('%s', (input, name, qty) => {
-    expect(parseQuantity(input)).toEqual({ name, qty });
-  });
-
+describe('normalization', () => {
   it('folds Hebrew spelling variants and plurals to one key', () => {
     expect(itemKey('עגבנייה')).toBe(itemKey('עגבניות'));
     expect(itemKey("קוטג'")).toBe(itemKey('קוטג'));

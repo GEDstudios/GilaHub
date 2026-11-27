@@ -25,7 +25,6 @@ export interface NewItem {
   repeat?: Item['repeat'];
   assignee?: Item['assignee'];
   urgent?: boolean;
-  qty?: string | null;
   visibility?: ItemVisibility;
   /** For "Mine": whose it is (default: me, or the project's owner). Lets me make something my partner's. */
   owner?: string | null;

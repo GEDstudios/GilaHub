@@ -101,13 +101,12 @@ describe('Shopping adds carry who it’s for', () => {
     seedHousehold(guy, ['groceries']);
     const groceries = guy.lists().find((l) => l.name === 'Groceries')!;
     const f = visFields(guy, 'theirs');
-    const res = guy.addShopping(groceries.id, 'eggs', { qty: '2', visibility: f.visibility, owner: f.owner });
+    const res = guy.addShopping(groceries.id, 'eggs', { visibility: f.visibility, owner: f.owner });
     expect(res.kind).toBe('added');
     const eggs = guy.item(res.id)!;
-    expect(eggs.qty).toBe('2');
     expect(eggs.owner).toBe('hila');
     expect(itemVisChoice(guy, eggs)).toBe('theirs');
-    expect(guy.addShopping(groceries.id, 'Eggs', { qty: null }).kind).toBe('exists');
+    expect(guy.addShopping(groceries.id, 'Eggs').kind).toBe('exists');
   });
 });
 

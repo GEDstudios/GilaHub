@@ -286,8 +286,7 @@ function Composer({
     onDone();
   };
 
-  const qty = parsed.qty ? (/^\d+$/.test(parsed.qty) ? `×${parsed.qty}` : parsed.qty) : '';
-  const sub = c.parent ? `A subtask of ${c.parent.title}` : [summarize(draft, { listName: dest?.name }), qty].filter(Boolean).join(' · ');
+  const sub = c.parent ? `A subtask of ${c.parent.title}` : summarize(draft, { listName: dest?.name });
 
   // While typing: what you might mean (the catalog); on an empty card: Again? (done here before, due again).
   const suggestions: string[] = c.parent

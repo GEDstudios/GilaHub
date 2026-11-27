@@ -1,23 +1,5 @@
 /* ============================================================ Kept stocked */
 
-/* On a row: how many are in, and a quick −1 */
-.meta--stock {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.meta--stock.is-low {
-  color: #9a6a00;
-}
-
-.meta--stock.is-out {
-  color: var(--danger);
-  font-weight: 600;
-}
-
-/* Where it goes when low: a line that opens the tree */
-
 /* Search: what it understood (tap to drop), and ways to narrow it down */
 .searchlayer__parts {
   margin: 2px 0 10px;
@@ -88,140 +70,6 @@
 
 .savedlist__more {
   margin: 8px 4px 0;
-}
-
-/* Where a tick would be: how many are in (tap: used one) */
-.stockcount {
-  flex: none;
-  min-width: 30px;
-  height: 30px;
-  padding: 0 6px;
-  border-radius: 10px;
-  background: var(--tile-2);
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-  transition: transform 140ms var(--spring), background 140ms var(--ease);
-}
-
-.stockcount:active:not(:disabled) {
-  transform: scale(0.88);
-}
-
-.stockcount.is-low {
-  background: #ffe7a8;
-}
-
-.stockcount.is-out {
-  background: var(--danger);
-  color: #fff;
-}
-
-.stockcount:disabled {
-  opacity: 1;
-  cursor: default;
-}
-
-.hero .stockcount {
-  min-width: 48px;
-  height: 48px;
-  border-radius: 16px;
-  font-size: 22px;
-  background: rgb(255 255 255 / 0.55);
-}
-
-/* ============================================================ Stock: the page */
-.stockadd {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.stockadd__field {
-  flex: 1;
-  min-width: 0;
-}
-
-.stockadd__btn {
-  flex: none;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-}
-
-.stockadd__where {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 10px 4px 0;
-  color: var(--text-3);
-}
-
-.stock .section:first-of-type {
-  margin-top: var(--space-4);
-}
-
-.stockrow {
-  gap: 12px;
-}
-
-.stock__empty {
-  margin-top: var(--space-5);
-  text-align: center;
-}
-
-/* On Folders: the way to Stock */
-.stocklink {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: var(--space-4);
-  padding: 14px 16px;
-  border-radius: 18px;
-  background: var(--tile);
-  text-align: start;
-  color: var(--text);
-  transition: background 140ms var(--ease), transform 140ms var(--ease);
-}
-
-.stocklink:active {
-  transform: scale(0.99);
-}
-
-@media (hover: hover) {
-  .stocklink:hover {
-    background: var(--tile-2);
-  }
-}
-
-.stocklink__mark {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: var(--card);
-}
-
-.stocklink__text {
-  flex: 1;
-  display: grid;
-  gap: 2px;
-}
-
-.stocklink__title {
-  font-weight: 600;
-}
-
-.stocklink__sub {
-  font-size: 13px;
-  color: var(--text-3);
 }
 
 /* The path's actions: together, readable, wrapping as one */
@@ -324,7 +172,7 @@
   color: var(--text);
 }
 
-/* ============================================================ Stock, on a task: Have · Want · Buy at, a bar, a quiet line */
+/* ============================================================ Stock, on a task: Have · Buy at · Urgent, a quiet line */
 .stockcols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -343,43 +191,6 @@
   color: var(--text-3);
 }
 
-/* Have, of want, with a notch where it gets bought */
-.stockbar {
-  position: relative;
-  height: 6px;
-  margin: 16px 6px 4px;
-  border-radius: 999px;
-  background: var(--tile);
-}
-
-.stockbar__fill {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  border-radius: inherit;
-  background: var(--mint);
-  transition: width 240ms var(--ease), background 200ms var(--ease);
-}
-
-.stockbar.is-low .stockbar__fill {
-  background: #f0b429;
-}
-
-.stockbar.is-out .stockbar__fill {
-  background: var(--danger);
-}
-
-.stockbar__notch {
-  position: absolute;
-  top: -3px;
-  width: 2px;
-  height: 12px;
-  margin-inline-start: -1px;
-  border-radius: 1px;
-  background: var(--ink);
-  transition: left 240ms var(--ease);
-}
-
 .stockfoot {
   display: flex;
   align-items: center;
@@ -387,33 +198,13 @@
   margin-top: 12px;
 }
 
-.stockfoot__chip {
+.stockfoot__where {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--tile);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text-2);
-}
-
-.stockfoot__chip > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 130px;
-}
-
-.stockfoot__urgent {
-  padding: 0 0 0 10px;
-}
-
-.stockfoot__urgent:not(.is-off) {
-  background: var(--lemon);
+  color: var(--text-3);
 }
 
 .stockfoot__stop {
@@ -431,8 +222,132 @@
   color: var(--text);
 }
 
-/* A row's count, opened: − n + right where it is */
-.stockcount--open {
+/* ============================================================ The count, where a tick would be
+ * The tick's box and margins, and a number in its ring. Tapped, the ring opens into − n + right
+ * where it is, a little taller (the buttons are to hit). On the task's card it is the card's tick:
+ * the same 48px box, a 34px ring on white, opening to the photo button's 40px.
+ */
+.stockcount {
+  position: relative;
+  flex: none;
+  min-width: 44px;
+  height: 44px;
+  margin: -10px -8px -10px -10px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+.stockcount__ring {
   display: inline-flex;
-  animation: fade-in 120ms var(--ease) both;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1.5px solid rgb(10 10 4 / 0.72);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background 180ms var(--ease),
+    border-color 180ms var(--ease),
+    transform 260ms var(--spring);
+}
+
+button.stockcount:active:not(:disabled) .stockcount__ring {
+  transform: scale(0.86);
+}
+
+button.stockcount:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+/* Time to buy: amber; urgent: red */
+.stockcount.is-low .stockcount__ring {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.stockcount.is-out .stockcount__ring {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+/* Open, it keeps the row's gap to the title */
+.rows .stockcount.is-open {
+  margin-inline-end: 0;
+}
+
+.stockcount.is-open .stockcount__ring {
+  height: 32px;
+  padding: 0;
+  background: var(--card);
+  animation: pop 200ms var(--spring) both;
+}
+
+.stockcount__step {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: inherit;
+}
+
+.stockcount__step .icon {
+  --s: 14;
+}
+
+.stockcount__step:active:not(:disabled) {
+  background: rgb(10 10 4 / 0.08);
+}
+
+.stockcount__step:disabled {
+  opacity: 0.3;
+}
+
+.stockcount.is-open .stockcount__n {
+  min-width: 20px;
+  font-size: 15px;
+  text-align: center;
+}
+
+/* On the task's card */
+.hero .stockcount {
+  min-width: 48px;
+  height: 48px;
+  margin: -6px -6px 0 0;
+}
+
+.hero .stockcount__ring {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-color: var(--ink);
+  background: rgb(255 255 255 / 0.45);
+  font-size: 16px;
+}
+
+.hero .stockcount.is-open .stockcount__ring {
+  height: 40px;
+  padding: 0 2px;
+  background: rgb(255 255 255 / 0.65);
+}
+
+.hero .stockcount__step {
+  width: 36px;
+  height: 36px;
+}
+
+.hero .stockcount__step .icon {
+  --s: 16;
+}
+
+.hero .stockcount.is-open .stockcount__n {
+  min-width: 24px;
+  font-size: 18px;
 }

@@ -166,10 +166,3 @@
 .rows--plain .row + .row::before {
   left: 34px;
 }
-
-.qty {
-  margin-left: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-2);
-}

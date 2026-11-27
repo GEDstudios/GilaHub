@@ -1,6 +1,6 @@
 import { addDays, addMonths, diffDays, fromDateStr, humanDate, humanTime, today as todayOf, toDateStr, weekday, weekdayName, type DateStr } from '../core/dates';
 import type { RepeatRule } from '../core/model';
-import { fold, parseQuantity } from './normalize';
+import { fold } from './normalize';
 import { describeRule, firstDue } from './recurrence';
 
 /**
@@ -10,7 +10,7 @@ import { describeRule, firstDue } from './recurrence';
  * ambiguous words ("morning run", "sat down") stay in the title.
  */
 
-export type TokenKind = 'date' | 'time' | 'repeat' | 'assignee' | 'list' | 'tag' | 'urgent' | 'qty';
+export type TokenKind = 'date' | 'time' | 'repeat' | 'assignee' | 'list' | 'tag' | 'urgent';
 
 export interface Token {
   kind: TokenKind;
@@ -52,7 +52,6 @@ export interface ParseResult {
   tagIds?: string[];
   newTags?: string[];
   urgent?: boolean;
-  qty?: string;
   tokens: Token[];
 }
 
@@ -369,15 +368,6 @@ export function parseQuickAdd(input: string, ctx: ParseContext = {}): ParseResul
     .replace(/^[,.;:\s]+|[,;:\s]+$/g, '')
     .trim();
 
-  // How many: "2 milk", "milk x2", "500g cheese" (not a bare number at the end: "Pay rent 3500").
-  if (!ignore.has('qty:*')) {
-    const q = parseQuantity(title);
-    if (q.qty && !new RegExp(String.raw`\s${q.qty.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(title.trim())) {
-      out.qty = q.qty;
-      title = q.name;
-      tokens.push({ kind: 'qty', start: -1, end: -1, text: q.qty, key: 'qty:*', label: `× ${q.qty}` });
-    }
-  }
   out.title = title;
 
   // ---------- derived defaults ----------

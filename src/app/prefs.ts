@@ -45,8 +45,6 @@ export interface Prefs {
   groupOrder: Record<string, string[]>;
   /** My filtered lists on Today ("q:<id>" blocks): a name and what they let through. */
   savedLists: Record<string, { name: string; query: import('./query').TaskQuery }>;
-  /** Where new things added on the Stock page go (a folder id). */
-  stockFolder: string | null;
 }
 
 /** About this device itself, not about me: never synced. */
@@ -75,7 +73,6 @@ const DEFAULTS: Prefs = {
   foldedGroups: [],
   groupOrder: {},
   savedLists: {},
-  stockFolder: null,
 };
 
 export const PREF_KEYS = Object.keys(DEFAULTS) as Array<keyof Prefs>;

@@ -63,7 +63,6 @@ Hub.prototype.addItem = function (this: Hub, listId: string, input: NewItem): st
     turn: input.assignee === 'turns' ? this.meId : null,
     urgent: input.urgent ?? false,
     urgentBy: input.urgent ? this.meId : null,
-    qty: input.qty ?? null,
     tags: [...new Set(input.tags ?? this.suggestTags(input.title, listId).auto)].filter((t) => this.ensureTag(t)),
     // Added to someone's "Mine" project: it's still theirs — unless I say whose it is.
     owner:
@@ -179,7 +178,6 @@ Hub.prototype.duplicate = function (this: Hub, id: string): string | null {
       repeat: src.repeat,
       assignee: src.assignee,
       urgent: src.urgent,
-      qty: src.qty,
       visibility: this.visibilityOf(src),
     });
     for (const c of this.childrenOf(src.id)) copy(c, nid);

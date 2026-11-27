@@ -8,8 +8,7 @@ export type Route =
   | { name: 'lists' }
   | { name: 'list'; id: string }
   | { name: 'item'; id: string }
-  | { name: 'settings' }
-  | { name: 'stock' };
+  | { name: 'settings' };
 
 export function parseRoute(path: string): Route {
   const p = path.replace(/\/+$/, '') || '/';
@@ -18,7 +17,6 @@ export function parseRoute(path: string): Route {
   if (p === '/chores') return { name: 'chores' };
   if (p === '/lists') return { name: 'lists' };
   if (p === '/settings') return { name: 'settings' };
-  if (p === '/stock') return { name: 'stock' };
   let m = p.match(/^\/l\/([A-Za-z0-9]+)$/);
   if (m) return { name: 'list', id: m[1] };
   m = p.match(/^\/i\/([A-Za-z0-9]+)$/);

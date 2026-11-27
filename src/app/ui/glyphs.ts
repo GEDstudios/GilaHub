@@ -17,7 +17,7 @@ export const G = {
   tag: 'tag',
   template: 'layout',
   stock: 'package',
-  /** On a shopping list (a stock item's entry, a "Goes on" place). */
+  /** Shopping (going shopping, its alerts). */
   onList: 'cart',
   idea: 'lightbulb',
   device: 'device',

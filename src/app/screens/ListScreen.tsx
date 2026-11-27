@@ -21,7 +21,7 @@ import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
-import { setPrefs, use24h, usePrefs } from '../prefs';
+import { getPrefs, setPrefs, use24h, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
 import { Sortable, type Outside, type Point } from '../ui/Sortable';
 import { barTabOf, folderLean, ProjectCard, SortableProject, useBarDrop } from './Lists';
@@ -68,8 +68,8 @@ function FolderTools({ list }: { list: List }) {
         { key: 'tpl', label: 'Template', name: 'How new tasks here start', icon: G.template, set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
         {
           key: 'shows',
-          // Other folders' tasks, shown here too: "Tasks from Chores" says which once there are some.
-          label: shows.length ? `Tasks from ${shows.length === 1 ? shows[0].name : `${shows.length} folders`}` : 'Tasks from…',
+          // Other folders' tasks, shown here too: "Showing tasks from Chores" says which once there are some.
+          label: shows.length ? `Showing tasks from ${shows.length === 1 ? shows[0].name : `${shows.length} folders`}` : 'Show tasks from…',
           name: 'Show other folders’ tasks here too',
           icon: G.shows,
           set: shows.length > 0,
@@ -609,7 +609,7 @@ function ProjectPage({ id }: { id: string }) {
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} onMove={() => openSheet((close) => <MoveProjectSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
       >
-        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
+        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
         <FolderTools list={list} />
       </Band>
       <div className="column">
@@ -619,7 +619,7 @@ function ProjectPage({ id }: { id: string }) {
           <Lens filter={filter} items={v.open} lists={v.lists.length > 1 ? v.lists : undefined}>
             <ViewToggle listId={id} />
           </Lens>
-        ) : !done.length && !hub.subLists(id).length ? (
+        ) : !done.length && !v.stocked.length && !hub.subLists(id).length ? (
           <p className="hint">Nothing here yet. The + adds the first thing.</p>
         ) : null}
 
@@ -663,6 +663,26 @@ function ProjectPage({ id }: { id: string }) {
           flash={flash}
         />
         {filter.active && n && !shownN ? <p className="hint">Nothing here with this filter.</p> : null}
+
+        {v.stocked.length ? (
+          // Kept stocked, with enough in: not tasks. At their buy-at count they join the tasks above.
+          <Disclosure
+            title="In stock"
+            count={v.stocked.length}
+            open={!prefs.foldedGroups.includes(`stock:${id}`)}
+            onToggle={(open) => {
+              const k = `stock:${id}`;
+              const now = getPrefs().foldedGroups.filter((x) => x !== k);
+              setPrefs({ foldedGroups: open ? now : [...now, k].slice(-300) });
+            }}
+          >
+            <ul className="rows">
+              {v.stocked.map((i) => (
+                <ItemRow key={i.id} item={i} showList={lists.size > 1} />
+              ))}
+            </ul>
+          </Disclosure>
+        ) : null}
 
         {done.length ? (
           <Disclosure title="Done" count={done.length}>

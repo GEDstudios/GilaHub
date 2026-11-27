@@ -1,7 +1,7 @@
 
-import { isOpen, type Item, type List, type ListView } from '../model';
+import { isOpen, isStocked, type Item, type List, type ListView } from '../model';
 import { keyBetween } from '../order';
-import { fold, itemKey, parseQuantity } from '../../smart/normalize';
+import { fold, itemKey } from '../../smart/normalize';
 import { Hub, type AddResult, type ItemVisibility, type NewItem } from './base';
 
 /** Adding by name (the composer and "Again?"): where a thing goes, never twice, the Shopping root; and searching. */
@@ -39,17 +39,15 @@ declare module './base' {
     placeFor(title: string, listId: string): string;
 
     /**
-     * Add a thing the one way, to any project: never twice. Already open there → said so (a
-     * quantity or urgency goes onto it); done before → brought back as it's asked for now; else
-     * new. A subtask is just added.
+     * Add a thing the one way, to any project: never twice. Already open there → said so (urgency
+     * goes onto it; a kept-stocked thing that's stocked up comes down to its buy-at count, so it's
+     * one to buy now); done before → brought back as it's asked for now; else new. A subtask is
+     * just added.
      */
     add(listId: string, input: NewItem): AddResult;
 
-    /** Add words as written ("2 milk": two of them), never twice (Hub.add). */
-    addShopping(listId: string, raw: string, extra?: { urgent?: boolean; visibility?: ItemVisibility; qty?: string | null; owner?: string | null; tags?: string[] | null }): AddResult;
-
-    /** "+1": bump a quantity. */
-    bump(id: string): void;
+    /** Add a thing by name, as written, never twice (Hub.add). */
+    addShopping(listId: string, raw: string, extra?: { urgent?: boolean; visibility?: ItemVisibility; owner?: string | null; tags?: string[] | null }): AddResult;
 
 search(query: string, limit?: number): Item[];
   }
@@ -132,7 +130,8 @@ Hub.prototype.add = function (this: Hub, listId: string, input: NewItem): AddRes
   if (input.parentId) return { kind: 'added', id: this.addItem(listId, input), listId };
   const existing = this.findOnList([listId], input.title);
   if (existing && isOpen(existing)) {
-    if (input.qty || input.urgent) this.updateItem(existing.id, { qty: input.qty ?? existing.qty, urgent: input.urgent || existing.urgent });
+    if (isStocked(existing)) this.setStock(existing.id, { stock: existing.stockAddAt ?? 1 });
+    if (input.urgent && !existing.urgent) this.updateItem(existing.id, { urgent: true });
     return { kind: 'exists', id: existing.id, listId };
   }
   if (existing && this.canEdit(existing) && !existing.repeat) {
@@ -143,7 +142,6 @@ Hub.prototype.add = function (this: Hub, listId: string, input: NewItem): AddRes
         doneBy: null,
         archived: false,
         logId: null,
-        qty: input.qty ?? null,
         urgent: input.urgent ?? false,
         urgentBy: input.urgent ? this.meId : null,
         due: input.due ?? null,
@@ -161,16 +159,8 @@ Hub.prototype.add = function (this: Hub, listId: string, input: NewItem): AddRes
   return { kind: 'added', id: this.addItem(listId, input), listId };
 };
 
-Hub.prototype.addShopping = function (this: Hub, listId: string, raw: string, extra: { urgent?: boolean; visibility?: ItemVisibility; qty?: string | null; owner?: string | null; tags?: string[] | null } = {}): AddResult {
-  const { name, qty } = extra.qty !== undefined ? { name: raw.trim(), qty: extra.qty } : parseQuantity(raw);
-  return this.add(listId, { title: name, qty, urgent: extra.urgent, visibility: extra.visibility, owner: extra.owner, tags: extra.tags ?? undefined });
-};
-
-Hub.prototype.bump = function (this: Hub, id: string): void {
-  const item = this.item(id);
-  if (!item) return;
-  const n = item.qty && /^\d+$/.test(item.qty) ? +item.qty : 1;
-  this.updateItem(id, { qty: String(n + 1) });
+Hub.prototype.addShopping = function (this: Hub, listId: string, raw: string, extra: { urgent?: boolean; visibility?: ItemVisibility; owner?: string | null; tags?: string[] | null } = {}): AddResult {
+  return this.add(listId, { title: raw.trim(), urgent: extra.urgent, visibility: extra.visibility, owner: extra.owner, tags: extra.tags ?? undefined });
 };
 
 Hub.prototype.search = function (this: Hub, query: string, limit = 40): Item[] {

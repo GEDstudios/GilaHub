@@ -161,23 +161,13 @@ export interface Item {
   /** Shopping: who brought it back onto the list, and when (a re-added staple; a first add is createdBy/createdAt). */
   addedBy?: string | null;
   addedAt?: number | null;
-  /** Shopping: quantity text like "2", "500g", "1 ק"ג". */
-  qty?: string | null;
-  /** Kept stocked: how many are in now (unset: not kept stocked). */
+  /** Kept stocked: how many we have now (unset: not kept stocked). Never ticked: counted. */
   stock?: number | null;
-  /** How many we like to have (the list asks for what's missing up to this). */
-  stockFull?: number | null;
-  /** At or under this many, it goes on a list to get more (unset: 1). */
+  /** Buy at: at or under this many it's among the folder's tasks, to buy (unset: 1); above it, it
+   *  waits in the folder's "In stock". */
   stockAddAt?: number | null;
-  /** At or under this many, that entry is urgent (unset: never). */
+  /** Urgent at: at or under this many it's urgent (unset: never). */
   stockUrgentAt?: number | null;
-  /** The list it goes on (unset: Shopping, else its own folder). */
-  stockTo?: string | null;
-  /** Or under this task there, as a subtask. */
-  stockUnder?: string | null;
-  /** The entry it put on that list, while it's there; and whether it made it (or found it there). */
-  stockLink?: string | null;
-  stockMade?: boolean;
   /** Its tags (Tag ids), in no particular order. Unset: never tagged (a thing to buy is then read for its aisle). */
   tags?: string[] | null;
   /** Older data: a thing to buy's aisle category id. Read only, as a tag (Hub.tagsOf). */
@@ -423,4 +413,19 @@ export interface TableTypes {
 /** Still to do: not ticked, not cleared away. */
 export function isOpen(item: Pick<Item, 'done' | 'archived'>): boolean {
   return !item.done && !item.archived;
+}
+
+/** Kept stocked and time to buy: at or under its buy-at count. */
+export function stockLow(item: Pick<Item, 'stock' | 'stockAddAt'>): boolean {
+  return item.stock != null && item.stock <= (item.stockAddAt ?? 1);
+}
+
+/** Kept stocked and there are enough: nothing to do; it waits in its folder's "In stock". */
+export function isStocked(item: Pick<Item, 'stock' | 'stockAddAt'>): boolean {
+  return item.stock != null && !stockLow(item);
+}
+
+/** Something to do: open, and not a kept-stocked thing that's stocked up. */
+export function isTodo(item: Pick<Item, 'done' | 'archived' | 'stock' | 'stockAddAt'>): boolean {
+  return isOpen(item) && !isStocked(item);
 }

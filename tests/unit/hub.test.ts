@@ -122,9 +122,8 @@ describe('Hub: shopping', () => {
   it('never duplicates: exists → reported, crossed off → brought back', async () => {
     const { guy, hila } = await couple();
     const g = listNamed(guy, 'Groceries');
-    const first = guy.addShopping(g.id, '2 milk');
+    const first = guy.addShopping(g.id, 'milk');
     expect(first.kind).toBe('added');
-    expect(guy.item(first.id)?.qty).toBe('2');
     sync(guy, hila);
     expect(hila.addShopping(g.id, 'Milk').kind).toBe('exists');
     hila.toggle(first.id);

@@ -3,6 +3,7 @@ import { addPhotoTo, Photos } from '../components/Photos';
 import { useBackGuard } from '../ui/backGuard';
 import { PlaceTree } from '../components/PlaceTree';
 import { StockCount, stockTone, useStockSet } from '../components/StockCount';
+import { isStocked } from '../../core/model';
 import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
@@ -153,70 +154,44 @@ function StockCol({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /**
- * Stock on a task: Have · Want · Buy at, each − n +; under them a thin bar (have of want, a notch
- * where it gets bought). One quiet line under that: where it goes, when it's urgent, stop.
+ * Stock on a task: Have · Buy at · Urgent, each − n +. At or under "Buy at" it's one of its
+ * folder's tasks (to buy); above it, it waits in the folder's "In stock". At or under "Urgent" it's
+ * urgent (off: never). One quiet line under them says where it is now, and stops counting.
  * Opening it starts counting.
  */
 function StockPanel({ id }: { id: string }) {
   const hub = useHub();
-  const { openSheet } = useOverlays();
   const item = hub.item(id);
   const on = item?.stock != null;
   const set = useStockSet(id);
   // Opening it is starting it.
   useEffect(() => {
-    if (item && item.stock == null) hub.setStock(id, { stock: 2, stockFull: 4, stockAddAt: 1, stockUrgentAt: 0 });
+    if (item && item.stock == null) hub.setStock(id, { stock: 2, stockAddAt: 1, stockUrgentAt: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   if (!item || !on) return null;
   const have = item.stock ?? 0;
-  const want = item.stockFull ?? Math.max(have, (item.stockAddAt ?? 1) + 1);
   const at = item.stockAddAt ?? 1;
   const urgentAt = item.stockUrgentAt ?? null;
-  const tone = stockTone(hub, item);
-  const place = hub.stockPlace(item);
-  const placeName = place.parentId ? (hub.item(place.parentId)?.title ?? '') : (hub.list(place.listId)?.name ?? '');
-  const pickPlace = () =>
-    openSheet((close) => (
-      <Sheet onClose={close} title="Goes on">
-        <PlaceTree
-          tasks
-          excludeItem={id}
-          value={place}
-          offer={(l) => !l.owner || l.owner === hub.meId || l.visibility === 'visible'}
-          onPick={(p) => {
-            if (p) set({ stockTo: p.listId, stockUnder: p.parentId });
-            close();
-          }}
-        />
-      </Sheet>
-    ));
-  const pct = (n: number) => `${Math.max(0, Math.min(100, (n / Math.max(1, want)) * 100))}%`;
+  const tone = stockTone(item);
+  const folder = hub.list(item.listId)?.name ?? 'its folder';
   return (
     <>
       <div className="stockcols">
         <StockCol label="Have">
           <Stepper label="Have" value={have} tone={tone} onChange={(n) => set({ stock: n ?? 0 })} />
         </StockCol>
-        <StockCol label="Want">
-          <Stepper label="Want" value={want} min={Math.max(1, at + 1)} onChange={(n) => set({ stockFull: n })} />
-        </StockCol>
         <StockCol label="Buy at">
-          <Stepper label="Buy at" value={at} max={want - 1} onChange={(n) => set({ stockAddAt: Math.min(n ?? 0, want - 1) })} />
+          <Stepper label="Buy at" value={at} onChange={(n) => set({ stockAddAt: n ?? 0, ...(urgentAt != null && urgentAt > (n ?? 0) ? { stockUrgentAt: n ?? 0 } : {}) })} />
         </StockCol>
-      </div>
-      <div className={`stockbar ${tone ? `is-${tone}` : ''}`} role="img" aria-label={`${have} of ${want}; bought at ${at}`}>
-        <span className="stockbar__fill" style={{ width: pct(have) }} />
-        <span className="stockbar__notch" style={{ left: pct(at) }} />
+        <StockCol label="Urgent">
+          <Stepper label="Urgent at" value={urgentAt} nullable max={at} onChange={(n) => set({ stockUrgentAt: n })} />
+        </StockCol>
       </div>
       <div className="stockfoot">
-        <button type="button" className="stockfoot__chip" onClick={pickPlace} title="Where it goes when it's low">
-          <Icon name="cart" className="icon--xs" />
-          <span dir="auto">{placeName}</span>
-        </button>
-        <span className={`stockfoot__chip stockfoot__urgent ${urgentAt == null ? 'is-off' : ''}`} title="Urgent at">
-          <Icon name="urgent" className="icon--xs" />
-          <Stepper size="sm" look="bare" nullable label="Urgent at" value={urgentAt} max={at} onChange={(n) => set({ stockUrgentAt: n })} />
+        <span className="stockfoot__where">
+          <Icon name={G.stock} className="icon--xs" />
+          {isStocked(item) ? `In stock, in ${folder}` : `Time to buy: one of the tasks in ${folder}`}
         </span>
         <button type="button" className="stockfoot__stop" onClick={() => set({ stock: null })} aria-label="Stop counting" title="Stop counting">
           <Icon name="x" className="icon--xs" />
@@ -315,7 +290,7 @@ export function ItemScreen({ id }: { id: string }) {
   }, [hub, id]);
 
   // What it was when I opened it: Back asks before leaving with changes (keep them, or put it back).
-  const tracked = ['title', 'notes', 'due', 'dueTime', 'repeat', 'remind', 'nag', 'assignee', 'urgent', 'private', 'owner', 'tags', 'qty', 'needsOk'] as const;
+  const tracked = ['title', 'notes', 'due', 'dueTime', 'repeat', 'remind', 'nag', 'assignee', 'urgent', 'private', 'owner', 'tags', 'needsOk'] as const;
   const snapOf = (it: typeof item) => (it ? Object.fromEntries(tracked.map((k) => [k, it[k] ?? null])) : null);
   const [snap] = useState(() => snapOf(item));
   // The name being typed counts too (it's only saved once the field lets go).

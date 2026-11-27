@@ -170,10 +170,9 @@ export function useCompose({
           ? [...new Set([...hashed, ...tplTags, ...hub.suggestTags(p.title, to.id).auto])]
           : undefined;
     const asking = hub.isRequest(d.assignee);
-    // Never twice: one already open says so (+1); one done before comes back.
+    // Never twice: one already open says so; one done before comes back.
     const res = hub.add(to.id, {
       title,
-      qty: p.qty ?? null,
       parentId: to.id === (base?.id ?? listId) ? parentPick : null,
       due: d.due,
       dueTime: d.dueTime,
@@ -193,7 +192,7 @@ export function useCompose({
     if (d.urgent && res.kind !== 'exists' && hub.item(id)) pingUrgent(hub.item(id)!, true);
     if (res.kind === 'exists') {
       markFresh(id, { scroll: opts.announce });
-      if (!opts.quiet) toast(`${hub.item(id)?.title} is already in ${to.name}`, { action: { label: '+1', run: () => hub.bump(id) } });
+      if (!opts.quiet) toast(`${hub.item(id)?.title} is already in ${to.name}`);
       return id;
     }
     // A dated task notifies by default: ask for permission the first time (in this tap).

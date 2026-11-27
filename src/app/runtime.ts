@@ -38,6 +38,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
   hub.renameOldDefaults();
   hub.uniformProjects();
   hub.endAwayMode();
+  hub.stockInPlace();
   const relayListeners = new Set<() => void>();
 
   /**
@@ -105,6 +106,7 @@ export async function startRuntime(persistence: Persistence, session: Session): 
       hub.renameOldDefaults();
       hub.uniformProjects();
       hub.endAwayMode();
+      hub.stockInPlace();
       settle();
       for (const fn of relayListeners) fn();
       void registerPush(rt);

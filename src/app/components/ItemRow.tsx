@@ -21,7 +21,6 @@ import { useSettleHold } from '../ui/useSettle';
 import { useSwipe } from '../ui/swipe';
 import { TagPills } from './Tags';
 import { stepProgress, todayRef } from '../views';
-import { isOpen } from '../../core/model';
 import { whenText } from '../labels';
 import { G } from '../ui/glyphs';
 import { DIST } from '../ui/tokens';
@@ -108,9 +107,6 @@ export const ItemRow = memo(function ItemRow({
     tick(item);
   };
 
-  // A counted thing that's on the shopping list now (it says where; the count says the rest).
-  const stockLinked = item.stock != null && item.stockLink ? hub.item(item.stockLink) : undefined;
-  const stockOn = stockLinked && isOpen(stockLinked) ? stockLinked : undefined;
   const twin = hub.linked(item);
   const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
 
@@ -242,9 +238,8 @@ export const ItemRow = memo(function ItemRow({
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
-          {item.qty ? <span className="qty num">{/^\d+$/.test(item.qty) ? `×${item.qty}` : item.qty}</span> : null}
         </span>
-        {(showList && list) || stockOn || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
+        {(showList && list) || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} /> : null}
             {showList && list && !listLink ? (
@@ -266,12 +261,6 @@ export const ItemRow = memo(function ItemRow({
               </button>
             ) : null}
             {req ? <ReqTag state={req} /> : null}
-            {stockOn ? (
-              <span className="meta meta--stock is-low">
-                <Icon name={G.onList} />
-                <span dir="auto">{hub.list(stockOn.listId)?.name}</span>
-              </span>
-            ) : null}
             {vis ? <VisTag item={item} /> : null}
             {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
             {item.repeat ? (

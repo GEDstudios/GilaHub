@@ -1,115 +1,57 @@
+import type { Item } from '../model';
+import { Hub, type Undo } from './base';
 
-import { isOpen, type Item } from '../model';
-import { Hub, type AddResult, type Undo } from './base';
+/**
+ * Things we keep stocked: an item that's counted instead of ticked. It stays in its own folder:
+ * above its buy-at count it waits in the folder's "In stock" (model.isStocked); at or under it,
+ * it's one of the folder's tasks, to buy, and urgent at its urgent count.
+ */
 
-/** Things we count: how many are in, and putting them on a list when they run low. */
+export type StockPatch = Partial<Pick<Item, 'stock' | 'stockAddAt' | 'stockUrgentAt'>>;
 
 declare module './base' {
   interface Hub {
-    /** Everything we count the stock of, from every folder. */
-    stockItems(): Item[];
-
-    /** As many as we want (or more). */
-    stockFull(item: Item): boolean;
-
-    /** It's running low (at or under where it goes on the list). */
-    stockLow(item: Item): boolean;
-
-    /** Where exactly: a folder, or under a task in one (the tree picker's choice). */
-    stockPlace(item: Item): { listId: string; parentId: string | null };
-
     /**
-     * Change how many are in, or its levels (`stock: null` stops keeping it stocked). Then it checks
-     * itself: low → on the list (urgent when very low); stocked again by hand → off the list, if it
-     * put it there. Returns the undo.
+     * Change how many we have, or when it's bought or urgent (`stock: null` stops counting it).
+     * Crossing its urgent count turns urgent on, or off again. Returns the undo.
      */
-    setStock(id: string, patch: Partial<Pick<Item, 'stock' | 'stockFull' | 'stockAddAt' | 'stockUrgentAt' | 'stockTo' | 'stockUnder'>>): Undo;
+    setStock(id: string, patch: StockPatch): Undo;
 
-    /** @internal */
-    stockChange(id: string, fn: () => void): Undo;
-
-    /** Puts it on its list when low, makes that urgent when very low, takes it off when it's stocked again. Returns an entry it made. (internal) */
-    stockCheck(id: string): string | null;
+    /** Older data: what a kept-stocked thing put on a shopping list goes (it's on its own list now). */
+    stockInPlace(): void;
   }
 }
 
-Hub.prototype.stockItems = function (this: Hub): Item[] {
-  const lists = new Set(this.lists().map((l) => l.id));
-  return this.store.all('item').filter((i) => i.stock != null && !i.archived && lists.has(i.listId));
-};
+/** At its urgent count (or under). */
+const urgentLevel = (i: Pick<Item, 'stock' | 'stockUrgentAt'>) => i.stock != null && i.stockUrgentAt != null && i.stock <= i.stockUrgentAt;
 
-Hub.prototype.stockFull = function (this: Hub, item: Item): boolean {
-  return item.stock != null && item.stockFull != null && item.stock >= item.stockFull;
-};
-
-Hub.prototype.stockLow = function (this: Hub, item: Item): boolean {
-  return item.stock != null && item.stock <= (item.stockAddAt ?? 1);
-};
-
-Hub.prototype.stockPlace = function (this: Hub, item: Item): { listId: string; parentId: string | null } {
-  const under = item.stockUnder ? this.item(item.stockUnder) : undefined;
-  if (under && !under.archived) return { listId: under.listId, parentId: under.id };
-  return { listId: (item.stockTo && this.list(item.stockTo)?.id) || this.shopRoot()?.id || item.listId, parentId: null };
-};
-
-Hub.prototype.setStock = function (this: Hub, id: string, patch: Partial<Pick<Item, 'stock' | 'stockFull' | 'stockAddAt' | 'stockUrgentAt' | 'stockTo' | 'stockUnder'>>): Undo {
-  return this.stockChange(id, () => {
-    const f: Partial<Item> = { ...patch };
-    if (typeof f.stock === 'number') f.stock = Math.max(0, Math.round(f.stock));
-    this.store.mutate('item', id, f);
-  });
-};
-
-Hub.prototype.stockChange = function (this: Hub, id: string, fn: () => void): Undo {
+Hub.prototype.setStock = function (this: Hub, id: string, patch: StockPatch): Undo {
   const before = this.item(id);
   if (!before) return () => {};
-  const keep = { stock: before.stock ?? null, stockFull: before.stockFull ?? null, stockAddAt: before.stockAddAt ?? null, stockUrgentAt: before.stockUrgentAt ?? null, stockTo: before.stockTo ?? null, stockUnder: before.stockUnder ?? null, stockLink: before.stockLink ?? null, stockMade: !!before.stockMade };
-  const link = before.stockLink ? this.item(before.stockLink) : undefined;
-  const linkWas = link ? { urgent: !!link.urgent, qty: link.qty ?? null, deleted: false } : null;
-  let made: string | null = null;
-  this.store.batch(() => {
-    fn();
-    made = this.stockCheck(id);
-  });
-  return () =>
-    this.store.batch(() => {
-      this.store.mutate('item', id, keep);
-      if (made) this.store.mutate('item', made, { deleted: true });
-      if (link && linkWas) this.store.mutate('item', link.id, linkWas);
-    });
+  const keep = { stock: before.stock ?? null, stockAddAt: before.stockAddAt ?? null, stockUrgentAt: before.stockUrgentAt ?? null, urgent: !!before.urgent, urgentBy: before.urgentBy ?? null };
+  const next = { ...before, ...patch };
+  const f: Partial<Item> = { ...patch };
+  if (typeof f.stock === 'number') f.stock = next.stock = Math.max(0, Math.round(f.stock));
+  // Urgent follows its count, but only when the count crosses the line (urgent set by hand stays).
+  const was = urgentLevel(before);
+  const now = urgentLevel(next);
+  if (now !== was && now !== !!before.urgent) {
+    f.urgent = now;
+    f.urgentBy = now ? this.meId : null;
+  }
+  this.store.mutate('item', id, f);
+  return () => this.store.mutate('item', id, keep);
 };
 
-Hub.prototype.stockCheck = function (this: Hub, id: string): string | null {
-  const it = this.item(id);
-  if (!it) return null;
-  const link = it.stockLink ? this.item(it.stockLink) : undefined;
-  const open = link && isOpen(link) ? link : undefined;
-  if (it.stock == null) return null;
-  const low = it.stock <= (it.stockAddAt ?? 1);
-  const urgent = it.stockUrgentAt != null && it.stock <= it.stockUrgentAt;
-  // What's missing, up to how many we like to have (none set: just "get more").
-  const missing = it.stockFull != null && it.stockFull > it.stock ? String(it.stockFull - it.stock) : null;
-  if (low) {
-    if (open) {
-      const f: Partial<Item> = {};
-      if (!!open.urgent !== urgent) f.urgent = urgent;
-      if (it.stockMade && (open.qty ?? null) !== missing) f.qty = missing;
-      if (Object.keys(f).length) this.store.mutate('item', open.id, f);
-      return null;
+Hub.prototype.stockInPlace = function (this: Hub): void {
+  type Old = Item & { stockLink?: string | null; stockMade?: boolean; stockFull?: number | null; stockTo?: string | null; stockUnder?: string | null };
+  const old = (this.store.all('item') as Old[]).filter((i) => i.stockLink != null || i.stockFull != null || i.stockTo != null || i.stockUnder != null);
+  if (!old.length) return;
+  this.store.batch(() => {
+    for (const i of old) {
+      const link = i.stockLink && i.stockMade ? this.item(i.stockLink) : undefined;
+      if (link && !link.done) this.store.mutate('item', link.id, { deleted: true });
+      this.store.mutate('item', i.id, { stockLink: null, stockMade: false, stockFull: null, stockTo: null, stockUnder: null } as Partial<Item>);
     }
-    const place = this.stockPlace(it);
-    let res: AddResult;
-    if (place.parentId) {
-      // Under a task: one there by that name already will do.
-      const there = this.childrenOf(place.parentId).find((c) => isOpen(c) && c.title.trim().toLowerCase() === it.title.trim().toLowerCase());
-      res = there ? { kind: 'exists', id: there.id, listId: place.listId } : { kind: 'added', id: this.addItem(place.listId, { title: it.title, urgent, qty: missing, parentId: place.parentId }), listId: place.listId };
-    } else res = this.add(place.listId, { title: it.title, urgent, qty: missing });
-    if (res.kind === 'exists' && urgent) this.store.mutate('item', res.id, { urgent: true });
-    this.store.mutate('item', id, { stockLink: res.id, stockMade: res.kind !== 'exists' });
-    return res.kind === 'exists' ? null : res.id;
-  }
-  // Stocked again (by hand): what it put on the list goes; one that was there already stays.
-  if (open && it.stockMade) this.store.mutate('item', open.id, { deleted: true });
-  if (it.stockLink) this.store.mutate('item', id, { stockLink: null, stockMade: false });
-  return null;
+  });
 };

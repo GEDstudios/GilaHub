@@ -35,7 +35,7 @@
 - **Outbox**: every local write is queued as an op, so the app works offline indefinitely. Ops are sealed only at send time.
 - **Domain layer (`src/core/hub/`, the `Hub`)**: every change anyone makes (add, tick, move, set privacy, count stock…) expressed as store writes, with every privacy rule in one place. `base.ts` is the class and its core (people, folders, the tree: `isLive`, `treeIds`, `isWithin`, `isUnder`, `siblings`); each subject adds its methods from its own file (`privacy`, `requests`, `items`, `tick`, `twins`, `stock`, `adding`, `tags`, `notes`, `ideas`, `photos`, `backup`, `migrations`). Import it from `core/hub`. Where a household starts lives in `src/core/seed.ts`; folder keys (`l:<id>`) in `src/core/keys.ts`.
 - **App layer (`src/app/`)**: what screens show (`views.ts`, `query.ts`, `home.ts`), how it's said (`labels.ts`), privacy rules (`privacy.ts`), and the UI: shared building blocks in `ui/` and `components/` (see 03 · Design system), screens in `screens/`.
-- **Smart layer (`src/smart/`)**: quick-add parser, quantity parser, bilingual categorizer, recurrence engine, buy-again suggestions. All pure functions with unit tests and no network.
+- **Smart layer (`src/smart/`)**: quick-add parser, bilingual categorizer, recurrence engine, buy-again suggestions. All pure functions with unit tests and no network.
 - **Service worker (`src/sw/sw.js`)**: precaches the app shell for offline use, receives push and decrypts it with the household or personal key from IndexedDB, and handles notification taps.
 
 ## Data model
@@ -44,7 +44,7 @@
 |---|---|
 | `member` | Name and line color per person. |
 | `list` | Name, kind (`tasks` / `shopping` / `chores`), flavor (grocery / home), color, icon, owner, visibility, order. |
-| `item` | Everything on a list. Nests via `parentId` without limit. Holds dates, repeat rule, owner, privacy, urgent flag, quantity, aisle. |
+| `item` | Everything on a list. Nests via `parentId` without limit. Holds dates, repeat rule, owner, privacy, urgent flag, aisle, and a stock count for things kept stocked. |
 | `log` | Completions of repeating items and purchases (for history, ♡ thanks and buy-again). |
 | `memory` | Learned aisle corrections per item name, shared by both partners. |
 | `store` | (v1.1) Per-store aisle order. |

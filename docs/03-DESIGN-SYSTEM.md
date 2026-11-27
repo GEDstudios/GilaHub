@@ -56,7 +56,7 @@ Every screen that holds things has exactly two adds ([`addAction.ts`](../src/app
 1. **New**: the black "+" (`NewButton`), rightmost in the header. It opens a sheet already pointed at where you are: the composer (Today: due today; a project: that project; Shopping: the list the item belongs on; Chores: a chore), or New project on Projects. The `N` key and the sidebar's New do the same thing.
 2. **In place**: the add row, or the dashed tile on the Projects grid.
 
-**The composer** (Tasky's "New task"): one sentence to type, a live color card of what you're adding (for shopping, its aisle and quantity), then "Want to modify something?" chips: *List · Date · Repeat · Remind · Who · Ours · Urgent* for tasks, *List · Repeat · Who · Ours* for chores, *List · Urgent · Ours* for shopping. A chip always wins over the words; the words it overrides go back to being plain text. Add closes the sheet, says "Added to To do", and the new row glows sky blue where you can see it.
+**The composer** (Tasky's "New task"): one sentence to type, a live color card of what you're adding (for shopping, its aisle), then "Want to modify something?" chips: *List · Date · Repeat · Remind · Who · Ours · Urgent* for tasks, *List · Repeat · Who · Ours* for chores, *List · Urgent · Ours* for shopping. A chip always wins over the words; the words it overrides go back to being plain text. Add closes the sheet, says "Added to To do", and the new row glows sky blue where you can see it.
 
 **Empty lists** show only the add row, with up to four gray tokens to add in one tap where it helps (chores: Dishes, Laundry, Bins, Sheets; shopping: what you often buy). The big serif line is kept for "gone" and "not found".
 
@@ -66,7 +66,7 @@ Every recurring piece of UI is one component, and every screen uses it rather th
 
 | Need | Component (file) | Notes |
 |---|---|---|
-| Choose where something goes: a folder, or a task in one | `PlaceTree` ([`components/PlaceTree.tsx`](../src/app/components/PlaceTree.tsx)) | Folders fold, tasks and subtasks unfold, a long press opens, a search field on top, a faint line per level. Move, Also in, Goes on, a filtered list's folder, a folder on Today, Tasks from…, the composer's place. |
+| Choose where something goes: a folder, or a task in one | `PlaceTree` ([`components/PlaceTree.tsx`](../src/app/components/PlaceTree.tsx)) | Folders fold, tasks and subtasks unfold, a long press opens, a search field on top, a faint line per level. Move, Also in, a filtered list's folder, a folder on Today, Show tasks from…, the composer's place. |
 | On/off with a label | `SwitchRow` ([`components/pickers.tsx`](../src/app/components/pickers.tsx)) | The whole row flips the `Switch`. `panel` for the quieter size inside an editor. |
 | One of a few, inline | `Seg` (raised pill), `Options` (wrapping pills) | |
 | − n + | `Stepper` ([`ui/primitives.tsx`](../src/app/ui/primitives.tsx)) | `nullable` goes below its lowest to "off"; `size` sm, `look` tile / card / bare, `tone` low / out. |

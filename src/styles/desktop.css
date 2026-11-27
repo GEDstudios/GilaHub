@@ -303,12 +303,6 @@
     align-self: center;
   }
 
-  /* A title under a path (Stock): on its own line, under the path */
-  .band:has(> .crumbs--path) > .band__title {
-    flex-basis: 100%;
-    margin-top: 10px;
-  }
-
   /* The top bar does these: back to Today from Settings, Search */
   .band--root .band__top > .iconbtn:first-child,
   .band__actions [aria-label='Search'] {

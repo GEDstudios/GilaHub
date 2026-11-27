@@ -13,7 +13,6 @@ import { NotesLayer, useNoteHere } from './components/Notes';
 import { announce, Arrivals, sawItHappen, useArrivalWatch } from './components/Arrivals';
 import { SearchLayer } from './components/SearchLayer';
 import { openSearch } from './search';
-import { StockScreen } from './screens/Stock';
 import { ShortcutsSheet, useHistory } from './undo';
 import { quietly } from '../core/history';
 import { pendingDraft, QuickAddSheet } from './components/QuickAddSheet';
@@ -266,8 +265,6 @@ function Screen() {
       return <ItemScreen key={route.id} id={route.id} />;
     case 'settings':
       return <Settings />;
-    case 'stock':
-      return <StockScreen />;
   }
 }
 
