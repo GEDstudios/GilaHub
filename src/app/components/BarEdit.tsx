@@ -65,7 +65,7 @@ export function BarToken({ t, full, onAdd }: { t: TabDef; full?: boolean; onAdd:
       className={`token ${s.className}`}
       data-drag
       {...s.props}
-      aria-label={`Add ${t.label} to the bar`}
+      aria-label={`Pin ${t.label} to the bar`}
       aria-disabled={full || undefined}
       onClick={() => {
         if (full) return;
@@ -133,7 +133,7 @@ function MovableTab({
       >
         {inner}
       </span>
-      <EditX label={`Take ${t.label} out of the bar`} onClick={onTake} />
+      <EditX label={`Unpin ${t.label}`} onClick={onTake} />
     </span>
   );
 }

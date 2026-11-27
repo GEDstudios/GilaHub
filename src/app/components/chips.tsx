@@ -3,7 +3,7 @@ import { Icon, type IconName } from '../ui/Icon';
 
 /**
  * One soft chip of the inline editor. With `open` it has a panel that opens under the row; with
- * `pressed` it is an on/off chip with no panel (Urgent, Pin to bar). `ghost` = a dashed invitation
+ * `pressed` it is an on/off chip with no panel (Urgent, Pin to the bar). `ghost` = a dashed invitation
  * (e.g. while on my own). `lead` replaces the icon (a folder's bullet).
  */
 export function EChip({

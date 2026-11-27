@@ -285,8 +285,8 @@ export interface Idea {
 }
 
 /**
- * A moment worth keeping: a feeling and a line, from either of us (Moments, on Today's "This
- * week"). Household scope, so we both look back on all of them.
+ * A moment worth keeping: a feeling and a line, from either of us. Nothing in the app shows or
+ * writes these any more; the table stays so the ones already saved (and old backups) stay readable.
  */
 export interface Moment {
   id: string;

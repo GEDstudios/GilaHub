@@ -51,7 +51,7 @@ export interface FolderLook {
 type Field = 'color' | 'vis';
 
 /**
- * New folder's chips: Color, who sees it, Pin to bar (its icon is picked on the card itself).
+ * New folder's chips: Color, who sees it, Pin to the bar (its icon is picked on the card itself).
  * Each opens its panel right below the row; nothing stacks.
  */
 export function FolderFields({ value, onChange }: { value: FolderLook; onChange: (patch: Partial<FolderLook>) => void }) {
@@ -74,9 +74,9 @@ export function FolderFields({ value, onChange }: { value: FolderLook; onChange:
             <ListVisOptions value={value.visibility} owner={value.owner} onPick={(v) => onChange(v)} />
           </Panel>
         ) : null}
-        {/* Off: a dashed "Pin to bar". On: "Pinned to bar", filled with my colour, so it reads at a glance. */}
+        {/* Off: a dashed "Pin to the bar". On: "Pinned to the bar", filled with my colour, so it reads at a glance. */}
         <EChip
-          label={value.pinned ? 'Pinned to bar' : 'Pin to bar'}
+          label={value.pinned ? 'Pinned to the bar' : 'Pin to the bar'}
           icon={G.pinToBar}
           set={false}
           pressed={value.pinned}

@@ -20,7 +20,7 @@ import {
   slotTitle,
   summaryOf,
   visibleHome,
-  weekBands,
+  weekCounts,
 } from '../../src/app/home';
 import { todayView } from '../../src/app/views';
 import { couple as pair, listNamed, person, solo as alone, sync, type Side } from './_helpers';
@@ -239,16 +239,12 @@ describe('home blocks', () => {
     expect(s.person).toBe(false);
   });
 
-  it('week strips say "done this week" when solo, each tick counted once', async () => {
+  it('the week counts each tick once', async () => {
     const hub = await solo();
     hub.addShopping(listNamed(hub, 'Groceries').id, 'milk');
     const done = hub.addItem(listNamed(hub, 'To do').id, { title: 'Sweep' });
     hub.toggle(done);
-    const v = todayView(hub, today());
-    expect(weekBands(hub, v).map((b) => b.label)).toEqual(['done this week', 'Keep a moment']);
-    expect(weekBands(hub, v)[0].num).toBe(1);
-    hub.addMoment('Pancakes in bed', '🥰');
-    expect(weekBands(hub, todayView(hub, today())).at(-1)).toMatchObject({ key: 'moments', num: '🥰', label: 'Pancakes in bed' });
+    expect(weekCounts(hub)).toEqual({ week: 1, last: 0 });
   });
 
   it('chores are plain repeating tasks: due ones are in Today, mine and my partner\'s alike', async () => {
@@ -323,15 +319,5 @@ describe('My Highlights on Today', () => {
     guy.toggle(a);
     expect(quickItems(guy)).toEqual([]);
     setQuick(a, false);
-  });
-});
-
-describe('Moments and the week', () => {
-  it('finds the same day a year or a month ago', async () => {
-    const { onThisDay } = await import('../../src/app/moments');
-    const m = (day: string, text: string) => ({ id: day, day, text, feel: '🥰', by: 'g', createdAt: 0 });
-    expect(onThisDay([m('2025-11-25', 'Snow!')], '2026-11-25')?.ago).toBe('A year ago today');
-    expect(onThisDay([m('2026-09-25', 'Picnic')], '2026-11-25')?.ago).toBe('2 months ago today');
-    expect(onThisDay([m('2026-11-24', 'x')], '2026-11-25')).toBeNull();
   });
 });

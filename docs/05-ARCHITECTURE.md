@@ -54,6 +54,7 @@
 | `tag` | Our tags (aisles among them), in the order we walk them. |
 | `note`, `photo` | Sticky notes left for each other; photos on tasks and folders. |
 | `settings` | The household's record, and each person's own preferences (`prefs:<member>`, in their personal scope). |
+| `moment` | Kept for what was saved by an earlier version (and old backups); nothing reads or writes it now. |
 | `idea` | Ideas for Gila Hub itself: text, author, manual order, edited / resolved by whom and when. Always household scope. |
 
 A device that meets a table it doesn't know yet (an op from a newer version) keeps and syncs the record but shows nothing until it updates.

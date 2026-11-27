@@ -1,17 +1,10 @@
-import { today as todayStr } from '../dates';
-import type { LineColor, Moment, Note } from '../model';
+import type { LineColor, Note } from '../model';
 import { Hub, type Undo, NOTE_MAX, NOTE_MIN } from './base';
 
-/** Sticky notes left for each other, and moments worth looking back on. */
+/** Sticky notes left for each other. */
 
 declare module './base' {
   interface Hub {
-moments(): Moment[];
-
-    addMoment(text: string, feel: string, day?: string): string | null;
-
-    deleteMoment(id: string): Undo;
-
     /** The notes still stuck on a screen, newest on top. */
     notesOn(place: string): Note[];
 
@@ -39,25 +32,6 @@ moments(): Moment[];
     unpeelNote(id: string): Undo;
   }
 }
-
-Hub.prototype.moments = function (this: Hub): Moment[] {
-  return this.store
-    .all('moment')
-    .filter((m) => !m.deleted)
-    .sort((a, b) => b.day.localeCompare(a.day) || b.createdAt - a.createdAt);
-};
-
-Hub.prototype.addMoment = function (this: Hub, text: string, feel: string, day: string = todayStr()): string | null {
-  const t = text.trim();
-  if (!t && !feel) return null;
-  return this.store.create('moment', { text: t, feel, day, by: this.meId, createdAt: Date.now() });
-};
-
-Hub.prototype.deleteMoment = function (this: Hub, id: string): Undo {
-  if (!this.store.get('moment', id)) return () => {};
-  this.store.mutate('moment', id, { deleted: true });
-  return () => this.store.mutate('moment', id, { deleted: false });
-};
 
 Hub.prototype.notesOn = function (this: Hub, place: string): Note[] {
   // The old Shopping screen ("shop") is the Shopping folder's page.

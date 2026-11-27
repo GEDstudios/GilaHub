@@ -62,7 +62,7 @@ export function useBarDrop(arranging = false) {
       const was = before.includes(key);
       pinAt(hub, key, at ?? before.length);
       const name = tabOf(hub, key)?.label;
-      if (!was && name && !arrangingRef.current) toast(`${name} is in the bar`, { undo: () => setPins(hub, before) });
+      if (!was && name && !arrangingRef.current) toast(`${name} is pinned to the bar`, { undo: () => setPins(hub, before) });
     };
     const common = { nav: liveBar, tabOf: (key: string) => tabOf(hub, key), pinned: () => pinsOf(hub), get: getAim, set: setAim, place };
     return { folders: barTarget({ ...common, keyOf: (id) => listKey(id) }), tokens: barTarget(common) };
@@ -76,7 +76,7 @@ export const barTabOf = tabOf;
 function FolderPin({ list, pins, index }: { list: List; pins: string[]; index: number }) {
   const hub = useHub();
   const on = pins.includes(listKey(list.id));
-  const label = on ? `${list.name} is in the bar` : `Put ${list.name} in the bar`;
+  const label = on ? `${list.name} is pinned to the bar` : `Pin ${list.name} to the bar`;
   return (
     <button
       type="button"

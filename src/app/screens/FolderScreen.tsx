@@ -351,7 +351,7 @@ function FolderHero({ list, sub }: { list: List; sub: ReactNode }) {
     const before = pinsOf(hub);
     const now = togglePin(hub, listKey(list.id));
     haptic(now ? 'tick' : 'select');
-    toast(now ? 'Added to the bar' : 'Taken out of the bar', { undo: () => setPins(hub, before) });
+    toast(now ? 'Pinned to the bar' : 'Unpinned', { undo: () => setPins(hub, before) });
   };
   const setVis = (v: { visibility: List['visibility']; owner: string | null }) => {
     if (v.visibility === 'private' && list.visibility !== 'private' && partner) toast(`Hidden from ${partner.name}`);
@@ -379,7 +379,7 @@ function FolderHero({ list, sub }: { list: List; sub: ReactNode }) {
           <p className="hero__sub">{sub}</p>
         </div>
         <div className="hero__rail">
-          <button type="button" className={`herobtn ${pinned ? 'is-on' : ''}`} aria-pressed={pinned} aria-label={pinned ? 'In the bar' : 'Pin to the bar'} title={pinned ? 'In the bar' : 'Pin to the bar'} onClick={pin}>
+          <button type="button" className={`herobtn ${pinned ? 'is-on' : ''}`} aria-pressed={pinned} aria-label={pinned ? 'Pinned to the bar' : 'Pin to the bar'} title={pinned ? 'Pinned to the bar' : 'Pin to the bar'} onClick={pin}>
             <Icon name={G.pinToBar} className="icon--sm" />
           </button>
           {canVis ? (

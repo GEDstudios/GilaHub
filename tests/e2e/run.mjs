@@ -484,7 +484,7 @@ try {
     if (!(await guy.locator('.dragwrap .tabchip').count())) throw new Error('over the bar the folder should be a tab');
     await shot(guy, '20b-projects-folder-over-bar');
     await touch('touchEnd', to.x, to.y);
-    await guy.getByText('To do is in the bar').waitFor({ timeout: 3000 });
+    await guy.getByText('To do is pinned to the bar').waitFor({ timeout: 3000 });
     const mine = await keys(guy);
     // Today, his private To-Do (pinned first, made for him), Shopping, the dropped To do, Folders.
     if (mine.length !== 5 || !mine[1].startsWith('l:todo') || !mine[2].startsWith('l:') || !mine[3].startsWith('l:')) throw new Error(`Guy's bar after the drop: ${mine}`);

@@ -1,7 +1,6 @@
 import type { Hub } from '../core/hub';
 import { addDays, today as todayStr } from '../core/dates';
-import { onThisDay } from './moments';
-import type { HomeSlot, Item, LineColor, List } from '../core/model';
+import type { HomeSlot, Item, List } from '../core/model';
 import { keepDormant } from './tabs';
 import { highlights } from './highlights';
 import { getPrefs } from './prefs';
@@ -203,16 +202,6 @@ export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | '
   return { n, mood: n ? 'busy' : v.doneToday ? 'done' : 'free', lists, person };
 }
 
-interface WeekBand {
-  key: 'done' | 'moments';
-  color: LineColor;
-  /** The big figure: a count, or a feeling. */
-  num: number | string;
-  label: string;
-  /** What's in it, in a line: the things, the people, the comparison. */
-  detail?: string;
-}
-
 /** Who did how many this week: every tick (logged), and older ticks from before they were. */
 export function weekBy(hub: Hub, now = Date.now()): Map<string, number> {
   const since = now - 7 * 86_400_000;
@@ -258,31 +247,6 @@ export function weekCounts(hub: Hub, now = Date.now()): { week: number; last: nu
   return { week: at.filter((t) => t > now - 7 * day).length, last: at.filter((t) => t > now - 14 * day && t <= now - 7 * day).length };
 }
 
-/** This week's strips, each only when there's something. */
-export function weekBands(hub: Hub, _v?: TodayView, _shown?: ReadonlySet<string>): WeekBand[] {
-  const out: WeekBand[] = [];
-  // How the week went: who did what, against the week before.
-  const { week, last } = weekCounts(hub);
-  if (week) {
-    const diff = week - last;
-    const vs = !last ? '' : diff > 0 ? `${diff} more than last week` : diff < 0 ? `${-diff} fewer than last week` : 'same as last week';
-    const by = weekBy(hub);
-    const people = hub.partner() ? hub.members().map((m) => `${m.name} ${by.get(m.id) ?? 0}`).join(' · ') : '';
-    out.push({ key: 'done', color: 'lilac', num: week, label: `${hub.partner() ? 'done together' : 'done'} this week`, detail: [people, vs].filter(Boolean).join(' · ') || undefined });
-  }
-  // Moments: the good bits. A year (or a month) ago today first; else this week's; else an invitation.
-  const moments = hub.moments();
-  const today = todayStr();
-  const back = onThisDay(moments, today);
-  const thisWeek = moments.filter((m) => m.day > addDays(today, -7));
-  const who = (id: string) => hub.member(id)?.name ?? '';
-  if (back) out.push({ key: 'moments', color: 'mint', num: back.moment.feel, label: back.moment.text, detail: `${back.ago} · ${who(back.moment.by)}` });
-  else if (thisWeek.length)
-    out.push({ key: 'moments', color: 'mint', num: thisWeek[0].feel, label: thisWeek[0].text, detail: thisWeek.length > 1 ? `and ${thisWeek.length - 1} more this week` : `${who(thisWeek[0].by)} · this week` });
-  else out.push({ key: 'moments', color: 'mint', num: '+', label: moments.length ? 'Keep a moment from this week' : 'Keep a moment', detail: 'Something small counts' });
-  return out;
-}
-
 /** Coming up: the next 7 days, flat. */
 export function aheadOf(v: TodayView): Item[] {
   return v.upcoming.flatMap((g) => g.items);
@@ -312,7 +276,7 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
     }
     case 'week': {
       const { week } = weekCounts(hub);
-      return join([week > 0 && `${week} done`, v.recent.length > 0 && `${p} did ${v.recent.length} since yesterday`], 'How the week went, and your moments');
+      return join([week > 0 && `${week} done`, v.recent.length > 0 && `${p} did ${v.recent.length} since yesterday`], 'How the week went');
     }
     case 'quick': {
       const n = highlights(hub).length;

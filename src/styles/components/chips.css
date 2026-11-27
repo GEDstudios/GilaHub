@@ -240,7 +240,7 @@
   border-color: transparent;
 }
 
-/* An on/off chip (Pin to bar): off is dashed, on fills with my colour (above) with a pop */
+/* An on/off chip (Pin to the bar): off is dashed, on fills with my colour (above) with a pop */
 .echip--toggle.is-on {
   animation: pop 240ms var(--spring) both;
 }
