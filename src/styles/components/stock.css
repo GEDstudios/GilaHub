@@ -72,29 +72,6 @@
   margin: 8px 4px 0;
 }
 
-/* The path's actions: together, readable, wrapping as one */
-.crumbs__acts {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-.crumbs__acts .crumbs__moveto + .crumbs__moveto {
-  margin-inline-start: 10px;
-}
-
-.crumbs__moveto > span {
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.crumbs__moveto.is-on {
-  color: var(--text);
-}
-
 /* A task's card: a photo button at its foot, under the tick */
 .hero--item {
   position: relative;

@@ -44,48 +44,6 @@
   color: var(--ink);
 }
 
-/* The path's move action: at its end, a quiet word in the path's own voice, set off by a hairline */
-.crumbs__moveto {
-  flex: none;
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-inline-start: 12px;
-  padding: 4px 8px 4px 6px;
-  border-radius: 8px;
-  font: inherit;
-  color: var(--text-3);
-  transition: background var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease);
-}
-
-.crumbs__moveto::before {
-  content: '';
-  position: absolute;
-  inset-inline-start: -7px;
-  top: 50%;
-  width: 1px;
-  height: 14px;
-  background: var(--line);
-  transform: translateY(-50%);
-}
-
-.crumbs__moveto .icon {
-  --s: 14;
-}
-
-@media (hover: hover) {
-  .crumbs__moveto:hover {
-    background: var(--press);
-    color: var(--text);
-  }
-}
-
-.crumbs__moveto:active {
-  color: var(--text);
-  background: var(--tile-2);
-}
-
 /* A block's title that goes somewhere (a folder on Today): the name itself is the link */
 .section__go {
   display: inline-flex;

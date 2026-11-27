@@ -215,8 +215,8 @@
   font-weight: 600;
 }
 
-/* Where you are: Folders › Home › Kitchen › Fix the tap. Each step a quiet link back up; on a
-   task, a small round ⌄ beside a step moves the task there. Long paths wrap, never cut. */
+/* Where you are: Folders › Home › Kitchen › Fix the tap. Each step a quiet link back up. Long
+   paths wrap, never cut. */
 .crumbs--path {
   gap: 2px 4px;
   margin: -6px 0 14px;
@@ -257,6 +257,53 @@
   --s: 12;
   flex: none;
   color: var(--text-4);
+}
+
+/* In two places: the other one, at the path's end, in the path's own voice, set off by a hairline */
+.crumbs .crumbs__also {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: 12px;
+  padding: 4px 8px 4px 6px;
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text);
+  transition: background var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease);
+}
+
+.crumbs__also::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -7px;
+  top: 50%;
+  width: 1px;
+  height: 14px;
+  background: var(--line);
+  transform: translateY(-50%);
+}
+
+.crumbs__also .icon {
+  --s: 14;
+}
+
+.crumbs__also > span {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .crumbs__also:hover {
+    background: var(--press);
+  }
+}
+
+.crumbs__also:active {
+  background: var(--tile-2);
 }
 
 .move__open {

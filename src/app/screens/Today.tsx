@@ -5,7 +5,7 @@ import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { SavedListWidget } from '../components/SavedList';
-import { HomeNotices, InviteCard, FolderWidget, HighlightsView } from '../components/HomeWidgets';
+import { InviteCard, FolderWidget, HighlightsView } from '../components/HomeWidgets';
 import { DayCard, TodayList, UsTile, WeekStrip } from '../components/Home';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
@@ -27,6 +27,7 @@ import { listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
 import { DoneButton } from '../ui/edit';
 import { useEscape } from '../ui/keyboard';
+import { NotesElsewhere } from '../components/Notes';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -188,7 +189,7 @@ export function Today() {
           <div className="home__cols">
             <div className="home__main">
               <DayCard v={v} day={ref} />
-              <HomeNotices />
+              <NotesElsewhere />
               {slots.filter((s) => !SIDE.has(s.key)).map((s) => block(s.key))}
               {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}
               {editLink}
@@ -202,7 +203,7 @@ export function Today() {
       ) : (
         <div className={`column home ${entering ? 'is-entering' : ''}`}>
           <DayCard v={v} day={ref} />
-          <HomeNotices />
+          <NotesElsewhere />
           {slots.map((s) => block(s.key))}
           <InviteCard />
           {slots.length ? null : <p className="hint homehint">Your Today is clear. Bring things back any time.</p>}

@@ -107,8 +107,6 @@ export function MeCard({ me, partner }: { me: Member; partner: Member | undefine
     return () => clearTimeout(t);
   }, [poked, sync.status]);
 
-  const here = !!partner && sync.others.some((o) => o.member === partner.id);
-
   return (
     <>
       <div className="mecard-wrap">
@@ -142,14 +140,13 @@ export function MeCard({ me, partner }: { me: Member; partner: Member | undefine
             className="nametag mecard__tag"
             style={lineVars(partner.color)}
             role="img"
-            aria-label={here ? `${partner.name} is here now` : partner.name}
+            aria-label={partner.name}
             onClick={(e) => {
               haptic('select');
               replay(e.currentTarget, 'is-wiggle');
             }}
           >
             <PersonCursor color={partner.color} />
-            {here ? <span className="live" /> : null}
             <span dir="auto">{partner.name}</span>
           </span>
         ) : (

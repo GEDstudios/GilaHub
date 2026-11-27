@@ -19,21 +19,9 @@ interface Crumb {
 
 /**
  * Where you are: every step from the top down to here (Folders › Home › Kitchen › Fix the tap),
- * each one a way back up, then the path's own actions: move it, and (a task) where else it is.
+ * each one a way back up. A task that lives in two places says the other one at the end.
  */
-export function PathCrumbs({
-  steps,
-  onMove,
-  moveLabel,
-  also,
-}: {
-  steps: Crumb[];
-  /** A small move button at the end of the path. */
-  onMove?: () => void;
-  moveLabel?: string;
-  /** "Also in…" beside it (a task): where else it is, or putting it somewhere else too. */
-  also?: { label: string; on: boolean; onClick: () => void };
-}) {
+export function PathCrumbs({ steps, also }: { steps: Crumb[]; also?: { label: string; onClick: () => void } }) {
   if (!steps.length) return null;
   return (
     <nav className="crumbs crumbs--path" aria-label="Where you are">
@@ -47,22 +35,11 @@ export function PathCrumbs({
           </span>
         </Fragment>
       ))}
-      {onMove || also ? (
-        // The path's own actions, kept together (they wrap as one).
-        <span className="crumbs__acts">
-          {onMove ? (
-            <button type="button" className="crumbs__moveto" onClick={onMove} aria-label={moveLabel} title={moveLabel}>
-              <Icon name={G.move} />
-              <span>Move to…</span>
-            </button>
-          ) : null}
-          {also ? (
-            <button type="button" className={`crumbs__moveto ${also.on ? 'is-on' : ''}`} onClick={also.onClick}>
-              <Icon name={G.linked} />
-              <span dir="auto">{also.label}</span>
-            </button>
-          ) : null}
-        </span>
+      {also ? (
+        <button type="button" className="crumbs__also" onClick={also.onClick}>
+          <Icon name={G.linked} />
+          <span dir="auto">{also.label}</span>
+        </button>
       ) : null}
     </nav>
   );

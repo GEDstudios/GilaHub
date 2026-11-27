@@ -17,7 +17,6 @@ import { ListBullet } from '../ui/primitives';
 
 import { TagMark, TagPicker, tagsLabel } from './Tags';
 import type { Hub } from '../../core/hub';
-import { usePingUrgent } from './usePingUrgent';
 import { TOAST } from '../ui/tokens';
 import type { Draft } from '../draft';
 import { G, G_TEXT } from '../ui/glyphs';
@@ -73,7 +72,6 @@ export function useCompose({
   const hub = useHub();
   const rt = useRt();
   const { toast } = useOverlays();
-  const pingUrgent = usePingUrgent();
   const [ignore, setIgnore] = useState<Set<string>>(() => new Set(seed?.ignore ?? []));
   const [over, setOver] = useState<Partial<Draft>>(seed?.over ?? {});
   // Where it goes, once picked: a folder, or a task in one (then it's a subtask of that task).
@@ -141,8 +139,13 @@ export function useCompose({
     setPlace({ listId: id, parentId: under });
   };
 
-  /** Tap a parsed token: keep those words as text. */
-  const keepAsText = (key: string) => setIgnore((s) => new Set([...s, key]));
+  /** Tags picked by hand: a "#word" whose tag was taken off goes back to being plain text. */
+  const pickTags = (ids: string[]) => {
+    const names = new Set(ids.map((id) => hub.tag(id)?.name));
+    const keys = parsed.tokens.filter((t) => t.kind === 'tag' && !names.has(t.label)).map((t) => t.key);
+    if (keys.length) setIgnore((s) => new Set([...s, ...keys]));
+    setTags(ids);
+  };
 
   /** After an add: a clean slate, but the folder and who-sees-it stay as chosen. */
   const reset = () => {
@@ -188,7 +191,6 @@ export function useCompose({
     // The template's note and subtasks (a new task only).
     const tplOf = useTpl && hasTemplate(to) ? to.template : null;
     if (tplOf && res.kind === 'added') startFromTemplate(hub, id, tplOf);
-    if (d.urgent && res.kind !== 'exists' && hub.item(id)) pingUrgent(hub.item(id)!, true);
     if (res.kind === 'exists') {
       markFresh(id);
       if (!opts.quiet) toast(`${hub.item(id)?.title} is already in ${to.name}`);
@@ -213,7 +215,7 @@ export function useCompose({
 
   /** What was picked, to keep through a reload. */
   const seedOut: ComposeSeed = { over, place, tags: picked, ignore: [...ignore], useTpl };
-  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested, seed: seedOut, hasTpl, useTpl, setUseTpl };
+  return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, allowed, over, change, pickList, pickTags, reset, commit, parse, tags, suggested, seed: seedOut, hasTpl, useTpl, setUseTpl };
 }
 
 type Compose = ReturnType<typeof useCompose>;
@@ -230,7 +232,7 @@ export function tagChip(c: Compose, hub: Hub) {
     icon: lead ? undefined : G.tag,
     lead: lead ? <TagMark icon={lead} /> : undefined,
     set: c.tags.length > 0,
-    panel: () => <TagPicker value={c.tags} onChange={c.setTags} suggested={[...c.suggested.auto, ...c.suggested.more]} />,
+    panel: () => <TagPicker value={c.tags} onChange={c.pickTags} suggested={[...c.suggested.auto, ...c.suggested.more]} />,
   };
 }
 
@@ -261,12 +263,3 @@ export function listChip(c: Compose, lists: List[]) {
   };
 }
 
-/** What a parsed word became, as a token: tap to keep it as text. */
-export function ParsedToken({ label, onKeep }: { label: string; onKeep: () => void }) {
-  return (
-    <button type="button" className="token is-parsed" onClick={onKeep} title="Tap to keep this as text">
-      <span dir="auto">{label}</span>
-      <Icon name={G.close} className="token__x" />
-    </button>
-  );
-}

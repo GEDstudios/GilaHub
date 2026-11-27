@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { addDays, fromDateStr, humanTime, relativeAgo, today as todayStr } from '../../core/dates';
 import type { Item, LineColor } from '../../core/model';
-import { useHub, usePartnerHere } from '../context';
+import { useHub } from '../context';
 import { summaryOf, weekBy, weekCounts, weekDays } from '../home';
 import { setPrefs, use24h } from '../prefs';
 import { usePrefs } from '../usePrefs';
@@ -44,13 +44,12 @@ const asksFolded = (v: TodayView, day: string) => asksNow(v, day).filter((i) => 
  * The day in words, on a card in my colour: how many things today, then one sentence (what's
  * next, what's from earlier; when nothing's left, what tomorrow holds). A black badge counts
  * done of all. My person's name tag sits on its edge, their cursor alive: what they asked of me
- * (a tap goes to it), or where they are right now.
+ * (a tap goes to it).
  */
 export function DayCard({ v, day }: { v: TodayView; day: string }) {
   const hub = useHub();
   const me = hub.me();
   const partner = hub.partner();
-  const here = usePartnerHere();
   const h24 = use24h(usePrefs());
   // What's mine today; what my person asked waits folded (unless it's urgent), so it isn't counted.
   const left = summaryOf(hub, v).n - asksFolded(v, day).length;
@@ -61,7 +60,6 @@ export function DayCard({ v, day }: { v: TodayView; day: string }) {
   const next = v.today.find((i) => i.dueTime && i.dueTime >= hm) ?? v.today[0] ?? v.earlier[0] ?? asksNow(v, day).find((i) => i.urgent);
   const tomorrow = v.upcoming.find((g) => g.date === addDays(day, 1))?.items.length ?? 0;
   const asks = v.awaitingOk.length + asksNow(v, day).length;
-  const on = here?.listId ? hub.list(here.listId) : undefined;
 
   const title = left ? `${things(left)} today` : done ? 'All done for today' : 'A clear day';
   const sentence = left
@@ -114,12 +112,11 @@ export function DayCard({ v, day }: { v: TodayView; day: string }) {
           type="button"
           className={`nametag daycard__tag ${asks ? 'is-asking' : ''}`}
           style={lineVars(partner.color)}
-          onClick={() => (asks ? toAsks() : on ? navigate({ name: 'list', id: on.id }) : undefined)}
-          aria-label={asks ? `${partner.name} asked you for ${things(asks)}` : on ? `${partner.name} is on ${on.name} now` : partner.name}
+          onClick={() => (asks ? toAsks() : undefined)}
+          aria-label={asks ? `${partner.name} asked you for ${things(asks)}` : partner.name}
         >
           <PersonCursor color={partner.color} />
-          {on && !asks ? <span className="live" /> : null}
-          <span dir="auto">{asks ? `${partner.name} asked ${asks}` : on ? `${partner.name} · on ${on.name}` : partner.name}</span>
+          <span dir="auto">{asks ? `${partner.name} asked ${asks}` : partner.name}</span>
         </button>
       ) : null}
     </section>

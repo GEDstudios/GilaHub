@@ -8,7 +8,7 @@ import { Icon } from '../ui/Icon';
 import { lockScroll, useOverlays } from '../ui/overlays';
 import { QuickAddSheet } from './QuickAddSheet';
 import { NewFolderSheet } from './NewFolderSheet';
-import { ListBullet, TextButton, GlyphButton } from '../ui/primitives';
+import { ListBullet, TextButton, GlyphButton, IconButton } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
 import { G } from '../ui/glyphs';
 
@@ -94,9 +94,7 @@ function Layer() {
               <GlyphButton icon={G.close} label="Clear" onClick={() => setQ('')} />
             ) : null}
           </label>
-          <TextButton onClick={closeSearch} className="searchlayer__close">
-            Close
-          </TextButton>
+          <IconButton icon={G.close} label="Close" onClick={closeSearch} />
         </div>
       </div>
 

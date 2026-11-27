@@ -92,22 +92,6 @@
   }
 }
 
-.live {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mint);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--mint) 60%, transparent);
-  animation: live 1.8s ease-out infinite;
-  flex: 0 0 8px;
-}
-
-@keyframes live {
-  70% {
-    box-shadow: 0 0 0 9px transparent;
-  }
-}
-
 /* Row tags (ui/tags.tsx): Urgent, whose it is, who asked whom. One shape, one size. */
 .urgent,
 .vtag,

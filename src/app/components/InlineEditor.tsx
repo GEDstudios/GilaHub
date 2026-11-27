@@ -49,14 +49,12 @@ function VisChip({
   onChange,
   open,
   onToggle,
-  compact,
 }: {
   value: VisChoice;
   allowed: VisChoice[];
   onChange: (v: VisChoice) => void;
   open: boolean;
   onToggle: () => void;
-  compact?: boolean;
 }) {
   const hub = useHub();
   const { openSheet } = useOverlays();
@@ -88,7 +86,7 @@ function VisChip({
         set={value !== allowed[0]}
         open={open}
         onToggle={onToggle}
-        compact={compact}
+       
       />
       {open ? (
         <Panel>
@@ -118,7 +116,6 @@ function WhoChip({
   onChange,
   open,
   onToggle,
-  compact,
 }: {
   value: Assignee;
   turn?: string | null;
@@ -129,7 +126,6 @@ function WhoChip({
   onChange: (patch: { assignee?: Assignee; needsOk?: boolean }) => void;
   open: boolean;
   onToggle: () => void;
-  compact?: boolean;
 }) {
   const hub = useHub();
   const { openSheet } = useOverlays();
@@ -139,7 +135,7 @@ function WhoChip({
   if (!partner) {
     return (
       <>
-        <EChip label="Ask your person" icon={G.person} set={false} open={open} onToggle={onToggle} ghost compact={compact} />
+        <EChip label="Ask your person" icon={G.person} set={false} open={open} onToggle={onToggle} ghost />
         {open ? (
           <Panel>
             <p className="panel__hint panel__hint--first">Hand things to your person, and ask for an OK when they’re done.</p>
@@ -163,7 +159,7 @@ function WhoChip({
         : whoText(hub, value);
   return (
     <>
-      <EChip label={label} icon={G.person} set={!!value} open={open} onToggle={onToggle} compact={compact} />
+      <EChip label={label} icon={G.person} set={!!value} open={open} onToggle={onToggle} />
       {open ? (
         <Panel>
           <Options
@@ -206,9 +202,7 @@ export function InlineEditor({
   turn,
   extras = [],
   whoMode = 'item',
-  compact,
   after,
-  className,
   more,
   later = [],
 }: {
@@ -224,14 +218,11 @@ export function InlineEditor({
   /** For "turns": whose turn it is. */
   turn?: string | null;
   /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores, List in the composer). */
-  extras?: Array<{ key: string; label: ReactNode; name?: string; icon?: IconName; lead?: ReactNode; set?: boolean; panel?: (close: () => void) => ReactNode; /** A plain on/off chip: no panel. */ toggle?: () => void }>;
+  extras?: Array<{ key: string; label: ReactNode; icon?: IconName; lead?: ReactNode; set?: boolean; panel?: (close: () => void) => ReactNode; /** A plain on/off chip: no panel. */ toggle?: () => void }>;
   /** 'compose' while the thing is being written ("Ask Hila" rather than "Asked Hila"). */
   whoMode?: 'item' | 'compose';
-  /** The add row's smaller chips. */
-  compact?: boolean;
   /** After the chips, in the same row (an add row's parsed tokens). */
   after?: ReactNode;
-  className?: string;
 }) {
   const prefs = usePrefs();
   const h24 = use24h(prefs);
@@ -245,8 +236,8 @@ export function InlineEditor({
     const step = sheetOpened(() => setOpen(null));
     return () => step.closed();
   }, [open]);
-  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f), name?: string) => (
-    <EChip key={f} label={label} name={name} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} compact={compact} />
+  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f)) => (
+    <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} />
   );
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -254,7 +245,7 @@ export function InlineEditor({
   const hiddenChips: ReactNode[] = [];
   for (const x of extras) {
     const into = more && !(x.set ?? true) && open !== x.key ? hiddenChips : extraChips;
-    into.push(chip(x.key, x.label, x.icon, x.set ?? true, x.lead, x.toggle, x.name));
+    into.push(chip(x.key, x.label, x.icon, x.set ?? true, x.lead, x.toggle));
     if (open === x.key && x.panel) into.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
   const chips: ReactNode[] = more ? [] : extraChips;
@@ -330,7 +321,7 @@ export function InlineEditor({
           onChange={onChange}
           open={open === 'who'}
           onToggle={() => toggle('who')}
-          compact={compact}
+         
         />,
       );
     if (f === 'vis')
@@ -342,12 +333,12 @@ export function InlineEditor({
           onChange={(visibility) => onChange({ visibility })}
           open={open === 'vis'}
           onToggle={() => toggle('vis')}
-          compact={compact}
+         
         />,
       );
     if (f === 'urgent')
       chips.push(
-        <EChip key="urgent" label="Urgent" icon={G.urgent} set={false} pressed={value.urgent} tone={value.urgent ? 'is-urgent' : ''} onToggle={() => onChange({ urgent: !value.urgent })} compact={compact} />,
+        <EChip key="urgent" label="Urgent" icon={G.urgent} set={false} pressed={value.urgent} tone={value.urgent ? 'is-urgent' : ''} onToggle={() => onChange({ urgent: !value.urgent })} />,
       );
     if (waits) hiddenChips.unshift(...chips.splice(from));
   }
@@ -365,7 +356,7 @@ export function InlineEditor({
   }
 
   return (
-    <div className={`inline ${className ?? ''}`}>
+    <div className="inline">
       <div className="inline__chips">
         {chips}
         {after}

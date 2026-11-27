@@ -55,9 +55,9 @@ html:has(.iconlib) .fab {
   margin-top: var(--space-5);
 }
 
-/* Right under the folder's card and its own settings: its folders, then (a section down) its tasks */
-.band:has(.foldertools) + .column > :first-child {
-  margin-top: 0;
+/* A step under the folder's card: its folders, then (a section down) its tasks */
+.folderpage > .column > :first-child {
+  margin-top: var(--space-4);
 }
 
 .subfolders + .lens {

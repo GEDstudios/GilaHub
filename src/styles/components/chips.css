@@ -69,10 +69,6 @@
   color: var(--text-3);
 }
 
-.token.is-parsed {
-  background: var(--lemon-soft);
-}
-
 .token__x {
   opacity: 0.55;
   margin-right: -4px;
@@ -106,11 +102,6 @@
 
 .inline {
   margin-top: var(--space-3);
-}
-
-/* A folder's own settings, then (a step down) its filter row */
-.foldertools {
-  margin-bottom: var(--space-4);
 }
 
 /* A folder's chips, between its hero and its list */
@@ -236,22 +227,6 @@
 
 .echip.is-open .echip__dot {
   box-shadow: 0 0 0 1.5px rgb(250 250 248 / 0.5);
-}
-
-/* The add row's size, beside its parsed tokens */
-.echip--sm {
-  height: 34px;
-  gap: 6px;
-  padding: 0 14px 0 12px;
-  font-size: var(--type-label);
-}
-
-.echip--sm .icon {
-  --s: 16;
-}
-
-.echip--sm .dot {
-  margin: 0 1px;
 }
 
 /* An invitation, not a setting: e.g. "Ask your person" while on my own */
@@ -521,60 +496,3 @@
   height: 42px;
 }
 
-/* A chip that's just its glyph (a folder's Photo): round, the size of the others */
-.echip--icon {
-  width: 38px;
-  padding: 0;
-  justify-content: center;
-}
-
-.echip--sm.echip--icon {
-  width: 34px;
-}
-
-/* A folder's own settings: secondary, so the quieter size, all on one line */
-.foldertools .inline__chips {
-  flex-wrap: nowrap;
-  gap: 6px;
-}
-
-/* A long "Showing tasks from Groceries" gives way first */
-.foldertools .echip {
-  flex-shrink: 0;
-  min-width: 0;
-  padding: 0 12px 0 10px;
-}
-
-.foldertools .echip:last-child {
-  flex-shrink: 1;
-}
-
-.foldertools .echip > span {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* On a narrow phone they draw in a little, so "Task template" and "Show tasks from…" both show
-   whole on one line (an iPhone mini, a small Android). */
-@media (max-width: 400px) {
-  .foldertools .inline__chips {
-    gap: 4px;
-  }
-
-  .foldertools .echip {
-    padding: 0 10px 0 8px;
-  }
-
-  .foldertools .echip--icon {
-    width: 34px;
-    padding: 0;
-  }
-}
-
-@media (max-width: 370px) {
-  .foldertools .echip {
-    gap: 4px;
-    padding: 0 8px 0 6px;
-  }
-}

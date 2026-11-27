@@ -4,7 +4,7 @@ import { Icon, type IconName } from '../ui/Icon';
 /**
  * One soft chip of the inline editor. With `open` it has a panel that opens under the row; with
  * `pressed` it is an on/off chip with no panel (Urgent, Pin to bar). `ghost` = a dashed invitation
- * (e.g. while on my own). `lead` replaces the icon (a folder's bullet); `compact` is the 34 px size.
+ * (e.g. while on my own). `lead` replaces the icon (a folder's bullet).
  */
 export function EChip({
   label,
@@ -15,15 +15,10 @@ export function EChip({
   pressed,
   onToggle,
   ghost,
-  compact,
   tone,
   style,
-  name,
 }: {
-  /** Empty: just its glyph (then `name` says what it is). */
   label: ReactNode;
-  /** What it is, for a chip with no words (and its tooltip). */
-  name?: string;
   icon?: IconName;
   lead?: ReactNode;
   set: boolean;
@@ -36,7 +31,6 @@ export function EChip({
   pressed?: boolean;
   onToggle: () => void;
   ghost?: boolean;
-  compact?: boolean;
 }) {
   // Open, a tap anywhere outside the chip and its panel closes it (not inside another chip, which
   // opens itself, nor in a sheet opened over this one).
@@ -61,16 +55,14 @@ export function EChip({
     <button
       ref={ref}
       type="button"
-      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${compact ? 'echip--sm' : ''} ${label === '' ? 'echip--icon' : ''} ${tone ?? ''}`}
+      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${tone ?? ''}`}
       style={style}
       onClick={onToggle}
       aria-expanded={open}
       aria-pressed={pressed}
-      aria-label={name}
-      title={name}
     >
       {lead ?? (icon ? <Icon name={icon} className="icon--sm" /> : null)}
-      {label === '' ? null : <span dir="auto">{label}</span>}
+      <span dir="auto">{label}</span>
     </button>
   );
 }

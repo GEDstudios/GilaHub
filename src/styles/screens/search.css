@@ -67,11 +67,6 @@
   color: var(--text);
 }
 
-.searchlayer__close {
-  flex: 0 0 auto;
-  min-height: 44px;
-}
-
 .searchlayer__body {
   position: relative;
   flex: 1;

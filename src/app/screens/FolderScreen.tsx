@@ -18,11 +18,11 @@ import { QuickAddSheet } from '../components/QuickAddSheet';
 import { FolderItems } from '../components/FolderItems';
 import { Photos, useAddPhoto } from '../components/Photos';
 import { ItemRow } from '../components/ItemRow';
-import { useHub, usePartnerHere, useRt } from '../context';
+import { useHub } from '../context';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton, GlyphButton } from '../ui/primitives';
+import { Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton, GlyphButton } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
 import { getPrefs, setPrefs, use24h } from '../prefs';
 import { usePrefs } from '../usePrefs';
@@ -34,69 +34,51 @@ import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
 import { folderView } from '../views';
 import { hideHome, MAX_HOME_FOLDERS, pinnedFolders, showHome, visibleHome } from '../home';
-import { notifyMembers } from '../runtime';
 import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
 import { haptic } from '../ui/haptics';
 import { dropMarks } from '../ui/dropMark';
 import { cadenceLabel } from '../../smart/suggest';
-import { dayIn, hasTemplate } from '../template';
+import { dayIn, hasTemplate, templateSummary } from '../template';
 import { humanTime } from '../../core/dates';
 import { DUR } from '../ui/tokens';
 import { listKey } from '../../core/keys';
 import type { Draft } from '../draft';
-import { ruleShort, myName } from '../labels';
+import { ruleShort, howMany } from '../labels';
 import { G } from '../ui/glyphs';
 import type { Hub } from '../../core/hub';
 
-/** FolderTools draws chips only: it has no draft to edit. */
-const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, assignee: null, urgent: false, visibility: 'ours' };
-
-/** The folder's own settings, in place under its card: a photo, its task template, the tasks it shows from elsewhere. Each says what it's set to. */
-function FolderTools({ list }: { list: List }) {
-  const hub = useHub();
-  const { openSheet } = useOverlays();
-  const listId = list.id;
-  const addPhoto = useAddPhoto(`list:${listId}`);
-  const photoN = hub.photosOf(`list:${listId}`).length;
-  const shows = hub.shownIn(listId);
-  const tpl = hasTemplate(list);
-  return (
-    <InlineEditor
-      className="foldertools"
-      compact
-      value={NO_DRAFT}
-      onChange={() => undefined}
-      fields={[]}
-      extras={[
-        // A photo is just its glyph (and how many there are), so the three fit on one line.
-        { key: 'photo', label: photoN ? String(photoN) : '', name: photoN ? `Photos: ${photoN}. Add another` : 'Add a photo', icon: G.photo, set: photoN > 0, toggle: () => void addPhoto() },
-        { key: 'tpl', label: 'Task template', name: 'How new tasks here start', icon: G.template, set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
-        {
-          key: 'shows',
-          // Other folders' tasks, shown here too: "Showing tasks from Chores" says which once there are some.
-          label: shows.length ? `Showing tasks from ${shows.length === 1 ? shows[0].name : `${shows.length} folders`}` : 'Show tasks from…',
-          name: 'Show other folders’ tasks here too',
-          icon: G.shows,
-          set: shows.length > 0,
-          toggle: () => openSheet((close) => <ShowsSheet listId={listId} onClose={close} />),
-        },
-      ]}
-    />
-  );
-}
-
-/** The folder's "…": the rare things only (archive, delete). Everything else is edited in place on its page. */
+/**
+ * The folder's "…": what's set once and rarely touched (a photo, its task template, the folders it
+ * shows tasks from, where it lives), then archive and delete. Each row says what it's set to.
+ */
 function FolderMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const { toast, openSheet } = useOverlays();
   const list = hub.list(listId);
+  const addPhoto = useAddPhoto(`list:${listId}`);
   if (!list) return null;
+  const photoN = hub.photosOf(`list:${listId}`).length;
+  const shows = hub.shownIn(listId);
   return (
     <ActionSheet
       title={list.name}
       onClose={onClose}
       actions={[
+        { icon: G.photo, title: photoN ? 'Add another photo' : 'Add a photo', sub: photoN ? howMany(photoN, 'photo') : undefined, run: () => void addPhoto() },
+        {
+          icon: G.template,
+          title: 'Task template',
+          sub: hasTemplate(list) ? templateSummary(hub, list.template) : 'How new tasks here start',
+          run: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />),
+        },
+        {
+          icon: G.shows,
+          title: 'Show tasks from…',
+          sub: shows.length ? shows.map((l) => l.name).join(', ') : 'Other folders’ tasks, here too',
+          run: () => openSheet((close) => <ShowsSheet listId={listId} onClose={close} />),
+        },
+        { icon: G.move, title: 'Move to…', run: () => openSheet((close) => <MoveFolderSheet listId={listId} onClose={close} />) },
         {
           icon: G.archive,
           title: 'Archive',
@@ -480,46 +462,9 @@ function FolderActions({ listId }: { listId: string }) {
   );
 }
 
-/**
- * On it: I'm looking at this folder (in the store, cleaning the
- * flat). My partner's phone knows (and once in a while hears: "Guy is on Shopping. Need
- * anything?"), and what they add or mark urgent here shows up as it happens.
- */
-function useOnIt(on: boolean, listId: string, name: string) {
+/** What my partner just added (or brought back, or marked urgent) here: it glows for a moment. */
+function usePartnerNews(open: Item[]): Set<string> {
   const hub = useHub();
-  const rt = useRt();
-  const partner = hub.partner();
-  useEffect(() => {
-    if (!on) return;
-    rt.sync?.setPresence(`on:${listId}`);
-    const key = `gila-hub:onIt:${listId}`;
-    let last = 0;
-    try {
-      last = Number(localStorage.getItem(key) ?? 0);
-    } catch {
-      /* storage blocked */
-    }
-    if (partner && partner.shopAlerts !== false && Date.now() - last > 30 * 60_000) {
-      try {
-        localStorage.setItem(key, String(Date.now()));
-      } catch {
-        /* storage blocked */
-      }
-      void notifyMembers(rt, [partner.id], {
-        title: `${myName(hub)} is on ${name}`,
-        body: 'Need anything? Add it now and it shows up for them.',
-        url: `/l/${listId}`,
-        tag: 'onit',
-      });
-    }
-    return () => rt.sync?.setPresence(null);
-  }, [on, rt, partner, hub, listId, name]);
-}
-
-/** What my partner just added (or brought back, or marked urgent) here: it glows, and while I'm on it, it's said. */
-function usePartnerNews(open: Item[], saying: boolean): Set<string> {
-  const hub = useHub();
-  const { toast } = useOverlays();
   const [flash, setFlash] = useState<Set<string>>(new Set());
   const seen = useRef<{ added: Map<string, number>; urgent: Set<string> } | null>(null);
   const sig = open.map((i) => `${i.id}:${i.addedAt ?? i.createdAt}:${i.urgent ? 1 : 0}`).join();
@@ -534,10 +479,6 @@ function usePartnerNews(open: Item[], saying: boolean): Set<string> {
     const urged = open.filter((i) => i.urgent && !prev.urgent.has(i.id) && prev.added.has(i.id) && i.urgentBy && i.urgentBy !== hub.meId);
     if (!fresh.length && !urged.length) return;
     setFlash(new Set([...fresh, ...urged].map((i) => i.id)));
-    const first = fresh[0] ?? urged[0];
-    const who = hub.member(fresh.length ? (first.addedBy ?? first.createdBy) : first.urgentBy);
-    const more = fresh.length + urged.length - 1;
-    if (saying && who) toast(`${who.name} ${fresh.length ? 'added' : 'marked urgent'} ${first.title}${more > 0 ? ` +${more}` : ''}`);
     const t = setTimeout(() => setFlash(new Set()), DUR.flash);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -549,8 +490,7 @@ function usePartnerNews(open: Item[], saying: boolean): Set<string> {
  * Any folder, the one way: its folder up top, then a lens over what's in it (who, urgent, its
  * tags) beside how it's looked at (list, cards, by tag); Again? (things done here before, due
  * again); the tray of things just done; the Urgent card; the things themselves; the folders
- * inside; and what was cleared. Start (in the header) is for being on it: the store, a cleaning
- * spree. Shopping is just a folder looked at by tag.
+ * inside; and what was cleared. Shopping is just a folder looked at by tag.
  */
 export function FolderScreen({ id }: { id: string }) {
   const hub = useHub();
@@ -563,10 +503,7 @@ export function FolderScreen({ id }: { id: string }) {
   const view = hub.viewOf(list);
   const v = folderView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(listKey(id));
-  const focus = false;
-  useOnIt(focus, id, list?.name ?? '');
-  const flash = usePartnerNews(v.open, focus);
-  const partnerHere = usePartnerHere();
+  const flash = usePartnerNews(v.open);
   const label = `Add to ${list?.name ?? 'folder'}`;
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={id} route={inside} />);
   useAddAction(openNew, label);
@@ -589,7 +526,6 @@ export function FolderScreen({ id }: { id: string }) {
   const n = v.open.length;
   // Everything else done is just Done.
   const done = [...v.tray, ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
-  const shopper = partnerHere && partnerHere.listId === id ? hub.member(partnerHere.member) : undefined;
 
   const again = (name: string) => {
     const res = hub.add(inside ? hub.placeFor(name, id) : id, { title: name });
@@ -598,15 +534,14 @@ export function FolderScreen({ id }: { id: string }) {
   };
 
   return (
-    <div className={`folderpage ${focus ? 'is-onit' : ''}`}>
+    <div className="folderpage">
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
         actions={<FolderActions listId={id} />}
         mini={list.name}
-        crumbs={<PathCrumbs steps={folderPath(hub, id)} onMove={() => openSheet((close) => <MoveFolderSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
+        crumbs={<PathCrumbs steps={folderPath(hub, id)} />}
       >
-        <FolderHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length ? 'All done' : 'Empty'}`} />
-        <FolderTools list={list} />
+        <FolderHero list={list} sub={n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length ? 'All done' : 'Empty'} />
       </Band>
       <div className="column">
         {/* Its folders first, then its tasks */}
@@ -619,16 +554,7 @@ export function FolderScreen({ id }: { id: string }) {
           <p className="hint">Nothing here yet. The + adds the first thing.</p>
         ) : null}
 
-        {shopper && !focus ? (
-          <div className="notice">
-            <Avatar member={shopper} size="sm" />
-            <span className="notice__text">
-              <strong>{shopper.name} is on it now.</strong> What you add shows up for them.
-            </span>
-          </div>
-        ) : null}
-
-        {!focus && !filter.active && v.again.length ? (
+        {!filter.active && v.again.length ? (
           <div className="buyagain">
             <p className="inline__prompt">Again?</p>
             <div className="tokens tokens--scroll">

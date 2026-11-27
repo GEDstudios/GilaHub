@@ -16,7 +16,6 @@
   caret-color: var(--ink);
 }
 
-.composer__tokens,
 .composer__suggest {
   margin-top: 12px;
 }

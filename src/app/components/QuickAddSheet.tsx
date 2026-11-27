@@ -16,7 +16,7 @@ import { lineVars, Button, GlyphButton } from '../ui/primitives';
 import { UrgentTag } from './RowTags';
 import { EChip } from './chips';
 import { InlineEditor, useSummary } from './InlineEditor';
-import { listChip, ParsedToken, tagChip, useCompose, type ComposeSeed } from './QuickAdd';
+import { listChip, tagChip, useCompose, type ComposeSeed } from './QuickAdd';
 import type { Field } from '../draft';
 import { G } from '../ui/glyphs';
 import type { Hub } from '../../core/hub';
@@ -366,14 +366,6 @@ function Composer({
         </span>
         <span className="ccard__sub">{sub}</span>
       </div>
-
-      {parsed.tokens.length ? (
-        <div className="tokens composer__tokens">
-          {parsed.tokens.map((t) => (
-            <ParsedToken key={t.key} label={t.label} onKeep={() => c.keepAsText(t.key)} />
-          ))}
-        </div>
-      ) : null}
 
       {suggestions.length ? (
         <div className="tokens tokens--scroll composer__suggest">

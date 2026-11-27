@@ -118,13 +118,6 @@ export function Notifications({ me, partner }: { me: Member; partner: Member | u
               onChange={(on) => hub.upsertMember(me.id, { requestAlerts: on })}
               label="Request alerts"
             />
-            <SwitchRow
-              icon={G.onList}
-              title={`When ${partner.name} starts shopping`}
-              on={me.shopAlerts !== false}
-              onChange={(on) => hub.upsertMember(me.id, { shopAlerts: on })}
-              label="Shopping alerts"
-            />
           </>
         ) : null}
         {/* Android launchers don't show a web app's count (it shows a dot for notifications

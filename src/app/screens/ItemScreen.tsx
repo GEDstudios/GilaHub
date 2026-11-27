@@ -32,7 +32,8 @@ import type { Draft } from '../draft';
 import { G, G_TEXT } from '../ui/glyphs';
 import { myName } from '../labels';
 
-function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; onGone: () => void }) {
+/** A task's "…": where it lives (move it, or have it somewhere else too), then duplicate and delete. */
+function ItemMenu({ id, onClose, onGone, onMove, also }: { id: string; onClose: () => void; onGone: () => void; onMove: () => void; also: { label: string; open: () => void } }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const item = hub.item(id);
@@ -42,6 +43,8 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
       title="More"
       onClose={onClose}
       actions={[
+        { icon: G.move, title: 'Move to…', run: onMove },
+        { icon: G.linked, title: also.label, run: also.open },
         {
           icon: G.move,
           title: 'Make it its own task',
@@ -365,67 +368,69 @@ export function ItemScreen({ id }: { id: string }) {
   // One thing, two places: "Also in Home shopping" (tap to go there, or stop), or "Also in…".
   const twin = hub.linked(item);
   const twinList = twin ? hub.list(twin.listId) : undefined;
-  const alsoChip = {
-    key: 'also',
-    label: twin && twinList ? `Also in ${(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}` : 'Also in…',
-    icon: G.linked,
-    set: !!twinList,
-    panel: (close: () => void) =>
-      twin && twinList ? (
-        <div className="tokens">
-          <button
-            type="button"
-            className="token"
-            onClick={() => navigate({ name: 'item', id: twin.parentId ?? twin.id })}
-          >
-            <ListBullet list={twinList} size="xs" />
-            <span dir="auto">Go to {twinList.name}</span>
-          </button>
-          <button
-            type="button"
-            className="token"
-            onClick={() => {
-              const where = (twin.parentId && hub.item(twin.parentId)?.title) || twinList.name;
-              const undo = hub.removeTwin(id);
-              close();
-              toast(`Taken out of ${where}`, { undo });
-            }}
-          >
-            <Icon name={G.close} className="token__x" />
-            <span dir="auto">Remove from {(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}</span>
-          </button>
-          <button
-            type="button"
-            className="token"
-            onClick={() => {
-              // Out of here: this copy goes, the one in the other place stays (and opens).
-              const here = (item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here';
-              const undo = hub.removeTwin(twin.id);
-              close();
-              navigate({ name: 'item', id: twin.id }, { replace: true });
-              toast(`Taken out of ${here}`, { undo });
-            }}
-          >
-            <Icon name={G.close} className="token__x" />
-            <span dir="auto">Remove from {(item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here'}</span>
-          </button>
-        </div>
-      ) : (
-        <PlaceTree
-          tasks
-          excludeItem={id}
-          onPick={(p) => {
-            if (!p) return;
-            const { listId: lid, parentId } = p;
-            const other = hub.alsoIn(id, lid, parentId);
-            const it = other ? hub.item(other) : undefined;
-            const where = parentId ? hub.item(parentId)?.title : hub.list(lid)?.name;
-            if (it) toast(`${it.title} is in ${where ?? 'there'} too`);
+  const alsoLabel = twin && twinList ? `Also in ${(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}` : 'Also in…';
+  const alsoPanel = (close: () => void) =>
+    twin && twinList ? (
+      <div className="tokens">
+        <button
+          type="button"
+          className="token"
+          onClick={() => navigate({ name: 'item', id: twin.parentId ?? twin.id })}
+        >
+          <ListBullet list={twinList} size="xs" />
+          <span dir="auto">Go to {twinList.name}</span>
+        </button>
+        <button
+          type="button"
+          className="token"
+          onClick={() => {
+            const where = (twin.parentId && hub.item(twin.parentId)?.title) || twinList.name;
+            const undo = hub.removeTwin(id);
             close();
+            toast(`Taken out of ${where}`, { undo });
           }}
-        />
-      ),
-  };
+        >
+          <Icon name={G.close} className="token__x" />
+          <span dir="auto">Remove from {(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}</span>
+        </button>
+        <button
+          type="button"
+          className="token"
+          onClick={() => {
+            // Out of here: this copy goes, the one in the other place stays (and opens).
+            const here = (item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here';
+            const undo = hub.removeTwin(twin.id);
+            close();
+            navigate({ name: 'item', id: twin.id }, { replace: true });
+            toast(`Taken out of ${here}`, { undo });
+          }}
+        >
+          <Icon name={G.close} className="token__x" />
+          <span dir="auto">Remove from {(item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here'}</span>
+        </button>
+      </div>
+    ) : (
+      <PlaceTree
+        tasks
+        excludeItem={id}
+        onPick={(p) => {
+          if (!p) return;
+          const { listId: lid, parentId } = p;
+          const other = hub.alsoIn(id, lid, parentId);
+          const it = other ? hub.item(other) : undefined;
+          const where = parentId ? hub.item(parentId)?.title : hub.list(lid)?.name;
+          if (it) toast(`${it.title} is in ${where ?? 'there'} too`);
+          close();
+        }}
+      />
+    );
+
+  const openAlso = () =>
+    openSheet((close) => (
+      <Sheet onClose={close} title={alsoLabel}>
+        {alsoPanel(close)}
+      </Sheet>
+    ));
 
   // Its photos (a chip adds one; they show above the notes).
   const photoN = hub.photosOf(`item:${id}`).length;
@@ -508,29 +513,18 @@ export function ItemScreen({ id }: { id: string }) {
                   toast(on ? 'In your Highlights, on Today' : 'Out of your Highlights', { undo });
                 }}
               />
-              <IconButton icon={G.more} label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} />
+              <IconButton
+                icon={G.more}
+                label="More"
+                onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} onMove={() => movePath(null)} also={{ label: alsoLabel, open: openAlso }} />)}
+              />
             </>
           ) : undefined
         }
         crumbs={
-          // Where it lives, from the top: every step goes there; the move button at the end moves it.
+          // Where it lives, from the top: every step goes there. In two places, it says the other one.
           <PathCrumbs
-            onMove={editable ? () => movePath(null) : undefined}
-            moveLabel="Move this task"
-            also={
-              editable
-                ? {
-                    label: alsoChip.label,
-                    on: !!alsoChip.set,
-                    onClick: () =>
-                      openSheet((close) => (
-                        <Sheet onClose={close} title={alsoChip.set ? alsoChip.label : 'Also in…'}>
-                          {alsoChip.panel(close)}
-                        </Sheet>
-                      )),
-                  }
-                : undefined
-            }
+            also={editable && twinList ? { label: alsoLabel, onClick: openAlso } : undefined}
             steps={[
               { key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }) },
               ...[...(list ? hub.listPath(list.id) : []), ...(list ? [list] : [])].map((l) => ({
@@ -635,11 +629,14 @@ export function ItemScreen({ id }: { id: string }) {
           aria-label="Notes"
         />
 
-        {steps.length || editable ? (
+        {steps.length ? (
           <Section title="Subtasks" count={steps.length}>
             <Children listId={item.listId} parentId={id} readonly={!editable} />
             {editable ? <SubtaskAdd listId={item.listId} parentId={id} /> : null}
           </Section>
+        ) : editable ? (
+          // None yet: the add row says it all, so no heading over nothing.
+          <SubtaskAdd listId={item.listId} parentId={id} />
         ) : null}
 
         {logs.length ? (

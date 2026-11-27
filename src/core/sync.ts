@@ -16,17 +16,9 @@ interface SyncConfig {
 
 export type SyncStatus = 'local' | 'connecting' | 'syncing' | 'synced' | 'offline';
 
-export interface Presence {
-  dev: string;
-  member: string;
-  state: string | null;
-  at: number;
-}
-
 type ServerMsg =
   | { type: 'ops'; ops: Array<{ seq: number; k: Scope; c: string }>; cursor: number; more?: boolean }
   | { type: 'ack'; acks: Array<[string, number]>; cursor: number }
-  | { type: 'presence'; list: Presence[] }
   | { type: 'error'; error: string };
 
 const BACKOFF = [800, 1500, 3000, 6000, 12000, 30000];
@@ -41,13 +33,12 @@ function wsUrl(apiBase: string, path: string): string {
 /**
  * Keeps the local store and the relay in step:
  *  - streams the encrypted backlog in small pages, then live ops;
- *  - seals and sends the outbox (only after the backlog is complete, so cursors stay exact);
- *  - shares ephemeral presence ("shopping now").
+ *  - seals and sends the outbox (only after the backlog is complete, so cursors stay exact).
+ * What it doesn't know (an older relay's extra messages) it lets pass.
  */
 export class SyncClient {
   status: SyncStatus = 'connecting';
   lastSyncedAt = 0;
-  presence = new Map<string, Presence>();
   private ws: WebSocket | null = null;
   private ready = false;
   private cursor = 0;
@@ -55,7 +46,6 @@ export class SyncClient {
   private attempts = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
-  private myPresence: string | null = null;
   private listeners = new Set<() => void>();
   private unsubOutbox: (() => void) | null = null;
   private sealing = false;
@@ -110,16 +100,6 @@ export class SyncClient {
     }
   }
 
-  setPresence(state: string | null): void {
-    this.myPresence = state;
-    this.send({ type: 'presence', state });
-  }
-
-  /** Others' presence (excluding this device). */
-  others(): Presence[] {
-    return [...this.presence.values()].filter((p) => p.dev !== this.cfg.deviceId && p.state);
-  }
-
   private connect(): void {
     if (this.stopped) return;
     this.ready = false;
@@ -136,7 +116,6 @@ export class SyncClient {
     ws.onopen = () => {
       this.attempts = 0;
       this.send({ type: 'hello', dev: this.cfg.deviceId, member: this.cfg.memberId, cursor: this.cursor });
-      if (this.myPresence) this.send({ type: 'presence', state: this.myPresence });
     };
     ws.onmessage = (ev) => {
       let msg: ServerMsg;
@@ -149,7 +128,6 @@ export class SyncClient {
     };
     ws.onclose = () => {
       if (this.ws === ws) this.ws = null;
-      this.presence.clear();
       this.setStatus('offline');
       this.retry();
     };
@@ -203,12 +181,6 @@ export class SyncClient {
         await this.saveCursor(msg.cursor);
         if (this.store.outboxSize()) void this.flush();
         else this.markSynced();
-        break;
-      }
-      case 'presence': {
-        this.presence.clear();
-        for (const p of msg.list) this.presence.set(p.dev, p);
-        this.emit();
         break;
       }
       case 'error':

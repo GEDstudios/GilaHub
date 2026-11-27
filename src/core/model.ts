@@ -21,8 +21,6 @@ export interface Member {
   name: string;
   color: LineColor;
   createdAt: number;
-  /** Wants a push when the partner starts shopping (default on). */
-  shopAlerts?: boolean;
   /** Wants a push when the partner asks for something, or does what I asked (default on). The sender reads it. */
   requestAlerts?: boolean;
   /** My bottom bar, between Today and Folders, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
