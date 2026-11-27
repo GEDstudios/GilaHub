@@ -117,7 +117,7 @@ import { createPortal } from 'react-dom';
 import { stepDock, type DockStep } from '../barEdit';
 import { haptic } from './haptics';
 import { leanOf, moveId, rubber, tiltStep } from './motion';
-import { DUR, EASE, HOLD, SLOP, Z } from './tokens';
+import { calm, DUR, EASE, HOLD, SLOP, Z } from './tokens';
 
 // ---------------------------------------------------------------- timing
 
@@ -133,7 +133,6 @@ const TAB_LEAN = -4;
 /** How far past its list (px of finger) before a "refuse" list says no. */
 const REFUSE_AT = 24;
 
-const calm = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * Where auto-scroll starts, as a fraction of the window (top and bottom alike): at the floating

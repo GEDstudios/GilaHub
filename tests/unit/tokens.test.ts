@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { DUR, EASE, HOLD, Z } from '../../src/app/ui/tokens';
 import { G } from '../../src/app/ui/glyphs';
@@ -24,5 +24,31 @@ describe('the feel, the same in TS and CSS', () => {
 
   it('every meaning has a glyph that exists', () => {
     for (const [meaning, glyph] of Object.entries(G)) expect(GLYPHS, meaning).toHaveProperty(glyph);
+  });
+});
+
+describe('every stylesheet stays on the scales (tokens.css)', () => {
+  const dir = resolve(__dirname, '../../src/styles');
+  const files = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(d, e.name)) : e.name.endsWith('.css') ? [join(d, e.name)] : []));
+  const decls = files(dir)
+    .filter((f) => !f.endsWith('tokens.css'))
+    .flatMap((f) => [...readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([\w-]+)\s*:\s*([^;{}]+);/g)].map((m) => ({ f: f.slice(dir.length + 1), prop: m[1], value: m[2] })));
+  const px = (v: string) => [...v.matchAll(/(-?\d+(?:\.\d+)?)px/g)].map((m) => Math.abs(parseFloat(m[1])));
+  const SPACE = new Set([0, 1, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96, 120, 140, 160]);
+  const RADIUS = new Set([1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 30, 32, 36, 40]);
+
+  it('spacing', () => {
+    const off = decls.filter((d) => /^(padding|margin|gap|row-gap|column-gap)(-|$)/.test(d.prop) && px(d.value).some((n) => n <= 160 && !SPACE.has(n)));
+    expect(off.map((d) => `${d.f}: ${d.prop}: ${d.value}`)).toEqual([]);
+  });
+
+  it('type sizes are whole pixels', () => {
+    const off = decls.filter((d) => d.prop === 'font-size' && px(d.value).some((n) => n % 1 !== 0));
+    expect(off.map((d) => `${d.f}: ${d.value}`)).toEqual([]);
+  });
+
+  it('radii', () => {
+    const off = decls.filter((d) => /radius/.test(d.prop) && px(d.value).some((n) => n < 99 && !RADIUS.has(n)));
+    expect(off.map((d) => `${d.f}: ${d.prop}: ${d.value}`)).toEqual([]);
   });
 });

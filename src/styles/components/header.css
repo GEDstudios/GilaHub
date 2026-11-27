@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  margin-bottom: 26px;
+  margin-bottom: 28px;
 }
 
 .band__actions {
@@ -99,7 +99,7 @@
   align-items: center;
   gap: 2px;
   margin: -8px 0 12px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--text-2);
 }
 

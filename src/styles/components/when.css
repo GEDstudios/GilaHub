@@ -11,11 +11,11 @@
 
 .whencard__rows {
   margin-top: 4px;
-  border-top: 1px solid var(--line, rgb(10 10 4 / 0.08));
+  border-top: 1px solid var(--line);
 }
 
 .whenrow + .whenrow {
-  border-top: 1px solid var(--line, rgb(10 10 4 / 0.08));
+  border-top: 1px solid var(--line);
 }
 
 /* Again until done belongs to Notify: no line between them, a little indent */
@@ -25,7 +25,7 @@
 }
 
 .whenrow--sub .whenrow__btn {
-  padding-left: 22px;
+  padding-left: 24px;
 }
 
 .whenrow__line {
@@ -59,7 +59,7 @@
   white-space: nowrap;
   text-align: end;
   color: var(--text-3);
-  font-size: 14.5px;
+  font-size: 15px;
 }
 
 .whenrow.is-set .whenrow__value {
@@ -123,7 +123,7 @@
 
 .month__today {
   margin-right: 6px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .iconbtn--sm {

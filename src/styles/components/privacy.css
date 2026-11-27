@@ -31,11 +31,11 @@
 
 .echip__faces {
   display: inline-flex;
-  margin-left: -5px;
+  margin-left: -6px;
 }
 
 .echip__faces .avatar + .avatar {
-  margin-left: -7px;
+  margin-left: -8px;
 }
 
 .echip__faces .avatar {
@@ -138,8 +138,8 @@
 
 /* The recovery code, shown once: big, spaced, easy to copy by hand. */
 .recovery__code {
-  margin: 18px 0 10px;
-  padding: 18px 14px;
+  margin: 20px 0 10px;
+  padding: 20px 14px;
   border-radius: 16px;
   background: var(--me-light, var(--lemon));
   box-shadow: 0 0 0 1.5px var(--ink) inset;

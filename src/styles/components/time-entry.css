@@ -137,7 +137,7 @@
   display: inline-flex;
   height: 32px;
   margin-inline-start: 6px;
-  padding: 3px;
+  padding: 4px;
   gap: 2px;
   border-radius: 999px;
   background: var(--tile);
@@ -148,7 +148,7 @@
   width: auto;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-3);
 }
@@ -172,7 +172,7 @@
   flex: none;
   padding: 6px 10px;
   border-radius: 10px;
-  font-size: 14.5px;
+  font-size: 15px;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }

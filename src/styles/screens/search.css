@@ -63,7 +63,7 @@
   height: 44px;
   border: 0;
   background: transparent;
-  font-size: 16.5px;
+  font-size: 17px;
   color: var(--text);
 }
 
@@ -119,7 +119,7 @@
 
 .searchlayer__none {
   margin: 0;
-  padding: 18px 14px;
+  padding: 20px 14px;
   color: var(--text-3);
 }
 

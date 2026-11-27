@@ -7,7 +7,7 @@
   justify-content: space-between;
   gap: 20px;
   width: 100%;
-  padding: 18px 18px 16px;
+  padding: 20px 20px 16px;
   border-radius: var(--r-l);
   background: var(--c);
   color: var(--ink);
@@ -25,7 +25,7 @@ button.ccard:active {
 
 .ccard--lg {
   min-height: 188px;
-  padding: 22px 22px 20px;
+  padding: 24px 24px 20px;
   border-radius: var(--r-xl);
 }
 
@@ -86,7 +86,7 @@ button.ccard:active {
 }
 
 .ccard--edit {
-  gap: 26px;
+  gap: 28px;
 }
 
 .ccard + .inline__prompt,
@@ -127,9 +127,9 @@ textarea.ccard__input {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 26px;
+  gap: 28px;
   min-height: 176px;
-  padding: 22px 22px 20px;
+  padding: 24px 24px 20px;
   border-radius: var(--r-xl);
   background: var(--c);
   color: var(--ink);

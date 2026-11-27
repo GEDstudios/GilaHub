@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
+import { useAutosize } from '../ui/AutoTitle';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type KeyboardEvent } from 'react';
 import { shortAgo, shortDay } from '../../core/dates';
 import type { Idea } from '../../core/model';
 import { useHub } from '../context';
@@ -128,16 +129,6 @@ export function IdeaTag() {
 
 // ---------------------------------------------------------------- the sheet
 
-/** A textarea that grows with its text. */
-function useAutosize(ref: React.RefObject<HTMLTextAreaElement | null>, value: string): void {
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [ref, value]);
-}
-
 /** Enter commits, Shift+Enter is a new line. */
 const isCommit = (e: KeyboardEvent) => e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing;
 
@@ -147,7 +138,7 @@ function Composer() {
   const [shot, setShot] = useState<string | null>(null);
   const field = useRef<HTMLTextAreaElement>(null);
   const picker = useShotPicker(setShot);
-  useAutosize(field, text);
+  useAutosize(text, field);
   const add = (e?: FormEvent) => {
     e?.preventDefault();
     const id = hub.addIdea(text.trim() || (shot ? 'See the picture' : ''));
@@ -255,7 +246,7 @@ function IdeaText({ idea }: { idea: Idea }) {
   const base = useRef('');
   const field = useRef<HTMLTextAreaElement>(null);
   const cancelled = useRef(false);
-  useAutosize(field, draft ?? '');
+  useAutosize(draft ?? '', field);
   useEffect(() => {
     if (draft === null || draft !== base.current) return;
     base.current = idea.text;

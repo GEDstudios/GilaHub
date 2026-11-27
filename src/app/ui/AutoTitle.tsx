@@ -1,5 +1,5 @@
 import { leavingByBack } from '../router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect, type RefObject } from 'react';
 
 /**
  * A title edited in place: a borderless textarea that grows with its text. Enter saves,
@@ -27,15 +27,8 @@ export function AutoTitle({
   onDraft?: (v: string | null) => void;
 }) {
   const [v, setV] = useState(value);
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useAutosize(v);
   useEffect(() => setV(value), [value]);
-  useEffect(() => {
-    const el = ref.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = `${el.scrollHeight}px`;
-    }
-  }, [v]);
   return (
     <textarea
       ref={ref}
@@ -92,14 +85,7 @@ export function GrowField({
   placeholder?: string;
   label: string;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = `${el.scrollHeight}px`;
-    }
-  }, [value]);
+  const ref = useAutosize(value);
   return (
     <textarea
       ref={ref}
@@ -120,4 +106,18 @@ export function GrowField({
       }}
     />
   );
+}
+
+/** A textarea that grows with what's in it (one line to start). Pass a ref of your own to share it. */
+export function useAutosize(value: string, own?: RefObject<HTMLTextAreaElement | null>) {
+  const mine = useRef<HTMLTextAreaElement>(null);
+  const ref = own ?? mine;
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [ref, value]);
+  return ref;
 }

@@ -20,8 +20,8 @@
 }
 
 .onboard__step {
-  margin: 30px 0 10px;
-  font-size: 13.5px;
+  margin: 32px 0 10px;
+  font-size: 14px;
   color: var(--text-3);
 }
 
@@ -35,17 +35,17 @@
 }
 
 .onboard__label {
-  margin-top: 30px;
+  margin-top: 32px;
 }
 
 .onboard__preview {
   display: flex;
-  margin-top: 34px;
+  margin-top: 36px;
   padding-left: 16px;
 }
 
 .onboard__cta {
-  margin-top: 34px;
+  margin-top: 36px;
 }
 
 .onboard__error {
@@ -79,7 +79,7 @@
 .picks {
   display: grid;
   gap: 10px;
-  margin-top: 26px;
+  margin-top: 28px;
 }
 
 .pick {
@@ -116,7 +116,7 @@
 
 .pick__name {
   flex: 1;
-  font-size: 16.5px;
+  font-size: 17px;
   font-weight: 500;
 }
 
@@ -177,7 +177,7 @@
   position: relative;
   z-index: 2;
   text-align: center;
-  padding-top: 18px;
+  padding-top: 20px;
 }
 
 .welcome {

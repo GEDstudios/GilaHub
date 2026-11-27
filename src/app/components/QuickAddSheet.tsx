@@ -1,3 +1,4 @@
+import { useAutosize } from '../ui/AutoTitle';
 import { navigate } from '../router';
 import { useAlsoShop } from '../alsoShop';
 import { useEffect, useRef, useState } from 'react';
@@ -215,12 +216,7 @@ function Composer({
   const parent = hub.item(parentId);
 
   // The card's text grows with what you write.
-  useEffect(() => {
-    const el = field.current;
-    if (!el) return;
-    el.style.height = '0px';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [text]);
+  useAutosize(text, field);
 
   // Take the focus (the tap already raised the keyboard; see ui/keyboard.ts).
   useEffect(() => {

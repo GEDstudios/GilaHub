@@ -81,9 +81,9 @@
     gap: 8px;
     height: 36px;
     padding: 0 12px 0 10px;
-    border-radius: 9px;
+    border-radius: 10px;
     color: var(--text-2);
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 500;
     white-space: nowrap;
     transition:
@@ -127,7 +127,7 @@
     width: 220px;
     height: 36px;
     padding: 0 8px 0 12px;
-    border-radius: 9px;
+    border-radius: 10px;
     background: var(--tile);
     color: var(--text-3);
     font-size: 14px;
@@ -150,7 +150,7 @@
     height: 36px;
     display: grid;
     place-items: center;
-    border-radius: 9px;
+    border-radius: 10px;
     color: var(--text);
   }
 
@@ -181,7 +181,7 @@
     border-radius: 8px;
     background: var(--ink);
     color: #fff;
-    font-size: 10.5px;
+    font-size: 11px;
     line-height: 16px;
     text-align: center;
   }
@@ -200,7 +200,7 @@
   }
 
   .topnav__faces > * + * {
-    margin-left: -7px;
+    margin-left: -8px;
     box-shadow: 0 0 0 2px #fff;
   }
 
@@ -242,7 +242,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0 10px;
-    padding: 36px var(--gutter) 22px;
+    padding: 36px var(--gutter) 24px;
   }
 
   .band__top {
@@ -299,7 +299,14 @@
   }
 
   .band:has(> .crumbs--path) > .band__top > .band__actions {
+    order: 1;
     align-self: center;
+  }
+
+  /* A title under a path (Stock): on its own line, under the path */
+  .band:has(> .crumbs--path) > .band__title {
+    flex-basis: 100%;
+    margin-top: 10px;
   }
 
   /* The top bar does these: back to Today from Settings, Search */
@@ -311,7 +318,7 @@
   .band .iconbtn {
     width: 36px;
     height: 36px;
-    border-radius: 9px;
+    border-radius: 10px;
     background: #fff;
     box-shadow: var(--panel-shadow);
   }
@@ -418,7 +425,7 @@
 
   .main .row {
     min-height: 48px;
-    border-radius: 9px;
+    border-radius: 10px;
   }
 
   .main .rows .row:hover:not(:has(.row--nested:hover)),
@@ -459,7 +466,7 @@
   /* The week, compact: the same tilted cards, smaller */
 
   .home__side .strip__label {
-    font-size: 14.5px;
+    font-size: 15px;
   }
 
   /* The head of the day: one line to add a task (the + and N do the same) */
@@ -469,7 +476,7 @@
   /* ---------------------------------------------------------- Projects: as many folders as fit */
   .projgrid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 30px 20px;
+    gap: 32px 20px;
   }
 
   .projcard {
@@ -537,12 +544,12 @@
   }
 
   .projpage .band > .hero {
-    margin-top: 26px;
+    margin-top: 28px;
   }
 
   .projpage .hero {
     min-height: 158px;
-    padding: 20px 20px 18px;
+    padding: 20px 20px 20px;
   }
 
   .projpage .hero__title {
@@ -603,14 +610,14 @@
 
   .btn {
     height: 44px;
-    border-radius: 11px;
+    border-radius: 12px;
     font-size: 15px;
   }
 
   .btn--sm {
     height: 34px;
     padding: 0 14px;
-    border-radius: 9px;
+    border-radius: 10px;
   }
 
   /* The folder's top corner holds search, Start and its menu: its settings line up along the bottom. */
@@ -625,7 +632,7 @@
   }
 
   .projpage .hero--project .hero__foot {
-    padding-right: 136px;
+    padding-right: 140px;
   }
 
   /* Us inside its panel: the panel is the tile. */
@@ -639,7 +646,7 @@
 }
 
 .topnav__tabs.is-refusing {
-  box-shadow: 0 0 0 2px var(--danger, #c0392b);
+  box-shadow: 0 0 0 2px var(--danger);
 }
 
 .topnav__tab.is-before {

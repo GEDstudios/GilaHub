@@ -15,6 +15,7 @@ import { Avatar, IconButton, lightVar, Stepper, Switch } from '../ui/primitives'
 import { PairSheet } from './PairSheet';
 import { G } from '../ui/glyphs';
 import { SwitchRow } from './pickers';
+import { useMouse } from '../ui/pointer';
 
 
 
@@ -723,20 +724,6 @@ function WhenRow({
       {open ? <div className="whenrow__body">{children}</div> : null}
     </div>
   );
-}
-
-/** A mouse to point with (a computer): pickers made for it; a phone keeps its own. */
-const MOUSE = '(hover: hover) and (pointer: fine)';
-function useMouse(): boolean {
-  const [on, setOn] = useState(() => typeof matchMedia === 'function' && matchMedia(MOUSE).matches);
-  useEffect(() => {
-    if (typeof matchMedia !== 'function') return;
-    const m = matchMedia(MOUSE);
-    const fn = () => setOn(m.matches);
-    m.addEventListener('change', fn);
-    return () => m.removeEventListener('change', fn);
-  }, []);
-  return on;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');

@@ -1,7 +1,8 @@
+import { Swatches } from '../components/pickers';
 import { useState } from 'react';
 import { pickColors, PROJECT_TEMPLATES } from '../../core/actions';
 import { formatInviteCode, formatRecoveryCode, normalizeInviteCode } from '../../core/ids';
-import { LINE_COLORS, type LineColor } from '../../core/model';
+import { type LineColor } from '../../core/model';
 import { claimInvite, claimRecovery, InviteError, type InvitePayload } from '../../core/session';
 import { query } from '../router';
 import { Icon } from '../ui/Icon';
@@ -248,21 +249,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
         >
           <input className="bigfield" value={name} dir="auto" autoFocus autoComplete="given-name" placeholder="Your name" aria-label="Your name" onChange={(e) => setName(e.target.value)} />
           <p className="choose__label onboard__label">Your color</p>
-          <div className="swatches swatches--big" role="radiogroup" aria-label="Color">
-            {LINE_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                role="radio"
-                aria-checked={c === color}
-                aria-label={c}
-                disabled={taken.includes(c)}
-                className={`swatch ${c === color ? 'is-on' : ''}`}
-                style={lineVars(c)}
-                onClick={() => setColor(c)}
-              />
-            ))}
-          </div>
+          <Swatches big value={color} onChange={setColor} taken={taken.map((c) => ({ color: c, name: 'your person', initial: '' }))} />
           <div className="onboard__preview">
             <NameTag name={name.trim() || 'You'} color={color} />
           </div>

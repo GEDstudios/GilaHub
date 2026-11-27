@@ -34,7 +34,7 @@
 .keys__keys kbd {
   min-width: 26px;
   height: 26px;
-  padding: 0 7px;
+  padding: 0 8px;
   display: inline-grid;
   place-items: center;
   border-radius: 8px;
@@ -50,9 +50,9 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   margin-inline-start: 12px;
-  padding: 3px 7px 3px 6px;
+  padding: 4px 8px 4px 6px;
   border-radius: 8px;
   font: inherit;
   color: var(--text-3);

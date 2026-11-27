@@ -6,7 +6,7 @@
   justify-content: center;
   gap: 8px;
   height: 54px;
-  padding: 0 26px;
+  padding: 0 28px;
   border-radius: 999px;
   background: var(--cta);
   color: var(--cta-text);
@@ -37,8 +37,8 @@
 
 .btn--sm {
   height: 40px;
-  padding: 0 18px;
-  font-size: 14.5px;
+  padding: 0 20px;
+  font-size: 15px;
 }
 
 .iconbtn {

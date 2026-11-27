@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
 .homecard {
@@ -54,7 +54,7 @@
 .homecard__title {
   flex: 1;
   min-width: 0;
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 600;
 }
 

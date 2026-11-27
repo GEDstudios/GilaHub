@@ -4,8 +4,8 @@
    a black badge; my person's name tag on its edge. */
 .daycard {
   position: relative;
-  margin: 4px 0 30px;
-  padding: 22px 22px 30px;
+  margin: 4px 0 32px;
+  padding: 24px 24px 32px;
   border-radius: var(--r-xl);
   background: var(--c);
   color: var(--ink);
@@ -31,7 +31,7 @@
   flex: none;
   margin-top: 4px;
   height: 28px;
-  padding: 0 11px;
+  padding: 0 12px;
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
@@ -62,7 +62,7 @@
   position: absolute;
   right: 26px;
   bottom: -17px;
-  gap: 7px;
+  gap: 8px;
   transform: rotate(-3deg);
   box-shadow: var(--lift-1);
   transition: transform 220ms var(--spring);
@@ -87,8 +87,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 10px 0 9px;
+  gap: 4px;
+  padding: 10px 0 10px;
   border-radius: 18px;
   background: var(--tile);
   color: var(--ink);
@@ -103,7 +103,7 @@
 }
 
 .weekstrip__wd {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-3);
 }
@@ -116,7 +116,7 @@
 
 .weekstrip__dots {
   display: flex;
-  gap: 3px;
+  gap: 4px;
   height: 5px;
 }
 
@@ -152,7 +152,7 @@
 
 .weekstrip__label {
   margin: 14px 4px 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
 }
@@ -165,8 +165,8 @@
 
 /* On my own there's no name tag on the edge: no room kept for it. */
 .daycard:not(:has(.daycard__tag)) {
-  margin-bottom: 26px;
-  padding-bottom: 22px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
 }
 
 .home .notice + .lens {
@@ -246,7 +246,7 @@
   gap: 16px;
   width: 100%;
   min-height: 84px;
-  padding: 14px 18px 14px 22px;
+  padding: 14px 20px 14px 24px;
   color: inherit;
   text-align: start;
   border-radius: inherit;
@@ -270,11 +270,11 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .wcard__label {
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -318,7 +318,7 @@
 
 .wchart__say {
   margin: 0 0 10px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .wchart__bars {
@@ -453,7 +453,7 @@
   align-items: center;
   gap: 6px;
   height: 34px;
-  padding: 0 13px 0 10px;
+  padding: 0 14px 0 10px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 600;

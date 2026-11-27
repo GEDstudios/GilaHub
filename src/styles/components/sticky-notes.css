@@ -49,7 +49,7 @@
 }
 
 .sticky__by {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.62;
 }
@@ -161,7 +161,7 @@
 
 /* Our notes, on Projects: a corkboard of the ones we've read */
 .collected {
-  margin-top: 34px;
+  margin-top: 36px;
 }
 
 .collected__head {
@@ -191,8 +191,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 22px 18px;
-  padding: 22px 14px 24px;
+  gap: 24px 20px;
+  padding: 24px 14px 24px;
   border-radius: 22px;
   background:
     radial-gradient(rgb(10 10 4 / 0.05) 1px, transparent 1.4px) 0 0 / 10px 10px,
@@ -228,13 +228,13 @@
 .note__where {
   margin: 0;
   color: var(--text-2);
-  font-size: 14.5px;
+  font-size: 15px;
   text-align: center;
 }
 
 .notesheet {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 /* On Today: a note waits for me on another screen */
@@ -333,7 +333,7 @@ html.is-editing .stickyboard {
   display: block;
   max-width: 100%;
   max-height: 62vh;
-  margin: 6px auto 18px;
+  margin: 6px auto 20px;
   border-radius: 14px;
   box-shadow: 0 0 0 1px rgb(10 10 4 / 0.08), 0 12px 30px -14px rgb(10 10 4 / 0.4);
 }
@@ -394,6 +394,6 @@ html.is-editing .stickyboard {
   transform: scale(1.12);
   box-shadow:
     inset 0 0 0 1px rgb(10 10 4 / 0.18),
-    0 0 0 2.5px var(--bg, #fff),
+    0 0 0 2.5px var(--bg),
     0 0 0 4px var(--ink);
 }

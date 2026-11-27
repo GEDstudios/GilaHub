@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { currentPath, sheetOpened } from '../router';
 import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastAction } from './motion';
 import { calm, EASE, TOAST } from './tokens';
+import { isMouse } from './pointer';
 import { G } from './glyphs';
 import { IconButton } from './primitives';
 
@@ -144,7 +145,8 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
       const actions = opts.action ? [opts.action].flat() : [];
       const ms = opts.ms ?? (actions.length ? TOAST.withAction : TOAST.normal);
       const route = currentPath();
-      const next = { message, actions, route, group: opts.group, many: opts.many, onExpire: opts.onExpire };
+      // The same words twice in a row are one toast (it bumps) rather than two stacked.
+      const next = { message, actions, route, group: opts.group ?? (actions.length ? undefined : `say:${message}`), many: opts.many, onExpire: opts.onExpire };
       // A toast from a screen you've left steps aside: its Undo would reach where you can't see.
       for (const old of live.current) if (!old.leaving && old.route !== route) dismiss(old.id);
       const here = live.current.filter((x) => !x.leaving && x.route === route);
@@ -436,7 +438,7 @@ export function Sheet({
     window.addEventListener('keydown', onKey);
     const t = setTimeout(() => {
       const first = panel.current?.querySelector<HTMLElement>('[data-autofocus], input, textarea');
-      if (first && window.matchMedia('(pointer: fine)').matches) first.focus();
+      if (first && isMouse()) first.focus();
     }, 60);
     return () => {
       unlock();

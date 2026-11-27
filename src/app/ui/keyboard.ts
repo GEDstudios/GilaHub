@@ -1,3 +1,4 @@
+import { isTouch } from './pointer';
 /**
  * Phones only raise the keyboard for a focus that happens inside the tap itself. New opens
  * a sheet a moment after the tap, so the tap focuses a hidden field first ("primes" the
@@ -6,7 +7,7 @@
 let primer: HTMLInputElement | null = null;
 
 export function primeKeyboard(): void {
-  if (typeof document === 'undefined' || !window.matchMedia('(pointer: coarse)').matches) return;
+  if (typeof document === 'undefined' || !isTouch()) return;
   if (!primer) {
     primer = document.createElement('input');
     primer.setAttribute('aria-hidden', 'true');

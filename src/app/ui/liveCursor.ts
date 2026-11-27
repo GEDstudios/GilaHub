@@ -1,5 +1,6 @@
 import { cursorImage, type CursorKind } from './cursors';
-import { HOLD as HOLD_TIME } from './tokens';
+import { calm, HOLD as HOLD_TIME } from './tokens';
+import { hasMouse } from './pointer';
 
 /**
  * The mouse, alive (a computer only, and not when motion is turned down): our cursor drawn by
@@ -59,12 +60,11 @@ function kindAt(target: EventTarget | null): CursorKind | 'text' {
 }
 
 /** A mouse or trackpad anywhere on this device (a touchscreen laptop counts). */
-export const hasMouse = () => typeof matchMedia === 'function' && matchMedia('(any-hover: hover) and (any-pointer: fine)').matches;
 
 /** On by its switch in Settings; left alone, on unless motion is turned down. */
 export function wantsLiveCursor(pref: boolean | null): boolean {
   if (!hasMouse()) return false;
-  return pref ?? !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return pref ?? !calm();
 }
 
 export function startLiveCursor(pref: boolean | null = null): () => void {

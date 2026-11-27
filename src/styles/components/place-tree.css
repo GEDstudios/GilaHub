@@ -58,7 +58,7 @@
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  padding-inline-start: calc(var(--depth, 0) * 22px);
+  padding-inline-start: calc(var(--depth, 0) * 24px);
   border-radius: 12px;
 }
 

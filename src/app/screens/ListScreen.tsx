@@ -8,7 +8,7 @@ import { useAddAction } from '../addAction';
 import { ListVisOptions } from '../components/ProjectFields';
 import { ActionSheet, Swatches } from '../components/pickers';
 import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
-import { InlineEditor, Options, Panel, RepeatPanel, TimeField } from '../components/editors';
+import { InlineEditor, Options, RepeatPanel, TimeField } from '../components/editors';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
@@ -117,7 +117,7 @@ function TemplateDayPanel({ listId }: { listId: string }) {
   const t = hub.list(listId)?.template ?? {};
   const days = [0, 1, 2, 3, 7, 14];
   return (
-    <Panel>
+    <>
       <p className="panel__head">Due</p>
       <Options
         value={t.dueIn == null ? 'none' : String(t.dueIn)}
@@ -134,7 +134,7 @@ function TemplateDayPanel({ listId }: { listId: string }) {
           </button>
         ) : null}
       </label>
-    </Panel>
+    </>
   );
 }
 
@@ -234,8 +234,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
             icon: G.subtask,
             set: !!t.steps?.length,
             panel: () => (
-              <Panel>
-                <TemplateText
+              <TemplateText
                   value={(t.steps ?? []).join('\n')}
                   placeholder={'One per line\nBuy paint\nTape the edges'}
                   label="Subtasks it starts with, one per line"
@@ -245,7 +244,6 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
                     hub.setListTemplate(listId, { steps: steps.length ? steps : null });
                   }}
                 />
-              </Panel>
             ),
           },
           {
@@ -253,11 +251,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
             label: t.notes ? 'Note' : 'Note',
             icon: G.note,
             set: !!t.notes,
-            panel: () => (
-              <Panel>
-                <TemplateText value={t.notes ?? ''} placeholder="A note each task starts with" label="Its note" rows={3} onSave={(v) => hub.setListTemplate(listId, { notes: v.trim() || null })} />
-              </Panel>
-            ),
+            panel: () => <TemplateText value={t.notes ?? ''} placeholder="A note each task starts with" label="Its note" rows={3} onSave={(v) => hub.setListTemplate(listId, { notes: v.trim() || null })} />,
           },
           ...(t.remind != null
             ? [
@@ -611,14 +605,18 @@ function ProjectPage({ id }: { id: string }) {
         crumbs={<PathCrumbs steps={projectPath(hub, id)} onMove={() => openSheet((close) => <MoveProjectSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
       >
         <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
+        <FolderTools list={list} />
       </Band>
       <div className="column">
-        <FolderTools list={list} />
         {/* Its folders first, then its tasks */}
         <SubProjects list={list} />
-        <Lens filter={filter} items={v.open} lists={v.lists.length > 1 ? v.lists : undefined}>
-          <ViewToggle listId={id} />
-        </Lens>
+        {n ? (
+          <Lens filter={filter} items={v.open} lists={v.lists.length > 1 ? v.lists : undefined}>
+            <ViewToggle listId={id} />
+          </Lens>
+        ) : !done.length && !hub.subLists(id).length ? (
+          <p className="hint">Nothing here yet. The + adds the first thing.</p>
+        ) : null}
 
         {shopper && !focus ? (
           <div className="notice">
@@ -649,7 +647,6 @@ function ProjectPage({ id }: { id: string }) {
         ) : null}
 
         <Photos on={`list:${id}`} />
-
 
         <ProjectItems
           pageId={id}

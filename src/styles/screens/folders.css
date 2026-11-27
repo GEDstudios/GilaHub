@@ -4,7 +4,7 @@
 .projgrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 26px 14px;
+  gap: 28px 14px;
   padding-top: 12px;
 }
 
@@ -73,7 +73,7 @@ button.projcard:active {
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 18px;
+  padding: 20px;
   border-radius: var(--r-l);
   border: 1.5px dashed var(--tile-2);
   color: var(--text-2);

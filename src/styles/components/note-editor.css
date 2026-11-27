@@ -46,7 +46,7 @@
   height: 124px;
   min-height: 0;
   box-sizing: border-box;
-  padding: 14px 11px 8px;
+  padding: 14px 12px 8px;
   gap: 4px;
   justify-content: flex-start;
   transform-origin: 0 0;
@@ -69,7 +69,7 @@
 textarea.nf__write {
   width: 100%;
   /* The same room as the words have when stuck up, so an italic's edge is never cut off while writing */
-  padding: 2px 3px 3px;
+  padding: 2px 4px 4px;
   overflow: hidden;
   border: 0;
   background: none;
@@ -86,7 +86,7 @@ textarea.nf__write {
   position: relative;
   z-index: 1;
   flex: none;
-  font-size: 8.5px;
+  font-size: 9px;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -201,7 +201,7 @@ textarea.nf__write {
 .noteedit__stage {
   display: flex;
   justify-content: center;
-  padding: 18px 0 14px;
+  padding: 20px 0 14px;
 }
 
 .noteedit__go {
@@ -307,7 +307,7 @@ textarea.nf__write {
   position: absolute;
   inset: -3px;
   border: 0.8px dashed rgb(10 10 4 / 0.55);
-  border-radius: 3px;
+  border-radius: 4px;
   pointer-events: none;
 }
 
@@ -318,7 +318,7 @@ textarea.nf__write {
 /* ============================================================ Note editor: a desk, four tools, one tray */
 /* Words never touch the paper's edge: room for an italic's swash on every side */
 .nf__text {
-  padding: 2px 3px 3px;
+  padding: 2px 4px 4px;
   line-height: 1.2;
 }
 
@@ -332,7 +332,7 @@ textarea.nf__write {
   position: relative;
   display: grid;
   place-items: center;
-  padding: 30px 20px;
+  padding: 32px 20px;
   overflow: hidden;
   border-radius: 22px;
   background-color: var(--tile);
@@ -416,7 +416,7 @@ textarea.nf__write {
   flex: none;
   height: 34px;
   padding: 0 14px;
-  border-radius: 17px;
+  border-radius: 18px;
   background: var(--tile);
   color: var(--text);
   font-weight: 600;
@@ -521,7 +521,7 @@ textarea.nf__write {
   border-radius: 14px;
   background: var(--tile);
   color: var(--text);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   transition: transform 200ms var(--spring);
 }
@@ -537,7 +537,7 @@ textarea.nf__write {
 .tray__hint {
   margin: -2px 0 0;
   text-align: center;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text-2);
 }
 
@@ -563,7 +563,7 @@ textarea.nf__write {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--danger, #d92d20);
+  color: var(--danger);
 }
 
 .tray__actions {
@@ -739,7 +739,7 @@ textarea.nf__write {
 }
 
 .noteedit__desk.is-drawing {
-  padding-left: 46px;
+  padding-left: 48px;
 }
 
 /* A note with the focus (clicked, or tabbed to) shows the same dashed edge, never the black ring */

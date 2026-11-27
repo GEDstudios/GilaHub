@@ -69,8 +69,13 @@
   --font: 'Figtree Variable', 'Heebo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --serif: 'Newsreader Variable', 'Frank Ruhl Libre Variable', Georgia, 'Times New Roman', serif;
 
-  /* Space & shape */
-  --gutter: 22px;
+  /* Space & shape
+     Every padding, margin and gap is on one scale: 2 4 6 8 10 12 14 16 20 24 28 32 36 40 48 56 64…
+     Every radius on: 2 4 6 8 10 12 14 16 18 20 22 24 28 30 32 36 40 (and 50%, 999px for round).
+     Type sizes are whole pixels: 11 12 13 14 15 16 17 18 for what you read, larger for the serif.
+     Anything you type into is at least 16px (a phone zooms in on smaller fields).
+     tests/unit/tokens.test.ts keeps every stylesheet on these scales. */
+  --gutter: 24px;
   /* One spacing scale for stacking blocks (docs/03, Space):
      1 inside a group · 2 a control to what it controls · 3 a thing to its own settings ·
      4 sibling blocks in a column · 5 titled sections and page-level groups */

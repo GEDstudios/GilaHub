@@ -25,7 +25,7 @@
 .row__thumb {
   width: 34px;
   height: 34px;
-  border-radius: 9px;
+  border-radius: 10px;
   object-fit: cover;
   box-shadow: 0 0 0 1px rgb(10 10 4 / 0.08);
   transform: rotate(-3deg);
@@ -61,7 +61,7 @@
 
 .rows.rows--sub {
   flex-basis: 100%;
-  margin: 2px 0 -4px 22px;
+  margin: 2px 0 -4px 24px;
   border-radius: 14px;
   background: transparent;
   overflow: visible;

@@ -12,6 +12,7 @@ import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 import { Disclosure } from '../ui/primitives';
 import { G } from '../ui/glyphs';
+import { isTouch } from '../ui/pointer';
 
 const idOf = (i: Item) => i.id;
 
@@ -159,7 +160,7 @@ export function Children({
       {coach ? (
         <p className="coach">
           <Icon name={G.holdHint} className="icon--sm" />
-          {matchMedia('(pointer: coarse)').matches ? `Hold any ${cards ? 'card' : 'row'} to reorder` : `Drag any ${cards ? 'card' : 'row'} to reorder`}
+          {isTouch() ? `Hold any ${cards ? 'card' : 'row'} to reorder` : `Drag any ${cards ? 'card' : 'row'} to reorder`}
         </p>
       ) : null}
       {doneRows.length ? (

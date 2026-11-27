@@ -9,7 +9,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
-import { InlineEditor, Panel, useSummary } from '../components/editors';
+import { InlineEditor, useSummary } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
 import { ActionSheet } from '../components/pickers';
@@ -193,7 +193,7 @@ function StockPanel({ id }: { id: string }) {
     ));
   const pct = (n: number) => `${Math.max(0, Math.min(100, (n / Math.max(1, want)) * 100))}%`;
   return (
-    <Panel>
+    <>
       <div className="stockcols">
         <StockCol label="Have">
           <Stepper label="Have" value={have} tone={tone} onChange={(n) => set({ stock: n ?? 0 })} />
@@ -222,7 +222,7 @@ function StockPanel({ id }: { id: string }) {
           <Icon name="x" className="icon--xs" />
         </button>
       </div>
-    </Panel>
+    </>
   );
 }
 

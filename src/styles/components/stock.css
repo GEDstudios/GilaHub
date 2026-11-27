@@ -46,7 +46,7 @@
 }
 
 .savedlist__rows {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .savedlist__row {
@@ -249,7 +249,7 @@
 }
 
 .hero--item .hero__sub {
-  padding-inline-end: 52px;
+  padding-inline-end: 56px;
 }
 
 .herophoto {
@@ -290,7 +290,7 @@
   border-radius: 999px;
   background: var(--ink);
   color: var(--cta-text);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 17px;
   text-align: center;
@@ -305,36 +305,6 @@
 .starbtn.is-on .icon__light {
   fill: var(--lemon);
   opacity: 1;
-}
-
-/* The chips' expand arrow: at the end of the first line */
-.echip--expand {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  margin-inline-start: auto;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--tile);
-  color: var(--text-2);
-  transition: background 140ms var(--ease);
-}
-
-.echip--expand .icon {
-  --s: 18;
-  transition: transform 200ms var(--ease);
-}
-
-.echip--expand.is-open .icon {
-  transform: rotate(180deg);
-}
-
-@media (hover: hover) {
-  .echip--expand:hover {
-    background: var(--tile-2);
-    color: var(--text);
-  }
 }
 
 /* A time on a phone, in a row: the phone's own picker, in a field */
@@ -364,7 +334,7 @@
 }
 
 .stockcol__label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-3);
 }
@@ -383,7 +353,7 @@
   inset-block: 0;
   inset-inline-start: 0;
   border-radius: inherit;
-  background: var(--mint, #3fbf7f);
+  background: var(--mint);
   transition: width 240ms var(--ease), background 200ms var(--ease);
 }
 
@@ -416,7 +386,7 @@
 .stockfoot__chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
   height: 30px;
   padding: 0 10px;

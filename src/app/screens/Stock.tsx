@@ -5,7 +5,7 @@ import { stockTone, useStockSet } from '../components/StockCount';
 import { PathCrumbs } from '../components/PathCrumbs';
 import { useHub } from '../context';
 import { getPrefs, setPrefs, usePrefs } from '../prefs';
-import { navigate } from '../router';
+import { back, navigate } from '../router';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
@@ -63,14 +63,14 @@ export function StockScreen() {
 
   return (
     <>
-      <Band crumbs={<PathCrumbs steps={[{ key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }) }]} />} title="Stock" sub={all.length ? `${all.length} ${all.length === 1 ? 'thing' : 'things'}${low.length ? ` · ${low.length} running low` : ''}` : 'What you keep at home, counted'} />
+      <Band onBack={() => back({ name: 'lists' })} crumbs={<PathCrumbs steps={[{ key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }) }]} />} title="Stock" sub={all.length ? `${all.length} ${all.length === 1 ? 'thing' : 'things'}${low.length ? ` · ${low.length} running low` : ''}` : 'What you keep at home, counted'} />
       <div className="column stock">
         <div className="stockadd">
           <input
             className="field stockadd__field"
             dir="auto"
             value={name}
-            placeholder="Something to count (olive oil, batteries…)"
+            placeholder="Olive oil, batteries…"
             aria-label="Something new to count"
             enterKeyHint="done"
             onChange={(e) => setName(e.target.value)}
@@ -110,7 +110,6 @@ export function StockScreen() {
                 <button type="button" className="section__go" onClick={() => navigate({ name: 'list', id: listId })}>
                   <ListBullet list={l} size="xs" />
                   <span dir="auto">{l.name}</span>
-                  <Icon name={G.go} className="section__goarrow" />
                 </button>
               }
               count={items.length}

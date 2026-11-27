@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { DUR } from './tokens';
+import { calm, DUR } from './tokens';
 
 /**
  * "Just added": the row you made fades in and glows for a moment wherever it shows
@@ -25,8 +25,8 @@ export function markFresh(id: string, opts: { scroll?: boolean } = {}): void {
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         const el = document.querySelector(`[data-id="${CSS.escape(id)}"]`);
-        const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-        el?.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' });
+        const still = calm();
+        el?.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
       }),
     );
   }

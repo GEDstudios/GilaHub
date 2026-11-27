@@ -1,7 +1,8 @@
 import { TimeField } from '../components/editors';
 import { DEFAULT_REMIND_AT } from '../reminders';
 import { playSound } from '../ui/sounds';
-import { hasMouse, wantsLiveCursor } from '../ui/liveCursor';
+import { wantsLiveCursor } from '../ui/liveCursor';
+import { hasMouse, isTouch } from '../ui/pointer';
 import { startTour } from '../tour';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
@@ -35,7 +36,6 @@ import { G } from '../ui/glyphs';
 type Toast = ReturnType<typeof useOverlays>['toast'];
 
 const wide = () => typeof matchMedia === 'function' && matchMedia('(min-width: 960px)').matches;
-const coarse = () => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
 function exportData(rt: Runtime) {
   const tables = ['member', 'list', 'item', 'log', 'memory', 'store', 'settings', 'idea', 'moment', 'tag'] as const;
@@ -518,7 +518,7 @@ function ThisDevice() {
       <div className="group">
         <OptRow
           icon={G.add}
-          title="New things from Today"
+          title="New from Today"
           sub={prefs.todayNew === 'ours' ? `Into your last shared folder, for you and ${partner?.name ?? 'your person'}` : 'Into your To-Do, private to you'}
           trail={
             <Seg
@@ -572,7 +572,7 @@ function ThisDevice() {
           }
         />
         <SwitchRow icon={G.idea} title="Ideas tag" sub="Wishes for Gila Hub, on every screen" on={prefs.ideasTag} onChange={(on) => setPrefs({ ideasTag: on })} />
-        {coarse() ? (
+        {isTouch() ? (
           <SwitchRow
             icon={G.vibrate}
             title="Vibration"
