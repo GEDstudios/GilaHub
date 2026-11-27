@@ -528,13 +528,13 @@
   }
 
   .projpage .band__actions .iconbtn {
-    background: rgb(255 255 255 / 0.45);
+    background: var(--card-btn);
     box-shadow: none;
     color: var(--ink);
   }
 
   .projpage .band__actions .iconbtn:hover {
-    background: rgb(255 255 255 / 0.7);
+    background: var(--card-btn-hover);
   }
 
   .projpage .band > .hero {

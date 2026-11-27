@@ -113,7 +113,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.75);
+  background: var(--card-btn);
   color: var(--ink);
   transition: background 140ms var(--ease), transform 160ms var(--spring);
 }
@@ -128,7 +128,7 @@
 
 @media (hover: hover) {
   .herophoto:hover {
-    background: rgb(255 255 255 / 0.9);
+    background: var(--card-btn-hover);
   }
 }
 
@@ -334,14 +334,14 @@ button.stockcount:disabled {
   height: 40px;
   padding: 0 10px;
   border: 0;
-  background: rgb(255 255 255 / 0.75);
+  background: var(--card-btn);
   color: var(--ink);
   font-size: 17px;
 }
 
 .hero .stockcount.is-open .stockcount__ring {
   padding: 0 2px;
-  background: rgb(255 255 255 / 0.9);
+  background: var(--card-btn-hover);
 }
 
 .hero .stockcount__step {
@@ -360,6 +360,6 @@ button.stockcount:disabled {
 
 @media (hover: hover) {
   .hero button.stockcount:hover .stockcount__ring {
-    background: rgb(255 255 255 / 0.9);
+    background: var(--card-btn-hover);
   }
 }

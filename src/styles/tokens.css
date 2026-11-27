@@ -43,6 +43,10 @@
   --cta-text: #fafaf8;
   --scrim: rgb(10 10 4 / 0.28);
   --press: rgb(10 10 4 / 0.05);
+  /* A button on a colored card (a folder's, a task's): near-white glass, light enough to show on
+     lemon too; a little whiter under the pointer. */
+  --card-btn: rgb(255 255 255 / 0.75);
+  --card-btn-hover: rgb(255 255 255 / 0.9);
   /* Where a dragged thing lands (drag.css, "Landing"): a darkened gray, never a color.
      --drop-fill darkens what it goes into and fills the gap where it lands; --drop-mark rings a
      folder card it goes into. */

@@ -55,7 +55,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.42);
+  background: var(--card-btn);
   color: var(--ink);
   transition:
     background 160ms var(--ease),
@@ -63,7 +63,7 @@
 }
 
 .herobtn:hover {
-  background: rgb(255 255 255 / 0.7);
+  background: var(--card-btn-hover);
 }
 
 .herobtn:active {
