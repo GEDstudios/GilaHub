@@ -39,7 +39,16 @@ export async function startRuntime(persistence: Persistence, session: Session): 
   hub.uniformProjects();
   hub.endAwayMode();
   hub.stockInPlace();
-  hub.untangle();
+  // Two devices nested two tasks (or two folders) under each other at once: opened up the same
+  // way on each of them, as soon as it shows (what arrives, an undo, a restore). Upkeep, never an
+  // undo step.
+  const mend = () =>
+    void quietly(store, () => {
+      hub.mendTree();
+      hub.mendFolders();
+    });
+  mend();
+  store.subscribe(mend);
   const relayListeners = new Set<() => void>();
 
   /**
@@ -116,7 +125,6 @@ export async function startRuntime(persistence: Persistence, session: Session): 
         hub.uniformProjects();
         hub.endAwayMode();
         hub.stockInPlace();
-        hub.untangle();
         if (!caughtUp) await persistence.commit({ meta: { caughtUp: true } });
         settle();
       });

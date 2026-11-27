@@ -167,6 +167,32 @@ export class Store {
     this.touch(rec);
   }
 
+  /**
+   * A write dated by a clock that is already in the data, not by now: for a repair that every
+   * device works out the same way from the same merged state. All of them write the very same
+   * op, so it doesn't matter who runs it or how often, they agree before they've even heard from
+   * each other, and anything written after `h` still wins. A field whose clock is already at
+   * or past `h` is left alone. Returns whether anything changed. This is upkeep, not something
+   * a person did: `onWrite` isn't told, so it is never an undo step.
+   */
+  amend<T extends Table>(t: T, id: string, fields: Partial<TableTypes[T]> & Record<string, unknown>, h: string): boolean {
+    const rec = this.records.get(recKey(t, id));
+    if (!rec) return false;
+    const f: Record<string, unknown> = {};
+    for (const [name, raw] of Object.entries(fields)) {
+      if (name === 'id' || name === '_s') continue;
+      const cur = rec.c[name];
+      if (cur !== undefined && cur >= h) continue;
+      f[name] = raw === undefined ? null : raw;
+      rec.v[name] = f[name];
+      rec.c[name] = h;
+    }
+    if (!Object.keys(f).length) return false;
+    this.enqueue({ cid: newId(12), s: this.scopeOf(t, id), op: { t, id, f, h } });
+    this.touch(rec);
+    return true;
+  }
+
   /** Move an entity to another privacy scope (see class docs). */
   setScope(t: Table, id: string, next: Scope): void {
     const rec = this.records.get(recKey(t, id));

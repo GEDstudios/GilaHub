@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Hub } from '../../src/core/hub';
 import { seedHousehold } from '../../src/core/seed';
 import { isForMe, folderView } from '../../src/app/views';
@@ -210,44 +210,8 @@ describe('Hub: chores', () => {
   });
 });
 
-describe('Hub: a loop in the tree', () => {
-  it('two phones nest two tasks into each other at once: nothing hangs, and both open the loop the same way', async () => {
-    const { guy, hila } = await couple();
-    const todo = listNamed(guy, 'To do');
-    const a = guy.addItem(todo.id, { title: 'Pack' });
-    const b = guy.addItem(todo.id, { title: 'Passport' });
-    const step = guy.addItem(todo.id, { title: 'Check the expiry', parentId: b });
-    sync(guy, hila);
-    // Each move is fine where it's made; together they are a loop.
-    guy.move(a, { parentId: b });
-    hila.move(b, { parentId: a });
-    sync(guy, hila);
-    for (const hub of [guy, hila]) {
-      expect(hub.item(a)?.parentId).toBe(b);
-      expect(hub.item(b)?.parentId).toBe(a);
-      // The walks come back.
-      expect(hub.descendants(a).map((i) => i.id).sort()).toEqual([b, step].sort());
-      expect(hub.ancestors(hub.item(step)!).map((i) => i.id).sort()).toEqual([a, b].sort());
-      expect(hub.isUnder(step, a)).toBe(true);
-      // Out of sight until it's opened: neither hangs from the folder.
-      expect(hub.children(todo.id, null).some((i) => i.id === a || i.id === b)).toBe(false);
-    }
-    guy.untangle();
-    hila.untangle();
-    sync(guy, hila);
-    const head = a < b ? a : b;
-    for (const hub of [guy, hila]) {
-      expect(hub.item(head)?.parentId).toBeNull();
-      expect(hub.children(todo.id, null).map((i) => i.id)).toContain(head);
-      expect(hub.descendants(head).map((i) => i.id).sort()).toEqual([a, b, step].filter((x) => x !== head).sort());
-    }
-    // Nothing left to open.
-    const before = guy.store.pendingOutbox().length;
-    guy.untangle();
-    expect(guy.store.pendingOutbox().length).toBe(before);
-  });
-
-  it('folders too: two nested into each other come back into Folders', async () => {
+describe('Hub: a loop of folders', () => {
+  it('two folders nested into each other at once come back into Folders', async () => {
     const { guy, hila } = await couple();
     const one = guy.createList({ name: 'Trip' });
     const two = guy.createList({ name: 'Packing' });
@@ -257,8 +221,8 @@ describe('Hub: a loop in the tree', () => {
     sync(guy, hila);
     expect(guy.topLists().some((l) => l.id === one || l.id === two)).toBe(false);
     expect(guy.nestedLists(one).map((l) => l.id)).toEqual([two]);
-    guy.untangle();
-    hila.untangle();
+    expect(guy.mendFolders()).toBe(1);
+    hila.mendFolders();
     sync(guy, hila);
     const head = one < two ? one : two;
     for (const hub of [guy, hila]) {
@@ -595,5 +559,151 @@ describe('remove from here', () => {
     expect(guy.item(a)).toBeUndefined();
     expect(guy.item(b)).toBeDefined();
     expect(guy.linked(guy.item(b))).toBeUndefined();
+  });
+});
+
+describe('two tasks nested under each other at once', () => {
+  /** Guy puts X under Y while Hila puts Y under X; then each hears of the other's move. */
+  const crossed = async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do').id;
+    const x = guy.addItem(todo, { title: 'Paint the fence' });
+    const y = guy.addItem(todo, { title: 'Buy paint' });
+    const z = guy.addItem(todo, { title: 'Garden' });
+    sync(guy, hila);
+    guy.move(x, { parentId: y });
+    hila.move(y, { parentId: x });
+    sync(guy, hila);
+    return { guy, hila, todo, x, y, z };
+  };
+  const moved = (hub: Hub, id: string) => hub.store.record('item', id)!.c.parentId;
+  const tree = (hub: Hub, ids: string[]) => ids.map((id) => [id, hub.item(id)!.parentId ?? null]);
+
+  it('walking the loop ends, each task once', async () => {
+    const { guy, hila, x, y } = await crossed();
+    for (const hub of [guy, hila]) {
+      expect(hub.item(x)!.parentId).toBe(y);
+      expect(hub.item(y)!.parentId).toBe(x);
+      expect(hub.descendants(x).map((d) => d.id)).toEqual([y]);
+      expect(hub.descendants(y).map((d) => d.id)).toEqual([x]);
+      expect(hub.ancestors(hub.item(x)!).map((a) => a.id)).toEqual([y]);
+      expect(hub.childrenOf(x).map((c) => c.id)).toEqual([y]);
+      expect(hub.isUnder(x, x)).toBe(false);
+      // Ordinary things that walk the tree: ticking, privacy, deleting.
+      hub.toggle(x);
+      expect(hub.visibilityOf(hub.item(x)!)).toBe('ours');
+    }
+    guy.delete(x)();
+    expect(guy.item(y)).toBeDefined();
+  });
+
+  it('the older move gives way: that task comes out to the top, the same on both devices', async () => {
+    const { guy, hila, todo, x, y } = await crossed();
+    const [out, kept] = moved(guy, x) < moved(guy, y) ? [x, y] : [y, x];
+    expect(guy.mendTree()).toBe(1);
+    expect(hila.mendTree()).toBe(1);
+    // Before either has heard from the other, they already agree.
+    for (const hub of [guy, hila]) {
+      expect(hub.item(out)!.parentId).toBeNull();
+      expect(hub.item(kept)!.parentId).toBe(out);
+      // Both can be reached again: one in the folder, the other under it.
+      expect(hub.children(todo, null).map((i) => i.id)).toContain(out);
+      expect(hub.descendants(out).map((d) => d.id)).toEqual([kept]);
+      expect(hub.isUnder(kept, out)).toBe(true);
+      expect(hub.isUnder(out, kept)).toBe(false);
+      expect(hub.ancestors(hub.item(kept)!).map((a) => a.id)).toEqual([out]);
+    }
+    sync(guy, hila);
+    expect(tree(guy, [x, y])).toEqual(tree(hila, [x, y]));
+    expect(guy.item(out)!.parentId).toBeNull();
+    // Mended once: nothing more to write, nothing more to send.
+    expect(guy.mendTree()).toBe(0);
+    expect(hila.mendTree()).toBe(0);
+    expect(guy.store.outboxSize() + hila.store.outboxSize()).toBe(0);
+  });
+
+  it('a move made since the mend stands, even when the other device mends late', async () => {
+    const { guy, hila, x, y, z } = await crossed();
+    const out = moved(guy, x) < moved(guy, y) ? x : y;
+    guy.mendTree();
+    guy.move(out, { parentId: z });
+    // Hila's phone still shows the loop; a minute on, it mends before hearing what Guy did next.
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 60_000 });
+    try {
+      hila.mendTree();
+    } finally {
+      vi.useRealTimers();
+    }
+    sync(guy, hila);
+    expect(guy.item(out)!.parentId).toBe(z);
+    expect(tree(hila, [x, y])).toEqual(tree(guy, [x, y]));
+    expect(guy.mendTree() + hila.mendTree()).toBe(0);
+  });
+
+  it('the mend is not a step to undo', async () => {
+    const { guy } = await crossed();
+    const steps: string[] = [];
+    guy.store.onWrite = (_t, id) => steps.push(id);
+    guy.mendTree();
+    expect(steps).toEqual([]);
+  });
+
+  it('steps of an Only-me task stay Only me when one comes out', async () => {
+    const { guy, hila } = await couple();
+    const tablet = await person('guy', { device: 'dev-guy-tablet' });
+    sync(guy, tablet, hila);
+    const todo = listNamed(guy, 'To do').id;
+    const party = guy.addItem(todo, { title: 'Surprise party', visibility: 'private' });
+    const x = guy.addItem(todo, { title: 'Invite friends', parentId: party });
+    const y = guy.addItem(todo, { title: 'Order the cake', parentId: party });
+    sync(guy, tablet, hila);
+    guy.move(x, { parentId: y });
+    tablet.move(y, { parentId: x });
+    sync(guy, tablet, hila);
+    const [out, kept] = moved(guy, x) < moved(guy, y) ? [x, y] : [y, x];
+    guy.mendTree();
+    tablet.mendTree();
+    sync(guy, tablet, hila);
+    for (const hub of [guy, tablet]) {
+      expect(hub.item(out)!.parentId).toBeNull();
+      expect(hub.item(kept)!.parentId).toBe(out);
+      expect(hub.visibilityOf(hub.item(out)!)).toBe('private');
+      expect(hub.visibilityOf(hub.item(kept)!)).toBe('private');
+      expect(hub.ownerOf(hub.item(out)!)).toBe('guy');
+      expect(hub.store.scopeOf('item', out)).toBe('p:guy');
+    }
+    expect(hila.item(x)).toBeUndefined();
+    expect(hila.item(y)).toBeUndefined();
+    // Moving it later reseals it by what it says: still Only me.
+    guy.move(out, { before: party });
+    sync(guy, tablet, hila);
+    expect(hila.item(out)).toBeUndefined();
+    expect(hila.item(kept)).toBeUndefined();
+  });
+
+  it('a task under itself, and a longer loop, come apart too', async () => {
+    const { guy, hila } = await couple();
+    const todo = listNamed(guy, 'To do').id;
+    const [a, b, c, d] = ['Sand', 'Prime', 'Paint', 'Varnish'].map((title) => guy.addItem(todo, { title }));
+    guy.store.mutate('item', a, { parentId: a });
+    guy.store.mutate('item', b, { parentId: c });
+    guy.store.mutate('item', c, { parentId: d });
+    guy.store.mutate('item', d, { parentId: b });
+    sync(guy, hila);
+    expect(guy.descendants(a)).toEqual([]);
+    expect(guy.descendants(b).map((i) => i.id).sort()).toEqual([c, d].sort());
+    expect(hila.mendTree()).toBe(2);
+    expect(guy.mendTree()).toBe(2);
+    sync(guy, hila);
+    for (const hub of [guy, hila]) {
+      expect(tree(hub, [a, b, c, d])).toEqual([
+        [a, null],
+        [b, null],
+        [c, d],
+        [d, b],
+      ]);
+      expect(hub.descendants(b).map((i) => i.id)).toEqual([d, c]);
+      expect(hub.mendTree()).toBe(0);
+    }
   });
 });

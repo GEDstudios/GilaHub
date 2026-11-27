@@ -41,13 +41,13 @@ declare module './base' {
     endAwayMode(): void;
 
     /**
-     * Open any loop in the trees. One device can't make one (a move into its own insides is
-     * refused), but two can: I put A under B while my person puts B under A, and both arrive.
-     * Nothing in a loop hangs from a folder any more, so its tasks (or folders) are out of sight.
-     * The one with the smallest id steps out to the top; the choice is the same wherever this
-     * runs, so two phones doing it at once agree.
+     * Open a loop of folders. One device can't make one (a move into its own insides is refused),
+     * but two can: I put Trip inside Packing while my person puts Packing inside Trip, and both
+     * arrive. Neither is at the top of Folders any more, so both are out of sight. The one with
+     * the smallest id steps out to the top; the choice is the same wherever this runs, so two
+     * phones doing it at once agree. (Tasks have their own: Hub.mendTree.) Returns how many it opened.
      */
-    untangle(): void;
+    mendFolders(): number;
 
     isAway(): boolean;
 
@@ -173,17 +173,14 @@ function loopHeads(rows: Array<{ id: string; parentId?: string | null }>): strin
   return [...heads];
 }
 
-Hub.prototype.untangle = function (this: Hub): void {
-  const items = loopHeads(this.store.all('item'));
-  const lists = loopHeads(this.store.all('list'));
-  if (!items.length && !lists.length) return;
+Hub.prototype.mendFolders = function (this: Hub): number {
+  const heads = loopHeads(this.store.all('list'));
+  // Nothing wrong (nearly always): no write, so nobody is told the data changed.
+  if (!heads.length) return 0;
   this.store.batch(() => {
-    for (const id of lists) this.store.mutate('list', id, { parentId: null });
-    for (const id of items) {
-      this.store.mutate('item', id, { parentId: null });
-      this.rescope(id);
-    }
+    for (const id of heads) this.store.mutate('list', id, { parentId: null });
   });
+  return heads.length;
 };
 
 Hub.prototype.endAwayMode = function (this: Hub): void {

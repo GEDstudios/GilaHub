@@ -353,9 +353,9 @@ export class Hub {
   }
 
   /**
-   * Everything under a task, all the way down. Each thing once: two devices nesting two tasks
-   * into each other at the same moment leaves a loop (Hub.untangle opens it), and a walk must
-   * come back from one.
+   * Everything under a task, all the way down. Each thing once, and never the task itself: two
+   * devices can nest two tasks under each other at the same moment (see `mendTree`), and until
+   * that's mended the walk must still end.
    */
   descendants(id: string): Item[] {
     const out: Item[] = [];
@@ -382,7 +382,7 @@ export class Hub {
     return parentId ? this.childrenOf(parentId) : this.children(listId, null);
   }
 
-  /** The tasks a subtask sits under, from the top down (each once, even in a loop). */
+  /** The way down from the top to here: [grandparent, parent]. Each once, never the task itself. */
   ancestors(item: Item): Item[] {
     const out: Item[] = [];
     const seen = new Set([item.id]);
