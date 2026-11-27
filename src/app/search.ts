@@ -19,7 +19,7 @@ export function openSearch(inList?: string | null): void {
   emit();
 }
 
-export function searchScope(): string | null {
+function searchScope(): string | null {
   return scope;
 }
 
@@ -36,7 +36,7 @@ export function closeSearch(): void {
   emit();
 }
 
-export function isSearchOpen(): boolean {
+function isSearchOpen(): boolean {
   return open;
 }
 

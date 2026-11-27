@@ -2,10 +2,9 @@ import type { ReactNode } from 'react';
 import { LINE_COLORS, type LineColor } from '../../core/model';
 import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
-import { Switch } from '../ui/primitives';
 import { Sheet } from '../ui/overlays';
 import { Icon, type IconName } from '../ui/Icon';
-import { lineVars } from '../ui/primitives';
+import { lineVars, Switch } from '../ui/primitives';
 import { G } from '../ui/glyphs';
 
 /**
@@ -14,32 +13,26 @@ import { G } from '../ui/glyphs';
  */
 export function OptRow({
   icon,
-  lead,
   title,
   sub,
   value,
   onClick,
-  on,
-  disabled,
   trail,
   chev,
   danger,
 }: {
   icon?: IconName;
-  lead?: ReactNode;
   title: ReactNode;
   sub?: ReactNode;
   value?: ReactNode;
   onClick?: () => void;
-  on?: boolean;
-  disabled?: boolean;
   trail?: ReactNode;
   chev?: boolean;
   danger?: boolean;
 }) {
   const body = (
     <>
-      {lead ?? (icon ? <Icon name={icon} className="optrow__icon" /> : null)}
+      {icon ? <Icon name={icon} className="optrow__icon" /> : null}
       <span className="optrow__text">
         <span dir="auto">{title}</span>
         {sub ? (
@@ -49,13 +42,12 @@ export function OptRow({
         ) : null}
       </span>
       {value !== undefined ? <span className="optrow__value">{value}</span> : null}
-      {on ? <Icon name={G.done} /> : null}
       {trail}
       {chev ? <Icon name={G.go} className="optrow__chev" /> : null}
     </>
   );
   return onClick ? (
-    <button type="button" className={`optrow optrow--tap ${danger ? 'optrow--danger' : ''}`} onClick={onClick} disabled={disabled} aria-pressed={on}>
+    <button type="button" className={`optrow optrow--tap ${danger ? 'optrow--danger' : ''}`} onClick={onClick}>
       {body}
     </button>
   ) : (
@@ -64,7 +56,7 @@ export function OptRow({
 }
 
 /** One thing a "…" menu can do. It runs after the sheet closes. */
-export type Action = { icon: IconName; title: string; sub?: ReactNode; danger?: boolean; hidden?: boolean; run: () => void };
+type Action = { icon: IconName; title: string; sub?: ReactNode; danger?: boolean; hidden?: boolean; run: () => void };
 
 /** A "…" menu: a sheet of actions, each one row; tapping one closes the sheet and does it. */
 export function ActionSheet({ title, actions, onClose }: { title: string; actions: Action[]; onClose: () => void }) {
@@ -116,19 +108,9 @@ export function SwitchRow({ icon, title, sub, on, onChange, label, panel }: { ic
  * Six colors, as round dots. A `taken` color (my person's) shows their initial and can't be
  * picked: a tap shakes it.
  */
-export function Swatches({
-  value,
-  onChange,
-  taken,
-  big,
-}: {
-  value: LineColor;
-  onChange: (c: LineColor) => void;
-  taken?: Array<{ color: LineColor; name: string; initial: string }>;
-  big?: boolean;
-}) {
+export function Swatches({ value, onChange, taken }: { value: LineColor; onChange: (c: LineColor) => void; taken?: Array<{ color: LineColor; name: string; initial: string }> }) {
   return (
-    <div className={`swatches ${big ? 'swatches--big' : ''}`} role="radiogroup" aria-label="Color">
+    <div className="swatches swatches--big" role="radiogroup" aria-label="Color">
       {LINE_COLORS.map((c) => {
         const owner = c !== value ? taken?.find((t) => t.color === c) : undefined;
         return (

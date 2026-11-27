@@ -11,7 +11,7 @@ import { FindField, ListBullet } from '../ui/primitives';
 import { HOLD } from '../ui/tokens';
 
 /** A place in the tree: a folder, or a task in one (its subtasks go under it). */
-export type Place = { listId: string; parentId: string | null };
+type Place = { listId: string; parentId: string | null };
 
 const same = (a: Place | null | undefined, b: Place | null | undefined) => !!a && !!b && a.listId === b.listId && (a.parentId ?? null) === (b.parentId ?? null);
 
@@ -26,7 +26,6 @@ export function PlaceTree({
   onPick,
   tasks = false,
   value,
-  selected,
   current,
   offer,
   excludeList,
@@ -44,8 +43,6 @@ export function PlaceTree({
   tasks?: boolean;
   /** The one picked now: a check, and the tree opens the way down to it. */
   value?: Place | null;
-  /** Several picked (a multiple choice): a check on each, folders on the way down opened. */
-  selected?: (p: Place) => boolean;
   /** Where it is now: "here now", not pickable; the tree opens the way down to it. */
   current?: Place | null;
   /** Folders that can be picked; a folder that isn't but holds one that is stays, greyed. */
@@ -84,7 +81,6 @@ export function PlaceTree({
     };
     reveal(current);
     reveal(value);
-    if (selected) for (const l of hub.lists()) if (selected({ listId: l.id, parentId: null })) reveal({ listId: l.id, parentId: null });
     return keys;
   });
   const toggle = (key: string) => {
@@ -148,7 +144,7 @@ export function PlaceTree({
                 <span dir="auto">{t.title}</span>
               </>
             }
-            on={same(value, p) || !!selected?.(p)}
+            on={same(value, p)}
             expandable={kids}
             expanded={taskOpen(t.id)}
             onExpand={() => toggle(`shut:${t.id}`)}
@@ -179,7 +175,7 @@ export function PlaceTree({
                 <span dir="auto">{l.name}</span>
               </>
             }
-            on={same(value, p) || !!selected?.(p)}
+            on={same(value, p)}
             expandable={expandable}
             expanded={folderOpen(l.id)}
             onExpand={() => toggle(l.id)}

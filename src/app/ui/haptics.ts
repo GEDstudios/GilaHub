@@ -17,7 +17,7 @@
 import { getPrefs } from '../prefs';
 import { playSound } from './sounds';
 
-export type HapticKind = 'select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn';
+type HapticKind = 'select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn';
 
 export const HAPTIC_PATTERNS: Record<HapticKind, number | number[]> = {
   select: 5,
@@ -29,7 +29,7 @@ export const HAPTIC_PATTERNS: Record<HapticKind, number | number[]> = {
 };
 
 /** Minimum gap between two `select` haptics, in ms. The iOS switch click is heavier, so it waits longer. */
-export const SELECT_GAP = { vibrate: 28, ios: 45 } as const;
+const SELECT_GAP = { vibrate: 28, ios: 45 } as const;
 
 let label: HTMLLabelElement | null = null;
 let lastSelect = -Infinity;

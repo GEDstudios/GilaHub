@@ -8,7 +8,7 @@ import { primeKeyboard } from './ui/keyboard';
  * With nothing registered (Search, Settings) they open the plain composer.
  */
 type Fn = () => void;
-export interface AddAction {
+interface AddAction {
   fn: Fn;
   label: string;
 }

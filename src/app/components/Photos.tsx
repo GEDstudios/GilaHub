@@ -15,7 +15,7 @@ import { G } from '../ui/glyphs';
  */
 
 /** Ask for a photo (the camera or the library) and make it small enough to keep. Call it from a tap. */
-export function pickPhoto(): Promise<string | null> {
+function pickPhoto(): Promise<string | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -63,12 +63,12 @@ export function useAddPhoto(on: string) {
 
 const TURN = [-3, 2, -1.5, 3, -2.5, 1.5];
 
-export function Photos({ on, always = false }: { on: string; always?: boolean }) {
+export function Photos({ on }: { on: string }) {
   const hub = useHub();
   const { openSheet } = useOverlays();
   const add = useAddPhoto(on);
   const photos = hub.photosOf(on);
-  if (!photos.length && !always) return null;
+  if (!photos.length) return null;
   return (
     <div className="photos" role="group" aria-label="Photos">
       {photos.map((p, i) => {

@@ -9,12 +9,12 @@ import { CursorMark, lineVars } from './primitives';
 import { useSettleHold } from './useSettle';
 import { G } from './glyphs';
 
-/** The lemon "Urgent" word pill: the same in every card and row. `short`: just the lightning, for narrow tiles. */
-export function UrgentTag({ title = 'Urgent', short }: { title?: string; short?: boolean }) {
+/** The lemon "Urgent" word pill: the same in every card and row. */
+export function UrgentTag() {
   return (
-    <span className={`urgent ${short ? 'urgent--short' : ''}`} title={title} aria-label={title} role="img">
+    <span className="urgent" title="Urgent" aria-label="Urgent" role="img">
       <Icon name={G.urgent} className="icon--xs on-color" />
-      {short ? null : 'Urgent'}
+      Urgent
     </span>
   );
 }

@@ -134,7 +134,7 @@ export function Today() {
     const savedId = queryIdOf(key);
     if (savedId) return <SavedListWidget key={key} id={savedId} settle={settle} />;
     const listId = listIdOf(key);
-    if (listId) return <ProjectWidget key={key} listId={listId} day={ref} settle={settle} />;
+    if (listId) return <ProjectWidget key={key} listId={listId} settle={settle} />;
     switch (key) {
       case 'today':
         // What my person asked waits in Us's cards; with Us hidden, folded under the list.

@@ -30,7 +30,7 @@ export function fromB64u(s: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-export function randomBytes(n: number): Uint8Array<ArrayBuffer> {
+function randomBytes(n: number): Uint8Array<ArrayBuffer> {
   const b = new Uint8Array(n);
   crypto.getRandomValues(b);
   return b;
@@ -43,7 +43,7 @@ export function newKeyMaterial(): string {
 
 const keyCache = new Map<string, Promise<CryptoKey>>();
 
-export function aesKey(material: string): Promise<CryptoKey> {
+function aesKey(material: string): Promise<CryptoKey> {
   let k = keyCache.get(material);
   if (!k) {
     k = crypto.subtle.importKey('raw', fromB64u(material), { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);

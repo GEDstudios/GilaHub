@@ -101,7 +101,5 @@ export const G = {
   viewTags: 'tag',
 } as const satisfies Record<string, IconName>;
 
-export type Glyph = keyof typeof G;
-
 /** The same meanings as text, for notification titles (which can't hold a glyph). */
 export const G_TEXT = { urgent: '⚡', remind: '🔔', done: '✅', ask: '🙋', note: '📝' } as const;

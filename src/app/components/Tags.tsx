@@ -22,9 +22,9 @@ export function TagMark({ icon, className = 'icon--sm' }: { icon: string | null 
 }
 
 /** A row's tags, small, after its other meta (at most two, then "+n"). */
-export function TagPills({ ids, skip }: { ids: string[]; skip?: string | null }) {
+export function TagPills({ ids }: { ids: string[] }) {
   const hub = useHub();
-  const tags = ids.filter((t) => t !== skip).flatMap((t) => hub.tag(t) ?? []);
+  const tags = ids.flatMap((t) => hub.tag(t) ?? []);
   if (!tags.length) return null;
   return (
     <>

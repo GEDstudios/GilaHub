@@ -9,9 +9,9 @@ import type { Item, List } from '../core/model';
  * the task opens, the row moves, + adds. Most tick themselves off the moment you've done it.
  * When all are done the project bows out. Settings > About > "Show me around" brings it back.
  */
-export const TOUR_NAME = 'Start here';
+const TOUR_NAME = 'Start here';
 
-export type TourKey = 'tick' | 'open' | 'add' | 'share' | 'drag' | 'bar' | 'person';
+type TourKey = 'tick' | 'open' | 'add' | 'share' | 'drag' | 'bar' | 'person';
 
 interface TourStep {
   key: TourKey;

@@ -49,7 +49,6 @@ export function EChip({
   set,
   open,
   onToggle,
-  disabled,
   ghost,
   compact,
   tone,
@@ -68,7 +67,6 @@ export function EChip({
   style?: CSSProperties;
   open: boolean;
   onToggle: () => void;
-  disabled?: boolean;
   ghost?: boolean;
   compact?: boolean;
 }) {
@@ -101,7 +99,6 @@ export function EChip({
       aria-expanded={open}
       aria-label={name}
       title={name}
-      disabled={disabled}
     >
       {lead ?? (icon ? <Icon name={icon} className="icon--sm" /> : null)}
       {label === '' ? null : <span dir="auto">{label}</span>}
@@ -113,13 +110,12 @@ export function EChip({
  * Who sees it: Ours, Mine, {P}'s or Only me, with one line on what that means.
  * Renders its chip and, when open, its panel (panels sort after the chip row; see .inline__chips).
  */
-export function VisChip({
+function VisChip({
   value,
   allowed,
   onChange,
   open,
   onToggle,
-  disabled,
   compact,
 }: {
   value: VisChoice;
@@ -127,7 +123,6 @@ export function VisChip({
   onChange: (v: VisChoice) => void;
   open: boolean;
   onToggle: () => void;
-  disabled?: boolean;
   compact?: boolean;
 }) {
   const hub = useHub();
@@ -160,7 +155,6 @@ export function VisChip({
         set={value !== allowed[0]}
         open={open}
         onToggle={onToggle}
-        disabled={disabled}
         compact={compact}
       />
       {open ? (
@@ -182,7 +176,7 @@ export function VisChip({
  * Who does it. Paired: Either of us / Me / Ask {P} / Together (/ Take turns), and after
  * asking, "Needs my OK when done". On my own: a ghost "Ask your person" that leads to pairing.
  */
-export function WhoChip({
+function WhoChip({
   value,
   turn,
   needsOk,
@@ -191,7 +185,6 @@ export function WhoChip({
   onChange,
   open,
   onToggle,
-  disabled,
   compact,
 }: {
   value: Assignee;
@@ -203,7 +196,6 @@ export function WhoChip({
   onChange: (patch: { assignee?: Assignee; needsOk?: boolean }) => void;
   open: boolean;
   onToggle: () => void;
-  disabled?: boolean;
   compact?: boolean;
 }) {
   const hub = useHub();
@@ -214,7 +206,7 @@ export function WhoChip({
   if (!partner) {
     return (
       <>
-        <EChip label="Ask your person" icon={G.person} set={false} open={open} onToggle={onToggle} disabled={disabled} ghost compact={compact} />
+        <EChip label="Ask your person" icon={G.person} set={false} open={open} onToggle={onToggle} ghost compact={compact} />
         {open ? (
           <Panel>
             <p className="panel__hint panel__hint--first">Hand things to your person, and ask for an OK when they’re done.</p>
@@ -238,7 +230,7 @@ export function WhoChip({
         : whoText(hub, value);
   return (
     <>
-      <EChip label={label} icon={G.person} set={!!value} open={open} onToggle={onToggle} disabled={disabled} compact={compact} />
+      <EChip label={label} icon={G.person} set={!!value} open={open} onToggle={onToggle} compact={compact} />
       {open ? (
         <Panel>
           <Options
@@ -278,8 +270,6 @@ export function InlineEditor({
   fields,
   allowedVis = ['ours', 'mine', 'private'],
   repeatFrom = 'schedule',
-  readOnly,
-  prompt = null,
   turn,
   extras = [],
   whoMode = 'item',
@@ -298,8 +288,6 @@ export function InlineEditor({
   fields: Field[];
   allowedVis?: VisChoice[];
   repeatFrom?: 'done' | 'schedule';
-  readOnly?: boolean;
-  prompt?: string | null;
   /** For "turns": whose turn it is. */
   turn?: string | null;
   /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores, List in the composer). */
@@ -325,7 +313,7 @@ export function InlineEditor({
     return () => step.closed();
   }, [open]);
   const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f), name?: string) => (
-    <EChip key={f} label={label} name={name} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} disabled={readOnly} compact={compact} />
+    <EChip key={f} label={label} name={name} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} compact={compact} />
   );
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -409,7 +397,6 @@ export function InlineEditor({
           onChange={onChange}
           open={open === 'who'}
           onToggle={() => toggle('who')}
-          disabled={readOnly}
           compact={compact}
         />,
       );
@@ -422,7 +409,6 @@ export function InlineEditor({
           onChange={(visibility) => onChange({ visibility })}
           open={open === 'vis'}
           onToggle={() => toggle('vis')}
-          disabled={readOnly}
           compact={compact}
         />,
       );
@@ -434,7 +420,6 @@ export function InlineEditor({
           className={`echip ${value.urgent ? 'is-urgent' : ''} ${compact ? 'echip--sm' : ''}`}
           onClick={() => onChange({ urgent: !value.urgent })}
           aria-pressed={value.urgent}
-          disabled={readOnly}
         >
           <Icon name={G.urgent} className="icon--sm" />
           <span>Urgent</span>
@@ -457,7 +442,6 @@ export function InlineEditor({
 
   return (
     <div className={`inline ${className ?? ''}`}>
-      {prompt ? <p className="inline__prompt">{prompt}</p> : null}
       <div className="inline__chips">
         {chips}
         {after}
@@ -466,18 +450,13 @@ export function InlineEditor({
   );
 }
 
-export function Panel({ children }: { children: ReactNode; title?: string }) {
+export function Panel({ children }: { children: ReactNode }) {
   return <div className="panel">{children}</div>;
 }
 
-/** A part of a panel: a hairline, a small heading, then its choices. */
-function PanelPart({ children, title }: { children: ReactNode; title?: string }) {
-  return (
-    <div className="panel__part">
-      {title ? <p className="panel__head">{title}</p> : null}
-      {children}
-    </div>
-  );
+/** A part of a panel (a row's choices, under a hairline). */
+function PanelPart({ children }: { children: ReactNode }) {
+  return <div className="panel__part">{children}</div>;
 }
 
 export function Options<T extends string>({
@@ -507,7 +486,7 @@ export function Options<T extends string>({
  * each line saying what it's set to: Time (the phone's own picker), Repeat, Notify (with its
  * switch) and, under Notify, Again until done. A line opens its choices under it, one at a time.
  */
-export function WhenCard({
+function WhenCard({
   value,
   onChange,
   repeat,
@@ -584,7 +563,6 @@ export function WhenCard({
               </span>
               {timeEdit ? (
                 <TimePicker
-                  compact
                   autoFocus
                   value={value.dueTime}
                   h24={h24}
@@ -735,17 +713,16 @@ function WhenRow({
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /**
- * The time on a computer, entered: an hour box and a minute box (type, or ↑ ↓), AM / PM on a
- * 12-hour clock, then Cancel or OK (Enter is OK). Two digits in the hour move on to the minutes.
- * `compact`: just the boxes, kept as soon as it reads as a time (Settings, a template).
+ * The time on a computer, typed: an hour box and a minute box (type, or ↑ ↓), AM / PM on a
+ * 12-hour clock. Two digits in the hour move on to the minutes. It's kept as soon as it reads as
+ * a time; Enter (or leaving it) is done, Esc puts back what it was.
  */
-export function TimePicker({
+function TimePicker({
   value,
   h24,
   onChange,
   onDone,
   onCancel,
-  compact,
   autoFocus,
 }: {
   value: string | null;
@@ -754,7 +731,6 @@ export function TimePicker({
   onDone?: () => void;
   /** Esc: put back what it was. */
   onCancel?: () => void;
-  compact?: boolean;
   autoFocus?: boolean;
 }) {
   const start = value ?? nextHour();
@@ -781,7 +757,7 @@ export function TimePicker({
     keep(hh, v);
   };
   useEffect(() => {
-    if (!compact || autoFocus) hourBox.current?.focus();
+    if (autoFocus) hourBox.current?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   /** What the boxes say, as "HH:MM" (null while they don't make a time). */
@@ -795,13 +771,7 @@ export function TimePicker({
   };
   const keep = (h = hh, m = mm, p = pm) => {
     const t = read(h, m, p);
-    if (t && compact) onChange(t);
-    return t;
-  };
-  const ok = () => {
-    const t = read();
     if (t) onChange(t);
-    onDone?.();
   };
   const step = (which: 'h' | 'm', by: number) => {
     if (which === 'h') {
@@ -832,113 +802,89 @@ export function TimePicker({
       step(which, e.key === 'ArrowUp' ? 1 : -1);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (compact) {
-        keep();
-        onDone?.();
-        (e.target as HTMLInputElement).blur();
-      } else ok();
-    } else if (e.key === 'Escape' && (onCancel || !compact)) {
+      keep();
+      onDone?.();
+      (e.target as HTMLInputElement).blur();
+    } else if (e.key === 'Escape' && onCancel) {
       e.preventDefault();
       e.stopPropagation();
-      if (onCancel) onCancel();
-      else onDone?.();
+      onCancel();
     } else if (which === 'm' && e.key === 'Backspace' && mm === '') {
       hourBox.current?.focus();
     }
   };
-  const boxes = (
-    <div className={`tentry__row ${compact ? 'tentry__row--compact' : ''}`}>
-      <label className="tentry__cell">
-        <input
-          ref={hourBox}
-          className="tentry__box num"
-          inputMode="numeric"
-          maxLength={2}
-          value={hh}
-          aria-label="Hour"
-          onFocus={(e) => {
-            fresh.current.h = true;
-            e.target.select();
-          }}
-          onChange={(e) => {
-            // Pasted, or typed some other way: digits only.
-            const v = e.target.value.replace(/\D/g, '').slice(0, 2);
-            setHh(v);
-            keep(v);
-          }}
-          onKeyDown={keys('h')}
-          onBlur={() => h24 && setHh((h) => (h.length === 1 ? pad2(Number(h)) : h))}
-        />
-        {compact ? null : <span className="tentry__label">Hour</span>}
-      </label>
-      <span className="tentry__colon">:</span>
-      <label className="tentry__cell">
-        <input
-          ref={minBox}
-          className="tentry__box num"
-          inputMode="numeric"
-          maxLength={2}
-          value={mm}
-          aria-label="Minute"
-          onFocus={(e) => {
-            fresh.current.m = true;
-            e.target.select();
-          }}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, '').slice(0, 2);
-            setMm(v);
-            keep(hh, v);
-          }}
-          onKeyDown={keys('m')}
-          onBlur={() => setMm((m) => (m.length === 1 ? pad2(Number(m)) : m))}
-        />
-        {compact ? null : <span className="tentry__label">Minute</span>}
-      </label>
-      {h24 ? null : (
-        <span className="tentry__ampm" role="radiogroup" aria-label="AM or PM">
-          {(['AM', 'PM'] as const).map((x) => (
-            <button
-              key={x}
-              type="button"
-              role="radio"
-              aria-checked={(x === 'PM') === pm}
-              className={(x === 'PM') === pm ? 'is-on' : ''}
-              onClick={() => {
-                setPm(x === 'PM');
-                keep(hh, mm, x === 'PM');
-              }}
-            >
-              {x}
-            </button>
-          ))}
-        </span>
-      )}
-    </div>
-  );
-  if (compact)
-    return (
-      <div
-        className="tentry tentry--compact"
-        // Leaving it (a click elsewhere, Tab out): done.
-        onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onDone?.();
-        }}
-      >
-        {boxes}
-      </div>
-    );
-  const valid = !!read();
   return (
-    <div className="tentry">
-      <p className="tentry__head">Enter time</p>
-      {boxes}
-      <div className="tentry__foot">
-        <button type="button" className="textbtn" onClick={() => onDone?.()}>
-          Cancel
-        </button>
-        <button type="button" className="btn btn--sm" disabled={!valid} onClick={ok}>
-          OK
-        </button>
+    <div
+      className="tentry tentry--compact"
+      // Leaving it (a click elsewhere, Tab out): done.
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onDone?.();
+      }}
+    >
+      <div className="tentry__row tentry__row--compact">
+        <label className="tentry__cell">
+          <input
+            ref={hourBox}
+            className="tentry__box num"
+            inputMode="numeric"
+            maxLength={2}
+            value={hh}
+            aria-label="Hour"
+            onFocus={(e) => {
+              fresh.current.h = true;
+              e.target.select();
+            }}
+            onChange={(e) => {
+              // Pasted, or typed some other way: digits only.
+              const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+              setHh(v);
+              keep(v);
+            }}
+            onKeyDown={keys('h')}
+            onBlur={() => h24 && setHh((h) => (h.length === 1 ? pad2(Number(h)) : h))}
+          />
+        </label>
+        <span className="tentry__colon">:</span>
+        <label className="tentry__cell">
+          <input
+            ref={minBox}
+            className="tentry__box num"
+            inputMode="numeric"
+            maxLength={2}
+            value={mm}
+            aria-label="Minute"
+            onFocus={(e) => {
+              fresh.current.m = true;
+              e.target.select();
+            }}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, '').slice(0, 2);
+              setMm(v);
+              keep(hh, v);
+            }}
+            onKeyDown={keys('m')}
+            onBlur={() => setMm((m) => (m.length === 1 ? pad2(Number(m)) : m))}
+          />
+        </label>
+        {h24 ? null : (
+          <span className="tentry__ampm" role="radiogroup" aria-label="AM or PM">
+            {(['AM', 'PM'] as const).map((x) => (
+              <button
+                key={x}
+                type="button"
+                role="radio"
+                aria-checked={(x === 'PM') === pm}
+                className={(x === 'PM') === pm ? 'is-on' : ''}
+                onClick={() => {
+                  setPm(x === 'PM');
+                  keep(hh, mm, x === 'PM');
+                }}
+              >
+                {x}
+              </button>
+            ))}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -947,13 +893,13 @@ export function TimePicker({
 /** Where the boxes start with no time yet: the next whole hour. */
 const nextHour = () => `${pad2((new Date().getHours() + 1) % 24)}:00`;
 
-/** A time on its own (Settings, a template): just − time +. */
+/** A time on its own (Settings, a template): the phone's own picker, or typed on a computer. */
 export function TimeField({ value, onChange, label = 'Time' }: { value: string | null; onChange: (t: string | null) => void; label?: string }) {
   const h24 = use24h(usePrefs());
   const mouse = useMouse();
   // A phone: its own time picker.
   if (!mouse) return <input type="time" className="timefield" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)} aria-label={label} />;
-  return <TimePicker compact value={value} h24={h24} onChange={onChange} />;
+  return <TimePicker value={value} h24={h24} onChange={onChange} />;
 }
 
 const SIMPLE: Array<{ key: string; label: string; every: number; unit: RepeatUnit }> = [
@@ -968,16 +914,14 @@ export function RepeatPanel({
   defaultFrom,
   nag,
   bare,
-  title,
 }: {
   rule: RepeatRule | null;
   onChange: (r: RepeatRule | null) => void;
   defaultFrom: 'done' | 'schedule';
   /** For "notify again until done": once is the other choice, and it always keeps to the calendar. */
   nag?: boolean;
-  /** Inside another panel (the date's, the notification's): no card of its own, a small heading. */
+  /** Inside another panel (the date's, the notification's): no card of its own. */
   bare?: boolean;
-  title?: string;
 }) {
   const Wrap = bare ? PanelPart : Panel;
   const onChange = (r: RepeatRule | null) => set(nag && r?.type === 'interval' ? { ...r, from: 'schedule' } : r);
@@ -996,7 +940,7 @@ export function RepeatPanel({
   const order = [...Array(7).keys()].map((i) => (i + ws) % 7);
 
   return (
-    <Wrap title={title}>
+    <Wrap>
       <Options
         value={key}
         options={[

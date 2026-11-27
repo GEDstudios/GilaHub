@@ -24,7 +24,7 @@ export interface RegistrationLike {
 }
 
 /** Our worker skips waiting, so a found update activates within moments. */
-export const UPDATE_WAIT_MS = 8000;
+const UPDATE_WAIT_MS = 8000;
 
 /** Resolves true once the worker is activated, false if it was thrown away; at most `ms`. */
 function settled(w: WorkerLike, ms: number): Promise<boolean> {

@@ -2,7 +2,7 @@ import { GrowField } from '../ui/AutoTitle';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Hub } from '../../core/hub';
 import { suggestIcon } from '../../core/projectIcons';
-import type { List, Visibility } from '../../core/model';
+import type { List } from '../../core/model';
 import { barTarget, getAim, setAim, setArranging, useBarEdit } from '../barEdit';
 import { BarToken, BarTokenLifted, TabChip } from '../components/BarEdit';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
@@ -29,12 +29,10 @@ import { G } from '../ui/glyphs';
 /** A name on a card of its color, then the same chips as a project's page. */
 export function NewProjectSheet({
   onClose,
-  initial,
   parentId,
   name: startName = '',
 }: {
   onClose: () => void;
-  initial?: Partial<{ visibility: Visibility }>;
   parentId?: string;
   /** Start with this name written (a search with nothing found). */
   name?: string;
@@ -47,8 +45,8 @@ export function NewProjectSheet({
     // Unset until picked: the name suggests one as it's typed.
     icon: undefined,
     // Inside a folder that's Mine or Only me, a new one is too (and whose it is).
-    visibility: initial?.visibility ?? parent?.visibility ?? 'shared',
-    owner: initial?.visibility ? undefined : parent && parent.visibility !== 'shared' ? (parent.owner ?? hub.meId) : undefined,
+    visibility: parent?.visibility ?? 'shared',
+    owner: parent && parent.visibility !== 'shared' ? (parent.owner ?? hub.meId) : undefined,
     pinned: false,
   }));
   const [picking, setPicking] = useState(false);
@@ -102,7 +100,7 @@ export function NewProjectSheet({
         ) : null}
 
 
-        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} canVis noIcon />
+        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} />
 
         <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim()}>
           Create folder
@@ -113,7 +111,7 @@ export function NewProjectSheet({
 }
 
 /** A small, stable tilt per project, so the cards sit like real folders. */
-export function tilt(id: string): number {
+function tilt(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
   return [-2.2, -1.4, -0.6, 0.8, 1.5, 2.3][Math.abs(h) % 6];
@@ -172,16 +170,15 @@ export const barTabOf = tabOf;
 /** A folder's pin while arranging: a white + when it's not in the bar, an ink pin when it is. */
 function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: number }) {
   const hub = useHub();
-  const covered = undefined as { label: string } | undefined;
   const on = pins.includes(listKey(list.id));
-  const label = covered ? `In the bar as ${covered.label}` : on ? `${list.name} is in the bar` : `Put ${list.name} in the bar`;
+  const label = on ? `${list.name} is in the bar` : `Put ${list.name} in the bar`;
   return (
     <button
       type="button"
       className={`projpin${on ? ' is-in' : ''}`}
       style={{ '--i': index } as CSSProperties}
-      aria-pressed={covered ? undefined : on}
-      aria-disabled={covered || (!on && pins.length >= MAX_PINS) ? true : undefined}
+      aria-pressed={on}
+      aria-disabled={!on && pins.length >= MAX_PINS ? true : undefined}
       aria-label={label}
       title={label}
       onClick={() => tapPin(hub, list)}

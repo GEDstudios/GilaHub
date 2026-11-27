@@ -4,7 +4,6 @@ import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
 import {
-  aheadDay,
   aheadOf,
   DEFAULT_HOME,
   hiddenWidgets,
@@ -276,13 +275,6 @@ describe('home blocks', () => {
     expect(homePreview('asks', hub, v).empty).toBe(true);
   });
 
-  it('tile days are short enough to share a line with a time', () => {
-    const wed = '2026-11-25';
-    expect(aheadDay('2026-11-26', wed)).toBe('Tomorrow');
-    expect(aheadDay('2026-11-27', wed)).toBe('Fri');
-    expect(aheadDay('2026-12-01', wed)).toBe('Tue');
-    expect(aheadDay('2026-12-02', wed)).toBe('Wed 2 Dec');
-  });
 });
 
 describe('Start here', () => {

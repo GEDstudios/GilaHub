@@ -44,7 +44,7 @@ export function purchaseStats(logs: LogEntry[]): Map<string, PurchaseStats> {
   return out;
 }
 
-export interface BuyAgainOptions {
+interface BuyAgainOptions {
   now?: number;
   minCount?: number;
   /** Suggest once this fraction of the usual interval has passed. */

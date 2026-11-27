@@ -12,9 +12,9 @@ import { G } from './ui/glyphs';
  */
 export const MAX_PINS = 24;
 /** As stored: 'shop' is the Shopping project (from when it was a tab of its own). */
-export const DEFAULT_PINS = ['shop'];
+const DEFAULT_PINS = ['shop'];
 /** Tabs that still fit with their labels. */
-export const COMFY_TABS = 5;
+const COMFY_TABS = 5;
 
 export interface TabDef {
   key: string;
@@ -34,7 +34,7 @@ export interface TabDef {
  * While it is being arranged every tab keeps its label, so it is an equal grid up to 6 slots
  * and a dock from 7 (`n` counts the gap a drag would land in).
  */
-export type BarDensity = 'comfy' | 'snug' | 'dock';
+type BarDensity = 'comfy' | 'snug' | 'dock';
 
 export function barDensity(n: number, { editing = false }: { editing?: boolean } = {}): BarDensity {
   if (editing) return n <= 6 ? 'comfy' : 'dock';

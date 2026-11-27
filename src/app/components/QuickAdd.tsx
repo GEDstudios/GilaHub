@@ -32,7 +32,7 @@ export interface ComposeSeed {
   useTpl?: boolean;
 }
 
-export function useParseContext(_list?: List): ParseContext {
+function useParseContext(): ParseContext {
   const hub = useHub();
   const prefs = usePrefs();
   return {
@@ -83,7 +83,7 @@ export function useCompose({
   const home = (target ? hub.list(target) : undefined) ?? hub.list(listId);
   // Asking my person can't live in a Private folder: unless I picked one, it goes to a shared one
   // (the last I added to, else To do).
-  const ctx = useParseContext(home);
+  const ctx = useParseContext();
   const parse = (raw: string) => parseQuickAdd(raw, { ...ctx, ignore });
   const parsed = useMemo(() => parseQuickAdd(text, { ...ctx, ignore }), [text, ctx, ignore]);
   // Asking my person (the Ask chip, or "@Hila" in the words) can't live in a Private folder:
@@ -153,7 +153,7 @@ export function useCompose({
   };
 
   /** Add it. `raw` adds other words with the same chips (a pasted line). Returns the new id. */
-  const commit = (raw?: string, opts: { quiet?: boolean; announce?: boolean; listed?: boolean } = {}): string | undefined => {
+  const commit = (raw?: string, opts: { quiet?: boolean; listed?: boolean } = {}): string | undefined => {
     const p = raw === undefined ? parsed : parse(raw);
     const to = destOf(p);
     const d = raw === undefined ? draft : draftOf(p);
@@ -191,7 +191,7 @@ export function useCompose({
     if (tplOf && res.kind === 'added') startFromTemplate(hub, id, tplOf);
     if (d.urgent && res.kind !== 'exists' && hub.item(id)) pingUrgent(hub.item(id)!, true);
     if (res.kind === 'exists') {
-      markFresh(id, { scroll: opts.announce });
+      markFresh(id);
       if (!opts.quiet) toast(`${hub.item(id)?.title} is already in ${to.name}`);
       return id;
     }
@@ -203,11 +203,11 @@ export function useCompose({
     }
     // New (from Today, Search…) opens on the last project used.
     if (!parent) setPrefs({ lastList: to.id });
-    markFresh(id, { scroll: opts.announce });
+    markFresh(id);
     if (!opts.quiet) playSound('add');
     const said = res.kind === 'revived' ? `Brought back ${hub.item(id)?.title ?? ''}` : `Added to ${to.name}`;
     // In the composer, what was added is listed under the card: only news is said.
-    if (opts.announce || res.kind === 'revived') toast(said, { ms: TOAST.short });
+    if (res.kind === 'revived') toast(said, { ms: TOAST.short });
     else if (!opts.quiet && !opts.listed) ifNotInView(id, () => toast(said, { ms: TOAST.short }));
     return id;
   };
@@ -217,7 +217,7 @@ export function useCompose({
   return { parsed, draft, draftOf, dest, base, parent, fixedParent: !!parentId, allowed, over, change, pickList, keepAsText, reset, commit, parse, tags, setTags, suggested, seed: seedOut, hasTpl, useTpl, setUseTpl };
 }
 
-export type Compose = ReturnType<typeof useCompose>;
+type Compose = ReturnType<typeof useCompose>;
 
 /**
  * Its tags: what the words suggest (on by themselves: an aisle for a thing to buy, or what we

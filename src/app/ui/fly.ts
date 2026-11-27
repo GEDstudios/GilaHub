@@ -21,7 +21,7 @@ export function tabTarget(key: string): HTMLElement | null {
  * Let the place catch something: a squash and a bounce; with a colour, a small note of that
  * colour pops up out of it and tucks back in, and ink strokes burst around it.
  */
-export function catchAt(el: HTMLElement | null, color?: string): void {
+function catchAt(el: HTMLElement | null, color?: string): void {
   if (!el) return;
   el.classList.remove('is-catch');
   void el.offsetWidth;

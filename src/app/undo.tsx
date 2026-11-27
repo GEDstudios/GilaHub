@@ -22,7 +22,7 @@ function watchInput(): void {
   window.addEventListener('pointerup', mark, { capture: true, passive: true });
 }
 
-export function historyOf(hub: Hub): History {
+function historyOf(hub: Hub): History {
   let h = histories.get(hub.store);
   if (!h) {
     watchInput();
@@ -41,7 +41,7 @@ export function useHistory(hub: Hub): History {
 }
 
 const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-export const MOD = () => (isMac() ? '⌘' : 'Ctrl');
+const MOD = () => (isMac() ? '⌘' : 'Ctrl');
 
 const SHORTCUTS: Array<{ keys: string[]; what: string }> = [
   { keys: ['N'], what: 'New task (here)' },

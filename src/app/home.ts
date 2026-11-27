@@ -1,5 +1,5 @@
 import type { Hub } from '../core/hub';
-import { addDays, diffDays, fromDateStr, humanDate, today as todayStr, weekdayName } from '../core/dates';
+import { addDays, today as todayStr } from '../core/dates';
 import { onThisDay } from './moments';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';
 import { keepDormant } from './tabs';
@@ -19,7 +19,7 @@ import { G } from './ui/glyphs';
  */
 export const MAX_HOME_PROJECTS = 3;
 
-export type WidgetKey = 'today' | 'quick' | 'upcoming' | 'week';
+type WidgetKey = 'today' | 'quick' | 'upcoming' | 'week';
 
 export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'today', on: true },
@@ -29,7 +29,7 @@ export const DEFAULT_HOME: readonly HomeSlot[] = [
   { key: 'upcoming', on: true },
 ];
 
-export interface WidgetDef {
+interface WidgetDef {
   title: (hub: Hub) => string;
   icon: IconName;
   /** Only while there are two of us. */
@@ -206,9 +206,7 @@ export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | '
   return { n, mood: n ? 'busy' : v.doneToday ? 'done' : 'free', lists, person };
 }
 
-export const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
-
-export interface WeekBand {
+interface WeekBand {
   key: 'done' | 'moments';
   color: LineColor;
   /** The big figure: a count, or a feeling. */
@@ -288,16 +286,9 @@ export function weekBands(hub: Hub, _v?: TodayView, _shown?: ReadonlySet<string>
   return out;
 }
 
-/** Coming up, as tiles: the next 7 days, flat (Today draws at most AHEAD_MAX). */
-export const AHEAD_MAX = 12;
+/** Coming up: the next 7 days, flat. */
 export function aheadOf(v: TodayView): Item[] {
   return v.upcoming.flatMap((g) => g.items);
-}
-
-/** A tile's day, short enough to share a line with a time: "Tomorrow", "Fri", "Wed 2 Dec". */
-export function aheadDay(due: string, ref: string): string {
-  const delta = diffDays(ref, due);
-  return delta > 1 && delta < 7 ? weekdayName(fromDateStr(due).getDay()) : humanDate(due, ref);
 }
 
 /** The one-line live preview under a slot in the editor, or why it's empty right now. */

@@ -15,7 +15,7 @@ import { G } from '../ui/glyphs';
  * Tap to go there; swipe it up, or let it be, and it's gone. A thing to do has Done and
  * Tomorrow right on it, like the phone's notification.
  */
-export interface Arrival {
+interface Arrival {
   title: string;
   body?: string;
   url?: string;

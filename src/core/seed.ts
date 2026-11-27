@@ -6,7 +6,7 @@ import { LINE_COLORS, type LineColor, type ShoppingFlavor, type Visibility } fro
  * made unless it's picked.
  */
 
-export interface ProjectTemplate {
+interface ProjectTemplate {
   key: string;
   name: string;
   icon: string;
@@ -27,7 +27,7 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
 ];
 
 /** A starting project; a shopping one goes inside Shopping (made if needed), with its aisles as tags. */
-export function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineColor): string {
+function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineColor): string {
   return hub.store.batch(() => {
     const parentId = t.flavor ? hub.ensureShopRoot() : null;
     if (t.flavor) hub.ensureBuiltinTags(t.flavor);

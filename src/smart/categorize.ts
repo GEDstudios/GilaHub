@@ -37,7 +37,7 @@ export const HOME_ORDER: HomeCategory[] = [
   'other',
 ];
 
-export interface CategoryHit {
+interface CategoryHit {
   flavor: Flavor;
   category: string;
   emoji: string;
@@ -130,10 +130,6 @@ export function routeFlavor(name: string): Flavor {
   return lookup(name)?.flavor ?? 'grocery';
 }
 
-export function emojiFor(name: string): string {
-  return lookup(name)?.entry.e ?? '';
-}
-
 export function categoryMeta(flavor: Flavor, category: string): CategoryMeta {
   const table = (flavor === 'grocery' ? GROCERY_CATEGORIES : HOME_CATEGORIES) as Record<string, CategoryMeta>;
   return table[category] ?? table.other ?? { en: 'Other', he: 'אחר', e: '🛒' };
@@ -143,7 +139,7 @@ export function categoryOrder(flavor: Flavor): string[] {
   return flavor === 'grocery' ? GROCERY_ORDER : HOME_ORDER;
 }
 
-export interface CatalogSuggestion {
+interface CatalogSuggestion {
   label: string;
   emoji: string;
   flavor: Flavor;

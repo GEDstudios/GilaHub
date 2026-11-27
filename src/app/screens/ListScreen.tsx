@@ -81,7 +81,7 @@ function FolderTools({ list }: { list: List }) {
 }
 
 /** The project's "…": the rare things only (archive, delete). Everything else is edited in place on its page. */
-export function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
+function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const list = hub.list(listId);
@@ -253,7 +253,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
           },
           {
             key: 'notes',
-            label: t.notes ? 'Note' : 'Note',
+            label: 'Note',
             icon: G.note,
             set: !!t.notes,
             panel: () => <TemplateText value={t.notes ?? ''} placeholder="A note each task starts with" label="Its note" rows={3} onSave={(v) => hub.setListTemplate(listId, { notes: v.trim() || null })} />,
@@ -265,7 +265,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
                   label: t.nag ? `Again ${ruleShort(t.nag).toLowerCase()}` : 'Again until done',
                   icon: G.nag,
                   set: !!t.nag,
-                  panel: () => <RepeatPanel nag rule={t.nag ?? null} defaultFrom="schedule" title="Notify again until done" onChange={(nag) => hub.setListTemplate(listId, { nag })} />,
+                  panel: () => <RepeatPanel nag rule={t.nag ?? null} defaultFrom="schedule" onChange={(nag) => hub.setListTemplate(listId, { nag })} />,
                 },
               ]
             : []),
@@ -339,7 +339,7 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
 }
 
 /** The project's settings button. */
-export function ProjectMenuButton({ listId }: { listId: string }) {
+function ProjectMenuButton({ listId }: { listId: string }) {
   const { openSheet } = useOverlays();
   return <IconButton icon={G.more} label="Folder settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
 }
@@ -349,7 +349,7 @@ export function ProjectMenuButton({ listId }: { listId: string }) {
  * place), what's open, and down its right edge the pin to the bar, who sees it, and its icon.
  * A tap on the card itself changes its colour. Each opens its picker right under the card.
  */
-export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
+function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const [open, setOpen] = useState<'icon' | 'color' | 'vis' | null>(null);
@@ -419,7 +419,7 @@ export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
       </div>
       {open === 'color' ? (
         <div className="panel hero__pick">
-          <Swatches value={list.color} onChange={(color) => hub.updateList(list.id, { color })} big />
+          <Swatches value={list.color} onChange={(color) => hub.updateList(list.id, { color })} />
         </div>
       ) : null}
       {open === 'vis' ? (
@@ -446,10 +446,6 @@ export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
 /** Ours, mine, or my person's-but-in-sight: either of us can say whose it is. Only Only me is the owner's alone. */
 const canSetListVis = (hub: ReturnType<typeof useHub>, list: List) => !list.owner || list.owner === hub.meId || list.visibility === 'visible';
 
-export function ListScreen({ id }: { id: string }) {
-  return <ProjectPage id={id} />;
-}
-
 /** A folder on my Today, as a task's star: filled while its open tasks show there. */
 function TodayStar({ listId }: { listId: string }) {
   const hub = useHub();
@@ -472,7 +468,7 @@ function TodayStar({ listId }: { listId: string }) {
 }
 
 /** The folder's header buttons: its star, search it, its "…". */
-export function ProjectActions({ listId }: { listId: string }) {
+function ProjectActions({ listId }: { listId: string }) {
   return (
     <>
       <TodayStar listId={listId} />
@@ -554,7 +550,7 @@ function usePartnerNews(open: Item[], saying: boolean): Set<string> {
  * inside; and what was cleared. Start (in the header) is for being on it: the store, a cleaning
  * spree. Shopping is just a project looked at by tag.
  */
-function ProjectPage({ id }: { id: string }) {
+export function ListScreen({ id }: { id: string }) {
   const hub = useHub();
   const prefs = usePrefs();
   const { openSheet } = useOverlays();
@@ -591,8 +587,6 @@ function ProjectPage({ id }: { id: string }) {
   const n = v.open.length;
   // Everything else done is just Done.
   const done = [...v.tray, ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
-  const total = 0;
-  const pct: number | null = null;
   const shopper = partnerHere && partnerHere.listId === id ? hub.member(partnerHere.member) : undefined;
 
   const again = (name: string) => {
@@ -609,7 +603,7 @@ function ProjectPage({ id }: { id: string }) {
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} onMove={() => openSheet((close) => <MoveProjectSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
       >
-        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length || total ? 'All done' : 'Empty'}${pct !== null ? ` · ${pct}%` : ''}`} />
+        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length ? 'All done' : 'Empty'}`} />
         <FolderTools list={list} />
       </Band>
       <div className="column">

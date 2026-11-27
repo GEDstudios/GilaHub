@@ -19,11 +19,11 @@ import { G } from '../ui/glyphs';
 export const PAPER = 124;
 
 export type PhotoShape = 'square' | 'squircle' | 'circle' | 'star' | 'heart' | 'flower';
-export type PhotoBorder = 'none' | 'white' | 'ink' | 'tape';
+type PhotoBorder = 'none' | 'white' | 'ink' | 'tape';
 /** Where the photo sits on the paper: its middle (x, y), its size (s) and its turn (r, degrees). */
 export type PhotoPos = { x: number; y: number; s: number; r: number };
 /** How a line is drawn: a plain pen, a see-through marker, or neon (a white core in a glow of its colour). */
-export type Brush = 'pen' | 'marker' | 'neon';
+type Brush = 'pen' | 'marker' | 'neon';
 export type Stroke = { c: string; w: number; p: string; k?: Brush };
 
 /** One line of ink, in its brush. `glow` is the id of the svg's blur filter (for neon). */
@@ -61,7 +61,7 @@ function Ink({ ink }: { ink: Stroke[] }) {
 }
 
 /** The lines an eraser path passes over (by index). */
-export function erasedBy(ink: Stroke[], path: Array<[number, number]>): Set<number> {
+function erasedBy(ink: Stroke[], path: Array<[number, number]>): Set<number> {
   const hit = new Set<number>();
   ink.forEach((s, i) => {
     const reach = (s.k === 'marker' ? s.w * 1.2 : s.k === 'neon' ? s.w * 1.1 : s.w / 2) + 3;
@@ -84,7 +84,7 @@ export interface NoteLook {
   size: number | null;
 }
 
-export const NOTE_COLORS: LineColor[] = ['lemon', 'pink', 'sky', 'mint', 'lilac'];
+const NOTE_COLORS: LineColor[] = ['lemon', 'pink', 'sky', 'mint', 'lilac'];
 /** A new photo: stuck on near the top corner, a little crooked. */
 export const PHOTO_HOME: PhotoPos = { x: 92, y: 30, s: 58, r: 7 };
 const S_MIN = 22;
@@ -92,7 +92,7 @@ const S_MAX = 170;
 /** How far past the paper's edge a photo's middle may go. */
 const OVER = 10;
 
-export const keepPos = (p: PhotoPos): PhotoPos => ({
+const keepPos = (p: PhotoPos): PhotoPos => ({
   x: Math.round(Math.min(PAPER + OVER, Math.max(-OVER, p.x)) * 10) / 10,
   y: Math.round(Math.min(PAPER + OVER, Math.max(-OVER, p.y)) * 10) / 10,
   s: Math.round(Math.min(S_MAX, Math.max(S_MIN, p.s)) * 10) / 10,
@@ -133,7 +133,7 @@ const maskOf = (shape: PhotoShape): CSSProperties =>
         return { WebkitMaskImage: url, maskImage: url, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat' };
       })();
 
-export const SHAPES: Array<{ id: PhotoShape; label: string }> = [
+const SHAPES: Array<{ id: PhotoShape; label: string }> = [
   { id: 'square', label: 'Square' },
   { id: 'squircle', label: 'Squircle' },
   { id: 'circle', label: 'Circle' },
@@ -187,7 +187,7 @@ function useFit(ref: React.RefObject<HTMLElement | null>, deps: unknown[], max: 
 }
 
 /** A stroke drawn smooth: a curve through the middles of its points (the points are its handles). */
-export function smoothPath(p: string): string {
+function smoothPath(p: string): string {
   const pts = p.split(' ').map((xy) => xy.split(',').map(Number) as [number, number]);
   if (pts.length < 3) return `M${pts.map(([x, y]) => `${x},${y}`).join(' L')}`;
   let d = `M${pts[0][0]},${pts[0][1]}`;
@@ -624,7 +624,7 @@ const PEN_FIXED = ['#0a0a04', '#ffffff'];
 const brandHex = (c: string) => (typeof document === 'undefined' ? '#000' : getComputedStyle(document.documentElement).getPropertyValue(`--${c}`).trim() || '#000');
 
 /** The most ink a note keeps (it syncs as one small field). */
-export const INK_MAX = 24_000;
+const INK_MAX = 24_000;
 
 type Tool = 'text' | 'paper' | 'photo' | 'pen';
 

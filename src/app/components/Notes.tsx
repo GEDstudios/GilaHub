@@ -23,7 +23,7 @@ import { G } from '../ui/glyphs';
  */
 
 /** Where a note can be stuck: every screen but Settings. */
-export function placeOf(route: Route): string | null {
+function placeOf(route: Route): string | null {
   if (route.name === 'list') return `list:${route.id}`;
   if (route.name === 'item') return `item:${route.id}`;
   return route.name === 'settings' ? null : route.name;
@@ -41,7 +41,7 @@ function routeOf(place: string): Route {
 export const placeUrl = (place: string): string => href(routeOf(place));
 
 /** "Shopping", "Projects", a project's name, a task's title. */
-export function placeName(hub: ReturnType<typeof useHub>, place: string): string {
+function placeName(hub: ReturnType<typeof useHub>, place: string): string {
   const [kind, id] = place.split(':');
   if (kind === 'list') return hub.list(id)?.name ?? 'a folder';
   if (kind === 'item') return hub.item(id)?.title ?? 'a task';
@@ -83,7 +83,7 @@ function posOf(n: Note): PhotoPos {
 const posText = (p: PhotoPos) => `${p.x},${p.y},${p.s},${p.r}`;
 
 /** A note as NoteFace draws it, signed `by`. */
-export function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): NoteLook {
+function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): NoteLook {
   let ink: Stroke[] = [];
   try {
     ink = n.ink ? (JSON.parse(n.ink) as Stroke[]) : [];
@@ -486,7 +486,7 @@ function StuckNote({
 
   const read = () => {
     haptic('select');
-    openSheet((close) => <NoteSheet ids={[note.id]} onClose={close} />);
+    openSheet((close) => <NoteSheet id={note.id} onClose={close} />);
   };
 
   // Kept: picked up, it glides into Folders (where our notes are kept), which catches it.
@@ -558,52 +558,49 @@ function StuckNote({
 }
 
 /** A note, big: read it, then peel it off (or, mine, take it down). */
-function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
+function NoteSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
-  const notes = ids.map((id) => hub.store.get('note', id)).filter((n): n is Note => !!n && !n.deleted && !n.peeledAt);
-  const [peeling, setPeeling] = useState<string | null>(null);
-  if (!notes.length) return null;
-  const peel = (n: Note, away = false, from?: Element | null) => {
+  const stored = hub.store.get('note', id);
+  const note = stored && !stored.deleted && !stored.peeledAt ? stored : null;
+  const [peeling, setPeeling] = useState(false);
+  if (!note) return null;
+  const mine = note.by === hub.meId;
+  const from = hub.member(note.by);
+  const peel = (away = false, from?: Element | null) => {
     haptic('tick');
     // Kept: the note flies out of the sheet into Folders, as the sheet goes.
-    if (!away) void flyInto(from?.closest('.notesheet__one')?.querySelector('.nf-wrap') ?? null, tabTarget('projects'), { color: `var(--${n.color})` }).then(() => haptic('success'));
-    setPeeling(n.id);
+    if (!away) void flyInto(from?.closest('.notesheet__one')?.querySelector('.nf-wrap') ?? null, tabTarget('projects'), { color: `var(--${note.color})` }).then(() => haptic('success'));
+    setPeeling(true);
     setTimeout(() => {
-      const undo = away ? hub.deleteNote(n.id) : hub.peelNote(n.id);
+      const undo = away ? hub.deleteNote(note.id) : hub.peelNote(note.id);
       toast(away ? 'Deleted' : 'Kept in our notes 💛 (in Folders)', { action: { label: 'Undo', run: undo } });
-      setPeeling(null);
-      if (notes.length === 1) onClose();
+      setPeeling(false);
+      onClose();
     }, away ? 380 : 120);
   };
   return (
-    <Sheet onClose={onClose} title={notes.length > 1 ? `${notes.length} notes` : 'A note'}>
+    <Sheet onClose={onClose} title="A note">
       <div className="notesheet">
-        {notes.map((n) => {
-          const mine = n.by === hub.meId;
-          const from = hub.member(n.by);
-          return (
-            <div key={n.id} className="notesheet__one">
-              {mine ? (
-                <MyNote note={n} peeling={peeling === n.id} />
-              ) : (
-                <div className={`noteedit__stage ${peeling === n.id ? 'is-peeling' : ''}`}>
-                  <NoteFace look={lookOf(hub, n, `— ${from?.name ?? ''} · ${shortAgo(n.createdAt)}`)} scale={2.3} tilt={tiltOf(n.id) / 2} />
-                </div>
-              )}
-              <button type="button" className="btn btn--block notesheet__keep" onClick={(e) => peel(n, false, e.currentTarget)}>
-                <Icon name={G.done} className="icon--sm" /> Keep to our notes 💛
-              </button>
-              {mine ? (
-                <p className="notesheet__delete">
-                  <button type="button" className="textbtn textbtn--danger" onClick={() => peel(n, true)}>
-                    <Icon name={G.delete} className="icon--sm" /> Delete
-                  </button>
-                </p>
-              ) : null}
+        <div className="notesheet__one">
+          {mine ? (
+            <MyNote note={note} peeling={peeling} />
+          ) : (
+            <div className={`noteedit__stage ${peeling ? 'is-peeling' : ''}`}>
+              <NoteFace look={lookOf(hub, note, `— ${from?.name ?? ''} · ${shortAgo(note.createdAt)}`)} scale={2.3} tilt={tiltOf(note.id) / 2} />
             </div>
-          );
-        })}
+          )}
+          <button type="button" className="btn btn--block notesheet__keep" onClick={(e) => peel(false, e.currentTarget)}>
+            <Icon name={G.done} className="icon--sm" /> Keep to our notes 💛
+          </button>
+          {mine ? (
+            <p className="notesheet__delete">
+              <button type="button" className="textbtn textbtn--danger" onClick={() => peel(true)}>
+                <Icon name={G.delete} className="icon--sm" /> Delete
+              </button>
+            </p>
+          ) : null}
+        </div>
       </div>
     </Sheet>
   );

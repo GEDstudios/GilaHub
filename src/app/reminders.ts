@@ -8,7 +8,7 @@ import { sealNote, type NotePayload, type Runtime } from './runtime';
 import { whenText } from './labels';
 import { G_TEXT } from './ui/glyphs';
 
-export interface ReminderSpec {
+interface ReminderSpec {
   id: string;
   at: number;
   members: string[];
@@ -17,7 +17,7 @@ export interface ReminderSpec {
 }
 
 /** Who should hear about this item? Never the partner for private things. */
-export function whoToRemind(hub: Hub, item: Item, scope: Scope): string[] {
+function whoToRemind(hub: Hub, item: Item, scope: Scope): string[] {
   if (scope.startsWith('p:')) return [scope.slice(2)];
   const owner = hub.ownerOf(item);
   if (owner) return [owner];
@@ -33,9 +33,9 @@ const NAG_HORIZON = 120 * 86_400_000;
 
 /** The time of day a reminder comes when a task has a day and no time: each person's own (Settings). */
 export const DEFAULT_REMIND_AT = '09:00';
-export const dayTimeOf = (hub: Hub, member: string) => hub.member(member)?.remindAt || DEFAULT_REMIND_AT;
+const dayTimeOf = (hub: Hub, member: string) => hub.member(member)?.remindAt || DEFAULT_REMIND_AT;
 
-export function reminderTime(item: Item, due: string, dayTime = DEFAULT_REMIND_AT): number {
+function reminderTime(item: Item, due: string, dayTime = DEFAULT_REMIND_AT): number {
   return atLocal(due, item.dueTime || dayTime) - (item.remind ?? 0) * 60_000;
 }
 

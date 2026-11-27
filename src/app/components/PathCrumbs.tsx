@@ -4,13 +4,11 @@ import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { G } from '../ui/glyphs';
 
-/** One step of the way here: its name, where tapping it goes, and (on a task I can change) moving it there. */
-export interface Crumb {
+/** One step of the way here: its name, and where tapping it goes. */
+interface Crumb {
   key: string;
   label: string;
   go: () => void;
-  /** Move what's on this page into this step instead (asked first). */
-  move?: () => void;
   /** A project: a dragged task can be dropped on it. */
   drop?: string;
   /** A task: a dragged subtask can be dropped on it (it goes under that task instead). */
@@ -20,13 +18,13 @@ export interface Crumb {
 }
 
 /**
- * Where you are: every step from the top down to here (Projects › Home › Kitchen › Fix the tap),
- * each one a way back up. On a task, a small ⌄ beside a step moves the task there.
+ * Where you are: every step from the top down to here (Folders › Home › Kitchen › Fix the tap),
+ * each one a way back up, then the path's own actions: move it, and (a task) where else it is.
  */
 export function PathCrumbs({
   steps,
   onMove,
-  moveLabel = 'Move it',
+  moveLabel,
   also,
 }: {
   steps: Crumb[];
@@ -46,11 +44,6 @@ export function PathCrumbs({
             <button type="button" className="crumbs__go" onClick={s.go} dir="auto">
               {s.label}
             </button>
-            {s.move ? (
-              <button type="button" className="crumbs__move" onClick={s.move} aria-label={`Move it into ${s.label}`} title={`Move it into ${s.label}`}>
-                <Icon name={G.fold} />
-              </button>
-            ) : null}
           </span>
         </Fragment>
       ))}
@@ -75,7 +68,7 @@ export function PathCrumbs({
   );
 }
 
-/** A project's way here from the top: Projects, then each folder it sits in. */
+/** A folder's way here from the top: Folders, then each folder it sits in. */
 export function projectPath(hub: Hub, id: string): Crumb[] {
   return [
     { key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }), root: true },

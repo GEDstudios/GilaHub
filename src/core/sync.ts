@@ -3,7 +3,7 @@ import type { Op, Persistence } from './db';
 import type { Scope } from './model';
 import type { Store } from './store';
 
-export interface SyncConfig {
+interface SyncConfig {
   /** '' = same origin as the app. */
   apiBase: string;
   householdId: string;
@@ -31,7 +31,7 @@ type ServerMsg =
 
 const BACKOFF = [800, 1500, 3000, 6000, 12000, 30000];
 
-export function wsUrl(apiBase: string, path: string): string {
+function wsUrl(apiBase: string, path: string): string {
   const base = apiBase || (typeof location !== 'undefined' ? location.origin : 'http://localhost');
   const u = new URL(path, base);
   u.protocol = u.protocol === 'https:' ? 'wss:' : 'ws:';

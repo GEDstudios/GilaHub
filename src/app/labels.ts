@@ -9,7 +9,7 @@ import { describeRule } from '../smart/recurrence';
  */
 
 /** A member's name, or how to refer to them when we can't see it. */
-export function nameOf(hub: Hub, id: string | null | undefined, fallback = 'Your person'): string {
+function nameOf(hub: Hub, id: string | null | undefined, fallback = 'Your person'): string {
   return (id && hub.member(id)?.name) || fallback;
 }
 

@@ -188,7 +188,7 @@ function sameKey(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
  * can't send to; that one is replaced. Safe to call often. `create` subscribes if there is none;
  * `fresh` replaces the subscription even when it looks right (the push service refused it).
  */
-export async function registerPush(rt: Runtime, create = false, fresh = false): Promise<boolean> {
+async function registerPush(rt: Runtime, create = false, fresh = false): Promise<boolean> {
   try {
     const sw = swContainer();
     if (!rt.relay || !sw || !('PushManager' in window) || Notification.permission !== 'granted') return false;
@@ -212,7 +212,7 @@ export async function registerPush(rt: Runtime, create = false, fresh = false): 
   }
 }
 
-export type TestPush =
+type TestPush =
   | { kind: 'sent' }
   | { kind: 'not-registered' }
   | { kind: 'refused'; status: number }

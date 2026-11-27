@@ -12,6 +12,8 @@ import { G } from '../ui/glyphs';
 
 const TAB_LEAN = () => ({ rest: -4, land: 0 });
 const LEAVE_MS = 200;
+/** A tab dragged this far (px) above the bar is out of it. */
+const OUT_REACH = 56;
 
 /** The key that just appeared (one at a time), for a pop; in the dock it scrolls into view. Nothing on first draw. */
 export function useFresh(keys: readonly string[], scrollRef?: RefObject<HTMLElement | null>): string | null {
@@ -53,14 +55,14 @@ export function TabChip({ t, out = false }: { t: TabDef; out?: boolean }) {
  * Something that can go in the bar, as a token beside it: a tap puts it just before Projects; a
  * long-press (or a mouse drag) lifts it, to drop where you let go (in a <Sortable still>).
  */
-export function BarToken({ t, fresh, full, onAdd }: { t: TabDef; fresh?: boolean; full?: boolean; onAdd: () => void }) {
+export function BarToken({ t, full, onAdd }: { t: TabDef; full?: boolean; onAdd: () => void }) {
   const s = useSortableItem(t.key);
   return (
     <button
       ref={s.ref}
       type="button"
       style={s.style}
-      className={`token ${s.className}${fresh ? ' is-new' : ''}`}
+      className={`token ${s.className}`}
       data-drag
       {...s.props}
       aria-label={`Add ${t.label} to the bar`}
@@ -137,20 +139,17 @@ function MovableTab({
 }
 
 /**
- * The bottom bar, edited where it is (round 7, BAR §2): in Settings on its stage (`preview`),
- * and as the live bar while Projects arranges it (`live`). Drag a tab along the bar to move it,
- * drag it up out of the bar (or tap its ×) to take it out; folders and tokens dropped onto it
+ * The bottom bar, edited where it is, while Folders arranges it. Drag a tab along the bar to move
+ * it, drag it up out of the bar (or tap its ×) to take it out; folders and tokens dropped onto it
  * open `gap`. No scrub and no links here: holding the bar is a drag. One `onPins` per change.
  */
 export function BarEdit({
-  mode,
   tabs,
   gap = null,
   navRef,
   onPins,
   onTab,
 }: {
-  mode: 'preview' | 'live';
   /** The whole bar, Today and Projects included (without a key that is being aimed in). */
   tabs: TabDef[];
   gap?: BarGap | null;
@@ -200,7 +199,7 @@ export function BarEdit({
         requestAnimationFrame(() => {
           const el = next
             ? navRef.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(next)}"] > .tab`)
-            : document.querySelector<HTMLElement>('.tray .token, .bartray .token');
+            : document.querySelector<HTMLElement>('.bartray .token');
           el?.focus();
         });
       },
@@ -209,12 +208,11 @@ export function BarEdit({
   };
 
   // Drag a tab up out of the bar to take it out: past the line, the bar closes up and a note says so.
-  const reach = mode === 'preview' ? 48 : 56;
   const outside = useMemo<Outside>(
     () => ({
       hit: (p) => {
         const r = navRef.current?.getBoundingClientRect();
-        return !!r?.width && p.y < r.top - reach;
+        return !!r?.width && p.y < r.top - OUT_REACH;
       },
       aim: (p, id) => setOut(p ? id : null),
       drop: (id) => latest.current.onPins(latest.current.ids.filter((k) => k !== id)),
@@ -225,7 +223,7 @@ export function BarEdit({
         </span>
       ),
     }),
-    [navRef, reach],
+    [navRef],
   );
 
   return (
@@ -247,7 +245,6 @@ export function BarEdit({
         tabs={tabs}
         activeKey={null}
         editing
-        preview={mode === 'preview'}
         gap={slot}
         out={out}
         navRef={navRef}

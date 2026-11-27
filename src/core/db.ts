@@ -39,7 +39,7 @@ export interface Persistence {
   wipe(): Promise<void>;
 }
 
-export const DB_NAME = 'gila-hub';
+const DB_NAME = 'gila-hub';
 const DB_VERSION = 1;
 
 function req<T>(r: IDBRequest<T>): Promise<T> {
@@ -57,7 +57,7 @@ function txDone(tx: IDBTransaction): Promise<void> {
   });
 }
 
-export function openDb(factory: IDBFactory = indexedDB, name = DB_NAME): Promise<IDBDatabase> {
+function openDb(factory: IDBFactory = indexedDB, name = DB_NAME): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const r = factory.open(name, DB_VERSION);
     r.onupgradeneeded = () => {

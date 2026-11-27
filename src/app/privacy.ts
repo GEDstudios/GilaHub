@@ -100,7 +100,7 @@ export function visHint(v: VisChoice, partnerName: string | null): string {
  * waiting-ok  I did my partner's ask; waiting for their OK.
  * sent-back   I did my partner's ask and they said "Not yet"; it's mine again.
  */
-export type ReqKind = 'asked-them' | 'they-asked' | 'ok-needed' | 'waiting-ok' | 'sent-back';
+type ReqKind = 'asked-them' | 'they-asked' | 'ok-needed' | 'waiting-ok' | 'sent-back';
 export interface ReqState {
   kind: ReqKind;
   other: Member | undefined;

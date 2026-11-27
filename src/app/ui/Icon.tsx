@@ -31,7 +31,7 @@ function LibIcon({ name, ...rest }: { name: string; className?: string; style?: 
 }
 
 /** Any [light, line] glyph drawn the Gila Duo way (Icon's, or one from the library). */
-export function GlyphSvg({
+function GlyphSvg({
   glyph,
   fixed,
   className,

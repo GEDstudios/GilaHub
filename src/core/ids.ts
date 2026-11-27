@@ -10,7 +10,7 @@ export function newId(length = 16): string {
 }
 
 /** Human-friendly code alphabet: no 0/O, 1/I/L confusion. 31 symbols. */
-export const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
 /** 8-symbol invite code, e.g. "K7QM2XPA" (~39.6 bits). Displayed as "K7QM-2XPA". */
 export function newInviteCode(): string {

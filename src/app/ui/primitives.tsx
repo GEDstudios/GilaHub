@@ -24,13 +24,11 @@ type Size = 'xs' | 'sm' | 'md' | 'lg';
 export const initialOf = (s: string): string => firstGrapheme(s);
 
 /** A person: a round avatar in their color with their initial. */
-export function Avatar({ member, size = 'sm', name, color }: { member?: Member; size?: Size; name?: string; color?: LineColor }) {
-  const n = member?.name ?? name ?? '';
-  const c = member?.color ?? color;
-  if (!n && !c) return null;
+export function Avatar({ member, size = 'sm' }: { member?: Member; size?: Size }) {
+  if (!member) return null;
   return (
-    <span className={`avatar avatar--${size}`} style={lineVars(c)} title={n} aria-hidden="true">
-      {firstGrapheme(n)}
+    <span className={`avatar avatar--${size}`} style={lineVars(member.color)} title={member.name} aria-hidden="true">
+      {firstGrapheme(member.name)}
     </span>
   );
 }
@@ -81,7 +79,7 @@ export function Check({
 }
 
 /** Observe when an element scrolls out of view (for the compact header). */
-export function useScrolledPast<T extends HTMLElement>(): [React.RefObject<T | null>, boolean] {
+function useScrolledPast<T extends HTMLElement>(): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [past, setPast] = useState(false);
   useEffect(() => {
@@ -94,9 +92,8 @@ export function useScrolledPast<T extends HTMLElement>(): [React.RefObject<T | n
   return [ref, past];
 }
 
-/** A gray circle for header and sheet chrome (Search, …, Back, Close, Pause). */
 /**
- * A round button with just a glyph. `pressed`: an on/off one (its glyph lit when on, e.g. the
+ * A gray circle for header and sheet chrome (Search, …, Back, Close): a round button with just a glyph. `pressed`: an on/off one (its glyph lit when on, e.g. the
  * star); `small`: the 36px size inside panels.
  */
 export function IconButton({
@@ -210,7 +207,7 @@ export function Stepper({
 }
 
 /** One answer to a question a sheet asks. The first is the main one; `quiet` ones are lighter. */
-export type Choice = { label: string; icon?: IconName; run: () => void; quiet?: boolean; danger?: boolean; disabled?: boolean };
+type Choice = { label: string; icon?: IconName; run: () => void; quiet?: boolean; danger?: boolean; disabled?: boolean };
 
 /**
  * The answers to a sheet's question, as full-width buttons: stacked, or side by side (`row`).
@@ -441,12 +438,11 @@ export function Seg<T extends string>({
   );
 }
 
-export function Empty({ title, text, children }: { title: string; text?: ReactNode; children?: ReactNode }) {
+export function Empty({ title, text }: { title: string; text?: ReactNode }) {
   return (
     <div className="empty">
       <p className="empty__title">{title}</p>
       {text ? <p className="empty__text">{text}</p> : null}
-      {children}
     </div>
   );
 }

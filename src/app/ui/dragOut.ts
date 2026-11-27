@@ -4,7 +4,7 @@ import { haptic } from './haptics';
 import { GLYPHS } from './icons.gen';
 import { CLICK_SWALLOW_MS, HOLD, SLOP } from './tokens';
 
-export interface Point {
+interface Point {
   x: number;
   y: number;
 }

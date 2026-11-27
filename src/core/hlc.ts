@@ -17,7 +17,7 @@ export function encodeHlc(state: HlcState, node: string): string {
   return `${state.ms.toString(36).padStart(10, '0')}:${state.c.toString(36).padStart(5, '0')}:${node}`;
 }
 
-export function decodeHlc(ts: string): HlcState & { node: string } {
+function decodeHlc(ts: string): HlcState & { node: string } {
   const [ms, c, node] = ts.split(':');
   return { ms: parseInt(ms, 36), c: parseInt(c, 36), node: node ?? '' };
 }

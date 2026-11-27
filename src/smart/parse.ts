@@ -12,7 +12,7 @@ import { describeRule, firstDue } from './recurrence';
 
 export type TokenKind = 'date' | 'time' | 'repeat' | 'assignee' | 'list' | 'tag' | 'urgent';
 
-export interface Token {
+interface Token {
   kind: TokenKind;
   start: number;
   end: number;

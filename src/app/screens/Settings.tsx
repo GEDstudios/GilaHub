@@ -348,7 +348,7 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
         </button>
         {colors ? (
           <div className="panel">
-            <Swatches value={me.color} onChange={pick} big taken={partner ? [{ color: partner.color, name: partner.name, initial: initialOf(partner.name) }] : []} />
+            <Swatches value={me.color} onChange={pick} taken={partner ? [{ color: partner.color, name: partner.name, initial: initialOf(partner.name) }] : []} />
             <p className="panel__hint" dir="auto">
               {partner ? `${partner.color[0].toUpperCase()}${partner.color.slice(1)} is ${partner.name}’s. ` : ''}What you add shows in your color.
             </p>

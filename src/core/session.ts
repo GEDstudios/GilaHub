@@ -47,7 +47,7 @@ export function authToken(s: Session): Promise<string> {
   return t;
 }
 
-export function apiUrl(apiBase: string, path: string): string {
+function apiUrl(apiBase: string, path: string): string {
   return `${apiBase.replace(/\/$/, '')}${path}`;
 }
 

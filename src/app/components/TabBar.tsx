@@ -40,7 +40,7 @@ const onPhone = () => typeof matchMedia === 'function' && matchMedia('(max-width
  * bar to cancel). In the dock the middle steps one tab at a time once the finger rests past the
  * outermost tab in view. DECISIONS #8. An edited bar (BarEdit) never scrubs: holding it drags.
  */
-export function useBarScrub({
+function useBarScrub({
   tabs,
   navRef,
   scrollRef,
@@ -346,7 +346,7 @@ export function TabBar() {
     return () => clearInterval(timer);
   }, [hint, hinted]);
 
-  if (arranging) return <BarEdit mode="live" tabs={tabs} gap={gap} navRef={navRef} onPins={(next) => setPins(hub, next)} onTab={findFolder} />;
+  if (arranging) return <BarEdit tabs={tabs} gap={gap} navRef={navRef} onPins={(next) => setPins(hub, next)} onTab={findFolder} />;
 
   return (
     <TabBarView

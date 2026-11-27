@@ -176,7 +176,7 @@ export interface ProjectGroup {
   items: Item[];
 }
 
-export interface ProjectView {
+interface ProjectView {
   /** The project, and the projects inside it when they're shown too. */
   lists: List[];
   open: Item[];
@@ -195,7 +195,7 @@ export interface ProjectView {
 }
 
 /** A project and everything inside it. */
-export function shopTree(hub: Hub, id: string): List[] {
+function shopTree(hub: Hub, id: string): List[] {
   const l = hub.list(id);
   return l ? [l, ...hub.nestedLists(id)] : [];
 }

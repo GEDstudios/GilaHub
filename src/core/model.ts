@@ -219,7 +219,7 @@ export interface LogEntry {
 }
 
 /** Household-wide settings (single entity, id "house"). */
-export interface Settings {
+interface Settings {
   id: string;
   /** Away mode: chore clocks are frozen since this date. */
   awaySince?: string | null;
@@ -241,14 +241,14 @@ export interface AisleConf {
 }
 
 /** Learned category for a normalized item name — shared by both partners. */
-export interface Memory {
+interface Memory {
   /** id = `${flavor}:${normalized name}` */
   id: string;
   category: string;
   emoji?: string;
 }
 
-export interface Store {
+interface Store {
   id: string;
   name: string;
   /** Category ids in walking order, learned or arranged. */

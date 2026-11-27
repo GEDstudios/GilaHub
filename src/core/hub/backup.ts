@@ -119,7 +119,7 @@ Hub.prototype.importBackup = function (this: Hub, data: BackupData, opts: { me?:
   return n;
 };
 
-export type BackupData = Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>;
+type BackupData = Partial<Record<string, Array<{ id: string } & Record<string, unknown>>>>;
 
 const PERSON_FIELDS = [
   'by',

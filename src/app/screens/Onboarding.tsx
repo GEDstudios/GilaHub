@@ -249,7 +249,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
         >
           <input className="bigfield" value={name} dir="auto" autoFocus autoComplete="given-name" placeholder="Your name" aria-label="Your name" onChange={(e) => setName(e.target.value)} />
           <p className="choose__label onboard__label">Your color</p>
-          <Swatches big value={color} onChange={setColor} taken={taken.map((c) => ({ color: c, name: 'your person', initial: '' }))} />
+          <Swatches value={color} onChange={setColor} taken={taken.map((c) => ({ color: c, name: 'your person', initial: '' }))} />
           <div className="onboard__preview">
             <NameTag name={name.trim() || 'You'} color={color} />
           </div>

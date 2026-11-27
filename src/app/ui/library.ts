@@ -10,7 +10,7 @@ let lib: Lib | null = null;
 let loading: Promise<Lib> | null = null;
 const listeners = new Set<() => void>();
 
-export function loadLibrary(): Promise<Lib> {
+function loadLibrary(): Promise<Lib> {
   if (lib) return Promise.resolve(lib);
   loading ??= import('./iconLibrary.gen').then((m) => {
     lib = m;

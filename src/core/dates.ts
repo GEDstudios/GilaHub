@@ -47,7 +47,7 @@ export function weekday(s: DateStr): number {
   return fromDateStr(s).getDay();
 }
 
-export function dateOfMs(ms: number): DateStr {
+function dateOfMs(ms: number): DateStr {
   return toDateStr(new Date(ms));
 }
 

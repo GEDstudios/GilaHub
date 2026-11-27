@@ -407,7 +407,7 @@ function ResolvedRow({ idea }: { idea: Idea }) {
 const ideaId = (i: Idea) => i.id;
 
 /** `since`: when this device last looked, so news about my ideas opens Resolved. */
-export function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) {
+function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const { open, resolved } = ideasView(hub);

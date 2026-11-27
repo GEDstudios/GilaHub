@@ -33,7 +33,7 @@ import { G } from '../ui/glyphs';
 const DRAFT_KEY = 'gila-hub:composer';
 const DRAFT_TTL = 24 * 3600_000;
 
-export interface ComposerDraft {
+interface ComposerDraft {
   text: string;
   listId: string;
   parentId: string | null;

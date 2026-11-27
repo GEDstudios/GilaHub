@@ -20,7 +20,7 @@
  */
 import { getPrefs } from '../prefs';
 
-export type SoundKind = 'select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn' | 'add' | 'notify';
+type SoundKind = 'select' | 'tick' | 'lift' | 'drop' | 'success' | 'warn' | 'add' | 'notify';
 
 let ctx: AudioContext | null = null;
 let out: AudioNode | null = null;

@@ -148,19 +148,14 @@ export function Children({
   listId,
   parentId,
   readonly,
-  cards,
-  show,
 }: {
   listId: string;
   parentId: string | null;
   readonly?: boolean;
-  cards?: boolean;
-  /** A screen's filter: only these (a task shows when it or one of its subtasks passes). */
-  show?: (i: Item) => boolean;
 }) {
   const hub = useHub();
   const settle = useSettle(idOf);
-  const all = hub.siblings(listId, parentId).filter((i) => !show || show(i));
+  const all = hub.siblings(listId, parentId);
   const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
   const rows = settle.view('open', open);
@@ -177,7 +172,7 @@ export function Children({
   return (
     <SettleContext.Provider value={settle}>
       {readonly ? (
-        <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
+        <ul className="rows">
           {rows.map(({ row, settling }) => (
             <ItemRow key={row.id} item={row} settling={settling} />
           ))}
@@ -185,7 +180,6 @@ export function Children({
       ) : (
         <Sortable
           ids={open.map(idOf)}
-          layout={cards ? 'grid' : 'rows'}
           onMove={onMove}
           onLift={coached}
           outside={liftOut}
@@ -203,13 +197,13 @@ export function Children({
                 </span>
               );
             return item ? (
-              <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
+              <ul className="rows">
                 <ItemRow item={item} />
               </ul>
             ) : null;
           }}
         >
-          <ul className={`rows ${cards ? 'rows--cards' : ''}`}>
+          <ul className="rows">
             {rows.map(({ row, settling }) => (
               <SortableRow key={row.id} item={row} settling={settling} />
             ))}
@@ -219,7 +213,7 @@ export function Children({
       {coach ? (
         <p className="coach">
           <Icon name={G.holdHint} className="icon--sm" />
-          {isTouch() ? `Hold any ${cards ? 'card' : 'row'} to reorder` : `Drag any ${cards ? 'card' : 'row'} to reorder`}
+          {isTouch() ? 'Hold any row to reorder' : 'Drag any row to reorder'}
         </p>
       ) : null}
       {doneRows.length ? (

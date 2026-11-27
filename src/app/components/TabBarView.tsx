@@ -33,7 +33,6 @@ export function TabBarView({
   activeKey,
   scrubKey = null,
   held = false,
-  preview = false,
   editing = false,
   receiving = false,
   gap = null,
@@ -53,8 +52,6 @@ export function TabBarView({
   scrubKey?: string | null;
   /** The bar is held (a tab picked, or "Let go to cancel"): what floats over it steps aside. */
   held?: boolean;
-  /** Settings' stage: it stands still in the page. */
-  preview?: boolean;
   editing?: boolean;
   /** A folder or token is being dragged and may land here: the bar rises to meet it. */
   receiving?: boolean;
@@ -81,7 +78,6 @@ export function TabBarView({
     'tabbar',
     `tabbar--${density}`,
     editing ? 'tabbar--edit' : '',
-    preview ? 'tabbar--preview' : '',
     receiving ? 'is-receiving' : '',
     held ? 'is-held' : '',
     scrubKey ? 'is-scrubbing' : '',
@@ -115,7 +111,7 @@ export function TabBarView({
         );
       if (renderTab) return <Fragment key={t.key}>{renderTab(t, { className, inner: marks(t) })}</Fragment>;
     }
-    return preview || editing ? (
+    return editing ? (
       <span key={t.key} className={className} data-key={t.key} onClick={onTab ? (e) => onTab(t, e) : undefined}>
         {marks(t)}
       </span>
@@ -156,7 +152,7 @@ export function TabBarView({
     <nav
       ref={navRef}
       className={cls}
-      aria-label={preview ? 'Bottom bar preview' : 'Main'}
+      aria-label="Main"
       style={{ '--n': n - (out ? 1 : 0), '--i': Math.max(pill, 0) } as CSSProperties}
       {...navProps}
     >

@@ -91,13 +91,13 @@ export function slotFromRects(x: number, centers: readonly number[], view?: { le
 }
 
 /** How far above the bar a drag still counts as over it (px). */
-export const BAR_REACH = 20;
+const BAR_REACH = 20;
 
 /**
  * The slot under (x, y) in a bar (`nav`), or null when the point isn't over it (its rect,
  * reaching `reach` px up). Counts the movable tabs only: not the ends, the gap, or `exclude`.
  */
-export function slotAt(nav: Element | null, x: number, y: number, { reach = BAR_REACH, exclude }: { reach?: number; exclude?: string } = {}): number | null {
+function slotAt(nav: Element | null, x: number, y: number, { reach = BAR_REACH, exclude }: { reach?: number; exclude?: string } = {}): number | null {
   if (!nav) return null;
   const r = nav.getBoundingClientRect();
   if (!r.width || y < r.top - reach || y > r.bottom + 40) return null;

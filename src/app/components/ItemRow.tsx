@@ -25,7 +25,7 @@ import { stepProgress, todayRef } from '../views';
 import { whenText } from '../labels';
 import { G } from '../ui/glyphs';
 
-export function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
+function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
   if (!item.due) return null;
   const time = item.dueTime ? humanTime(item.dueTime, h24) : '';
   if (item.due < ref) return { text: sinceDate(item.due, ref), soft: true };
@@ -34,7 +34,7 @@ export function dueLabel(item: Item, ref: string, h24: boolean): { text: string;
 }
 
 /** Who does it, for a row's avatar (see doerOf): never the owner, never someone asked. */
-export function useDoer(item: Item) {
+function useDoer(item: Item) {
   return doerOf(useHub(), item);
 }
 
@@ -45,7 +45,6 @@ export const ItemRow = memo(function ItemRow({
   inUrgent,
   flash,
   dateMode = 'full',
-  trailing,
   below,
   settling,
   liRef,
@@ -65,7 +64,6 @@ export const ItemRow = memo(function ItemRow({
   flash?: boolean;
   /** 'time': under a day's own heading, only the time. */
   dateMode?: 'full' | 'time' | 'none';
-  trailing?: ReactNode;
   /** Under the text, e.g. OK / Not yet (RequestActions className="row__acts"). */
   below?: ReactNode;
   /** Just ticked: drawn checked while it strikes through and folds away (useSettle). */
@@ -95,7 +93,7 @@ export const ItemRow = memo(function ItemRow({
   const hold = useSettleHold();
   const fresh = useFresh(item.id);
   // The owner never shows as an avatar (the privacy tag says whose); my own avatar only where it tells something.
-  const avatar = !trailing && doer && (list?.visibility === 'shared' || doer.id !== list?.owner) ? doer : undefined;
+  const avatar = doer && (list?.visibility === 'shared' || doer.id !== list?.owner) ? doer : undefined;
 
   const onToggle = () => {
     if (!canTick) {
@@ -260,9 +258,8 @@ export const ItemRow = memo(function ItemRow({
         ) : null}
         {below}
       </div>
-      {trailing || (item.urgent && !inUrgent && !item.done) || avatar || thumb ? (
+      {(item.urgent && !inUrgent && !item.done) || avatar || thumb ? (
         <span className="row__trail">
-          {trailing}
           {item.urgent && !inUrgent && !item.done ? <UrgentTag /> : null}
           {avatar ? <Avatar member={avatar} size="xs" /> : null}
           {thumb ? <img className="row__thumb" src={thumb} alt="" /> : null}
@@ -280,7 +277,7 @@ export const ItemRow = memo(function ItemRow({
 });
 
 /** "Also on Home shopping": the same thing lives there too; tap to go to it. */
-export function TwinTag({ twin, label }: { twin: Item; label?: string }) {
+function TwinTag({ twin }: { twin: Item }) {
   const hub = useHub();
   const list = hub.list(twin.listId);
   if (!list) return null;
@@ -294,7 +291,7 @@ export function TwinTag({ twin, label }: { twin: Item; label?: string }) {
       }}
     >
       <Icon name={G.linked} className="icon--xs" />
-      <span dir="auto">{label ?? list.name}</span>
+      <span dir="auto">{list.name}</span>
     </button>
   );
 }

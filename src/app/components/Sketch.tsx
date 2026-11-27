@@ -23,7 +23,7 @@ const MAX_SIDE = 1100;
 type Stroke = { color: string; w: number; pts: Array<[number, number]> };
 
 /** Read a picked file as a data URL. */
-export function readImage(file: File): Promise<string> {
+function readImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result));

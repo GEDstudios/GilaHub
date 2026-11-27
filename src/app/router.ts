@@ -10,7 +10,7 @@ export type Route =
   | { name: 'item'; id: string }
   | { name: 'settings' };
 
-export function parseRoute(path: string): Route {
+function parseRoute(path: string): Route {
   const p = path.replace(/\/+$/, '') || '/';
   if (p === '/' || p === '/today') return { name: 'today' };
   if (p === '/shop') return { name: 'shop' };

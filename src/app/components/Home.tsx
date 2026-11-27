@@ -27,7 +27,7 @@ const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
 
 /** Open one of Us's colour cards from elsewhere on the page ('asks', 'week', 'did', 'asked'). */
 const US_EVENT = 'gila:us-card';
-export function openUsCard(key: string): void {
+function openUsCard(key: string): void {
   window.dispatchEvent(new CustomEvent(US_EVENT, { detail: key }));
 }
 

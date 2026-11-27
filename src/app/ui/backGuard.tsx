@@ -58,15 +58,6 @@ export function useBackGuard({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirty, arm]);
-
-  return {
-    /** For an in-app back: true when it asked (so don't leave yet). */
-    ask: (): boolean => {
-      if (!dirty) return false;
-      question();
-      return true;
-    },
-  };
 }
 
 function LeaveSheet({

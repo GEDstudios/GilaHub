@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { settleMerge, type SettleSnap } from './motion';
 
 /** How long a ticked row stays in place: the check pops, the tick draws, the title strikes, the row folds away. */
-export const SETTLE_MS = 520;
+const SETTLE_MS = 520;
 
 export interface Settle<T> {
   /** Keep `id` in place for a moment. Call it before the data changes (hub.toggle still runs at once). */

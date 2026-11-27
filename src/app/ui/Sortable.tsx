@@ -354,7 +354,7 @@ export interface Outside {
   note?: ReactNode;
 }
 
-export interface SortableProps {
+interface SortableProps {
   ids: string[];
   onMove: (next: string[], id: string) => void;
   label: (id: string) => string;

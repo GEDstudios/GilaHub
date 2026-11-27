@@ -13,7 +13,7 @@ import { G } from '../ui/glyphs';
  * Show only some things, on any screen: with these tags (any of them), for whom, urgent ones.
  * Each screen keeps its own ("today", "shop", "l:<id>"), on this device.
  */
-export interface Filter {
+interface Filter {
   tags: string[];
   who: 'me' | 'partner' | null;
   urgent: boolean;
@@ -21,9 +21,9 @@ export interface Filter {
   lists?: string[];
 }
 
-export const NO_FILTER: Filter = { tags: [], who: null, urgent: false, lists: [] };
+const NO_FILTER: Filter = { tags: [], who: null, urgent: false, lists: [] };
 
-export const isActive = (f: Filter): boolean => f.tags.length > 0 || !!f.who || f.urgent || !!f.lists?.length;
+const isActive = (f: Filter): boolean => f.tags.length > 0 || !!f.who || f.urgent || !!f.lists?.length;
 
 /** Whose is it to do: whoever it's given to (both, or whose turn); not given to anyone, whose it is. */
 function forWhom(hub: Hub, i: Item, member: string): boolean {
@@ -34,7 +34,7 @@ function forWhom(hub: Hub, i: Item, member: string): boolean {
 }
 
 /** Does it pass? (A task passes when it does, or when one of its subtasks does.) */
-export function passes(hub: Hub, f: Filter, i: Item, deep = false): boolean {
+function passes(hub: Hub, f: Filter, i: Item, deep = false): boolean {
   if (!isActive(f)) return true;
   if (f.lists?.length && !f.lists.includes(i.listId)) return false;
   const self = (x: Item) => {
@@ -63,16 +63,14 @@ export function useFilter(key: string) {
     : NO_FILTER;
   const set = (next: Filter) => setPrefs({ filters: { ...(prefs.filters ?? {}), [key]: next } });
   return {
-    key,
     f,
     set,
-    clear: () => set(NO_FILTER),
     active: isActive(f),
     test: (i: Item, deep = false) => passes(hub, f, i, deep),
   };
 }
 
-export type FilterState = ReturnType<typeof useFilter>;
+type FilterState = ReturnType<typeof useFilter>;
 
 /**
  * The lens: one quiet row of chips over a screen's things, so you narrow it in a tap and widen it
