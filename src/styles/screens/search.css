@@ -1,0 +1,134 @@
+/* ============================================================ Search (components/SearchLayer.tsx)
+ * Not a page: a field drops into the top of the screen and the results float over the page
+ * you were on, which stays recognisable under a light veil.
+ */
+
+.searchlayer {
+  position: fixed;
+  z-index: var(--z-search);
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.searchlayer__veil {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(250 250 248 / 0.72);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  animation: fade-in 160ms var(--ease) both;
+}
+
+.searchlayer__top {
+  position: relative;
+  padding-top: calc(var(--safe-top) + 12px);
+  padding-bottom: 10px;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--line);
+  animation: search-drop 220ms var(--spring) both;
+}
+
+@keyframes search-drop {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+}
+
+.searchlayer__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchlayer__box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 6px 0 16px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  color: var(--text-3);
+  cursor: text;
+}
+
+.searchlayer__box input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  font-size: 16.5px;
+  color: var(--text);
+}
+
+.searchlayer__clear {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.searchlayer__close {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+.searchlayer__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 12px;
+  padding-bottom: 40px;
+  pointer-events: none;
+}
+
+.searchlayer__scope {
+  pointer-events: auto;
+  margin: 0 0 10px;
+}
+
+.searchlayer__card {
+  pointer-events: auto;
+  padding: 6px 4px;
+  border-radius: var(--r-l);
+  background: var(--card);
+  box-shadow: var(--lift-2), 0 0 0 1px var(--line);
+  animation: row-in 200ms var(--ease) both;
+}
+
+.searchlayer__card .rows + .rows {
+  margin-top: 4px;
+}
+
+.searchlayer__recent {
+  padding: 4px 12px 12px;
+}
+
+.searchlayer__forget {
+  margin-left: auto;
+}
+
+.searchlayer__none {
+  margin: 0;
+  padding: 18px 14px;
+  color: var(--text-3);
+}
+
+/* While search is open the floating things below it rest. */
+
+@media (prefers-reduced-motion: reduce) {
+  .searchlayer__veil,
+  .searchlayer__top,
+  .searchlayer__card {
+    animation: none;
+  }
+}

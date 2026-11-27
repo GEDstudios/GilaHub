@@ -1,0 +1,131 @@
+/* ============================================================ Icons — Gila Duo
+ * An ink line and a solid light (docs/03-DESIGN-SYSTEM.md, Icons). Size is --s (px);
+ * state rides on --light, --shift and color, which inherit, so a state class on a parent
+ * lights the icons inside it. Order matters: lit, project, on color, on ink, lifted, scrub.
+ */
+
+.icon {
+  --s: 22;
+  --nudge: calc(var(--nudge-px) * 256px / var(--s));
+  width: calc(var(--s) * 1px);
+  height: calc(var(--s) * 1px);
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.icon__light {
+  fill: var(--light-fixed, var(--light, var(--light-rest)));
+  transform: translate(calc(var(--shift, 0) * var(--nudge)), calc(var(--shift, 0) * var(--nudge)));
+  transition:
+    fill 140ms var(--ease),
+    transform 280ms var(--spring);
+}
+
+.icon__line {
+  fill: currentColor;
+  /* An optical boost: the line renders about 1.4–1.55 px from 13 to 24 px. */
+  stroke: currentColor;
+  stroke-width: max(0px, calc(1.25px - var(--s) * 0.05px));
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.icon--sm {
+  --s: 18;
+}
+
+.icon--xs {
+  --s: 15;
+}
+
+/* LIT: the one thing that is on, in my color, slipped off-register */
+.is-lit,
+.tab.is-on,
+.tab.is-scrub,
+.echip.is-open,
+.option.is-on,
+.iconpick__btn.is-on {
+  --light: var(--me-light);
+  --shift: 1;
+}
+
+/* PROJECT: the light is the project's color (lineVars sets --c) */
+.icon--project {
+  --light: var(--c);
+  color: var(--ink);
+}
+
+.tab .icon--project,
+.topnav__tab .icon--project {
+  --light: color-mix(in srgb, var(--c) 45%, transparent);
+  color: inherit;
+}
+
+.tab.is-on .icon--project,
+.tab.is-scrub .icon--project,
+.topnav__tab.is-on .icon--project,
+.iconpick__btn.is-on {
+  --light: var(--c);
+}
+
+/* ON COLOR: the surface already is the light */
+.ccard,
+.pmark,
+.echip.is-urgent,
+.on-color {
+  --light: var(--light-on-color);
+  --shift: 0;
+}
+
+/* ON INK: rest on black */
+.toast,
+.on-ink {
+  --light: var(--light-on-ink);
+}
+
+/* LIFTED: while dragging, the light separates further */
+.is-lifted {
+  --nudge-px: 2.5;
+  --shift: 1;
+}
+
+/* SCRUB: while the bar is held, only the tab under the finger is lit */
+.tabbar.is-scrubbing .tab.is-on:not(.is-scrub) {
+  --light: var(--light-rest);
+  --shift: 0;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.tabbar.is-scrubbing .tab.is-on:not(.is-scrub) .icon--project {
+  --light: color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.tab.is-scrub {
+  color: var(--text);
+}
+
+/* The scrubbed tab swells through --d on .tab__mark (Navigation). */
+
+@media (prefers-reduced-motion: reduce) {
+  .icon__light {
+    transition: none;
+  }
+}
+
+.hint {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.kbd {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.16);
+  color: inherit;
+  opacity: 0.7;
+}

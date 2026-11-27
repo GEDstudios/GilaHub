@@ -1,0 +1,239 @@
+/* ============================================================ Ideas (components/Ideas.tsx)
+ * The tag: a small paper label in the header, just right of the avatar (or Back), a punched
+ * hole at its pointed end, a bulb and the open count. It leans -4deg and straightens with a
+ * spring under the finger. It belongs to the page's header, so it scrolls away with it
+ * (never floats), and steps aside for sheets and the keyboard. Its button is a full 44px
+ * square around the paper.
+ */
+
+.ideatag {
+  /* Placed against the page, not the screen: it leaves with the header when you scroll. */
+  position: absolute;
+  z-index: calc(var(--z-raised) - 1);
+  top: calc(var(--safe-top) + 12px);
+  left: calc(max(0px, (100% - var(--column)) / 2 - var(--gutter)) + var(--gutter) + 50px);
+  min-width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    opacity 180ms var(--ease),
+    transform 320ms var(--spring),
+    visibility 0s;
+}
+
+.ideatag__body {
+  position: relative;
+  transform: rotate(-4deg);
+  transform-origin: 30% 100%;
+  filter: drop-shadow(0 0 0.6px rgb(10 10 4 / 0.4)) drop-shadow(0 3px 6px rgb(10 10 4 / 0.12));
+  transition: transform 420ms var(--spring);
+}
+
+.ideatag:active .ideatag__body {
+  transform: rotate(0deg) scale(0.96);
+  transition-duration: 160ms;
+}
+
+.ideatag__paper {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 23px;
+  padding: 0 9px 0 18px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  /* A luggage tag: the left end cut to a point, a hole punched through it */
+  clip-path: polygon(7px 0, calc(100% - 3px) 0, 100% 3px, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  -webkit-mask: radial-gradient(circle at 9px 11.5px, transparent 2.4px, #000 2.9px);
+  mask: radial-gradient(circle at 9px 11.5px, transparent 2.4px, #000 2.9px);
+}
+
+.ideatag__paper .icon {
+  --s: 16;
+  color: var(--text-2);
+}
+
+.ideatag__n {
+  padding-right: 1px;
+}
+
+/* My partner added or changed one since I last looked */
+.ideatag__dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow:
+    0 0 0 2px var(--card),
+    inset 0 0 0 1.5px color-mix(in srgb, var(--c) 50%, var(--ink));
+  animation: pop 260ms var(--spring) both;
+}
+
+/* Out of the way: a sheet is open, or (on touch) the keyboard is up. A held bar's bubble simply covers it. */
+html:has(.sheet) .ideatag {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition:
+    opacity 140ms var(--ease),
+    transform 200ms var(--ease),
+    visibility 0s 200ms;
+}
+
+@media (pointer: coarse) {
+  html:has(:is(input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='button']), textarea, select, [contenteditable='true']):focus) .ideatag {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition:
+      opacity 140ms var(--ease),
+      transform 200ms var(--ease),
+      visibility 0s 200ms;
+  }
+}
+
+/* Desktop: the top-right corner of the page, scrolling with it */
+@media (min-width: 960px) {
+  .ideatag {
+    left: auto;
+    right: 28px;
+    top: 18px;
+  }
+}
+
+/* The sheet: a composer, the open ideas (grip to reorder), Resolved folded, Copy */
+/* Flush with the list under it: the focused card lines up with the rows' edges. */
+.ideas__compose {
+  align-items: flex-start;
+  padding-left: 12px;
+}
+
+.ideas__compose .addrow__plus {
+  margin-top: 10px;
+}
+
+.ideas__compose textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 11px 0;
+  border: 0;
+  background: transparent;
+  font-size: 16.5px;
+  line-height: 1.35;
+  resize: none;
+}
+
+.ideas__compose textarea:focus-visible,
+.idea__edit:focus-visible {
+  outline: none;
+}
+
+.ideas__add {
+  margin-top: 2px;
+  animation: pop 220ms var(--spring) both;
+}
+
+.ideas__empty {
+  margin: 14px 2px 0;
+  font-size: 15px;
+  color: var(--text-3);
+}
+
+.rows.ideas {
+  margin-top: 14px;
+}
+
+.section .rows.ideas {
+  margin-top: 0;
+}
+
+.idea {
+  gap: 10px;
+  padding-right: 4px;
+}
+
+.rows.ideas .row + .row::before {
+  left: 38px;
+}
+
+.idea__dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 50%, var(--ink));
+}
+
+.idea .row__title {
+  white-space: pre-wrap;
+}
+
+/* The whole width is the tap to edit; the text inside strikes line by line when resolved. */
+.idea__text {
+  display: block;
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  font-size: 16.5px;
+  line-height: 1.3;
+  text-align: start;
+  cursor: text;
+}
+
+.idea__text .row__title {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.idea__edit {
+  display: block;
+  width: calc(100% + 12px);
+  margin: -5px -6px;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--line);
+  resize: none;
+}
+
+.idea .check {
+  margin: -10px -6px -10px -2px;
+}
+
+.idea.is-done .idea__dot {
+  opacity: 0.45;
+}
+
+.ideas__foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ideatag,
+  .ideatag__body {
+    transition: none;
+  }
+  .ideatag:active .ideatag__body {
+    transform: rotate(-4deg);
+  }
+  .ideatag__dot,
+  .ideas__add {
+    animation: none;
+  }
+}

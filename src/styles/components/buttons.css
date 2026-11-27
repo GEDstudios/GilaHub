@@ -1,0 +1,99 @@
+/* ============================================================ Buttons */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 54px;
+  padding: 0 26px;
+  border-radius: 999px;
+  background: var(--cta);
+  color: var(--cta-text);
+  font-size: 16px;
+  font-weight: 600;
+  transition:
+    transform 140ms var(--ease),
+    opacity 140ms var(--ease),
+    background 140ms var(--ease);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.3;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--quiet {
+  background: var(--tile);
+  color: var(--text);
+}
+
+.btn--sm {
+  height: 40px;
+  padding: 0 18px;
+  font-size: 14.5px;
+}
+
+.iconbtn {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--text);
+  transition:
+    transform 140ms var(--ease),
+    background 140ms var(--ease);
+}
+
+.iconbtn:hover {
+  background: var(--tile-2);
+}
+
+.iconbtn:active {
+  transform: scale(0.94);
+}
+
+/* New: the one black circle in the app (NewButton). */
+
+.textbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--tile-2);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+
+.textbtn:hover {
+  color: var(--text);
+  text-decoration-color: currentColor;
+}
+
+.mini {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--lift-1);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mini:active {
+  transform: scale(0.96);
+}

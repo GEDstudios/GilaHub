@@ -1,0 +1,461 @@
+/* ============================================================ Onboarding */
+
+.boot {
+  min-height: 100dvh;
+  background: var(--bg);
+}
+
+.onboard {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding: calc(var(--safe-top) + 16px) calc(var(--gutter) + var(--safe-right)) calc(var(--safe-bottom) + 28px) calc(var(--gutter) + var(--safe-left));
+}
+
+.onboard__body {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.onboard__step {
+  margin: 30px 0 10px;
+  font-size: 13.5px;
+  color: var(--text-3);
+}
+
+.onboard__q {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.onboard__label {
+  margin-top: 30px;
+}
+
+.onboard__preview {
+  display: flex;
+  margin-top: 34px;
+  padding-left: 16px;
+}
+
+.onboard__cta {
+  margin-top: 34px;
+}
+
+.onboard__error {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--danger);
+}
+
+.bigfield {
+  width: 100%;
+  margin-top: 24px;
+  padding: 8px 0 10px;
+  border: 0;
+  border-bottom: 1.5px solid var(--tile-2);
+  background: transparent;
+  font-family: var(--serif);
+  font-size: 34px;
+  letter-spacing: -0.015em;
+  transition: border-color 160ms var(--ease);
+}
+
+.bigfield:focus {
+  border-bottom-color: var(--text);
+}
+
+.codeinput {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.picks {
+  display: grid;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 16px 12px 12px;
+  border-radius: 22px;
+  background: var(--tile);
+  text-align: start;
+  transition:
+    background 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    transform 160ms var(--ease);
+}
+
+.pick:active {
+  transform: scale(0.99);
+}
+
+.pick.is-on {
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px rgb(10 10 4 / 0.06);
+}
+
+.pick__swatch {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 12px;
+  background: var(--c);
+}
+
+.pick__name {
+  flex: 1;
+  font-size: 16.5px;
+  font-weight: 500;
+}
+
+.pick__check {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-3);
+  transition: all 200ms var(--spring);
+}
+
+.pick.is-on .pick__check {
+  background: var(--cta);
+  border-color: var(--cta);
+  color: var(--cta-text);
+}
+
+/* Welcome: type first, two cursors, a few shapes at the edges */
+.onboard--splash {
+  position: relative;
+  overflow: hidden;
+  background: #fcf3ef;
+  justify-content: space-between;
+}
+
+.splash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+@media (min-width: 720px) {
+  .splash {
+    left: 50%;
+    right: auto;
+    width: 640px;
+    transform: translateX(-50%);
+  }
+}
+
+.splash__shape {
+  position: absolute;
+  background: var(--c);
+  animation: float-in 800ms var(--spring) both;
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.92);
+  }
+}
+
+.onboard__logo {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding-top: 18px;
+}
+
+.welcome {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+.welcome__title {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.welcome__title .nametag {
+  animation: float-in 800ms var(--spring) 380ms both;
+}
+
+.welcome__sub {
+  max-width: 28ch;
+  margin: 56px auto 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.onboard__bottom {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.go {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 64px;
+  padding: 0 10px 0 28px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: var(--lift-2);
+  font-size: 17px;
+  font-weight: 500;
+  transition: transform 160ms var(--ease);
+}
+
+.go:active {
+  transform: scale(0.98);
+}
+
+.go__arrow {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.onboard__link {
+  height: 44px;
+}
+
+.projcard--new {
+  transform: none;
+  box-shadow: none;
+}
+
+.projcard--new::before,
+.projcard--new::after {
+  display: none;
+}
+
+.projslot {
+  position: relative;
+  display: flex;
+  touch-action: manipulation;
+}
+
+.projslot > .projcard {
+  flex: 1;
+}
+
+/* Found from its tab on the bar */
+.projslot.is-flash > .projcard {
+  animation: proj-flash 420ms var(--spring);
+}
+
+@keyframes proj-flash {
+  30% {
+    scale: 0.97;
+  }
+}
+
+/* Arranging the bar: each folder carries its pin on its corner, like a badge (BAR §4.2) */
+.projpin {
+  position: absolute;
+  z-index: 2;
+  top: -15px;
+  right: -13px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  animation: pop 240ms var(--spring) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 20ms);
+}
+
+.projpin .adddisc {
+  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.05);
+  transition: transform 140ms var(--ease);
+}
+
+.projpin:active > span {
+  transform: scale(0.9);
+}
+
+.projpin__in {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--cta-text);
+  box-shadow: var(--lift-2);
+  transition: transform 140ms var(--ease);
+}
+
+.projpin__in .icon {
+  --s: 15;
+  --light: var(--me-light);
+  --shift: 1;
+  color: inherit;
+}
+
+.projpin[aria-disabled='true']:not(.is-in) {
+  opacity: 0.4;
+}
+
+/* Shopping, Chores and Search, while they're out of the bar: just above it */
+.bartray {
+  position: fixed;
+  z-index: calc(var(--z-bar) + 1);
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 26px);
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  transition: opacity 160ms var(--ease);
+}
+
+.bartray .token {
+  pointer-events: auto;
+  background: var(--card);
+  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+}
+
+html.is-dragging .bartray {
+  opacity: 0;
+}
+
+/* "Arrange the bar" is the phone's: a computer has no floating bar */
+@media (min-width: 960px) {
+  .editlink--phone,
+  .bartray {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projpin,
+  .projslot.is-flash > .projcard {
+    animation: none;
+  }
+}
+
+/* A folder being moved leaves a dashed slot at its own tilt */
+.projslot.is-ghost > .projcard {
+  opacity: 0;
+}
+
+.projslot.is-ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 8px var(--r-l) var(--r-l) var(--r-l);
+  transform: rotate(var(--tilt));
+}
+
+/* The lifted folder: its own tilt plus 3deg and the velocity tilt (Sortable writes --lean) */
+.lift--card {
+  --lift-scale: 1.06;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.lift--card .projcard {
+  transform: none;
+  box-shadow: var(--fold-lift);
+}
+
+.is-dropping .lift--card .projcard {
+  box-shadow: var(--fold-shadow);
+  transition: box-shadow 320ms var(--ease);
+}
+
+/* An aisle saying "not here" when a row is dragged out of it */
+.is-refusing {
+  animation: refuse 240ms var(--ease);
+}
+
+@keyframes refuse {
+  20% {
+    transform: translateX(-3px);
+  }
+  45% {
+    transform: translateX(3px);
+  }
+  70% {
+    transform: translateX(-2px);
+  }
+  90% {
+    transform: translateX(1px);
+  }
+}
+
+/*
+ * The Urgent card: the screen's one lemon card, its title inside it. The same items also
+ * sit in their aisle with an Urgent tag.
+ */
+.aisle--urgent .rows {
+  background: var(--lemon);
+}
+
+.aisle--urgent .row {
+  background: transparent;
+}
+
+.aisle--urgent .row + .row::before {
+  background: rgb(10 10 4 / 0.1);
+}
+
+/* A list's dot keeps its rim and gets a white ring, so a lemon list still reads on lemon. */
+.aisle--urgent .dot {
+  box-shadow:
+    inset 0 0 0 1.5px color-mix(in srgb, var(--c) 50%, var(--ink)),
+    0 0 0 2px var(--card);
+}
+
+.aisle__cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 6px 20px;
+}
+
+.aisle__captitle {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}

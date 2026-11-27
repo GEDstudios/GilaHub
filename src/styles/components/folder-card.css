@@ -1,0 +1,197 @@
+/* ---------------------------------------------------------------- a project's card holds its settings */
+
+/* A tap on the card itself picks its colour. */
+.hero--project {
+  cursor: pointer;
+}
+
+.hero--project .hero__title {
+  cursor: text;
+}
+
+.hero--project .hero__top,
+.hero--project .hero__foot {
+  padding-right: 48px;
+}
+
+/* A folder's card: the title, its description right under it, the count at the foot (no dead middle) */
+.hero--project {
+  gap: 0;
+  min-height: 158px;
+}
+
+.hero--project .hero__desc {
+  margin-top: var(--space-1);
+}
+
+.hero--project .hero__foot {
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+/* Down its right edge: in the bar, who sees it, its icon. */
+.hero__rail {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* All three on one line down the edge: the same box, centred on the same axis. */
+.hero__rail .cardicon {
+  width: 36px;
+  height: 36px;
+  margin: 0;
+}
+
+.herobtn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.42);
+  color: var(--ink);
+  transition:
+    background 160ms var(--ease),
+    transform 160ms var(--spring);
+}
+
+.herobtn:hover {
+  background: rgb(255 255 255 / 0.7);
+}
+
+.herobtn:active {
+  transform: scale(0.9);
+}
+
+.herobtn.is-on,
+.herobtn.is-open {
+  background: var(--ink);
+  color: #fff;
+}
+
+.herobtn.is-static {
+  background: none;
+  opacity: 0.7;
+}
+
+/* Picking its colour: the card says so with a soft ring. */
+.hero--project.is-picking {
+  box-shadow: 0 0 0 3px rgb(10 10 4 / 0.85);
+}
+
+/* Something landed here (a note kept, into Folders): a squash, a bounce. */
+.tab.is-catch,
+.topnav__tab.is-catch {
+  animation: tab-catch 700ms var(--spring);
+}
+
+@keyframes tab-catch {
+  0% {
+    transform: scale(1);
+  }
+  16% {
+    transform: scale(1.2, 0.8) translateY(3px);
+  }
+  40% {
+    transform: scale(0.9, 1.12) translateY(-6px);
+  }
+  64% {
+    transform: scale(1.06, 0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.tab.is-catch .icon,
+.topnav__tab.is-catch .icon {
+  color: var(--ink);
+}
+
+/* The catch: a small note in its colour pops up out of the folder and tucks back in; ink strokes burst. */
+.catchfx {
+  position: fixed;
+  width: 0;
+  height: 0;
+  z-index: calc(var(--z-fx) + 1);
+  pointer-events: none;
+}
+
+.catchfx__note {
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--c, var(--lemon));
+  box-shadow:
+    0 0 0 1.5px var(--ink),
+    0 3px 6px -2px rgb(10 10 4 / 0.3);
+  animation: catch-note 760ms var(--spring) both;
+}
+
+@keyframes catch-note {
+  0% {
+    transform: translateY(2px) rotate(-8deg) scale(0.4);
+    opacity: 0;
+  }
+  22% {
+    transform: translateY(-22px) rotate(10deg) scale(1.1);
+    opacity: 1;
+  }
+  48% {
+    transform: translateY(-18px) rotate(-6deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(2px) rotate(0deg) scale(0.35);
+    opacity: 0;
+  }
+}
+
+.catchfx i {
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 2px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: rotate(var(--a)) translateY(-14px);
+  transform-origin: 1px 1px;
+  opacity: 0;
+  animation: catch-ink 520ms 60ms var(--ease) both;
+}
+
+.catchfx i:nth-child(odd) {
+  background: var(--c, var(--lemon));
+  box-shadow: 0 0 0 1px rgb(10 10 4 / 0.55);
+}
+
+@keyframes catch-ink {
+  0% {
+    transform: rotate(var(--a)) translateY(-12px) scaleY(0.3);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--a)) translateY(-26px) scaleY(1);
+    opacity: 0;
+  }
+}
+
+/* A flying copy: no hover, no transition of its own. */
+.is-flying {
+  transition: none !important;
+  animation: none !important;
+}

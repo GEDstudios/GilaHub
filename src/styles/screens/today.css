@@ -1,0 +1,401 @@
+/* ============================================================ Today */
+
+/* The tags sit beside the sentence when they fit, and drop below it when they don't */
+
+/* The person tag: a project-style pill in their color, with Tasky's cursor */
+
+/* Waiting on you, reached from the person tag: clear of the compact header */
+#home-asks {
+  scroll-margin-top: 72px;
+}
+
+/* Today with nothing due and nothing above it: no label, the add row right under the summary */
+
+/* Waiting on you: a quiet one-line follow-up under a tile ("You asked Hila for 2 things") */
+.quietline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 8px 12px 8px 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+  text-align: start;
+  transition: background 140ms var(--ease);
+}
+
+@media (hover: hover) {
+  .quietline:hover {
+    background: var(--tile);
+  }
+}
+
+.quietline:active {
+  background: var(--tile);
+}
+
+.rows + .quietline {
+  margin-top: 4px;
+}
+
+.quietline__end {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  color: var(--text-3);
+}
+
+.quietline__end .icon {
+  --s: 17;
+  transition: transform 220ms var(--ease);
+}
+
+.quietline[aria-expanded='true'] .quietline__end .icon {
+  transform: rotate(180deg);
+}
+
+.quietline__rows {
+  margin-top: 6px;
+}
+
+.asks-quiet {
+  margin-top: 16px;
+}
+
+.asks-quiet:empty {
+  display: none;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 14px 14px 16px;
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px rgb(10 10 4 / 0.04);
+  text-align: start;
+  font-size: 14.5px;
+  color: var(--text-2);
+}
+
+.notice__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.notice > .icon {
+  color: var(--text-3);
+}
+
+/* Tasky's stacked strips: overlapping bands, a big serif number on each. */
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.strip__label {
+  font-size: 15.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Moments (components/Moments.tsx): the good bits, kept to look back on */
+
+.moment__new {
+  margin-top: 4px;
+}
+
+.moment__feels {
+  display: flex;
+  gap: 6px;
+}
+
+.moment__feel {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 22px;
+  background: var(--tile);
+  transition: transform 180ms var(--spring), background 160ms var(--ease);
+}
+
+.moment__feel.is-on {
+  background: var(--mint);
+  transform: scale(1.08);
+}
+
+.moment__write {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+}
+
+.moment__write input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  font-size: 16px;
+}
+
+.moment__write input:focus-visible {
+  outline: none;
+}
+
+.moment__back {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: var(--r-l);
+  background: var(--c);
+  color: var(--ink);
+}
+
+.moment__ago {
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.moment__backtext {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.moment__month {
+  margin-top: 22px;
+}
+
+.moment__monthname {
+  margin: 0 2px 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.moment__list {
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border-radius: var(--r-l);
+  background: var(--tile);
+}
+
+.moment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 6px 6px 14px;
+}
+
+.moment + .moment {
+  border-top: 1px solid var(--line);
+}
+
+.moment__e {
+  font-size: 24px;
+}
+
+.moment__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.moment__text {
+  font-size: 15.5px;
+}
+
+.moment__meta {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.moment__x {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-4);
+}
+
+.moment__empty {
+  margin: 22px 2px 0;
+  color: var(--text-3);
+}
+
+/* While I'm on my own: a dashed card to bring my person in, with a quiet × for "not now" */
+.invite {
+  display: flex;
+  align-items: center;
+  margin-top: 36px;
+  border-radius: 22px;
+  border: 1.5px dashed var(--tile-2);
+  transition: background 160ms var(--ease);
+}
+
+.invite:has(.invite__main:hover) {
+  background: var(--tile);
+}
+
+.invite__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px 14px 16px;
+  border-radius: 22px 0 0 22px;
+  text-align: start;
+}
+
+.invite__x {
+  width: 36px;
+  height: 44px;
+  margin-right: 6px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--text-3);
+}
+
+.invite__x .icon {
+  --s: 16;
+}
+
+.invite__x:active {
+  transform: scale(0.9);
+}
+
+.invite__people {
+  display: flex;
+}
+
+.invite__empty {
+  width: 38px;
+  height: 38px;
+  margin-left: -8px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px dashed var(--text-3);
+  background: var(--bg);
+  color: var(--text-3);
+}
+
+.invite__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.invite__text strong {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.invite__main > .icon {
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------------------ Coming up: Tasky's tiles */
+
+/* The last tile: a hatched free slot to plan something for tomorrow */
+
+/* ------------------------------------------------------------ The quiet way in, and the page's end */
+
+.homeedit {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-5);
+}
+
+.homeedit .icon {
+  --s: 15;
+}
+
+.homehint {
+  margin-top: 36px;
+  text-align: center;
+}
+
+/* The first time Today draws in a session, its blocks fade up one after another */
+.home.is-entering > * {
+  animation: home-in 260ms var(--ease) both;
+}
+
+.home.is-entering > :nth-child(2) {
+  animation-delay: 30ms;
+}
+
+.home.is-entering > :nth-child(3) {
+  animation-delay: 60ms;
+}
+
+.home.is-entering > :nth-child(4) {
+  animation-delay: 90ms;
+}
+
+.home.is-entering > :nth-child(5) {
+  animation-delay: 120ms;
+}
+
+.home.is-entering > :nth-child(6) {
+  animation-delay: 150ms;
+}
+
+.home.is-entering > :nth-child(n + 7) {
+  animation-delay: 180ms;
+}
+
+@keyframes home-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Edit Today ⇄ Today: a quick cross-fade (startViewTransition, where there is one) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home.is-entering > * {
+    animation: none;
+  }
+}

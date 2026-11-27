@@ -1,0 +1,421 @@
+/* ============================================================ Arrivals (in-app notifications) */
+.arrival {
+  position: fixed;
+  z-index: var(--z-toast);
+  top: calc(var(--safe-top) + 10px);
+  left: 50%;
+  width: min(calc(100% - 24px), 440px);
+  translate: -50% 0;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 24px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow:
+    0 18px 40px -14px rgb(10 10 4 / 0.55),
+    0 2px 6px rgb(10 10 4 / 0.25);
+  animation: arrival-in 520ms var(--spring) both;
+  transition:
+    transform 240ms var(--ease),
+    opacity 240ms var(--ease);
+  touch-action: none;
+}
+
+.arrival.is-leaving {
+  transform: translateY(-130%);
+  opacity: 0;
+}
+
+@keyframes arrival-in {
+  0% {
+    transform: translateY(-120%) scale(0.96);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(3px) scale(1.01);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.arrival__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 10px 6px 6px;
+  color: inherit;
+  text-align: start;
+}
+
+.arrival__mark {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+  transform: rotate(-6deg);
+  animation: arrival-ring 900ms 200ms var(--ease) both;
+}
+
+.arrival__mark .icon {
+  --s: 22;
+  --light: rgb(255 255 255 / 0.55);
+}
+
+.arrival__mark--note {
+  background: var(--lemon);
+}
+
+.arrival__mark--ask {
+  background: var(--them, var(--sky));
+}
+
+/* The bell (or whatever it is) gives a little ring as it lands */
+@keyframes arrival-ring {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  20% {
+    transform: rotate(10deg);
+  }
+  40% {
+    transform: rotate(-12deg);
+  }
+  60% {
+    transform: rotate(6deg);
+  }
+}
+
+.arrival__text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.arrival__text strong {
+  font-size: 15.5px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrival__text span {
+  font-size: 14px;
+  color: rgb(255 255 255 / 0.72);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.arrival__more {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.arrival__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.arrival__act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.arrival__act:first-child {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+}
+
+.arrival__act:active {
+  transform: scale(0.97);
+}
+
+/* "Waiting on you": Urgent only, on its header */
+.section__head > .echip {
+  align-self: center;
+  flex: none;
+}
+
+.asks__filter {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 10px;
+}
+
+.collected {
+  margin-top: 30px;
+}
+
+.pinboard.is-empty {
+  display: block;
+  padding: 18px;
+}
+
+.pinboard__empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+.sticky--ghost {
+  flex: none;
+  width: 44px;
+  min-height: 40px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: 1.5px dashed var(--tile-2);
+  transform: rotate(-5deg);
+}
+
+.sticky--ghost::before {
+  width: 22px;
+  height: 9px;
+  top: -5px;
+}
+
+/* However big or small the note, its tick and handle stay finger-sized */
+.stuck .sticky__check {
+  scale: calc(1 / var(--scale));
+}
+
+/* A part of a panel (the date's Repeat, the notification's Again until done) */
+.panel__part {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, rgb(10 10 4 / 0.08));
+}
+
+.panel__head {
+  margin: 0 2px 10px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Where you are: Projects › Home › Kitchen › Fix the tap. Each step a quiet link back up; on a
+   task, a small round ⌄ beside a step moves the task there. Long paths wrap, never cut. */
+.crumbs--path {
+  gap: 2px 3px;
+  margin: -6px 0 14px;
+  line-height: 1.3;
+}
+
+.crumbs__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+}
+
+.crumbs__go {
+  max-width: 220px;
+  padding: 4px 4px;
+  border-radius: 6px;
+  color: var(--text-2);
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+
+.crumbs__go:hover {
+  background: var(--press);
+  color: var(--text);
+}
+
+.crumbs__go:active {
+  background: var(--tile);
+}
+
+.crumbs__move {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--text-2);
+  transition: background 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.crumbs__move .icon {
+  --s: 12;
+}
+
+.crumbs__move:hover {
+  background: var(--tile-2);
+  color: var(--text);
+}
+
+.crumbs__move:active {
+  transform: scale(0.9);
+}
+
+.crumbs .crumbs__sep {
+  --s: 12;
+  flex: none;
+  color: var(--text-4);
+}
+
+.move__open {
+  margin: -6px 0 10px;
+  text-align: start;
+}
+
+/* "Move to …?" pinned to the bottom of the sheet */
+.moveask {
+  position: sticky;
+  bottom: 0;
+  margin: 16px -4px 0;
+  padding: 14px 14px 12px;
+  border-radius: 20px;
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 -10px 30px -12px rgb(10 10 4 / 0.4);
+  animation: pop 220ms var(--spring) both;
+}
+
+.moveask p {
+  margin: 0 4px 12px;
+  font-size: 15.5px;
+}
+
+.moveask .btn--quiet {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+.moveask .btn:not(.btn--quiet) {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+}
+
+/* New project: the card is already a folder, its tab on top */
+.ccard--folder {
+  margin-top: 16px;
+  border-top-left-radius: 8px;
+}
+
+.ccard--folder::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -13px;
+  width: 42%;
+  height: 26px;
+  border-radius: 12px 16px 0 0;
+  background: var(--c);
+  clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+}
+
+/* New project: the icon on the card is where you pick it */
+
+.ccard__pick {
+  margin: -4px 0 14px;
+}
+
+/* A project's page: its card is a folder too, the tab on top (as on Projects, as in New project) */
+.hero--folder {
+  position: relative;
+  margin-top: 16px;
+  border-top-left-radius: 8px;
+}
+
+.hero--folder::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -13px;
+  width: 40%;
+  height: 26px;
+  border-radius: 12px 16px 0 0;
+  background: var(--c);
+  clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+}
+
+.hero__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero__foot .hero__sub {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero__pick {
+  margin-top: 12px;
+}
+
+/* A card's icon, right on the card: no pill; a tap picks another */
+.cardicon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin: -8px -8px -6px 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--ink);
+  transition: transform 220ms var(--spring);
+}
+
+.cardicon:active {
+  transform: scale(0.88) rotate(-6deg);
+}
+
+.cardicon .cardicon__glyph {
+  --s: 28;
+}
+
+.cardicon .cardicon__glyph.glyph-emoji {
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* Nothing picked yet: a faint dashed ring with a + */
+.cardicon.is-empty {
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgb(10 10 4 / 0.3);
+  color: rgb(10 10 4 / 0.55);
+}
+
+/* Picking: it lifts a little, so you can see which one you're choosing for */
+.cardicon.is-open {
+  transform: translateY(-3px) rotate(-6deg) scale(1.08);
+}

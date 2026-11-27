@@ -1,0 +1,212 @@
+/* ============================================================ Where it goes: the tree */
+/* A folder's tab stands up 13px above its card: the same air under the path a task gets, above
+   the tab. (On a phone the header's margins collapse into one, so this is the whole gap.) */
+.crumbs--path ~ .hero--folder {
+  margin-top: 28px;
+}
+
+/* ============================================================ The +: what to make */
+.fab .icon {
+  transition: transform 260ms var(--spring);
+}
+
+.fab.is-open .icon {
+  transform: rotate(45deg);
+}
+
+.addmenu__veil {
+  position: fixed;
+  z-index: var(--z-fab);
+  inset: 0;
+  background: rgb(250 250 248 / 0.72);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fade-in 160ms var(--ease) both;
+}
+
+/* The choices stand on the + : right-aligned, the nearest first */
+.addmenu {
+  position: fixed;
+  z-index: calc(var(--z-fab) + 1);
+  right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px + 76px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.addmenu__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px 0 0;
+  animation: addmenu-in 260ms var(--spring) both;
+}
+
+@keyframes addmenu-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.9);
+  }
+}
+
+.addmenu__label {
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow:
+    0 0 0 1px rgb(10 10 4 / 0.06),
+    0 6px 16px -6px rgb(10 10 4 / 0.25);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.addmenu__face {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-right: 8px;
+  color: var(--text);
+  filter: drop-shadow(0 4px 8px rgb(10 10 4 / 0.22));
+  transition: transform 200ms var(--spring);
+}
+
+.addmenu__face > .icon {
+  --s: 32;
+}
+
+.addmenu__item:active .addmenu__face {
+  transform: scale(0.9);
+}
+
+/* Each choice is the little thing it makes: a task card, a bag, a folder, a sticky note */
+.addmenu__glyph {
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+}
+
+.addmenu__glyph--note {
+  transform: rotate(-6deg);
+}
+
+@media (min-width: 960px) {
+  .addmenu {
+    right: 28px;
+    bottom: 104px;
+  }
+
+  .addmenu__item:hover .addmenu__face {
+    transform: scale(1.06);
+  }
+}
+
+/* Cards are white, whatever they sit in (an aisle, the lemon Urgent group, a panel) and however
+   they're touched */
+.rows.rows--cards,
+.aisle--urgent .rows.rows--cards {
+  background: transparent;
+}
+
+.rows--cards .row,
+.rows--cards .row:hover,
+.rows--cards .row:active,
+.aisle--urgent .rows--cards .row,
+.main .rows--cards .row,
+.main .rows--cards .row:hover {
+  background: #fff;
+}
+
+.rows--cards .row:active {
+  transform: scale(0.98);
+}
+
+/* Urgent things as cards: the whole group is one lemon card, its things white cards inside */
+.aisle--urgent:has(.rows--cards) {
+  padding: 4px 12px 12px;
+  border-radius: 20px;
+  background: var(--lemon);
+}
+
+.aisle--urgent .rows--cards .row,
+.aisle--urgent .rows--cards .row:hover,
+.aisle--urgent .rows--cards .row:active,
+.main .aisle--urgent .rows--cards .row,
+.main .aisle--urgent .rows--cards .row:hover {
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(10 10 4 / 0.06),
+    0 2px 6px -2px rgb(10 10 4 / 0.18);
+}
+
+.rows--cards .aisle__cap {
+  grid-column: 1 / -1;
+  padding: 2px 4px;
+  background: transparent;
+}
+
+/* Things to buy are short: smaller cards */
+.aisle .rows--cards .row {
+  min-height: 96px;
+}
+
+.aisle .rows--cards .row__title {
+  font-size: 15.5px;
+}
+
+/* Taking the date off: a plain pill that says so, at the top of the card */
+.whencard__head {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 6px;
+}
+
+.whencard__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px 0 10px;
+  border-radius: 17px;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.whencard__clear:hover {
+  background: var(--tile-2);
+}
+
+.whencard__clear:active {
+  transform: scale(0.96);
+}
+
+/* Urgent as a list: the lemon card holds its things as a white list inside it */
+.aisle--urgent .rows:not(.rows--cards) {
+  padding: 0 10px 10px;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .row {
+  background: #fff;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .aisle__cap + .row {
+  border-radius: 14px 14px 0 0;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .row:last-child {
+  border-radius: 0 0 14px 14px;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .aisle__cap + .row:last-child {
+  border-radius: 14px;
+}
+
+.aisle--urgent .rows:not(.rows--cards) .row + .row::before {
+  background: rgb(10 10 4 / 0.07);
+}

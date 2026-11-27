@@ -1,0 +1,180 @@
+/* ============================================================ Sheets */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  animation: fade-in 280ms var(--ease) both;
+}
+
+.sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  max-height: calc(100dvh - var(--safe-top) - 20px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border-radius: 30px 30px 0 0;
+  box-shadow: var(--lift-sheet);
+  padding: 10px var(--gutter) calc(var(--safe-bottom) + 26px);
+  animation: sheet-up 320ms var(--ease) both;
+}
+
+.sheet.is-closing .sheet__panel {
+  animation: sheet-down 210ms var(--ease) both;
+}
+
+.sheet.is-closing .sheet__scrim {
+  animation: fade-out 210ms var(--ease) both;
+}
+
+/* Pull it (or the title) down to close; the hit area is taller than the bar. */
+.sheet__handle {
+  position: relative;
+  width: 38px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--tile-2);
+  margin: 0 auto 16px;
+  touch-action: none;
+}
+
+.sheet__handle::before {
+  content: '';
+  position: absolute;
+  inset: -12px -44px -11px;
+}
+
+.sheet__title {
+  touch-action: none;
+}
+
+.sheet__panel.is-pulling {
+  animation: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sheet__title {
+  margin: 2px 52px 20px 0;
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.sheet__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+}
+
+.sheet__lede {
+  margin: 0;
+  font-size: 15.5px;
+  color: var(--text-2);
+}
+
+@media (min-width: 720px) {
+  .sheet {
+    align-items: center;
+    padding: 24px;
+  }
+  .sheet__panel {
+    border-radius: 30px;
+    padding-bottom: 26px;
+    animation-name: pop-in;
+  }
+  .sheet.is-closing .sheet__panel {
+    animation-name: pop-out;
+  }
+  .sheet__handle {
+    visibility: hidden;
+    margin-bottom: 8px;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+
+@keyframes pop-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.field {
+  width: 100%;
+  height: 50px;
+  margin-top: 16px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--tile);
+  font-size: 16px;
+}
+
+.notes {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  margin-top: 24px;
+  padding: 15px 16px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--tile);
+  font-size: 15.5px;
+  line-height: 1.5;
+  resize: none;
+  field-sizing: content;
+  transition:
+    background 160ms var(--ease),
+    box-shadow 160ms var(--ease);
+}
+
+.notes:focus {
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+}

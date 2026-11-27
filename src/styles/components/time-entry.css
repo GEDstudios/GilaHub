@@ -1,0 +1,186 @@
+/* ============================================================ Time, entered (a computer): hour : minute, AM / PM, OK */
+.tentry {
+  display: grid;
+  gap: 14px;
+  padding: 6px 2px 4px;
+}
+
+.tentry__head {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.tentry__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tentry__cell {
+  display: grid;
+  gap: 6px;
+}
+
+.tentry__box {
+  width: 96px;
+  height: 72px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--tile);
+  box-shadow: inset 0 0 0 2px transparent;
+  font-family: var(--serif);
+  font-size: 44px;
+  line-height: 1;
+  text-align: center;
+  color: var(--ink);
+  outline: none;
+  caret-color: var(--ink);
+  transition: box-shadow 140ms var(--ease), background 140ms var(--ease);
+}
+
+.tentry__box:focus {
+  background: var(--card);
+  box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 4px var(--me-light, var(--lemon));
+}
+
+.tentry__label {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.tentry__colon {
+  align-self: flex-start;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-size: 40px;
+  color: var(--ink);
+}
+
+.tentry__ampm {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  height: 72px;
+  margin-inline-start: 6px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1.5px var(--line);
+}
+
+.tentry__ampm button {
+  width: 56px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-3);
+  transition: background 140ms var(--ease), color 140ms var(--ease);
+}
+
+.tentry__ampm button + button {
+  border-top: 1.5px solid var(--line);
+}
+
+.tentry__ampm button.is-on {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+}
+
+.tentry__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+/* In a row (the Time row on a computer, Settings, a template): hour : minute, the app's own field look */
+.tentry--compact {
+  padding: 0;
+}
+
+.tentry__row--compact {
+  align-items: center;
+  gap: 2px;
+}
+
+.tentry__row--compact .tentry__box {
+  width: 38px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--tile);
+  box-shadow: none;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tentry__row--compact .tentry__box:focus {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.tentry__row--compact .tentry__colon {
+  height: 32px;
+  padding: 0 1px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+/* AM / PM: the app's two-part switch, small */
+.tentry__row--compact .tentry__ampm {
+  display: inline-flex;
+  height: 32px;
+  margin-inline-start: 6px;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--tile);
+  box-shadow: none;
+}
+
+.tentry__row--compact .tentry__ampm button {
+  width: auto;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.tentry__row--compact .tentry__ampm button + button {
+  border: 0;
+}
+
+.tentry__row--compact .tentry__ampm button.is-on {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(10 10 4 / 0.12);
+}
+
+/* The Time row on a computer: its value is the button that opens the boxes */
+.whenrow__btn--static {
+  cursor: default;
+}
+
+.whenrow__valuebtn {
+  flex: none;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.whenrow.is-set .whenrow__valuebtn {
+  color: var(--text);
+}
+
+.whenrow__valuebtn:hover {
+  background: var(--tile);
+}

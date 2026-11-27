@@ -1,0 +1,84 @@
+/* ---------------------------------------------------------------- photos on a task or a folder */
+
+.photos {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 14px -16px 4px;
+  padding: 8px 16px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.photos::-webkit-scrollbar {
+  display: none;
+}
+
+/* Each one a little print: a white edge, a soft shadow, a touch turned. */
+.photos__print {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 88px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgb(10 10 4 / 0.12),
+    0 8px 16px -8px rgb(10 10 4 / 0.35);
+  transition: transform 220ms var(--spring);
+  animation: sticky-in 520ms var(--spring) both;
+}
+
+.photos__print:active {
+  transform: scale(0.95);
+}
+
+.photos__print img,
+.photos__wait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
+  object-fit: cover;
+  background: var(--tile-2);
+}
+
+.photos__add {
+  position: relative;
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1.5px dashed rgb(10 10 4 / 0.25);
+  color: var(--text-2);
+}
+
+.photos__add .icon {
+  --s: 22;
+}
+
+.photos__add .photos__plus {
+  --s: 13;
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.photosheet {
+  display: grid;
+  gap: 16px;
+}
+
+.photosheet img {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 14px;
+  background: var(--tile);
+}

@@ -1,0 +1,103 @@
+/* ============================================================ Projects */
+
+/* Equal columns whatever the names: a long one wraps in its card, it never widens a column. */
+.projgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px 14px;
+  padding-top: 12px;
+}
+
+/* Projects sit like folders: a little tab, a slight tilt, and they straighten when you touch them. */
+.projcard {
+  --tilt: 0deg;
+  --fold-shadow: 0 1px 0 rgb(255 255 255 / 0.4) inset, 0 1px 2px rgb(10 10 4 / 0.06), 0 8px 20px -8px rgb(10 10 4 / 0.18);
+  --fold-lift: 0 1px 0 rgb(255 255 255 / 0.4) inset, 0 4px 8px rgb(10 10 4 / 0.06), 0 24px 48px -14px rgb(10 10 4 / 0.28);
+  min-height: 140px;
+  border-top-left-radius: 8px;
+  transform: rotate(var(--tilt));
+  box-shadow: var(--fold-shadow);
+  transition:
+    transform 260ms var(--spring),
+    box-shadow 200ms var(--ease);
+}
+
+.projcard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -11px;
+  width: 46%;
+  height: 22px;
+  border-radius: 10px 14px 0 0;
+  background: var(--c);
+  clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+}
+
+@media (hover: hover) {
+  .projcard:hover {
+    transform: rotate(0deg) translateY(-3px);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.4) inset,
+      0 2px 4px rgb(10 10 4 / 0.06),
+      0 16px 30px -10px rgb(10 10 4 / 0.24);
+  }
+}
+
+button.projcard:active {
+  transform: rotate(0deg) scale(0.97);
+}
+
+.projcard .ccard__top,
+.projcard .ccard__sub {
+  position: relative;
+  z-index: 1;
+}
+
+.projcard__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .projgrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.projcard--new {
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px;
+  border-radius: var(--r-l);
+  border: 1.5px dashed var(--tile-2);
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 500;
+  transition:
+    background 160ms var(--ease),
+    transform 180ms var(--ease);
+}
+
+.projcard--new:hover {
+  background: var(--tile);
+}
+
+.projcard--new:active {
+  transform: scale(0.98);
+}
+
+.projcard__plus {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--text);
+}

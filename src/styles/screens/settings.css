@@ -1,0 +1,294 @@
+/* ============================================================ Settings (SETTINGS, DECISIONS #9)
+ * One calm page: my card is the only big color on it. Everything changes in place.
+ */
+
+/* Copy that differs between a phone and a computer */
+.on-desk {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .on-phone {
+    display: none;
+  }
+  .on-desk {
+    display: inline;
+  }
+}
+
+/* No floating bar here, so no room kept for it */
+.main:has(> .settings) {
+  padding-bottom: calc(var(--safe-bottom) + 112px);
+}
+
+/* Something that can't move or be picked shakes when tapped */
+.is-nudge {
+  animation: refuse 280ms var(--ease);
+}
+
+/* My card: the name in the serif, edited in place; a sync pill; my person's tag on the edge */
+.mecard-wrap {
+  position: relative;
+  margin: 6px 0 40px;
+}
+
+.mecard {
+  min-height: 176px;
+  transition: background-color 320ms var(--ease);
+}
+
+.mecard.is-wobble {
+  animation: wobble 420ms var(--spring);
+}
+
+@keyframes wobble {
+  30% {
+    rotate: -1.2deg;
+  }
+  65% {
+    rotate: 0.6deg;
+  }
+}
+
+.ccard__input.mecard__name {
+  flex: 1;
+  min-width: 0;
+  margin: -2px 0 0 -2px;
+  padding: 0 2px;
+  border-radius: 8px;
+  font-size: 38px;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  caret-color: var(--ink);
+  transition: box-shadow 160ms var(--ease);
+}
+
+.ccard__input.mecard__name:focus {
+  box-shadow: 0 1.5px 0 rgb(10 10 4 / 0.3);
+}
+
+.mecard__sync {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  margin-top: 4px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 140ms var(--ease);
+}
+
+/* A 44px touch area around the 30px pill */
+.mecard__sync::before {
+  content: '';
+  position: absolute;
+  inset: -7px -4px;
+}
+
+.mecard__sync:active {
+  transform: scale(0.95);
+}
+
+.mecard__sync .syncdot {
+  width: 8px;
+  height: 8px;
+  flex-basis: 8px;
+}
+
+.mecard__spin {
+  animation: spin 900ms linear infinite;
+}
+
+.mecard .ccard__sub {
+  max-width: 24ch;
+}
+
+.mecard__tag {
+  position: absolute;
+  right: 26px;
+  bottom: -17px;
+  gap: 7px;
+  transform: rotate(-3deg);
+  box-shadow: var(--lift-1);
+}
+
+.mecard__tag.is-wiggle {
+  animation: wiggle 420ms var(--spring);
+}
+
+@keyframes wiggle {
+  25% {
+    rotate: 5deg;
+  }
+  60% {
+    rotate: -3deg;
+  }
+}
+
+.mecard__tag .live {
+  width: 7px;
+  height: 7px;
+  flex-basis: 7px;
+}
+
+.mecard__tag--empty {
+  gap: 6px;
+  background: var(--card);
+  box-shadow:
+    inset 0 0 0 1.5px var(--tile-2),
+    var(--lift-1);
+  color: var(--text-2);
+}
+
+.mecard__tag--empty:active {
+  transform: rotate(-3deg) scale(0.96);
+}
+
+.mecard__tag--empty .icon {
+  color: var(--text-2);
+}
+
+/* My person's color: their initial, not a faded dot */
+.swatch.is-taken {
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.7);
+  cursor: not-allowed;
+}
+
+/* The bottom bar on a gray stage, where it is edited; phone-sized on a computer too */
+
+/* One line, on a computer only: there the bar is the sidebar's order */
+
+/* Rows: chevrons on the ones that open something; white tokens and compact segmented controls as trailers */
+.optrow > .token {
+  flex: 0 0 auto;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.optrow > .icon.optrow__chev {
+  --s: 18;
+  color: var(--text-4);
+}
+
+.optrow__more {
+  margin: -6px 0 0;
+  padding: 0 16px 14px 50px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.seg--sm {
+  flex: 0 0 auto;
+  padding: 3px;
+}
+
+.seg--sm .seg__btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13.5px;
+}
+
+.group--danger {
+  margin-top: 12px;
+}
+
+.leave__backup {
+  margin-top: 16px;
+}
+
+/* About */
+.about {
+  margin-top: 54px;
+  text-align: center;
+}
+
+.about p {
+  margin: 8px 0 0;
+  color: var(--text-2);
+}
+
+.about__mark {
+  display: inline-block;
+  transform: rotate(-4deg);
+}
+
+.about .about__build {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.about__check {
+  position: relative;
+  color: var(--text-2);
+}
+
+/* A 44px touch area around the 34px pill */
+.about__check::before {
+  content: '';
+  position: absolute;
+  inset: -5px 0;
+}
+
+.about__check.is-checking .icon {
+  animation: spin 900ms linear infinite;
+}
+
+.about__check.is-current {
+  color: var(--text);
+}
+
+.about__check.is-current .icon {
+  color: var(--mint);
+}
+
+.about__check.is-ready {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.about__check.is-ready .icon {
+  color: inherit;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.about .about__for {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-nudge,
+  .mecard.is-wobble,
+  .mecard__tag.is-wiggle,
+  .about__check.is-checking .icon {
+    animation: none;
+  }
+}
+
+/* A quiet label inside a block: From earlier, then Today. */

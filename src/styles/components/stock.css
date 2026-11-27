@@ -1,0 +1,470 @@
+/* ============================================================ Kept stocked */
+
+/* On a row: how many are in, and a quick −1 */
+.meta--stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta--stock.is-low {
+  color: #9a6a00;
+}
+
+.meta--stock.is-out {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Where it goes when low: a line that opens the tree */
+
+/* Search: what it understood (tap to drop), and ways to narrow it down */
+.searchlayer__parts {
+  margin: 2px 0 10px;
+}
+
+.searchlayer__label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.searchlayer__ideas .tokens {
+  gap: 6px;
+}
+
+/* Edit Today: picking a folder from the tree */
+.homeghost__tree {
+  padding: 4px 8px 10px;
+}
+
+/* A filtered list: making it, and its block on Today */
+.savedlist__name {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.savedlist__rows {
+  margin-bottom: 18px;
+}
+
+.savedlist__row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  padding: 0 14px;
+  text-align: start;
+}
+
+.savedlist__row + .savedlist__row,
+.savedlist__rows .place + .savedlist__row {
+  border-top: 1px solid var(--line);
+}
+
+.savedlist__rows .place,
+.savedlist__rows .tagpick {
+  padding: 4px 10px 12px;
+}
+
+.savedlist__count {
+  margin: 20px 0 10px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-3);
+}
+
+.savedlist__remove {
+  display: block;
+  margin: 14px auto 0;
+  color: var(--text-3);
+}
+
+.savedlist__more {
+  margin: 8px 4px 0;
+}
+
+/* Where a tick would be: how many are in (tap: used one) */
+.stockcount {
+  flex: none;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--tile-2);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  transition: transform 140ms var(--spring), background 140ms var(--ease);
+}
+
+.stockcount:active:not(:disabled) {
+  transform: scale(0.88);
+}
+
+.stockcount.is-low {
+  background: #ffe7a8;
+}
+
+.stockcount.is-out {
+  background: var(--danger);
+  color: #fff;
+}
+
+.stockcount:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.hero .stockcount {
+  min-width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  font-size: 22px;
+  background: rgb(255 255 255 / 0.55);
+}
+
+/* ============================================================ Stock: the page */
+.stockadd {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.stockadd__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.stockadd__btn {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.stockadd__where {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 4px 0;
+  color: var(--text-3);
+}
+
+.stock .section:first-of-type {
+  margin-top: var(--space-4);
+}
+
+.stockrow {
+  gap: 12px;
+}
+
+.stock__empty {
+  margin-top: var(--space-5);
+  text-align: center;
+}
+
+/* On Folders: the way to Stock */
+.stocklink {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: var(--space-4);
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--tile);
+  text-align: start;
+  color: var(--text);
+  transition: background 140ms var(--ease), transform 140ms var(--ease);
+}
+
+.stocklink:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) {
+  .stocklink:hover {
+    background: var(--tile-2);
+  }
+}
+
+.stocklink__mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.stocklink__text {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.stocklink__title {
+  font-weight: 600;
+}
+
+.stocklink__sub {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+/* The path's actions: together, readable, wrapping as one */
+.crumbs__acts {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.crumbs__acts .crumbs__moveto + .crumbs__moveto {
+  margin-inline-start: 10px;
+}
+
+.crumbs__moveto > span {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumbs__moveto.is-on {
+  color: var(--text);
+}
+
+/* A task's card: a photo button at its foot, under the tick */
+.hero--item {
+  position: relative;
+}
+
+.hero--item .hero__sub {
+  padding-inline-end: 52px;
+}
+
+.herophoto {
+  position: absolute;
+  inset-inline-end: 20px;
+  bottom: 16px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.4);
+  color: var(--ink);
+  transition: background 140ms var(--ease), transform 160ms var(--spring);
+}
+
+.herophoto .icon {
+  --s: 18;
+}
+
+.herophoto:active {
+  transform: scale(0.9);
+}
+
+@media (hover: hover) {
+  .herophoto:hover {
+    background: rgb(255 255 255 / 0.65);
+  }
+}
+
+.herophoto__n {
+  position: absolute;
+  top: -3px;
+  inset-inline-end: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cta-text);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+/* Highlights: the star by the "…" (filled when it's on my Today) */
+.starbtn.is-on {
+  background: var(--ink);
+  color: var(--lemon);
+}
+
+.starbtn.is-on .icon__light {
+  fill: var(--lemon);
+  opacity: 1;
+}
+
+/* The chips' expand arrow: at the end of the first line */
+.echip--expand {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  margin-inline-start: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  color: var(--text-2);
+  transition: background 140ms var(--ease);
+}
+
+.echip--expand .icon {
+  --s: 18;
+  transition: transform 200ms var(--ease);
+}
+
+.echip--expand.is-open .icon {
+  transform: rotate(180deg);
+}
+
+@media (hover: hover) {
+  .echip--expand:hover {
+    background: var(--tile-2);
+    color: var(--text);
+  }
+}
+
+/* A time on a phone, in a row: the phone's own picker, in a field */
+.timefield {
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* ============================================================ Stock, on a task: Have · Want · Buy at, a bar, a quiet line */
+.stockcols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stockcol {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.stockcol__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+/* Have, of want, with a notch where it gets bought */
+.stockbar {
+  position: relative;
+  height: 6px;
+  margin: 16px 6px 4px;
+  border-radius: 999px;
+  background: var(--tile);
+}
+
+.stockbar__fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: inherit;
+  background: var(--mint, #3fbf7f);
+  transition: width 240ms var(--ease), background 200ms var(--ease);
+}
+
+.stockbar.is-low .stockbar__fill {
+  background: #f0b429;
+}
+
+.stockbar.is-out .stockbar__fill {
+  background: var(--danger);
+}
+
+.stockbar__notch {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  margin-inline-start: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+  transition: left 240ms var(--ease);
+}
+
+.stockfoot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.stockfoot__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--tile);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.stockfoot__chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
+}
+
+.stockfoot__urgent {
+  padding: 0 0 0 10px;
+}
+
+.stockfoot__urgent:not(.is-off) {
+  background: var(--lemon);
+}
+
+.stockfoot__stop {
+  margin-inline-start: auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.stockfoot__stop:hover {
+  background: var(--tile);
+  color: var(--text);
+}
+
+/* A subtask pulled out to the left of its task: the task shows where it lands (right after it) */
+.aisle li.row.is-droptarget:has(.row--nested.is-lifted-out) {
+  box-shadow: inset 0 -3px 0 var(--ink);
+  background: transparent;
+}
+
+/* A row's count, opened: − n + right where it is */
+.stockcount--open {
+  display: inline-flex;
+  animation: fade-in 120ms var(--ease) both;
+}

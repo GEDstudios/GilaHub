@@ -1,0 +1,74 @@
+/* ============================================================ Pairing */
+
+.pairsteps {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.pairsteps li + li {
+  margin-top: 6px;
+}
+
+.pairsteps strong {
+  color: var(--text);
+}
+
+.codepanel {
+  margin-top: 18px;
+  padding: 26px 20px 20px;
+  border-radius: 26px;
+  background: var(--lemon);
+  color: var(--ink);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.codepanel__code {
+  font-family: var(--serif);
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.codepanel__meta {
+  font-size: 13px;
+  color: rgb(10 10 4 / 0.7);
+}
+
+.codepanel__wait {
+  font-size: 15px;
+  color: rgb(10 10 4 / 0.6);
+}
+
+.codepanel__err {
+  font-size: 15px;
+}
+
+.pairqr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.qr {
+  width: 92px;
+  height: 92px;
+  flex: 0 0 92px;
+  padding: 6px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--lift-1);
+}
+
+.qr svg {
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,217 @@
+/* ---------------------------------------------------------------- who sees it: a loud chip */
+
+/* Ours: our two colours, side by side. Mine: my colour. Theirs: my person's. Private: ink, locked. */
+.echip.echip--vis {
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 0 0 1.5px var(--ink) inset;
+}
+
+.echip--vis-ours {
+  background: linear-gradient(100deg, var(--me) 0 50%, var(--them) 50% 100%);
+}
+
+.echip--vis-mine {
+  background: var(--me);
+}
+
+.echip--vis-theirs {
+  background: var(--them);
+}
+
+.echip.echip--vis-private {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+
+.echip.echip--vis-private .icon {
+  color: var(--bg);
+}
+
+.echip__faces {
+  display: inline-flex;
+  margin-left: -5px;
+}
+
+.echip__faces .avatar + .avatar {
+  margin-left: -7px;
+}
+
+.echip__faces .avatar {
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+/* A folder's description: a quiet line under its name, written in place. */
+.hero__desc {
+  display: block;
+  width: calc(100% - 48px);
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: rgb(10 10 4 / 0.72);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  position: relative;
+  z-index: 1;
+}
+
+.hero__desc::placeholder {
+  color: rgb(10 10 4 / 0.4);
+}
+
+.hero__desc:focus-visible {
+  outline: none;
+  color: var(--ink);
+}
+
+/* Unsaved changes, on Back: Save or Discard. */
+.choices {
+  display: grid;
+  gap: 10px;
+  margin-top: var(--space-3);
+}
+
+.choices--row {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.choices .btn {
+  gap: 8px;
+}
+
+.btn--danger {
+  color: var(--danger);
+}
+
+/* A folder inside, as a group's heading: its dot and name go there. */
+.aisle__go.aisle__golabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font: inherit;
+  border-radius: 8px;
+  padding: 2px 6px 2px 0;
+}
+
+@media (hover: hover) {
+  .aisle__golabel:hover span {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+/* At the end of a folder's group: a small white + to add straight into it. */
+.groupadd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  /* Riding the group's bottom edge: half on the last row, half below. */
+  /* (and its overhang not counted in the gap below) */
+  margin: -16px 14px -16px auto;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 2px 6px -3px rgb(10 10 4 / 0.25);
+  transition: transform 200ms var(--spring);
+}
+
+.groupadd .icon {
+  --s: 16;
+}
+
+.groupadd:active {
+  transform: scale(0.9);
+}
+
+/* The recovery code, shown once: big, spaced, easy to copy by hand. */
+.recovery__code {
+  margin: 18px 0 10px;
+  padding: 18px 14px;
+  border-radius: 16px;
+  background: var(--me-light, var(--lemon));
+  box-shadow: 0 0 0 1.5px var(--ink) inset;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  word-break: break-word;
+  user-select: all;
+}
+
+.recovery__acts {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.bigfield.codeinput.codeinput--long {
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.onboard__link--quiet {
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* A new tag: its icon (pick it first) beside "New tag …". */
+.tagnew {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tagnew__icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px dashed rgb(10 10 4 / 0.3);
+  color: var(--text-2);
+}
+
+.tagnew__icon.is-set,
+.tagnew__icon.is-open {
+  border-style: solid;
+  border-color: var(--ink);
+  color: var(--ink);
+  background: var(--me-light, var(--lemon));
+}
+
+.tagnew__pick {
+  margin-top: 10px;
+}
+
+/* A folder inside, as a group's heading: the way down from this page, B › C. */
+.aisle__path {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aisle__sep {
+  --s: 13;
+  color: var(--text-3);
+}
+
+.aisle__golabel.is-up {
+  color: var(--text-3);
+  padding-right: 2px;
+}

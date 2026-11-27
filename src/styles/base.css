@@ -81,10 +81,6 @@ textarea::placeholder {
   font-variant-numeric: tabular-nums;
 }
 
-.serif {
-  font-family: var(--serif);
-}
-
 .sr-only {
   position: absolute;
   width: 1px;

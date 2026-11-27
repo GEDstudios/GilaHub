@@ -1,0 +1,103 @@
+/* ---------------------------------------------------------------- rows: swipe, unfold, photo */
+
+/* Swiped sideways: the row follows the finger (translate, so a drag's transform is left alone). */
+.row {
+  translate: var(--swipe, 0px) 0;
+  transition:
+    background 140ms var(--ease),
+    translate 340ms var(--spring);
+}
+
+.row.is-swiping {
+  z-index: 1;
+  transition: background 140ms var(--ease);
+}
+
+/*
+ * What letting go will do, in the space the row uncovers: a start icon on my colour (Ongoing),
+ * or an × on a quiet band (Not now). It grows in as the row moves (--swipe-p) and pops once
+ * letting go would do it.
+ */
+
+/* With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). */
+
+/* A task's photo, small, at the row's end. */
+.row__thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgb(10 10 4 / 0.08);
+  transform: rotate(-3deg);
+}
+
+/* Its subtasks, unfolded under it: tap the n/m. */
+.meta--fold {
+  padding: 2px 6px 2px 4px;
+  margin: -2px -6px -2px -4px;
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+}
+
+@media (hover: hover) {
+  .meta--fold:hover {
+    background: rgb(10 10 4 / 0.05);
+  }
+}
+
+.meta--fold .meta__chev {
+  --s: 13;
+  transition: transform 220ms var(--ease);
+}
+
+.meta--fold.is-open .meta__chev {
+  transform: rotate(180deg);
+}
+
+.row--unfolded {
+  flex-wrap: wrap;
+}
+
+.rows.rows--sub {
+  flex-basis: 100%;
+  margin: 2px 0 -4px 22px;
+  border-radius: 14px;
+  background: transparent;
+  overflow: visible;
+  animation: row-in 220ms var(--ease) both;
+}
+
+.rows--sub .row {
+  min-height: 44px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 12px;
+  background: transparent;
+}
+
+/* A subtask is its own line to press: it lights alone */
+.rows--sub .row--tap:active {
+  background: var(--tile-2);
+}
+
+@media (hover: hover) {
+  .rows--sub .row--tap:hover {
+    background: rgb(10 10 4 / 0.06);
+  }
+}
+
+.rows--sub .row__title {
+  font-size: 15px;
+}
+
+.rows--sub .row + .row::before {
+  left: 44px;
+}
+
+.rows--sub .check {
+  transform: scale(0.86);
+}
+
+.rows--cards .rows--sub {
+  margin-left: 0;
+}

@@ -1,0 +1,125 @@
+/* ============================================================ Shopping */
+
+/* Arrange aisles (components/AisleArrange.tsx): the walk through the store, in rows you drag */
+
+.aislearr__rows {
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+}
+
+.aislearr__row {
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 6px 0 14px;
+}
+
+.aislearr__row.is-picking {
+  flex-wrap: wrap;
+}
+
+.aislearr__markbtn {
+  width: 40px;
+  height: 40px;
+  margin-left: -8px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.aislearr__markbtn:active,
+.aislearr__row.is-picking .aislearr__markbtn {
+  background: var(--tile);
+}
+
+.aislearr__pick {
+  flex: 0 0 100%;
+  padding: 4px 4px 12px 0;
+}
+
+.aislearr__mark {
+  width: 24px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.aislearr__mark .icon {
+  --s: 20;
+}
+
+.aislearr__name {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  font-size: 15.5px;
+  color: var(--text);
+}
+
+span.aislearr__name {
+  display: flex;
+  align-items: center;
+}
+
+.aislearr__name:focus-visible {
+  outline: none;
+  text-decoration: underline;
+  text-decoration-color: var(--text-4);
+  text-underline-offset: 4px;
+}
+
+.aislearr__n {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.aislearr__new {
+  margin-top: 8px;
+}
+
+
+.filter {
+  margin-bottom: 14px;
+}
+
+/* First thing on Shopping: one wide switch, all lists or one */
+
+/* Each choice gets its share of the width; a long name is cut, never scrolled */
+
+/* "Both" needs only its word; the lists share the rest */
+
+.buyagain {
+  margin-top: 20px;
+}
+
+.aisle {
+  margin-top: var(--space-4);
+}
+
+.aisle__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.aisle__head .num {
+  color: var(--text-3);
+}
+
+.aisle__head > .icon {
+  --s: 20;
+}
+
+.aisle .row {
+  min-height: 54px;
+}
+
+/* Outside the store a tick swaps Start shopping for this note, the same size, for a moment */
+/* Light on ink: the Urgent card stays the screen's one lemon moment */
+/* What just went in the cart, for a moment */

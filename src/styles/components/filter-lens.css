@@ -1,0 +1,155 @@
+/* ---------------------------------------------------------------- the lens */
+
+/*
+ * One quiet row over a screen's things: All, the people, Urgent, the tags that are here, each
+ * with its count. Unpicked chips are just text on the page; a picked one is ink. The row scrolls
+ * sideways under a soft fade; a project's view switch ends it.
+ */
+.lens {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 -16px var(--space-2);
+  padding: 0 16px;
+}
+
+/* The filter row sits with what it filters */
+.column > .lens + * {
+  margin-top: 0;
+}
+
+.lens--bare {
+  justify-content: flex-end;
+}
+
+.lens__chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: -4px 0;
+  padding: 4px 0;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+
+.lens__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.lens__chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 160ms var(--ease),
+    color 160ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.lens__chip:hover {
+  background: var(--tile);
+  color: var(--text);
+}
+
+.lens__chip:active {
+  transform: scale(0.95);
+}
+
+.lens__chip .icon {
+  --s: 15;
+  color: inherit;
+}
+
+.lens__chip .tagmark.icon {
+  color: var(--text-3);
+}
+
+.lens__chip .avatar {
+  margin-left: -4px;
+}
+
+.lens__n {
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.lens__chip.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.lens__chip.is-on .lens__n,
+.lens__chip.is-on .tagmark.icon {
+  color: inherit;
+  opacity: 0.7;
+}
+
+.lens .viewtoggle {
+  flex: none;
+  margin: 0;
+}
+
+/* The tray's name, beside its count. */
+
+/* A group's project, as a link (Everything inside). */
+.aisle__go {
+  display: inline-grid;
+  place-items: center;
+}
+
+/* On Today, the lens sits under the summary card, a breath apart. */
+
+/* A project a dragged task would land in: it lifts and rings in ink, so where it goes is plain. */
+.projgrid .projcard.is-droptarget,
+.projcard.is-droptarget {
+  transform: rotate(0deg) scale(1.05);
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
+  transition: transform 180ms var(--spring);
+}
+
+/* The task being dropped into a project: a small ink chip under the hand. */
+.dropchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 240px;
+  height: 38px;
+  padding: 0 15px 0 12px;
+  border-radius: 999px;
+  background: var(--cta);
+  color: var(--cta-text);
+  font-size: 14.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 10px 24px rgb(10 10 4 / 0.22);
+}
+
+.crumbs__step.is-droptarget,
+.topnav__tab.is-droptarget,
+.tabbar .is-droptarget {
+  border-radius: 10px;
+  background: var(--cta);
+  color: var(--cta-text);
+  box-shadow: 0 0 0 4px var(--cta);
+  transition: background 140ms var(--ease);
+}
+
+.crumbs__step.is-droptarget .crumbs__go,
+.crumbs__step.is-droptarget .icon {
+  color: inherit;
+}

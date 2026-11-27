@@ -1,0 +1,69 @@
+/* ============================================================ The + (Fab)
+ * One big round +, bottom right over the bar, on every screen: it adds what fits the screen.
+ */
+.fab {
+  position: fixed;
+  z-index: calc(var(--z-fab) + 1);
+  right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px);
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cta);
+  color: var(--cta-text);
+  box-shadow:
+    0 12px 26px -8px rgb(10 10 4 / 0.5),
+    0 2px 6px rgb(10 10 4 / 0.2);
+  transition: transform 200ms var(--spring), opacity 160ms var(--ease);
+}
+
+.fab .icon {
+  --s: 30;
+}
+
+/* A bold plus: the main thing in the app. */
+.fab .icon__line {
+  stroke-width: 1.4px;
+}
+
+.fab:active {
+  transform: scale(0.9);
+}
+
+/* Out of the way while something else has the stage */
+html:has(.sheet) .fab,
+html.is-searching .fab,
+html.is-editing .fab,
+html:has(.home--editing) .fab,
+html:has(.iconlib) .fab {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+}
+
+/* ============================================================ Projects inside projects */
+/* A folder holding folders: another sheet peeks out behind it, top right. */
+.projcard--stack {
+  box-shadow:
+    7px -7px 0 -1px color-mix(in srgb, var(--c) 72%, #0a0a04),
+    var(--fold-shadow);
+}
+
+.subprojects {
+  margin-top: var(--space-5);
+}
+
+/* Right under the folder's own settings: its folders, then (a section down) its tasks */
+.foldertools + .subprojects {
+  margin-top: 0;
+}
+
+.subprojects + .lens {
+  margin-top: var(--space-5);
+}
+
+.inside {
+  margin-top: 26px;
+}

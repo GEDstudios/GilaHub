@@ -1,0 +1,107 @@
+/* ============================================================ Sections */
+
+.section {
+  margin-top: 36px;
+}
+
+.column > .section:first-child {
+  margin-top: 28px;
+}
+
+/* Every label over a block (sections, aisles, "Want to modify something?") reads the same:
+ * 14px, medium, gray, a hair in from the card's edge. */
+.section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 24px;
+  margin: 0 2px 10px;
+}
+
+.section__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-2);
+}
+
+.section__count {
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.empty {
+  padding: 46px 8px 20px;
+  text-align: center;
+}
+
+.empty__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 26px;
+  letter-spacing: -0.015em;
+}
+
+.empty__text {
+  margin: 8px auto 0;
+  max-width: 34ch;
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+/* ============================================================ Write line (the Ideas sheet's composer) */
+
+.addrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 8px 6px 16px;
+  border-radius: 20px;
+  transition:
+    background 160ms var(--ease),
+    box-shadow 160ms var(--ease);
+}
+
+.addrow:focus-within {
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+}
+
+.addrow__plus {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.5px dashed var(--text-4);
+  color: var(--text-3);
+}
+
+.addrow__plus .icon {
+  --s: 13;
+}
+
+.addrow input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: 0;
+  background: transparent;
+  font-size: 16.5px;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* A few gray tokens to add with one tap, while there is nothing yet (chores, buy again) */

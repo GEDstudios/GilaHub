@@ -1,0 +1,143 @@
+/* ============================================================ Item */
+
+.takeit {
+  margin-top: 12px;
+}
+
+/* ============================================================ Composer ("New")
+ * You write on the card itself, in its display type. Compact: the card and the two or three
+ * chips that matter here, with More; full: every chip. Shopping keeps it open (Done / Add).
+ */
+
+.composer__card {
+  min-height: 140px;
+  gap: 18px;
+  /* Clear of the sheet's close button */
+  margin-top: 46px;
+}
+
+.composer__input {
+  display: block;
+  resize: none;
+  overflow: hidden;
+  min-height: 1.1em;
+  caret-color: var(--ink);
+}
+
+.composer__tokens,
+.composer__suggest {
+  margin-top: 12px;
+}
+
+.composer .inline__chips,
+.composer .inline {
+  margin-top: 16px;
+}
+
+.composer__foot {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.composer__foot .composer__add:not(.btn--block) {
+  flex: 1;
+}
+
+.composer__steps {
+  margin-top: 14px;
+}
+
+.composer__steplist {
+  margin: 0 0 4px;
+  padding: 4px 0;
+  list-style: none;
+  border-radius: 18px;
+  background: var(--tile);
+}
+
+.composer__step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 6px 0 14px;
+  font-size: 15px;
+  animation: row-in 200ms var(--ease) both;
+}
+
+.composer__step > span[dir] {
+  flex: 1;
+  min-width: 0;
+}
+
+.composer__stepinput {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.composer__stepinput:focus-visible {
+  outline: none;
+}
+
+.composer__stepdot {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-4);
+}
+
+.composer__stepx {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.composer__stepadd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 16px;
+  color: var(--text-3);
+  cursor: text;
+}
+
+.composer__stepadd:focus-within {
+  background: var(--card);
+  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+}
+
+.composer__stepadd input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  font-size: 15.5px;
+  color: var(--text);
+}
+
+.composer__stepadd input:focus-visible {
+  outline: none;
+}
+
+.subtaskadd {
+  margin-top: 6px;
+}
+
+.composer__stepgo {
+  flex: 0 0 auto;
+  margin-right: -8px;
+  animation: pop 200ms var(--spring) both;
+}

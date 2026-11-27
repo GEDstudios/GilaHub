@@ -1,0 +1,158 @@
+/* ============================================================ Tick feedback (ui/useSettle.ts)
+ * A ticked row stays a moment: the check pops, the tick draws, a line strikes the title,
+ * then the row folds away (from its measured height, --h).
+ */
+
+.row.is-settling {
+  pointer-events: none;
+  overflow: hidden;
+  animation: row-fold 220ms var(--ease) 300ms forwards;
+}
+
+.row.is-settling .row__title {
+  align-self: flex-start;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1.5px;
+  animation: strike 260ms var(--ease) 60ms forwards;
+}
+
+@keyframes strike {
+  to {
+    background-size: 100% 1.5px;
+    color: var(--text-3);
+  }
+}
+
+@keyframes row-fold {
+  from {
+    height: var(--h, 58px);
+    min-height: 0;
+  }
+  to {
+    height: 0;
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+  }
+}
+
+/* A count that just went up */
+.bump {
+  display: inline-block;
+  animation: bump 320ms var(--spring);
+}
+
+@keyframes bump {
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+/* A one-time hint under a list */
+.coach {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 2px 0;
+  font-size: 13px;
+  color: var(--text-3);
+  animation: fade-in 280ms var(--ease) both;
+}
+
+.heart {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+  transition:
+    color 140ms var(--ease),
+    transform 200ms var(--spring);
+}
+
+.heart.is-on {
+  color: #ff4d8d;
+  transform: scale(1.08);
+}
+
+/* ============================================================ Check — the tactile heart of it */
+
+.check {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: -10px -8px -10px -10px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+.check::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(10 10 4 / 0.72);
+  background: transparent;
+  transition:
+    background 180ms var(--ease),
+    border-color 180ms var(--ease),
+    transform 260ms var(--spring);
+}
+
+.check:active::before {
+  transform: scale(0.86);
+}
+
+.check__tick {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  opacity: 0;
+  transition: opacity 120ms var(--ease);
+}
+
+/* The tick draws itself in (pathLength is 20) */
+.check__tick path {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  transition: stroke-dashoffset 120ms var(--ease);
+}
+
+.check.is-on::before {
+  background: var(--c);
+  border-color: var(--ink);
+}
+
+.check.is-on .check__tick {
+  opacity: 1;
+}
+
+.check.is-on .check__tick path {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 240ms var(--ease) 80ms;
+}
+
+/* Ticked just now: the ring pops (Check adds .is-pop; a settling row does it too) */
+.check.is-pop::before,
+.is-settling .check::before {
+  animation: check-pop 300ms var(--ease);
+}
+
+@keyframes check-pop {
+  0% {
+    transform: scale(0.86);
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.check:disabled {
+  cursor: default;
+}

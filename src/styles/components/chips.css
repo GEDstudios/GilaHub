@@ -1,0 +1,506 @@
+/* ============================================================ Tokens & chips — the inline controls */
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tokens--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-left: calc(var(--gutter) * -1);
+  margin-right: calc(var(--gutter) * -1);
+  padding: 0 var(--gutter) 4px;
+}
+
+.tokens--scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.token {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    transform 140ms var(--ease),
+    background 140ms var(--ease);
+}
+
+.token:active {
+  transform: scale(0.96);
+}
+
+.token:disabled {
+  opacity: 0.4;
+}
+
+.token .icon {
+  --s: 15;
+  color: var(--text-2);
+}
+
+/* A token that carries its thing's mark leads with it; the + trails, quieter */
+.token .pmark {
+  --size: 18px;
+  border-radius: 5px;
+}
+
+.token .pmark .glyph-emoji {
+  font-size: 10px;
+}
+
+.token:has(> .token__plus) {
+  padding: 0 10px 0 11px;
+}
+
+.token > .icon.token__plus {
+  --s: 13;
+  color: var(--text-3);
+}
+
+.token.is-parsed {
+  background: var(--lemon-soft);
+}
+
+.token__x {
+  opacity: 0.55;
+  margin-right: -3px;
+}
+
+.icon.token__x {
+  --s: 13;
+}
+
+.token--split {
+  padding: 0;
+  gap: 0;
+}
+
+.token--split > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 6px 0 12px;
+}
+
+.token--split > .token__x {
+  width: 30px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0.45;
+}
+
+.inline {
+  margin-top: var(--space-3);
+}
+
+/* A folder's own settings, then (a step down) its filter row */
+.foldertools {
+  margin-bottom: var(--space-4);
+}
+
+/* A project's chips, between its hero and its list */
+.column > .projfields {
+  margin-bottom: 30px;
+}
+
+.inline__prompt {
+  margin: 0 0 10px 2px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.inline__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.echip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 15px 0 13px;
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--text-2);
+  font-size: 14.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 160ms var(--ease),
+    color 160ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.echip:active {
+  transform: scale(0.96);
+}
+
+.echip .icon {
+  --s: 18;
+  color: var(--text-3);
+}
+
+/* On: the chip fills with my colour, so what's set reads at a glance (open stays ink). */
+.echip.is-set,
+.echip--toggle.is-on {
+  background: var(--me-light, var(--lemon));
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.echip.is-set .icon,
+.echip--toggle.is-on .icon {
+  color: var(--ink);
+}
+
+.echip.is-open {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.echip.is-open .icon {
+  color: inherit;
+}
+
+.echip.is-urgent {
+  background: var(--lemon);
+  color: var(--ink);
+}
+
+/* A color chip (my color, a project's) shows the color itself */
+.echip__dot {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, var(--ink));
+}
+
+.echip.is-open .echip__dot {
+  box-shadow: 0 0 0 1.5px rgb(250 250 248 / 0.5);
+}
+
+/* The add row's size, beside its parsed tokens */
+.echip--sm {
+  height: 34px;
+  gap: 6px;
+  padding: 0 13px 0 11px;
+  font-size: 14px;
+}
+
+.echip--sm .icon {
+  --s: 16;
+}
+
+.echip--sm .dot {
+  margin: 0 1px;
+}
+
+/* An invitation, not a setting: e.g. "Ask your person" while on my own */
+.echip--ghost {
+  background: transparent;
+  border: 1.5px dashed var(--tile-2);
+  color: var(--text-2);
+}
+
+.echip--ghost.is-open {
+  border-color: transparent;
+}
+
+/* An on/off chip (Pin to bar): off is dashed, on fills with my colour (above) with a pop */
+.echip--toggle.is-on {
+  animation: pop 240ms var(--spring) both;
+}
+
+/* A chip's panel opens below the whole chip row, full width */
+.inline__chips > .panel {
+  order: 1;
+  flex: 1 0 100%;
+  margin-top: 2px;
+}
+
+.panel {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.03);
+  animation: panel-in 220ms var(--ease) both;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+}
+
+.panel__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.panel__hint {
+  margin: 10px 2px 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.panel__hint--first {
+  margin-top: 0;
+}
+
+.panel__cta {
+  margin-top: 14px;
+}
+
+.panel__invite {
+  margin-top: 8px;
+}
+
+/* A switch row inside a panel ("Needs my OK when done") */
+.optrow--switch {
+  cursor: pointer;
+}
+
+.optrow.optrow--panel {
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 4px 2px;
+}
+
+.optrow.optrow--panel .optrow__text {
+  font-size: 14.5px;
+  font-weight: 500;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 140ms var(--ease),
+    color 140ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.option:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.option:disabled {
+  opacity: 0.4;
+}
+
+.option .icon {
+  --s: 18;
+  color: var(--text-2);
+}
+
+.option.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.option.is-on .icon {
+  color: inherit;
+}
+
+.option .avatar {
+  margin-left: -6px;
+}
+
+.option--input {
+  padding: 0 4px 0 12px;
+  cursor: var(--cur-point, pointer);
+}
+
+.option--input input {
+  height: 34px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  min-width: 0;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--tile);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.stepper button {
+  width: 34px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink);
+}
+
+.stepper button .icon {
+  --s: 16;
+}
+
+.stepper button:disabled {
+  opacity: 0.28;
+}
+
+.stepper__n {
+  min-width: 22px;
+  padding: 0 2px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* The small one, in a chip or a row */
+.stepper--sm {
+  height: 30px;
+  font-size: 14px;
+}
+
+.stepper--sm button {
+  width: 28px;
+}
+
+.stepper--sm button .icon {
+  --s: 14;
+}
+
+/* On a tile already: white, a hairline */
+.stepper--card {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.stepper--bare {
+  background: none;
+}
+
+.stepper.is-low .stepper__n {
+  color: #9a6a00;
+}
+
+.stepper.is-out .stepper__n {
+  color: var(--danger);
+}
+
+.stepper.is-off .stepper__n {
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.stepper input {
+  width: 52px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.weekday {
+  height: 40px;
+  border-radius: 12px;
+  background: var(--tile);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.weekday.is-on {
+  background: var(--cta);
+  color: var(--cta-text);
+}
+
+.choose__label {
+  display: block;
+  margin: 0 0 9px 2px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--c);
+  transition:
+    transform 200ms var(--spring),
+    box-shadow 160ms var(--ease);
+}
+
+.swatch:active {
+  transform: scale(0.9);
+}
+
+.swatch.is-on {
+  box-shadow:
+    0 0 0 2.5px var(--bg),
+    0 0 0 4px var(--text);
+}
+
+.swatch:disabled {
+  opacity: 0.25;
+}
+
+.swatches--big .swatch {
+  width: 42px;
+  height: 42px;
+}
