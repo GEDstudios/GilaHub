@@ -14,7 +14,7 @@ import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Disclosure, lineVars, ListBullet } from '../ui/primitives';
+import { Band, Disclosure, lineVars, ListBullet, TextButton, Button } from '../ui/primitives';
 import { SyncBadge } from '../components/SyncBadge';
 import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
@@ -23,8 +23,10 @@ import { listVisLabel, VIS_ICON } from '../privacy';
 import { MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
 import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
+import { hashOf } from '../../core/ids';
 import { listKey, listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
+import { useEscape } from '../ui/keyboard';
 
 /** A name on a card of its color, then the same chips as a project's page. */
 export function NewProjectSheet({
@@ -102,20 +104,16 @@ export function NewProjectSheet({
 
         <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} />
 
-        <button type="submit" className="btn btn--block" style={{ marginTop: 26 }} disabled={!name.trim()}>
+        <Button block type="submit" style={{ marginTop: 26 }} disabled={!name.trim()}>
           Create folder
-        </button>
+        </Button>
       </form>
     </Sheet>
   );
 }
 
 /** A small, stable tilt per project, so the cards sit like real folders. */
-function tilt(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return [-2.2, -1.4, -0.6, 0.8, 1.5, 2.3][Math.abs(h) % 6];
-}
+const tilt = (id: string): number => [-2.2, -1.4, -0.6, 0.8, 1.5, 2.3][hashOf(id) % 6];
 
 /** Where a folder is dropped to pin it: the bottom bar, or on a computer the top bar's places. */
 const liveBar = () => {
@@ -157,7 +155,7 @@ export function useBarDrop(arranging = false) {
       const was = before.includes(key);
       pinAt(hub, key, at ?? before.length);
       const name = tabOf(hub, key)?.label;
-      if (!was && name && !arrangingRef.current) toast(`${name} is in the bar`, { action: { label: 'Undo', run: () => setPins(hub, before) } });
+      if (!was && name && !arrangingRef.current) toast(`${name} is in the bar`, { undo: () => setPins(hub, before) });
     };
     const common = { nav: liveBar, tabOf: (key: string) => tabOf(hub, key), pinned: () => pinsOf(hub), get: getAim, set: setAim, place };
     return { folders: barTarget({ ...common, keyOf: (id) => listKey(id) }), tokens: barTarget(common) };
@@ -295,17 +293,7 @@ export function Lists() {
   };
   // Leaving the page leaves the mode.
   useEffect(() => () => setArranging(false), []);
-  // Esc leaves it too (not mid-drag, where Esc cancels the drag, nor under a sheet).
-  useEffect(() => {
-    if (!arranging) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented || document.documentElement.classList.contains('is-dragging')) return;
-      if (document.querySelector('.sheet')) return;
-      stop();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [arranging]);
+  useEscape(arranging, stop);
 
   const toBar = useBarDrop(arranging);
 
@@ -353,10 +341,9 @@ export function Lists() {
 
         {arranging ? null : (
           <p className="editlink editlink--phone">
-            <button ref={arrangeRef} type="button" className="textbtn" onClick={start}>
+            <TextButton iconAfter={G.edit} ref={arrangeRef} onClick={start}>
               Arrange the bar
-              <Icon name={G.edit} className="icon--xs" />
-            </button>
+            </TextButton>
           </p>
         )}
 

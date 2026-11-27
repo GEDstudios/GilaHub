@@ -24,7 +24,7 @@ import { Icon } from '../ui/Icon';
 import { makeRecovery } from '../../core/session';
 import { formatRecoveryCode } from '../../core/ids';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Choices, CursorMark, initialOf, lightVar, lineVars, Logo, Section, Seg, Switch } from '../ui/primitives';
+import { Band, Choices, CursorMark, initialOf, lightVar, lineVars, Logo, Section, Seg, Switch, TextButton, Button } from '../ui/primitives';
 import { G } from '../ui/glyphs';
 
 /**
@@ -134,9 +134,10 @@ function RecoverySheet({ onClose }: { onClose: () => void }) {
           {shown}
         </p>
         <div className="recovery__acts">
-          <button
-            type="button"
-            className="btn btn--sm btn--quiet"
+          <Button
+            icon={G.copy}
+            small
+            quiet
             onClick={() => {
               void navigator.clipboard?.writeText(shown).then(
                 () => toast('Copied'),
@@ -144,13 +145,13 @@ function RecoverySheet({ onClose }: { onClose: () => void }) {
               );
             }}
           >
-            <Icon name={G.copy} className="icon--sm" /> Copy
-          </button>
+            Copy
+          </Button>
         </div>
         <SwitchRow title="I’ve saved it somewhere safe" on={saved} onChange={setSaved} />
-        <button type="button" className="btn btn--block" disabled={!saved} onClick={onClose}>
+        <Button block disabled={!saved} onClick={onClose}>
           Done
-        </button>
+        </Button>
       </Sheet>
     );
   }
@@ -161,9 +162,9 @@ function RecoverySheet({ onClose }: { onClose: () => void }) {
       </p>
       {me?.recoverySetAt ? <p className="hint">You made one on {new Date(me.recoverySetAt).toLocaleDateString()}. Making a new one stops the old one working.</p> : null}
       {error ? <p className="onboard__error">{error}</p> : null}
-      <button type="button" className="btn btn--block" disabled={busy} onClick={() => void make()}>
+      <Button block disabled={busy} onClick={() => void make()}>
         {busy ? 'Locking your keys…' : me?.recoverySetAt ? 'Make a new code' : 'Make my recovery code'}
-      </button>
+      </Button>
     </Sheet>
   );
 }
@@ -378,9 +379,9 @@ function UnblockSheet({ onClose }: { onClose: () => void }) {
         <OptRow icon={G.device} title="Android" sub="Hold the Gila Hub icon → App info → Notifications" />
         <OptRow icon={G.browser} title="In a browser" sub="Tap the icon by the address, then allow notifications" />
       </div>
-      <button type="button" className="btn btn--quiet btn--block" style={{ marginTop: 20 }} onClick={onClose}>
+      <Button quiet block style={{ marginTop: 20 }} onClick={onClose}>
         Got it
-      </button>
+      </Button>
     </Sheet>
   );
 }
@@ -437,9 +438,9 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
       title="Notifications"
       action={
         push === 'on' ? (
-          <button type="button" className="textbtn" onClick={() => void test()} disabled={testing}>
+          <TextButton onClick={() => void test()} disabled={testing}>
             {testing ? 'Sending…' : 'Send a test'}
-          </button>
+          </TextButton>
         ) : undefined
       }
     >
@@ -599,9 +600,9 @@ function ThisDevice() {
         />
         {prefs.sounds ? (
           <p className="editlink">
-            <button type="button" className="textbtn" onClick={hearThem}>
+            <TextButton onClick={hearThem}>
               Hear them
-            </button>
+            </TextButton>
           </p>
         ) : null}
       </div>
@@ -735,7 +736,7 @@ function UpdatePill() {
     setPill(found);
   };
 
-  const icon = state === 'current' ? 'check' : state === 'ready' ? 'arrow' : 'refresh';
+  const icon = state === 'current' ? G.done : state === 'ready' ? G.continue : G.reload;
   return (
     <button type="button" className={`token about__check is-${state}`} onClick={() => void run()} aria-live="polite">
       {state === 'offline' || state === 'failed' ? null : <Icon name={icon} />}

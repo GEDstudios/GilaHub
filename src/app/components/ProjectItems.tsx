@@ -5,11 +5,11 @@ import { navigate } from '../router';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { FoldButton, ListBullet } from '../ui/primitives';
-import { Sortable, useSortableItem, type Point } from '../ui/Sortable';
+import { FoldButton, ListBullet, DropChip } from '../ui/primitives';
+import { Sortable, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import type { ProjectGroup } from '../views';
-import { ItemRow } from './ItemRow';
+import { ItemRow, SortableItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
 import { movedTo } from './TemplateAsk';
 import { getPrefs, setPrefs, usePrefs } from '../prefs';
@@ -20,8 +20,6 @@ import { G } from '../ui/glyphs';
 import { dropMarks } from '../ui/dropMark';
 import { dweller, placer, unfoldTo, type Placement } from '../outline';
 
-const idOf = (i: Item) => i.id;
-
 /** The project under the hand, if any: one marked [data-drop-list], or a project's tab in the bar. */
 function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
   for (const e of document.elementsFromPoint(p.x, p.y)) {
@@ -31,13 +29,6 @@ function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
     if (listId) return { el: t, listId };
   }
   return null;
-}
-
-type RowProps = { item: Item; settling?: boolean; showList?: boolean; skipTag?: string | null; flash?: boolean };
-
-function SortableRow(p: RowProps) {
-  const s = useSortableItem(p.item.id, { disabled: p.settling });
-  return <ItemRow {...p} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
 }
 
 /**
@@ -68,7 +59,7 @@ export function ProjectItems({
   const hub = useHub();
   const overlays = useOverlays();
   const { toast, openSheet } = overlays;
-  const settle = useSettle(idOf);
+  const settle = useSettle<Item>();
   const prefs = usePrefs();
   // As lists, the groups go in my order for this page (a group I never moved keeps its place
   // after the ones I did); the folders' own order isn't touched. The folder's own tasks lead.
@@ -230,7 +221,7 @@ export function ProjectItems({
       rest.splice(at < 0 ? rest.length : at, 0, tag);
       if (rest.join() === was.join()) return;
       hub.arrangeTags(rest);
-      toast(`${hub.tag(tag)?.name ?? 'Tag'} moved`, { action: { label: 'Undo', run: () => hub.arrangeTags(was) } });
+      toast(`${hub.tag(tag)?.name ?? 'Tag'} moved`, { undo: () => hub.arrangeTags(was) });
     } else if (g.listId && pageId) {
       const keys = groups.filter((x) => sortScope(x) === 'lists').map((x) => x.key);
       const next = keys.filter((k) => k !== key);
@@ -238,7 +229,7 @@ export function ProjectItems({
       next.splice(at < 0 ? next.length : at, 0, key);
       const was = getPrefs().groupOrder;
       setPrefs({ groupOrder: { ...was, [pageId]: next } });
-      toast(`${g.label} moved`, { action: { label: 'Undo', run: () => setPrefs({ groupOrder: was }) } });
+      toast(`${g.label} moved`, { undo: () => setPrefs({ groupOrder: was }) });
     }
   });
 
@@ -287,7 +278,7 @@ export function ProjectItems({
             <ul className={rowsClass}>
               {shown.map(({ row: i, settling }) =>
                 draggable && !settling ? (
-                  <SortableRow key={i.id} item={i} showList={mixed} skipTag={g.tag} flash={flash.has(i.id)} />
+                  <SortableItemRow key={i.id} item={i} showList={mixed} skipTag={g.tag} flash={flash.has(i.id)} />
                 ) : (
                   <ItemRow key={i.id} item={i} showList={mixed} skipTag={g.tag} settling={settling} flash={flash.has(i.id)} />
                 ),
@@ -334,12 +325,7 @@ export function ProjectItems({
             const item = hub.item(id);
             // Over a project: the task as a small chip, going in.
             if (item && outside)
-              return (
-                <span className="dropchip">
-                  <Icon name={nesting ? G.subtask : G.move} className="icon--sm" />
-                  <span dir="auto">{item.title}</span>
-                </span>
-              );
+              return <DropChip label={item.title} nesting={nesting} />;
             return item ? (
               <ul className={rowsClass}>
                 <ItemRow item={item} showList={showList} skipTag={groupOf.get(id)?.tag} />

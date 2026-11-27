@@ -35,7 +35,9 @@ interface SheetEntry {
 }
 
 export interface ToastOpts {
-  /** One button, or a few (the first is the main one). */
+  /** The usual one button: Undo, taking back what the toast just said was done. */
+  undo?: () => void;
+  /** Another button, or a few (the first is the main one). */
   action?: ToastAction | ToastAction[];
   ms?: number;
   /**
@@ -142,7 +144,7 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
 
   const toast = useCallback<OverlayApi['toast']>(
     (message, opts = {}) => {
-      const actions = opts.action ? [opts.action].flat() : [];
+      const actions = [...(opts.undo ? [{ label: 'Undo', run: opts.undo }] : []), ...(opts.action ? [opts.action].flat() : [])];
       const ms = opts.ms ?? (actions.length ? TOAST.withAction : TOAST.normal);
       const route = currentPath();
       // The same words twice in a row are one toast (it bumps) rather than two stacked.

@@ -64,3 +64,10 @@ export function isValidRecoveryCode(code: string): boolean {
 export function formatRecoveryCode(code: string): string {
   return code.replace(/(.{5})(?=.)/g, '$1-');
 }
+
+/** A small number that is always the same for an id: for picking its tilt, its place in a shuffle. */
+export function hashOf(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}

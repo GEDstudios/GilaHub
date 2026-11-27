@@ -8,7 +8,7 @@ import { Icon } from '../ui/Icon';
 import { lockScroll, useOverlays } from '../ui/overlays';
 import { QuickAddSheet } from './QuickAddSheet';
 import { NewProjectSheet } from '../screens/Lists';
-import { ListBullet } from '../ui/primitives';
+import { ListBullet, TextButton } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
 import { G } from '../ui/glyphs';
 
@@ -96,9 +96,9 @@ function Layer() {
               </button>
             ) : null}
           </label>
-          <button type="button" className="textbtn searchlayer__close" onClick={closeSearch}>
+          <TextButton onClick={closeSearch} className="searchlayer__close">
             Close
-          </button>
+          </TextButton>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ function Layer() {
             <div className="tokens">
               {ideas.map((w) => (
                 <button key={w} type="button" className="token" onClick={() => add(w)}>
-                  <Icon name={w === 'urgent' ? 'urgent' : w === 'mine' ? 'mine' : w === 'ours' ? 'ours' : 'calendar'} />
+                  <Icon name={w === 'urgent' ? G.urgent : w === 'mine' ? G.mine : w === 'ours' ? G.ours : G.date} />
                   <span>{w[0].toUpperCase() + w.slice(1)}</span>
                 </button>
               ))}
@@ -151,16 +151,15 @@ function Layer() {
                   <span dir="auto">{r}</span>
                 </button>
               ))}
-              <button
-                type="button"
-                className="textbtn searchlayer__forget"
+              <TextButton
                 onClick={() => {
                   clearRecentSearches();
                   setRecent([]);
                 }}
+                className="searchlayer__forget"
               >
                 Clear
-              </button>
+              </TextButton>
             </div>
           </div>
         ) : null}

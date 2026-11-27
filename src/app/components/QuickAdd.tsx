@@ -19,8 +19,8 @@ import type { Hub } from '../../core/hub';
 import { usePingUrgent } from './add';
 import { TOAST } from '../ui/tokens';
 import type { Draft } from '../draft';
-import { G_TEXT } from '../ui/glyphs';
-import { G } from '../ui/glyphs';
+import { G, G_TEXT } from '../ui/glyphs';
+import { myName } from '../labels';
 
 /** What a composer had picked: kept with a draft so a reload brings it all back. */
 export interface ComposeSeed {
@@ -199,7 +199,7 @@ export function useCompose({
     if (d.remind != null && typeof Notification !== 'undefined' && Notification.permission === 'default') setUpReminders(rt, toast);
     const made = hub.item(id);
     if (made && asking && made.requestedBy === hub.meId) {
-      notifyAbout(rt, hub, made, d.assignee as string, `${G_TEXT.ask} ${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
+      notifyAbout(rt, hub, made, d.assignee as string, `${G_TEXT.ask} ${myName(hub)} asked you`, made.title);
     }
     // New (from Today, Search…) opens on the last project used.
     if (!parent) setPrefs({ lastList: to.id });
@@ -228,7 +228,7 @@ export function tagChip(c: Compose, hub: Hub) {
   return {
     key: 'tags',
     label,
-    icon: lead ? undefined : ('tag' as const),
+    icon: lead ? undefined : G.tag,
     lead: lead ? <TagMark icon={lead} /> : undefined,
     set: c.tags.length > 0,
     panel: () => <TagPicker value={c.tags} onChange={c.setTags} suggested={[...c.suggested.auto, ...c.suggested.more]} />,

@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { settleMerge, type SettleSnap } from './motion';
 
+const idOf = (row: { id: string }) => row.id;
+
 /** How long a ticked row stays in place: the check pops, the tick draws, the title strikes, the row folds away. */
 const SETTLE_MS = 520;
 
@@ -16,12 +18,10 @@ export interface Settle<T> {
  * Tick feedback for a screen of rows. Rows that can settle carry `data-settle={id}` and,
  * while settling, the class `is-settling` (see "Tick feedback" in components.css).
  */
-export function useSettle<T>(idOf: (t: T) => string): Settle<T> {
+export function useSettle<T extends { id: string }>(): Settle<T> {
   const [held, setHeld] = useState<ReadonlySet<string>>(() => new Set());
   const snaps = useRef(new Map<string, SettleSnap<T>>());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  const idRef = useRef(idOf);
-  idRef.current = idOf;
 
   useEffect(() => {
     const t = timers.current;
@@ -52,8 +52,8 @@ export function useSettle<T>(idOf: (t: T) => string): Settle<T> {
 
   const view = useCallback(
     (group: string, rows: readonly T[]) => {
-      const out = settleMerge(rows, idRef.current, snaps.current.get(group), held);
-      snaps.current.set(group, { order: out.map((o) => idRef.current(o.row)), byId: new Map(out.map((o) => [idRef.current(o.row), o.row])) });
+      const out = settleMerge(rows, idOf, snaps.current.get(group), held);
+      snaps.current.set(group, { order: out.map((o) => o.row.id), byId: new Map(out.map((o) => [o.row.id, o.row])) });
       return out;
     },
     [held],

@@ -11,12 +11,13 @@ import { projectView } from '../views';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { useBackGuard } from '../ui/backGuard';
-import { lineVars } from '../ui/primitives';
+import { lineVars, Button } from '../ui/primitives';
 import { UrgentTag } from '../ui/tags';
 import { EChip, InlineEditor, useSummary } from './editors';
 import { listChip, ParsedToken, tagChip, useCompose, type ComposeSeed } from './QuickAdd';
 import type { Field } from '../draft';
 import { G } from '../ui/glyphs';
+import type { Hub } from '../../core/hub';
 
 /**
  * New: the one way to add, from the black + on every screen. You write straight onto the
@@ -55,7 +56,7 @@ function saveDraft(d: ComposerDraft | null) {
 }
 
 /** The draft left by a reload, if it's recent and still has somewhere to go. */
-export function pendingDraft(hub: ReturnType<typeof useHub>): ComposerDraft | null {
+export function pendingDraft(hub: Hub): ComposerDraft | null {
   try {
     const d = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as ComposerDraft | null;
     if (!d || Date.now() - d.at > DRAFT_TTL || !hub.list(d.listId) || (!d.text?.trim() && !d.own?.length)) return null;
@@ -456,18 +457,18 @@ function Composer({
               enterKeyHint="next"
             />
             {stepText.trim() ? (
-              <button type="button" className="btn btn--sm composer__stepgo" onMouseDown={(e) => e.preventDefault()} onClick={addStep}>
+              <Button small onMouseDown={(e) => e.preventDefault()} onClick={addStep} className="composer__stepgo">
                 Add
-              </button>
+              </Button>
             ) : null}
           </label>
         </div>
       ) : null}
 
       <div className="composer__foot">
-        <button type="submit" className="btn btn--block composer__add" disabled={!title}>
+        <Button block type="submit" disabled={!title} className="composer__add">
           Add
-        </button>
+        </Button>
       </div>
     </form>
   );

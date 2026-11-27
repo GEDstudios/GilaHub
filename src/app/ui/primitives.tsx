@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type ReactNode, type Ref } from 'react';
 import type { LineColor, List, Member } from '../../core/model';
 import { haptic } from './haptics';
 import { Icon, type IconName } from './Icon';
@@ -10,25 +10,25 @@ export const lineVars = (c: LineColor | undefined): CSSProperties =>
 /** A person's icon light (--me-light, --them): their color, with lemon standing in for ink. */
 export const lightVar = (c: LineColor): string => `var(--${c === 'ink' ? 'lemon' : c})`;
 
-const firstGrapheme = (s: string): string => {
-  const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+/** The first character of some text, whole (an emoji or an accented letter is one); '' when there's none. */
+export const firstGrapheme = (s: string): string => {
   const t = s.trim();
-  if (!t) return '?';
-  if (seg) for (const { segment } of seg.segment(t)) return segment.toUpperCase();
-  return t[0].toUpperCase();
+  if (!t) return '';
+  if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(t)) return segment;
+  return [...t][0];
 };
 
 type Size = 'xs' | 'sm' | 'md' | 'lg';
 
-/** The first letter of a name (a whole grapheme, so emoji and accents survive), upper-cased. */
-export const initialOf = (s: string): string => firstGrapheme(s);
+/** A name's initial, upper-cased ("?" for no name). */
+export const initialOf = (s: string): string => (firstGrapheme(s) || '?').toUpperCase();
 
 /** A person: a round avatar in their color with their initial. */
 export function Avatar({ member, size = 'sm' }: { member?: Member; size?: Size }) {
   if (!member) return null;
   return (
     <span className={`avatar avatar--${size}`} style={lineVars(member.color)} title={member.name} aria-hidden="true">
-      {firstGrapheme(member.name)}
+      {initialOf(member.name)}
     </span>
   );
 }
@@ -206,6 +206,74 @@ export function Stepper({
   );
 }
 
+type ButtonAttrs = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'type' | 'children' | 'aria-label'> & { ref?: Ref<HTMLButtonElement> };
+
+/**
+ * The button that commits something (`.btn`): Add, Create folder, Stick it. `quiet` is the lighter
+ * second choice, `small` the 40px one in a row or a header, `block` fills its line, `danger` deletes.
+ */
+export function Button({
+  children,
+  icon,
+  quiet,
+  danger,
+  small,
+  block,
+  className,
+  type = 'button',
+  label,
+  ...rest
+}: ButtonAttrs & {
+  children: ReactNode;
+  /** A glyph before the words. */
+  icon?: IconName;
+  quiet?: boolean;
+  danger?: boolean;
+  small?: boolean;
+  block?: boolean;
+  /** A class for where it sits (never for how it looks). */
+  className?: string;
+  type?: 'button' | 'submit';
+  /** Said to a screen reader instead of the words on it. */
+  label?: string;
+}) {
+  const cls = `btn${small ? ' btn--sm' : ''}${quiet ? ' btn--quiet' : ''}${block ? ' btn--block' : ''}${danger ? ' btn--danger' : ''}${className ? ` ${className}` : ''}`;
+  return (
+    <button type={type} className={cls} aria-label={label} {...rest}>
+      {icon ? <Icon name={icon} className="icon--sm" /> : null}
+      {children}
+    </button>
+  );
+}
+
+/** A low-emphasis, underlined link of a button (`.textbtn`): Edit Today, Invite your person, Delete. */
+export function TextButton({
+  children,
+  icon,
+  iconAfter,
+  danger,
+  className,
+  label,
+  ...rest
+}: ButtonAttrs & {
+  children: ReactNode;
+  /** A glyph before the words… */
+  icon?: IconName;
+  /** …or a small one after them (it leads somewhere). */
+  iconAfter?: IconName;
+  danger?: boolean;
+  className?: string;
+  label?: string;
+}) {
+  return (
+    <button type="button" className={`textbtn${danger ? ' textbtn--danger' : ''}${className ? ` ${className}` : ''}`} aria-label={label} {...rest}>
+      {icon ? <Icon name={icon} className="icon--sm" /> : null}
+      {children}
+      {iconAfter ? <Icon name={iconAfter} className="icon--xs" /> : null}
+    </button>
+  );
+}
+
 /** One answer to a question a sheet asks. The first is the main one; `quiet` ones are lighter. */
 type Choice = { label: string; icon?: IconName; run: () => void; quiet?: boolean; danger?: boolean; disabled?: boolean };
 
@@ -217,12 +285,40 @@ export function Choices({ choices, row }: { choices: Choice[]; row?: boolean }) 
   return (
     <div className={`choices${row ? ' choices--row' : ''}`}>
       {choices.map((c) => (
-        <button key={c.label} type="button" className={`btn btn--block${c.quiet ? ' btn--quiet' : ''}${c.danger ? ' btn--danger' : ''}`} disabled={c.disabled} onClick={c.run}>
-          {c.icon ? <Icon name={c.icon} className="icon--sm" /> : null}
+        <Button key={c.label} block icon={c.icon} quiet={c.quiet} danger={c.danger} disabled={c.disabled} onClick={c.run}>
           {c.label}
-        </button>
+        </Button>
       ))}
     </div>
+  );
+}
+
+/** ♡: thanks for something my person did. Filled once said; a tap again takes it back. */
+export function ThanksButton({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`heart ${on ? 'is-on' : ''}`}
+      aria-label={label}
+      aria-pressed={on}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!on) haptic('success');
+        onToggle();
+      }}
+    >
+      <Icon name={on ? G.thanked : G.thanks} />
+    </button>
+  );
+}
+
+/** What's in the hand, small, while it's over somewhere it can go into (a folder, a task, a step of the path). */
+export function DropChip({ label, nesting }: { label: string; /** It goes under a task (↳) rather than out on its own. */ nesting?: boolean }) {
+  return (
+    <span className="dropchip">
+      <Icon name={nesting ? G.subtask : G.move} className="icon--sm" />
+      <span dir="auto">{label}</span>
+    </span>
   );
 }
 
@@ -329,6 +425,7 @@ export function Section({
   action,
   children,
   id,
+  className,
 }: {
   title: ReactNode;
   /** Hidden at 0. */
@@ -336,9 +433,10 @@ export function Section({
   action?: ReactNode;
   children: ReactNode;
   id?: string;
+  className?: string;
 }) {
   return (
-    <section className="section" id={id}>
+    <section className={`section${className ? ` ${className}` : ''}`} id={id}>
       <div className="section__head">
         <h2 className="section__title">
           {title}

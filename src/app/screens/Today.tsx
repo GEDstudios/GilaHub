@@ -15,7 +15,7 @@ import { visibleHome, queryIdOf } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Band, IconButton, lightVar } from '../ui/primitives';
+import { Band, IconButton, lightVar, TextButton } from '../ui/primitives';
 import { haptic } from '../ui/haptics';
 import { setPrefs, usePrefs } from '../prefs';
 import { isMineSide, VIS_ICON } from '../privacy';
@@ -24,8 +24,8 @@ import { todayView, type TodayView } from '../views';
 import { calm } from '../ui/tokens';
 import { listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
-
-const idOf = (i: Item) => i.id;
+import { DoneButton } from '../ui/edit';
+import { useEscape } from '../ui/keyboard';
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -92,7 +92,7 @@ export function Today() {
   ) : null;
 
   // Ticked rows stay a moment (check, strike, fold) before they leave their block.
-  const settle = useSettle(idOf);
+  const settle = useSettle<Item>();
   const [editing, setEditing] = useState(false);
   const [entering, setEntering] = useState(() => !greeted);
 
@@ -113,17 +113,7 @@ export function Today() {
       window.scrollTo({ top: 0 });
     });
 
-  // Esc leaves Edit Today (not while a row is being dragged: there Esc cancels the drag).
-  useEffect(() => {
-    if (!editing) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || e.defaultPrevented || document.documentElement.classList.contains('is-dragging')) return;
-      if (document.querySelector('.sheet')) return;
-      edit(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
+  useEscape(editing, () => edit(false));
 
   const date = fromDateStr(ref).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -152,10 +142,10 @@ export function Today() {
 
   const editLink = (
     <div className="homeedit">
-      <button type="button" className="textbtn" onClick={() => edit(true)}>
+      <TextButton onClick={() => edit(true)}>
         <Icon name={G.edit} />
         Edit Today
-      </button>
+      </TextButton>
     </div>
   );
 
@@ -164,11 +154,7 @@ export function Today() {
       <>
         <Band
           top={<SyncBadge />}
-          actions={
-            <button type="button" className="btn btn--sm" onClick={() => edit(false)}>
-              Done
-            </button>
-          }
+          actions={<DoneButton onClick={() => edit(false)} />}
           title="Edit Today"
           mini="Edit Today"
         />

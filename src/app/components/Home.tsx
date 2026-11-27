@@ -4,11 +4,12 @@ import type { Item, LineColor } from '../../core/model';
 import { useHub, usePartnerHere } from '../context';
 import { summaryOf, weekBy, weekCounts, weekDays } from '../home';
 import { setPrefs, use24h, usePrefs } from '../prefs';
+import { howMany } from '../labels';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { PersonCursor } from '../ui/PersonCursor';
-import { Avatar, lightVar, lineVars } from '../ui/primitives';
+import { Avatar, lightVar, lineVars, ThanksButton, Button, Section } from '../ui/primitives';
 import { haptic } from '../ui/haptics';
 import { RequestActions } from '../ui/tags';
 import type { Settle } from '../ui/useSettle';
@@ -23,7 +24,7 @@ import { G } from '../ui/glyphs';
  * edge), one list of what I have to do, the week as a strip of days opened in place, and us.
  */
 
-const things = (n: number) => `${n} ${n === 1 ? 'thing' : 'things'}`;
+const things = (n: number) => howMany(n, 'thing');
 
 /** Open one of Us's colour cards from elsewhere on the page ('asks', 'week', 'did', 'asked'). */
 const US_EVENT = 'gila:us-card';
@@ -146,15 +147,9 @@ export function TodayList({ v, day, settle, asksHere = false }: { v: TodayView; 
   const open = prefs.asksOpen;
   const n = v.awaitingOk.length + v.earlier.length + v.today.length + loud.length;
   if (!ok.length && !late.length && !rows.length && !loud.length && !quiet.length) return null;
-  const who = partner?.name ?? 'Your partner';
+  const who = partner?.name ?? 'Your person';
   return (
-    <section className="section homelist" id="today">
-      <div className="section__head">
-        <h2 className="section__title">
-          Today
-          {n ? <span className="section__count num">{n}</span> : null}
-        </h2>
-      </div>
+    <Section className="homelist" id="today" title="Today" count={n}>
       {ok.length || late.length || rows.length || loud.length ? (
         <ul className="rows">
           {ok.map(({ row: i, settling }) =>
@@ -195,7 +190,7 @@ export function TodayList({ v, day, settle, asksHere = false }: { v: TodayView; 
           ) : null}
         </div>
       ) : null}
-    </section>
+    </Section>
   );
 }
 
@@ -220,13 +215,7 @@ export function WeekStrip({ v, day }: { v: TodayView; day: string }) {
   const total = busy.reduce((n, d) => n + byDay.get(d)!.length, 0);
   const label = (d: string) => (d === addDays(day, 1) ? 'Tomorrow' : fromDateStr(d).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }));
   return (
-    <section className="section homeweek" id="upcoming">
-      <div className="section__head">
-        <h2 className="section__title">
-          The week
-          <span className="section__count num">{total}</span>
-        </h2>
-      </div>
+    <Section className="homeweek" id="upcoming" title="The week" count={total}>
       <div className="weekstrip" role="tablist" aria-label="The next seven days">
         {days.map((d) => {
           const n = byDay.get(d)!.length;
@@ -267,7 +256,7 @@ export function WeekStrip({ v, day }: { v: TodayView; day: string }) {
           </span>
         </button>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -463,28 +452,14 @@ function DidList({ v }: { v: TodayView }) {
               {r.item.title}
               <span className="wcard__ago"> · {relativeAgo(r.at)}</span>
             </span>
-            {r.log ? (
-              <button
-                type="button"
-                className={`heart ${r.log.thankedBy ? 'is-on' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!r.log!.thankedBy) haptic('success');
-                  hub.thank(r.log!.id);
-                }}
-                aria-label={`Thank ${partner.name} for ${r.item.title}`}
-                aria-pressed={!!r.log.thankedBy}
-              >
-                <Icon name={r.log.thankedBy ? G.thanked : G.thanks} />
-              </button>
-            ) : null}
+            {r.log ? <ThanksButton on={!!r.log.thankedBy} label={`Thank ${partner.name} for ${r.item.title}`} onToggle={() => hub.thank(r.log!.id)} /> : null}
           </li>
         ))}
       </ul>
       {left.length > 1 ? (
-        <button
-          type="button"
-          className="btn btn--sm wcard__all"
+        <Button
+          icon={G.thanks}
+          small
           onClick={(e) => {
             e.stopPropagation();
             haptic('success');
@@ -492,9 +467,10 @@ function DidList({ v }: { v: TodayView }) {
               for (const r of left) hub.thank(r.log!.id);
             });
           }}
+          className="wcard__all"
         >
-          <Icon name={G.thanks} className="icon--sm" /> Thank {partner.name} for all
-        </button>
+          Thank {partner.name} for all
+        </Button>
       ) : null}
     </>
   );

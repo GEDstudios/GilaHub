@@ -2,6 +2,7 @@ import type { Hub } from '../core/hub';
 import type { Item } from '../core/model';
 import { enablePush, notifyMembers, type Runtime } from './runtime';
 import { G_TEXT } from './ui/glyphs';
+import { myName } from './labels';
 
 /**
  * Should `to` hear about this request? Not me, never for "Only me" things, and not when they
@@ -24,11 +25,11 @@ export function afterTick(rt: Runtime, hub: Hub, id: string): string | null {
   if (!it) return null;
   if (it.submittedAt && it.submittedBy === hub.meId && it.requestedBy) {
     const asker = hub.member(it.requestedBy);
-    notifyAbout(rt, hub, it, it.requestedBy, `${G_TEXT.done} ${hub.me()?.name ?? 'Your partner'} did it`, `“${it.title}” is waiting for your OK`);
+    notifyAbout(rt, hub, it, it.requestedBy, `${G_TEXT.done} ${myName(hub)} did it`, `“${it.title}” is waiting for your OK`);
     return `Sent to ${asker?.name ?? 'them'} for an OK`;
   }
   if (it.done && it.requestedBy && it.requestedBy !== hub.meId) {
-    notifyAbout(rt, hub, it, it.requestedBy, `${G_TEXT.done} ${hub.me()?.name ?? 'Your partner'} did it`, `“${it.title}” is done`);
+    notifyAbout(rt, hub, it, it.requestedBy, `${G_TEXT.done} ${myName(hub)} did it`, `“${it.title}” is done`);
   }
   return null;
 }

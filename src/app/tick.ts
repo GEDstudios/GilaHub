@@ -6,6 +6,7 @@ import { useHub, useRt } from './context';
 import { afterTick } from './notify';
 import { navigate } from './router';
 import { doneMany, useOverlays, type ToastOpts } from './ui/overlays';
+import { howMany } from './labels';
 
 /**
  * A repeating thing was just done today: "Laundry is fresh again. Next: Wed 2 Dec · Hila's turn
@@ -37,7 +38,7 @@ export function useTick(): (item: Item) => void {
   return (item) => {
     const kind = hub.tickKind(item);
     let undo: () => void = () => {};
-    const say = (msg: string, opts: ToastOpts = {}) => toast(msg, { action: { label: 'Undo', run: () => undo() }, ...opts });
+    const say = (msg: string, opts: ToastOpts = {}) => toast(msg, { undo: () => undo(), ...opts });
     if (kind === 'roll') {
       undo = hub.completeRepeating(item.id);
       say(freshAgain(hub, item.id));
@@ -50,9 +51,8 @@ export function useTick(): (item: Item) => void {
     const msg = afterTick(rt, hub, item.id);
     if (msg) say(msg);
     else if (openSteps)
-      say(`Done · ${openSteps} subtask${openSteps > 1 ? 's' : ''} still open`, {
+      say(`Done · ${howMany(openSteps, 'subtask')} still open`, {
         action: [
-          { label: 'Undo', run: () => undo() },
           {
             label: 'Finish them',
             run: () => {
@@ -85,11 +85,11 @@ export function useLater(): { label: (item: Item) => string; run: (item: Item) =
       if (skips(item)) {
         const undo = hub.skip(item.id);
         const due = hub.item(item.id)?.due;
-        toast(due ? `Skipped. Next: ${humanDate(due, ref)}` : 'Skipped', { action: { label: 'Undo', run: undo } });
+        toast(due ? `Skipped. Next: ${humanDate(due, ref)}` : 'Skipped', { undo });
         return;
       }
       const undo = hub.snooze(item.id, addDays(ref, 1));
-      toast('Tomorrow, then', { action: { label: 'Undo', run: undo } });
+      toast('Tomorrow, then', { undo });
     },
   };
 }

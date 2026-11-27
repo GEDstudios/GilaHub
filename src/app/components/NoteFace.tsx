@@ -4,6 +4,7 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
+import { DoneButton } from '../ui/edit';
 import { useShotPicker } from './Sketch';
 import { HOLD } from '../ui/tokens';
 import { G } from '../ui/glyphs';
@@ -826,9 +827,7 @@ export function NoteEditor({
                 <button type="button" className="draw__icon" aria-label="Undo" title="Undo" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
                   <Icon name={G.undo} />
                 </button>
-                <button type="button" className="btn btn--sm draw__done" aria-label="Done drawing" onClick={() => setTool(null)}>
-                  Done
-                </button>
+                <DoneButton label="Done drawing" className="draw__done" onClick={() => setTool(null)} />
               </div>
             </>
           ) : null}

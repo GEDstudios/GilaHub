@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type R
 import { haptic } from '../ui/haptics';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { G } from '../ui/glyphs';
-import { IconButton } from '../ui/primitives';
+import { IconButton, TextButton, Button } from '../ui/primitives';
 
 /**
  * Draw on a screenshot: circle the thing, scribble an arrow, write "this!". The picture fills
@@ -152,13 +152,13 @@ export function SketchSheet({ src, onDone, onClose, title = 'Draw on it' }: { sr
             ))}
           </div>
           <IconButton icon={G.undo} label="Undo the last line" disabled={!count} onClick={undo} />
-          <button type="button" className="textbtn" disabled={!count} onClick={clear}>
+          <TextButton disabled={!count} onClick={clear}>
             Clear
-          </button>
+          </TextButton>
         </div>
-        <button type="button" className="btn btn--block" disabled={!ready} onClick={done}>
+        <Button block disabled={!ready} onClick={done}>
           Attach
-        </button>
+        </Button>
       </div>
     </Sheet>
   );

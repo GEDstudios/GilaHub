@@ -5,7 +5,7 @@ import { createInvite } from '../../core/session';
 import { useHub, useRt } from '../context';
 import { Sheet } from '../ui/overlays';
 import { G } from '../ui/glyphs';
-import { Choices } from '../ui/primitives';
+import { Choices, Button } from '../ui/primitives';
 
 function QR({ text }: { text: string }) {
   const svg = useMemo(() => {
@@ -59,9 +59,9 @@ export function PairSheet({ kind, onClose }: { kind: 'partner' | 'device'; onClo
             : 'For now Gila Hub lives on this device only, so there’s no other device to add yet.'}
         </p>
         <p className="hint">Pairing turns on once your hub is running. The README says how.</p>
-        <button type="button" className="btn btn--quiet btn--block" style={{ marginTop: 20 }} onClick={onClose}>
+        <Button quiet block style={{ marginTop: 20 }} onClick={onClose}>
           Got it
-        </button>
+        </Button>
       </Sheet>
     );
   }

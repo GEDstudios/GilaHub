@@ -5,7 +5,7 @@ import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { lineVars } from '../ui/primitives';
+import { lineVars, Button } from '../ui/primitives';
 import { FEELS, onThisDay } from '../moments';
 import { G } from '../ui/glyphs';
 
@@ -54,9 +54,9 @@ export function MomentsSheet({ onClose }: { onClose: () => void }) {
         </div>
         <div className="moment__write">
           <input value={text} dir="auto" onChange={(e) => setText(e.target.value)} placeholder="What happened?" aria-label="What happened?" enterKeyHint="done" />
-          <button type="submit" className="btn btn--sm" disabled={!text.trim()}>
+          <Button small type="submit" disabled={!text.trim()}>
             Keep
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -93,7 +93,7 @@ export function MomentsSheet({ onClose }: { onClose: () => void }) {
                       aria-label={`Forget: ${m.text}`}
                       onClick={() => {
                         const undo = hub.deleteMoment(m.id);
-                        toast('Forgotten', { action: { label: 'Undo', run: undo } });
+                        toast('Forgotten', { undo });
                       }}
                     >
                       <Icon name={G.close} className="icon--xs" />

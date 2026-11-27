@@ -19,6 +19,7 @@ import { Avatar, Check, ListBullet } from '../ui/primitives';
 import { ReqTag, UrgentTag, VisTag } from '../ui/tags';
 import { useFresh } from '../ui/fresh';
 import { useSettleHold } from '../ui/useSettle';
+import { useSortableItem } from '../ui/Sortable';
 import { useSwipe } from '../ui/swipe';
 import { TagPills } from './Tags';
 import { stepProgress, todayRef } from '../views';
@@ -38,22 +39,7 @@ function useDoer(item: Item) {
   return doerOf(useHub(), item);
 }
 
-export const ItemRow = memo(function ItemRow({
-  item,
-  showList,
-  skipTag,
-  inUrgent,
-  flash,
-  dateMode = 'full',
-  below,
-  settling,
-  liRef,
-  liStyle,
-  liClass,
-  dragProps,
-  nested,
-  listLink = true,
-}: {
+export interface ItemRowProps {
   item: Item;
   showList?: boolean;
   /** The tag its group already says (By tag): not again on the row. */
@@ -76,7 +62,24 @@ export const ItemRow = memo(function ItemRow({
   nested?: boolean;
   /** Its folder's name goes to the folder (off where a tap anywhere should open the task: Today). */
   listLink?: boolean;
-}) {
+}
+
+export const ItemRow = memo(function ItemRow({
+  item,
+  showList,
+  skipTag,
+  inUrgent,
+  flash,
+  dateMode = 'full',
+  below,
+  settling,
+  liRef,
+  liStyle,
+  liClass,
+  dragProps,
+  nested,
+  listLink = true,
+}: ItemRowProps) {
   const hub = useHub();
   const prefs = usePrefs();
   const { toast } = useOverlays();
@@ -275,6 +278,12 @@ export const ItemRow = memo(function ItemRow({
     </li>
   );
 });
+
+/** A row that can be picked up and moved (inside a <Sortable>); it stays put while it settles. */
+export function SortableItemRow(p: Omit<ItemRowProps, 'liRef' | 'liStyle' | 'liClass' | 'dragProps'>) {
+  const s = useSortableItem(p.item.id, { disabled: p.settling });
+  return <ItemRow {...p} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
+}
 
 /** "Also on Home shopping": the same thing lives there too; tap to go to it. */
 function TwinTag({ twin }: { twin: Item }) {

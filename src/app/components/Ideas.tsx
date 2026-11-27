@@ -9,11 +9,13 @@ import { markFresh, useFresh } from '../ui/fresh';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Check, Disclosure, lineVars } from '../ui/primitives';
+import { Check, Disclosure, lineVars, TextButton, Button } from '../ui/primitives';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { useSettle } from '../ui/useSettle';
 import { SketchSheet, useShotPicker } from './Sketch';
 import { G } from '../ui/glyphs';
+import { howMany } from '../labels';
+import type { Hub } from '../../core/hub';
 
 /**
  * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag sits in the page
@@ -84,7 +86,7 @@ export function useOpenIdeas(): () => void {
  * last looked. It steps aside for sheets and the keyboard (CSS).
  */
 /** How many ideas are open, and whether my person has done something new with them (for a badge). */
-export function useIdeasBadge(): { n: number; fresh: boolean; partner: ReturnType<ReturnType<typeof useHub>['partner']> } {
+export function useIdeasBadge(): { n: number; fresh: boolean; partner: ReturnType<Hub['partner']> } {
   const hub = useHub();
   const seen = useSeenAt();
   const partner = hub.partner();
@@ -181,9 +183,9 @@ function Composer() {
       )}
       {picker.input}
       {text.trim() || shot ? (
-        <button type="submit" className="btn btn--sm ideas__add">
+        <Button small type="submit" className="ideas__add">
           Add
-        </button>
+        </Button>
       ) : null}
     </form>
   );
@@ -212,24 +214,22 @@ function ShotSheet({ id, onClose }: { id: string; onClose: () => void }) {
     <Sheet onClose={onClose} title="The picture">
       <img className="shotview" src={src} alt={hub.idea(id)?.text ?? ''} />
       <div className="shotview__actions">
-        <button
-          type="button"
-          className="btn btn--block"
+        <Button
+          icon={G.draw}
+          block
           onClick={() => openSheet((close) => <SketchSheet src={src} onDone={(jpeg) => hub.setIdeaShot(id, jpeg)} onClose={close} title="Draw on it" />)}
         >
-          <Icon name={G.draw} className="icon--sm" /> Draw on it
-        </button>
-        <button
-          type="button"
-          className="textbtn"
+          Draw on it
+        </Button>
+        <TextButton
           onClick={() => {
             hub.setIdeaShot(id, null);
             onClose();
-            toast('Picture taken off', { action: { label: 'Undo', run: () => hub.setIdeaShot(id, src) } });
+            toast('Picture taken off', { undo: () => hub.setIdeaShot(id, src) });
           }}
         >
           Take it off
-        </button>
+        </TextButton>
       </div>
     </Sheet>
   );
@@ -395,7 +395,7 @@ function ResolvedRow({ idea }: { idea: Idea }) {
         onClick={() => {
           haptic('tick');
           const undo = hub.deleteIdea(idea.id);
-          toast('Idea deleted', { action: { label: 'Undo', run: undo } });
+          toast('Idea deleted', { undo });
         }}
       >
         <Icon name={G.close} />
@@ -404,7 +404,6 @@ function ResolvedRow({ idea }: { idea: Idea }) {
   );
 }
 
-const ideaId = (i: Idea) => i.id;
 
 /** `since`: when this device last looked, so news about my ideas opens Resolved. */
 function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) {
@@ -413,7 +412,7 @@ function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) 
   const { open, resolved } = ideasView(hub);
   // Kept here, not in the fold: deleting its last row unmounts it, and Undo must find it open.
   const [resolvedOpen, setResolvedOpen] = useState(() => ideasUnseen(hub, since) === 'resolved');
-  const settle = useSettle(ideaId);
+  const settle = useSettle<Idea>();
   const rows = settle.view('open', open);
 
   const resolve = (id: string) => {
@@ -425,7 +424,7 @@ function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) 
     const n = open.length;
     try {
       await navigator.clipboard.writeText(ideasMarkdown(hub));
-      toast(`Copied ${n} idea${n === 1 ? '' : 's'}`);
+      toast(`Copied ${howMany(n, 'idea')}`);
     } catch {
       toast('Couldn’t copy here.');
     }
@@ -437,7 +436,7 @@ function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) 
       {open.length || resolved.length ? null : <p className="ideas__empty">Nothing yet. Write the first one.</p>}
       {rows.length ? (
         <Sortable
-          ids={open.map(ideaId)}
+          ids={open.map((i) => i.id)}
           grips
           onMove={(next) => hub.reorderIdeas(next)}
           label={(id) => hub.idea(id)?.text ?? ''}
@@ -465,10 +464,9 @@ function IdeasSheet({ onClose, since }: { onClose: () => void; since: number }) 
       ) : null}
       {open.length ? (
         <div className="ideas__foot">
-          <button type="button" className="textbtn" onClick={() => void copy()}>
-            <Icon name={G.copy} className="icon--sm" />
+          <TextButton icon={G.copy} onClick={() => void copy()}>
             Copy open ideas
-          </button>
+          </TextButton>
         </div>
       ) : null}
     </Sheet>

@@ -8,7 +8,7 @@ import { DUE_LABEL, runQuery, type DueWindow, type TaskQuery } from '../query';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { ListBullet, Section } from '../ui/primitives';
+import { ListBullet, Section, TextButton, Button } from '../ui/primitives';
 import type { Settle } from '../ui/useSettle';
 import { Options } from './editors';
 import { PlaceTree } from './PlaceTree';
@@ -16,6 +16,8 @@ import { ItemRow } from './ItemRow';
 import { TagPicker } from './Tags';
 import { G } from '../ui/glyphs';
 import { SwitchRow } from './pickers';
+import { howMany } from '../labels';
+import type { Hub } from '../../core/hub';
 
 const SHOWN = 8;
 
@@ -39,9 +41,9 @@ export function SavedListWidget({ id, settle }: { id: string; settle: Settle<Ite
       }
       count={found.length}
       action={
-        <button type="button" className="textbtn" onClick={() => openSheet((close) => <SavedListSheet id={id} onClose={close} />)}>
+        <TextButton onClick={() => openSheet((close) => <SavedListSheet id={id} onClose={close} />)}>
           Edit
-        </button>
+        </TextButton>
       }
     >
       {rows.length ? (
@@ -54,9 +56,9 @@ export function SavedListWidget({ id, settle }: { id: string; settle: Settle<Ite
         <p className="hint">Nothing right now.</p>
       )}
       {found.length > SHOWN ? (
-        <button type="button" className="textbtn savedlist__more" onClick={() => setAll(!all)}>
+        <TextButton onClick={() => setAll(!all)} className="savedlist__more">
           {all ? 'Fewer' : `${found.length - SHOWN} more`}
-        </button>
+        </TextButton>
       ) : null}
     </Section>
   );
@@ -65,7 +67,7 @@ export function SavedListWidget({ id, settle }: { id: string; settle: Settle<Ite
 const DUES: Array<DueWindow | 'any'> = ['any', 'overdue', 'today', 'tomorrow', 'thisweek', 'next7', 'nextweek', 'nodate'];
 
 /** Its name from what it asks, when I don't give one ("#Work · Next week"). */
-function autoName(hub: ReturnType<typeof useHub>, q: TaskQuery): string {
+function autoName(hub: Hub, q: TaskQuery): string {
   const bits = [
     ...(q.tags ?? []).map((t) => `#${hub.tag(t)?.name ?? ''}`),
     q.listId ? hub.list(q.listId)?.name : null,
@@ -107,12 +109,9 @@ export function SavedListSheet({ id, onClose }: { id?: string; onClose: () => vo
     setPrefs({ savedLists: lists });
     onClose();
     toast(`${gone?.name ?? 'It'} is off Today`, {
-      action: {
-        label: 'Undo',
-        run: () => {
-          setPrefs({ savedLists: { ...getPrefs().savedLists, [id]: gone } });
-          showHome(hub, queryKey(id));
-        },
+      undo: () => {
+        setPrefs({ savedLists: { ...getPrefs().savedLists, [id]: gone } });
+        showHome(hub, queryKey(id));
       },
     });
   };
@@ -180,16 +179,15 @@ export function SavedListSheet({ id, onClose }: { id?: string; onClose: () => vo
       <SwitchRow panel icon={G.urgent} title="Urgent only" on={!!q.urgent} onChange={(v) => setQ({ ...q, urgent: v || undefined })} />
 
       <p className="savedlist__count">
-        {n} {n === 1 ? 'task' : 'tasks'} right now
+        {howMany(n, 'task')} right now
       </p>
-      <button type="button" className="btn btn--block" onClick={save}>
-        <Icon name={id ? G.done : G.add} className="icon--sm" />
+      <Button icon={id ? G.done : G.add} block onClick={save}>
         {id ? 'Save' : 'Put it on Today'}
-      </button>
+      </Button>
       {id ? (
-        <button type="button" className="textbtn savedlist__remove" onClick={remove}>
+        <TextButton onClick={remove} className="savedlist__remove">
           Take it off Today
-        </button>
+        </TextButton>
       ) : null}
     </Sheet>
   );

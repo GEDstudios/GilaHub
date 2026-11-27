@@ -13,6 +13,9 @@ function nameOf(hub: Hub, id: string | null | undefined, fallback = 'Your person
   return (id && hub.member(id)?.name) || fallback;
 }
 
+/** My name, as my person reads it in a notification. */
+export const myName = (hub: Hub): string => hub.me()?.name ?? 'Your person';
+
 /** "Every week", "Sun & Wed", "Every month on the 1st" (without "after it's done"). */
 export const ruleShort = (r: RepeatRule): string => describeRule(r, (n) => weekdayName(n)).replace(" after it's done", '');
 
@@ -54,6 +57,9 @@ export function whenText(due: string, time: string | null | undefined, ref: stri
   if (!time) return day;
   return `${day}${style === 'sentence' ? ' at ' : ' · '}${humanTime(time, h24)}`;
 }
+
+/** "1 thing", "3 things": a count with its word. */
+export const howMany = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
 
 /** "for you" → "For you". */
 export const capital = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);

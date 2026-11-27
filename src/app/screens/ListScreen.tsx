@@ -19,7 +19,7 @@ import { useHub, usePartnerHere, useRt } from '../context';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch } from '../ui/primitives';
+import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
 import { getPrefs, setPrefs, use24h, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
@@ -41,8 +41,9 @@ import { humanTime } from '../../core/dates';
 import { DUR } from '../ui/tokens';
 import { listKey } from '../../core/keys';
 import type { Draft } from '../draft';
-import { ruleShort } from '../labels';
+import { ruleShort, myName } from '../labels';
 import { G } from '../ui/glyphs';
+import type { Hub } from '../../core/hub';
 
 /** The folder's own settings, in place under its card: a photo, on Today, its task template, the tasks it shows from elsewhere, where it sits. Each says what it's set to. */
 const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, assignee: null, urgent: false, visibility: 'ours' };
@@ -97,7 +98,7 @@ function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) 
           run: () => {
             hub.updateList(listId, { archived: true });
             navigate({ name: 'lists' }, { replace: true });
-            toast(`Archived ${list.name}`, { action: { label: 'Undo', run: () => hub.updateList(listId, { archived: false }) } });
+            toast(`Archived ${list.name}`, { undo: () => hub.updateList(listId, { archived: false }) });
           },
         },
         {
@@ -108,7 +109,7 @@ function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) 
           run: () => {
             const undo = hub.deleteList(listId);
             navigate({ name: 'lists' }, { replace: true });
-            toast(`Deleted ${list.name}`, { action: { label: 'Undo', run: undo } });
+            toast(`Deleted ${list.name}`, { undo });
           },
         },
       ]}
@@ -228,7 +229,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
           {
             key: 'tags',
             label: tl.label,
-            icon: tl.lead ? undefined : ('tag' as const),
+            icon: tl.lead ? undefined : G.tag,
             lead: tl.lead ? <TagMark icon={tl.lead} /> : undefined,
             set: tags.length > 0,
             panel: () => <TagPicker value={tags} onChange={(next) => hub.setListTemplate(listId, { tags: next })} />,
@@ -272,16 +273,14 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
         ]}
       />
       {list.template ? (
-        <button
-          type="button"
-          className="textbtn"
+        <TextButton
           style={{ marginTop: 18 }}
           onClick={() => {
             hub.setListTemplate(listId, null);
           }}
         >
           Start plain again
-        </button>
+        </TextButton>
       ) : null}
     </Sheet>
   );
@@ -322,7 +321,7 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
     hub.setListParent(listId, to);
     onClose();
     toast(to ? `${list.name} is in ${hub.list(to)?.name ?? 'there'}` : `${list.name} is back in Folders`, {
-      action: { label: 'Undo', run: () => hub.setListParent(listId, was) },
+      undo: () => hub.setListParent(listId, was),
     });
   };
   return (
@@ -367,7 +366,7 @@ function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
     const before = pinsOf(hub);
     const now = togglePin(hub, listKey(list.id));
     haptic(now ? 'tick' : 'select');
-    toast(now ? 'Added to the bar' : 'Taken out of the bar', { action: { label: 'Undo', run: () => setPins(hub, before) } });
+    toast(now ? 'Added to the bar' : 'Taken out of the bar', { undo: () => setPins(hub, before) });
   };
   const setVis = (v: { visibility: List['visibility']; owner: string | null }) => {
     if (v.visibility === 'private' && list.visibility !== 'private' && partner) toast(`Hidden from ${partner.name}`);
@@ -444,7 +443,7 @@ function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
 }
 
 /** Ours, mine, or my person's-but-in-sight: either of us can say whose it is. Only Only me is the owner's alone. */
-const canSetListVis = (hub: ReturnType<typeof useHub>, list: List) => !list.owner || list.owner === hub.meId || list.visibility === 'visible';
+const canSetListVis = (hub: Hub, list: List) => !list.owner || list.owner === hub.meId || list.visibility === 'visible';
 
 /** A folder on my Today, as a task's star: filled while its open tasks show there. */
 function TodayStar({ listId }: { listId: string }) {
@@ -459,8 +458,8 @@ function TodayStar({ listId }: { listId: string }) {
       onChange={(on) => {
         if (!on) {
           hideHome(hub, listKey(listId));
-          toast('Off your Today', { action: { label: 'Undo', run: () => showHome(hub, listKey(listId)) } });
-        } else if (showHome(hub, listKey(listId))) toast('On your Today', { action: { label: 'Undo', run: () => hideHome(hub, listKey(listId)) } });
+          toast('Off your Today', { undo: () => showHome(hub, listKey(listId)) });
+        } else if (showHome(hub, listKey(listId))) toast('On your Today', { undo: () => hideHome(hub, listKey(listId)) });
         else toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
       }}
     />
@@ -504,7 +503,7 @@ function useOnIt(on: boolean, listId: string, name: string) {
         /* storage blocked */
       }
       void notifyMembers(rt, [partner.id], {
-        title: `${hub.me()?.name ?? 'Your partner'} is on ${name}`,
+        title: `${myName(hub)} is on ${name}`,
         body: 'Need anything? Add it now and it shows up for them.',
         url: `/l/${listId}`,
         tag: 'onit',
@@ -735,7 +734,7 @@ function useCrumbDrop(from: string): { target: Outside; over: { current: string 
         const was = hub.parentOf(id)?.id ?? null;
         hub.setListParent(id, t.to);
         haptic('success');
-        toast(t.to ? `${l.name} is in ${hub.list(t.to)?.name ?? 'there'}` : `${l.name} is back in Folders`, { action: { label: 'Undo', run: () => hub.setListParent(id, was) } });
+        toast(t.to ? `${l.name} is in ${hub.list(t.to)?.name ?? 'there'}` : `${l.name} is back in Folders`, { undo: () => hub.setListParent(id, was) });
       },
       end: () => {
         light(null);
@@ -799,12 +798,7 @@ function SubProjects({ list }: { list: List }) {
           const l = hub.list(id);
           // Over the path: small, going in. Over the bar: the tab it'll be.
           if (l && away && crumbs.over.current !== undefined)
-            return (
-              <span className="dropchip">
-                <Icon name={G.move} className="icon--sm" />
-                <span dir="auto">{l.name}</span>
-              </span>
-            );
+            return <DropChip label={l.name} />;
           const t = away ? barTabOf(hub, listKey(id)) : undefined;
           return t ? <TabChip t={t} /> : l ? <ProjectCard list={l} /> : null;
         }}

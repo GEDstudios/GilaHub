@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { isTouch } from './pointer';
 /**
  * Phones only raise the keyboard for a focus that happens inside the tap itself. New opens
@@ -20,4 +21,23 @@ export function primeKeyboard(): void {
   setTimeout(() => {
     if (document.activeElement === primer) primer?.blur();
   }, 900);
+}
+
+/**
+ * Esc leaves an edit mode (Edit Today, Arrange the bar): not while something is being dragged
+ * (there Esc puts the drag back), nor under a sheet (it closes the sheet).
+ */
+export function useEscape(active: boolean, onEscape: () => void): void {
+  const latest = useRef(onEscape);
+  latest.current = onEscape;
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || document.documentElement.classList.contains('is-dragging')) return;
+      if (document.querySelector('.sheet')) return;
+      latest.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active]);
 }

@@ -1,16 +1,10 @@
 import { useState } from 'react';
 import type { LineColor } from '../../core/model';
 import { Icon, type IconName } from '../ui/Icon';
+import { G } from '../ui/glyphs';
 import { LIB_GROUPS, searchLibrary, useLibrary } from '../ui/library';
-import { FindField, lineVars } from '../ui/primitives';
+import { FindField, firstGrapheme, lineVars, TextButton } from '../ui/primitives';
 import { Glyph, parseGlyph, PLAIN_FOLDER, PROJECT_ICONS, showsGlyph } from '../ui/ProjectMark';
-
-const firstGrapheme = (s: string): string => {
-  const t = s.trim();
-  if (!t) return '';
-  if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(t)) return segment;
-  return [...t][0];
-};
 
 /** How many library icons show before "More". */
 const PAGE = 96;
@@ -83,9 +77,9 @@ export function IconPicker({ value, color, onChange }: { value: string | undefin
             {found.slice(0, shown).map((name) => cell(`x:${name}`, `x:${name}`, name.replace(/-/g, ' ')))}
           </div>
           {found.length > shown ? (
-            <button type="button" className="textbtn iconlib__more" onClick={() => setShown(shown + PAGE * 2)}>
+            <TextButton onClick={() => setShown(shown + PAGE * 2)} className="iconlib__more">
               {found.length - shown} more
-            </button>
+            </TextButton>
           ) : null}
         </>
       ) : (
@@ -117,7 +111,7 @@ export function CardIcon({ icon, open, onToggle }: { icon: string | undefined; o
   const has = showsGlyph(icon);
   return (
     <button type="button" className={`cardicon ${has ? '' : 'is-empty'} ${open ? 'is-open' : ''}`} aria-label={has ? 'Icon: tap to change it' : 'Pick an icon'} aria-expanded={open} onClick={onToggle}>
-      {has ? <Glyph icon={icon} className="cardicon__glyph" /> : <Icon name="plus" className="icon--sm" />}
+      {has ? <Glyph icon={icon} className="cardicon__glyph" /> : <Icon name={G.add} className="icon--sm" />}
     </button>
   );
 }

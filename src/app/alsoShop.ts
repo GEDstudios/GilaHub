@@ -9,13 +9,6 @@ export function useAlsoShop() {
     const twin = hub.linkIfShopping(id);
     const it = twin ? hub.item(twin) : undefined;
     if (!it) return;
-    toast(`${it.title} is on ${hub.list(it.listId)?.name ?? 'the list'} too`, {
-      action: {
-        label: 'Undo',
-        run: () => {
-          hub.removeTwin(id);
-        },
-      },
-    });
+    toast(`${it.title} is on ${hub.list(it.listId)?.name ?? 'the list'} too`, { undo: () => void hub.removeTwin(id) });
   };
 }

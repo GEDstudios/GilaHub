@@ -5,7 +5,7 @@ import { firstDue } from '../smart/recurrence';
 import { addDays, humanTime, today } from '../core/dates';
 import { allowedVis, itemVisChoice, setItemVis, visLabel } from './privacy';
 import type { Draft } from './draft';
-import { capital, remindText, ruleShort, whoInSentence } from './labels';
+import { capital, remindText, ruleShort, whoInSentence, howMany } from './labels';
 
 /** Whether a folder's template sets anything at all. */
 export function hasTemplate(list: List | undefined | null): list is List & { template: TaskTemplate } {
@@ -26,7 +26,7 @@ export function templateSummary(hub: Hub, t: TaskTemplate): string {
   if (t.dueIn != null) bits.push(dayIn(t.dueIn) + (t.dueTime ? `, ${humanTime(t.dueTime, use24h(getPrefs()))}` : ''));
   else if (t.dueTime) bits.push(humanTime(t.dueTime, use24h(getPrefs())));
   if (t.nag) bits.push(`Again ${ruleShort(t.nag).toLowerCase()} until done`);
-  if (t.steps?.length) bits.push(`${t.steps.length} ${t.steps.length === 1 ? 'subtask' : 'subtasks'}`);
+  if (t.steps?.length) bits.push(howMany(t.steps.length, 'subtask'));
   if (t.notes) bits.push('A note');
   if (t.visibility) bits.push(visLabel(t.visibility, hub.partner()?.name));
   return bits.join(' · ');

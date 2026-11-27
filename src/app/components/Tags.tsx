@@ -3,13 +3,14 @@ import type { Tag } from '../../core/model';
 import { fold } from '../../smart/normalize';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
-import { FindField } from '../ui/primitives';
+import { FindField, TextButton, Button } from '../ui/primitives';
 import { Icon, type IconName } from '../ui/Icon';
 import { GLYPHS } from '../ui/icons.gen';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { IconPicker } from './IconPicker';
 import { G } from '../ui/glyphs';
+import type { Hub } from '../../core/hub';
 
 /** A tag's mark: its icon ("i:" any of the app's, "x:" from the library) or emoji, else the plain tag. */
 export function TagMark({ icon, className = 'icon--sm' }: { icon: string | null | undefined; className?: string }) {
@@ -40,7 +41,7 @@ export function TagPills({ ids }: { ids: string[] }) {
 }
 
 /** What a set of tags reads as on a chip: "Dairy", "Dairy +1", or "Tags". */
-export function tagsLabel(hub: ReturnType<typeof useHub>, ids: string[]): { label: string; lead?: string | null } {
+export function tagsLabel(hub: Hub, ids: string[]): { label: string; lead?: string | null } {
   const tags = ids.flatMap((t) => hub.tag(t) ?? []);
   if (!tags.length) return { label: 'Tags' };
   return { label: tags.length > 1 ? `${tags[0].name} +${tags.length - 1}` : tags[0].name, lead: tags[0].icon ?? null };
@@ -134,10 +135,9 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
           />
         </div>
       ) : null}
-      <button type="button" className="textbtn tagpick__manage" onClick={() => openSheet((close) => <TagManager onClose={close} />)}>
-        <Icon name={G.edit} className="icon--sm" />
+      <TextButton icon={G.edit} onClick={() => openSheet((close) => <TagManager onClose={close} />)} className="tagpick__manage">
         Edit tags
-      </button>
+      </TextButton>
     </div>
   );
 }
@@ -186,7 +186,7 @@ export function TagManager({ onClose }: { onClose: () => void }) {
                 const t = hub.tag(id);
                 const n = counts.get(id) ?? 0;
                 const undo = hub.deleteTag(id);
-                toast(n ? `${t?.name} is gone · taken off ${n}` : `${t?.name} is gone`, { action: { label: 'Undo', run: undo } });
+                toast(n ? `${t?.name} is gone · taken off ${n}` : `${t?.name} is gone`, { undo });
               }}
             />
           ))}
@@ -210,9 +210,9 @@ export function TagManager({ onClose }: { onClose: () => void }) {
           aria-label="New tag"
         />
         {fresh.trim() ? (
-          <button type="button" className="btn btn--sm composer__stepgo" onMouseDown={(e) => e.preventDefault()} onClick={add}>
+          <Button small onMouseDown={(e) => e.preventDefault()} onClick={add} className="composer__stepgo">
             Add
-          </button>
+          </Button>
         ) : null}
       </div>
       {picking ? (

@@ -11,7 +11,7 @@ import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { withNotification } from '../compose';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Avatar, IconButton, lightVar, Stepper, Switch } from '../ui/primitives';
+import { Avatar, IconButton, lightVar, Stepper, Switch, TextButton, Button } from '../ui/primitives';
 import { PairSheet } from './PairSheet';
 import { G } from '../ui/glyphs';
 import { SwitchRow } from './pickers';
@@ -39,8 +39,9 @@ export function useSummary() {
 }
 
 /**
- * One soft chip of the inline editor. `ghost` = a dashed invitation (e.g. while on my own).
- * `lead` replaces the icon (a project's bullet); `compact` is the add row's 34 px size.
+ * One soft chip of the inline editor. With `open` it has a panel that opens under the row; with
+ * `pressed` it is an on/off chip with no panel (Urgent, Pin to bar). `ghost` = a dashed invitation
+ * (e.g. while on my own). `lead` replaces the icon (a folder's bullet); `compact` is the 34 px size.
  */
 export function EChip({
   label,
@@ -48,6 +49,7 @@ export function EChip({
   lead,
   set,
   open,
+  pressed,
   onToggle,
   ghost,
   compact,
@@ -65,7 +67,10 @@ export function EChip({
   /** An extra class (a chip with a look of its own, like who sees it). */
   tone?: string;
   style?: CSSProperties;
-  open: boolean;
+  /** Its panel is open (leave it out for a chip with no panel). */
+  open?: boolean;
+  /** An on/off chip: whether it's on. */
+  pressed?: boolean;
   onToggle: () => void;
   ghost?: boolean;
   compact?: boolean;
@@ -97,6 +102,7 @@ export function EChip({
       style={style}
       onClick={onToggle}
       aria-expanded={open}
+      aria-pressed={pressed}
       aria-label={name}
       title={name}
     >
@@ -162,9 +168,9 @@ function VisChip({
           <Options value={value} options={allowed.map((v) => ({ value: v, label: visLabel(v, partner?.name), icon: VIS_ICON[v] }))} onPick={onChange} />
           {hint ? <p className="panel__hint">{hint}</p> : null}
           {!partner ? (
-            <button type="button" className="textbtn panel__invite" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
+            <TextButton onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)} className="panel__invite">
               Invite your person
-            </button>
+            </TextButton>
           ) : null}
         </Panel>
       ) : null}
@@ -210,9 +216,9 @@ function WhoChip({
         {open ? (
           <Panel>
             <p className="panel__hint panel__hint--first">Hand things to your person, and ask for an OK when they’re done.</p>
-            <button type="button" className="btn btn--sm panel__cta" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
+            <Button small onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)} className="panel__cta">
               Bring them in
-            </button>
+            </Button>
           </Panel>
         ) : null}
       </>
@@ -343,12 +349,12 @@ export function InlineEditor({
           {remindInside && value.remind != null ? <Icon name={G.remind} className="echip__mark" title={`Notify ${(remindText(value.remind) ?? '').toLowerCase()}`} /> : null}
         </>
       );
-      chips.push(chip('when', marks, 'calendar', !!value.due || (repeatInside && !!value.repeat)));
+      chips.push(chip('when', marks, G.date, !!value.due || (repeatInside && !!value.repeat)));
       if (open === 'when')
         chips.push(<WhenCard key="when:panel" value={value} onChange={onChange} repeat={repeatInside} remind={remindInside} repeatFrom={repeatFrom} />);
     }
     if (f === 'repeat' && !repeatInside) {
-      chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', 'repeat', !!value.repeat));
+      chips.push(chip('repeat', value.repeat ? ruleShort(value.repeat) : 'Repeat', G.repeat, !!value.repeat));
       if (open === 'repeat')
         chips.push(
           <RepeatPanel
@@ -370,7 +376,7 @@ export function InlineEditor({
         onChange({ remind: 0, due: value.due ?? ref });
         setOpen('remind');
       };
-      chips.push(chip('remind', off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, 'bell', !off, undefined, off ? turnOn : undefined));
+      chips.push(chip('remind', off ? 'Notification' : `Notify ${(remindText(value.remind) ?? '').toLowerCase()}`, G.remind, !off, undefined, off ? turnOn : undefined));
       if (open === 'remind')
         chips.push(
           <Panel key="remind:panel">
@@ -414,16 +420,7 @@ export function InlineEditor({
       );
     if (f === 'urgent')
       chips.push(
-        <button
-          key="urgent"
-          type="button"
-          className={`echip ${value.urgent ? 'is-urgent' : ''} ${compact ? 'echip--sm' : ''}`}
-          onClick={() => onChange({ urgent: !value.urgent })}
-          aria-pressed={value.urgent}
-        >
-          <Icon name={G.urgent} className="icon--sm" />
-          <span>Urgent</span>
-        </button>,
+        <EChip key="urgent" label="Urgent" icon={G.urgent} set={false} pressed={value.urgent} tone={value.urgent ? 'is-urgent' : ''} onToggle={() => onChange({ urgent: !value.urgent })} compact={compact} />,
       );
     if (waits) hiddenChips.unshift(...chips.splice(from));
   }
@@ -634,9 +631,9 @@ function MonthPicker({ value, onPick }: { value: string | null; onPick: (d: stri
       <div className="month__head">
         <span className="month__title">{title}</span>
         {month !== ref.slice(0, 7) ? (
-          <button type="button" className="textbtn month__today" onClick={() => setMonth(ref.slice(0, 7))}>
+          <TextButton onClick={() => setMonth(ref.slice(0, 7))} className="month__today">
             Today
-          </button>
+          </TextButton>
         ) : null}
         <IconButton small icon={G.prev} label="Earlier month" onClick={() => shift(-1)} />
         <IconButton small icon={G.next} label="Later month" onClick={() => shift(1)} />

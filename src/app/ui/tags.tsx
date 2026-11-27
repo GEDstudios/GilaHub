@@ -8,6 +8,7 @@ import { useOverlays } from './overlays';
 import { CursorMark, lineVars } from './primitives';
 import { useSettleHold } from './useSettle';
 import { G } from './glyphs';
+import { myName } from '../labels';
 
 /** The lemon "Urgent" word pill: the same in every card and row. */
 export function UrgentTag() {
@@ -77,7 +78,7 @@ export function RequestActions({ item, className }: { item: Item; className?: st
           haptic('success');
           hold?.(item.id);
           const undo = hub.confirm(item.id);
-          toast('Confirmed. Thanks!', { action: { label: 'Undo', run: undo } });
+          toast('Confirmed. Thanks!', { undo });
         }}
       >
         OK
@@ -90,8 +91,8 @@ export function RequestActions({ item, className }: { item: Item; className?: st
           const undo = hub.sendBack(item.id);
           // Their phone hears it once Undo is no longer on offer.
           toast(`Sent back to ${doer}`, {
-            action: { label: 'Undo', run: undo },
-            onExpire: () => notifyAbout(rt, hub, item, to, `${hub.me()?.name ?? 'Your partner'} said not yet`, `“${item.title}” needs another go`),
+            undo,
+            onExpire: () => notifyAbout(rt, hub, item, to, `${myName(hub)} said not yet`, `“${item.title}” needs another go`),
           });
         }}
       >

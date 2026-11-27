@@ -1,6 +1,7 @@
 import type { Ref } from 'react';
 import { Icon } from './Icon';
 import { G } from './glyphs';
+import { Button } from './primitives';
 
 /**
  * One edit-mode language for the bar, Today and Projects (round 7, DECISIONS §2). Styles live in
@@ -30,10 +31,10 @@ export function AddDisc({ open = false, className }: { open?: boolean; className
 }
 
 /** Leaves an edit mode; it takes the band's primary-action slot. Everything is already saved. */
-export function DoneButton({ onClick, ref }: { onClick: () => void; ref?: Ref<HTMLButtonElement> }) {
+export function DoneButton({ onClick, ref, label, className }: { onClick: () => void; ref?: Ref<HTMLButtonElement>; /** What is done, when "Done" alone doesn't say. */ label?: string; className?: string }) {
   return (
-    <button ref={ref} type="button" className="btn btn--sm" onClick={onClick}>
+    <Button small ref={ref} label={label} className={className} onClick={onClick}>
       Done
-    </button>
+    </Button>
   );
 }

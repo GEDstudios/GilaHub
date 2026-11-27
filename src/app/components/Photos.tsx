@@ -7,6 +7,7 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { shrinkImage } from './Sketch';
 import { TOAST } from '../ui/tokens';
 import { G } from '../ui/glyphs';
+import { Button } from '../ui/primitives';
 
 /**
  * Photos on a task or a folder: a strip of little prints (each a touch turned, like the notes),
@@ -103,17 +104,18 @@ function PhotoSheet({ id, onClose }: { id: string; onClose: () => void }) {
     <Sheet onClose={onClose} label="Photo">
       <div className="photosheet">
         {src ? <img src={src} alt="" /> : <p className="hint">Still on its way…</p>}
-        <button
-          type="button"
-          className="btn btn--quiet btn--block"
+        <Button
+          icon={G.delete}
+          quiet
+          block
           onClick={() => {
             const undo = hub.removePhoto(id);
             onClose();
-            toast('Photo removed', { action: { label: 'Undo', run: undo } });
+            toast('Photo removed', { undo });
           }}
         >
-          <Icon name={G.delete} className="icon--sm" /> Remove photo
-        </button>
+          Remove photo
+        </Button>
       </div>
     </Sheet>
   );

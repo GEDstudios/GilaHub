@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { shortAgo } from '../../core/dates';
+import { hashOf } from '../../core/ids';
 import type { Note } from '../../core/model';
 import { NOTE_MAX, NOTE_MIN } from '../../core/hub';
 import { useHub, useRt } from '../context';
@@ -11,10 +12,11 @@ import { useBackGuard } from '../ui/backGuard';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { NoteEditor, NoteFace, PAPER, PHOTO_HOME, type NoteLook, type PhotoPos, type PhotoShape, type Stroke } from './NoteFace';
-import { lineVars } from '../ui/primitives';
+import { lineVars, TextButton, Button } from '../ui/primitives';
 import { HOLD } from '../ui/tokens';
-import { G_TEXT } from '../ui/glyphs';
-import { G } from '../ui/glyphs';
+import { G, G_TEXT } from '../ui/glyphs';
+import type { Hub } from '../../core/hub';
+import { myName } from '../labels';
 
 /**
  * Sticky notes: one of us leaves a note on a screen for the other ("Don't forget the milk 💛"
@@ -41,7 +43,7 @@ function routeOf(place: string): Route {
 export const placeUrl = (place: string): string => href(routeOf(place));
 
 /** "Shopping", "Projects", a project's name, a task's title. */
-function placeName(hub: ReturnType<typeof useHub>, place: string): string {
+function placeName(hub: Hub, place: string): string {
   const [kind, id] = place.split(':');
   if (kind === 'list') return hub.list(id)?.name ?? 'a folder';
   if (kind === 'item') return hub.item(id)?.title ?? 'a task';
@@ -57,11 +59,7 @@ function messOf(id: string): { order: number; hold: 'pin' | 'tape'; pin: string 
 }
 
 /** A small, stable tilt per note. */
-const tiltOf = (id: string) => {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return [-5, -3, 3, 5, -4, 4][Math.abs(h) % 6];
-};
+const tiltOf = (id: string) => [-5, -3, 3, 5, -4, 4][hashOf(id) % 6];
 
 /** Where a note's photo sits (older notes had a named place: top, bottom, behind, corner). */
 function posOf(n: Note): PhotoPos {
@@ -83,7 +81,7 @@ function posOf(n: Note): PhotoPos {
 const posText = (p: PhotoPos) => `${p.x},${p.y},${p.s},${p.r}`;
 
 /** A note as NoteFace draws it, signed `by`. */
-function lookOf(hub: ReturnType<typeof useHub>, n: Note, by: string): NoteLook {
+function lookOf(hub: Hub, n: Note, by: string): NoteLook {
   let ink: Stroke[] = [];
   try {
     ink = n.ink ? (JSON.parse(n.ink) as Stroke[]) : [];
@@ -141,8 +139,8 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
     hub.editNote(id, { photoShape: look.shape, photoBorder: look.border, photoPos: posText(look.pos), ink: look.ink.length ? JSON.stringify(look.ink) : null, textSize: look.size });
     haptic('tick');
     onClose();
-    toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.deleteNote(id) } });
-    if (partner) void notifyMembers(rt, [partner.id], { title: `${G_TEXT.note} ${hub.me()?.name ?? 'Your person'} left you a note`, body: look.text.trim() || (look.photo ? '📷 A photo' : '✏️ A drawing'), url: href(routeOf(place)), tag: `note-${id}` });
+    toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { undo: () => hub.deleteNote(id) });
+    if (partner) void notifyMembers(rt, [partner.id], { title: `${G_TEXT.note} ${myName(hub)} left you a note`, body: look.text.trim() || (look.photo ? '📷 A photo' : '✏️ A drawing'), url: href(routeOf(place)), tag: `note-${id}` });
   };
   // The phone's Back with something on it: stick it, or throw it away.
   useBackGuard({ dirty: ready, title: 'Stick this note?', saveLabel: 'Stick it', discardLabel: 'Throw it away', onSave: stick, onDiscard: onClose });
@@ -152,9 +150,9 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
         It stays on <strong dir="auto">{where}</strong> till {partner?.name ?? 'they'} peels it off
       </p>
       <NoteEditor look={look} set={set} onText={(text) => set({ text })} autoFocus />
-      <button type="button" className="btn btn--block noteedit__go" disabled={!ready} onClick={stick}>
+      <Button block disabled={!ready} onClick={stick} className="noteedit__go">
         Stick it
-      </button>
+      </Button>
     </Sheet>
   );
 }
@@ -497,7 +495,7 @@ function StuckNote({
     void flight.then(() => {
       haptic('success');
       const undo = hub.peelNote(note.id);
-      toast('Kept in our notes 💛 (in Folders)', { action: { label: 'Undo', run: undo } });
+      toast('Kept in our notes 💛 (in Folders)', { undo });
     });
   };
 
@@ -574,7 +572,7 @@ function NoteSheet({ id, onClose }: { id: string; onClose: () => void }) {
     setPeeling(true);
     setTimeout(() => {
       const undo = away ? hub.deleteNote(note.id) : hub.peelNote(note.id);
-      toast(away ? 'Deleted' : 'Kept in our notes 💛 (in Folders)', { action: { label: 'Undo', run: undo } });
+      toast(away ? 'Deleted' : 'Kept in our notes 💛 (in Folders)', { undo });
       setPeeling(false);
       onClose();
     }, away ? 380 : 120);
@@ -590,14 +588,14 @@ function NoteSheet({ id, onClose }: { id: string; onClose: () => void }) {
               <NoteFace look={lookOf(hub, note, `— ${from?.name ?? ''} · ${shortAgo(note.createdAt)}`)} scale={2.3} tilt={tiltOf(note.id) / 2} />
             </div>
           )}
-          <button type="button" className="btn btn--block notesheet__keep" onClick={(e) => peel(false, e.currentTarget)}>
-            <Icon name={G.done} className="icon--sm" /> Keep to our notes 💛
-          </button>
+          <Button icon={G.done} block onClick={(e) => peel(false, e.currentTarget)} className="notesheet__keep">
+            Keep to our notes 💛
+          </Button>
           {mine ? (
             <p className="notesheet__delete">
-              <button type="button" className="textbtn textbtn--danger" onClick={() => peel(true)}>
-                <Icon name={G.delete} className="icon--sm" /> Delete
-              </button>
+              <TextButton icon={G.delete} danger onClick={() => peel(true)}>
+                Delete
+              </TextButton>
             </p>
           ) : null}
         </div>
@@ -721,32 +719,28 @@ function CollectedSheet({ id, onClose }: { id: string; onClose: () => void }) {
         <NoteFace look={lookOf(hub, n, `— ${hub.member(n.by)?.name ?? ''} · ${placeName(hub, n.place)} · ${day}`)} scale={2.3} tilt={tiltOf(n.id) / 2} />
       </div>
       <div className="shotview__actions">
-        <button
-          type="button"
-          className="btn"
+        <Button
+          icon={G.undo}
           onClick={() => {
             // Back where it was left, stuck on its screen again; the toast goes there.
             const undo = hub.unpeelNote(id);
             haptic('success');
             onClose();
-            toast(`Back on ${placeName(hub, n.place)}`, { action: { label: 'Undo', run: undo } });
+            toast(`Back on ${placeName(hub, n.place)}`, { undo });
             navigate(routeOf(n.place));
           }}
         >
-          <Icon name={G.undo} className="icon--sm" />
           Put it back on {placeName(hub, n.place)}
-        </button>
-        <button
-          type="button"
-          className="textbtn"
+        </Button>
+        <TextButton
           onClick={() => {
             const undo = hub.deleteNote(id);
             onClose();
-            toast('Thrown away', { action: { label: 'Undo', run: undo } });
+            toast('Thrown away', { undo });
           }}
         >
           Throw it away
-        </button>
+        </TextButton>
       </div>
     </Sheet>
   );

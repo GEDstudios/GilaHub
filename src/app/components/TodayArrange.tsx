@@ -12,6 +12,7 @@ import { Sortable, useSortableItem } from '../ui/Sortable';
 import { todayView } from '../views';
 import { listKey, listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
+import { TextButton } from '../ui/primitives';
 
 /**
  * Edit Today, on Today itself: every block shows as itself (a short, still peek of what it
@@ -34,7 +35,7 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
   const reset = () => {
     const undo = resetHome(hub);
     setPicking(false);
-    toast('Today is back to the default', { action: { label: 'Undo', run: undo } });
+    toast('Today is back to the default', { undo });
   };
 
   return (
@@ -111,9 +112,9 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
 
       {isDefaultHome(hub) ? null : (
         <div className="homereset">
-          <button type="button" className="textbtn" onClick={reset}>
+          <TextButton onClick={reset}>
             Back to the default
-          </button>
+          </TextButton>
         </div>
       )}
     </div>

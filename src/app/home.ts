@@ -10,6 +10,7 @@ import type { IconName } from './ui/Icon';
 import { openCount, type TodayView } from './views';
 import { listIdOf, listKey } from '../core/keys';
 import { G } from './ui/glyphs';
+import { howMany } from './labels';
 
 /**
  * My Today page: a fixed summary, then widgets in my order. Only order and on/off are mine
@@ -302,7 +303,7 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
   const saved = savedList(key);
   if (saved) {
     const n = runQuery(hub, saved.query).length;
-    return join([n > 0 && `${n} ${n === 1 ? 'task' : 'tasks'}`], 'Nothing right now');
+    return join([n > 0 && howMany(n, 'task')], 'Nothing right now');
   }
   switch (key) {
     case 'today': {

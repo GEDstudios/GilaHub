@@ -25,12 +25,12 @@ import { usePrefs } from '../prefs';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Check, Choices, Empty, IconButton, lineVars, ListBullet, Section, StarButton, Stepper } from '../ui/primitives';
+import { Avatar, Band, Check, Choices, Empty, IconButton, lineVars, ListBullet, Section, StarButton, Stepper, ThanksButton, TextButton, Button } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
 import { AutoTitle } from '../ui/AutoTitle';
 import type { Draft } from '../draft';
-import { G_TEXT } from '../ui/glyphs';
-import { G } from '../ui/glyphs';
+import { G, G_TEXT } from '../ui/glyphs';
+import { myName } from '../labels';
 
 function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; onGone: () => void }) {
   const hub = useHub();
@@ -50,7 +50,7 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
           run: () => {
             const was = { listId: item.listId, parentId: item.parentId ?? null };
             hub.move(id, { listId: item.listId, parentId: null });
-            toast(`“${item.title}” is its own task`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
+            toast(`“${item.title}” is its own task`, { undo: () => hub.move(id, was) });
           },
         },
         {
@@ -69,7 +69,7 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
           run: () => {
             const undo = hub.delete(id);
             onGone();
-            toast(`Deleted “${item.title}”`, { action: { label: 'Undo', run: undo } });
+            toast(`Deleted “${item.title}”`, { undo });
           },
         },
       ]}
@@ -105,17 +105,15 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
     <Sheet onClose={onClose} title="Where it lives">
       {from && fromName ? (
         <p className="editlink move__open">
-          <button
-            type="button"
-            className="textbtn"
+          <TextButton
+            iconAfter={G.continue}
             onClick={() => {
               onClose();
               navigate(hub.list(from) ? { name: 'list', id: from } : { name: 'item', id: from });
             }}
           >
             Open {fromName}
-            <Icon name={G.continue} className="icon--xs" />
-          </button>
+          </TextButton>
         </p>
       ) : null}
       <PlaceTree
@@ -194,7 +192,7 @@ function StockPanel({ id }: { id: string }) {
           {isStocked(item) ? `In stock, in ${folder}` : `Time to buy: one of the tasks in ${folder}`}
         </span>
         <button type="button" className="stockfoot__stop" onClick={() => set({ stock: null })} aria-label="Stop counting" title="Stop counting">
-          <Icon name="x" className="icon--xs" />
+          <Icon name={G.close} className="icon--xs" />
         </button>
       </div>
     </>
@@ -213,7 +211,7 @@ function DonePanel({ id, close }: { id: string; close: () => void }) {
   const done = (day: string, label: string | null) => {
     const undo = hub.completeRepeating(id, day);
     toast(label ?? freshAgain(hub, id), {
-      action: { label: 'Undo', run: undo },
+      undo,
     });
     close();
   };
@@ -347,7 +345,7 @@ export function ItemScreen({ id }: { id: string }) {
   const editable = hub.canEdit(item);
   const vis = hub.visibilityOf(item);
   const partner = hub.partner();
-  const partnerName = partner?.name ?? 'your partner';
+  const partnerName = partner?.name ?? 'your person';
   const logs = hub
     .logsFor(id)
     .filter((l) => l.kind === 'done')
@@ -392,7 +390,7 @@ export function ItemScreen({ id }: { id: string }) {
               const where = (twin.parentId && hub.item(twin.parentId)?.title) || twinList.name;
               const undo = hub.removeTwin(id);
               close();
-              toast(`Taken out of ${where}`, { action: { label: 'Undo', run: undo } });
+              toast(`Taken out of ${where}`, { undo });
             }}
           >
             <Icon name={G.close} className="token__x" />
@@ -407,7 +405,7 @@ export function ItemScreen({ id }: { id: string }) {
               const undo = hub.removeTwin(twin.id);
               close();
               navigate({ name: 'item', id: twin.id }, { replace: true });
-              toast(`Taken out of ${here}`, { action: { label: 'Undo', run: undo } });
+              toast(`Taken out of ${here}`, { undo });
             }}
           >
             <Icon name={G.close} className="token__x" />
@@ -442,7 +440,7 @@ export function ItemScreen({ id }: { id: string }) {
   const tagsChip = {
     key: 'tags',
     label: tl.label,
-    icon: tl.lead ? undefined : ('tag' as const),
+    icon: tl.lead ? undefined : G.tag,
     lead: tl.lead ? <TagMark icon={tl.lead} /> : undefined,
     set: tags.length > 0,
     panel: () => <TagPicker value={tags} onChange={(next) => hub.setTags(id, next)} suggested={[...suggest.auto, ...suggest.more]} />,
@@ -474,7 +472,7 @@ export function ItemScreen({ id }: { id: string }) {
       hub.assign(id, p.assignee ?? null);
       const now = hub.item(id);
       if (now && hub.isRequest(p.assignee) && now.requestedBy === hub.meId && item.assignee !== p.assignee) {
-        notifyAbout(rt, hub, now, p.assignee as string, `${G_TEXT.ask} ${hub.me()?.name ?? 'Your partner'} asked you`, now.title);
+        notifyAbout(rt, hub, now, p.assignee as string, `${G_TEXT.ask} ${myName(hub)} asked you`, now.title);
       }
       return;
     }
@@ -509,7 +507,7 @@ export function ItemScreen({ id }: { id: string }) {
                 offLabel="Add to your Highlights"
                 onChange={(on) => {
                   const undo = setQuick(id, on);
-                  toast(on ? 'In your Highlights, on Today' : 'Out of your Highlights', { action: { label: 'Undo', run: undo } });
+                  toast(on ? 'In your Highlights, on Today' : 'Out of your Highlights', { undo });
                 }}
               />
               <IconButton icon={G.more} label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} />
@@ -669,15 +667,7 @@ export function ItemScreen({ id }: { id: string }) {
                       </span>
                     </div>
                     {l.by !== hub.meId ? (
-                      <button
-                        type="button"
-                        className={`heart ${l.thankedBy ? 'is-on' : ''}`}
-                        onClick={() => hub.thank(l.id)}
-                        aria-label="Say thanks"
-                        aria-pressed={!!l.thankedBy}
-                      >
-                        <Icon name={l.thankedBy ? G.thanked : G.thanks} />
-                      </button>
+                      <ThanksButton on={!!l.thankedBy} label="Say thanks" onToggle={() => hub.thank(l.id)} />
                     ) : l.thankedBy ? (
                       <span className="heart is-on" title="Thanked">
                         <Icon name={G.thanked} />
@@ -724,9 +714,9 @@ function SubtaskAdd({ listId, parentId }: { listId: string; parentId: string }) 
         enterKeyHint="next"
       />
       {t.trim() ? (
-        <button type="button" className="btn btn--sm composer__stepgo" onMouseDown={(e) => e.preventDefault()} onClick={add}>
+        <Button small onMouseDown={(e) => e.preventDefault()} onClick={add} className="composer__stepgo">
           Add
-        </button>
+        </Button>
       ) : null}
     </label>
   );

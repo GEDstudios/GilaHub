@@ -3,14 +3,14 @@ import type { LineColor, Visibility } from '../../core/model';
 import { useHub } from '../context';
 import { listDefaultVis, visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { haptic } from '../ui/haptics';
-import { Icon } from '../ui/Icon';
 import { lineVars } from '../ui/primitives';
 import { EChip, Options, Panel } from './editors';
 import { Swatches } from './pickers';
 import { G } from '../ui/glyphs';
+import type { Hub } from '../../core/hub';
 
 /** What a choice means for a project: who sees it, and whose it is. */
-function listVisOf(hub: ReturnType<typeof useHub>, v: VisChoice): { visibility: Visibility; owner: string | null } {
+function listVisOf(hub: Hub, v: VisChoice): { visibility: Visibility; owner: string | null } {
   if (v === 'ours') return { visibility: 'shared', owner: null };
   if (v === 'theirs') return { visibility: 'visible', owner: hub.partner()?.id ?? hub.meId };
   return { visibility: v === 'private' ? 'private' : 'visible', owner: hub.meId };
@@ -75,18 +75,18 @@ export function ProjectFields({ value, onChange }: { value: ProjectLook; onChang
           </Panel>
         ) : null}
         {/* Off: a dashed "Pin to bar". On: "Pinned to bar", filled with my colour, so it reads at a glance. */}
-        <button
-          type="button"
-          className={`echip echip--toggle ${value.pinned ? 'is-on' : 'echip--ghost'}`}
-          aria-pressed={value.pinned}
-          onClick={() => {
+        <EChip
+          label={value.pinned ? 'Pinned to bar' : 'Pin to bar'}
+          icon={G.pinToBar}
+          set={false}
+          pressed={value.pinned}
+          ghost={!value.pinned}
+          tone={`echip--toggle${value.pinned ? ' is-on' : ''}`}
+          onToggle={() => {
             haptic(value.pinned ? 'select' : 'tick');
             onChange({ pinned: !value.pinned });
           }}
-        >
-          <Icon name={G.pinToBar} className="icon--sm" />
-          <span>{value.pinned ? 'Pinned to bar' : 'Pin to bar'}</span>
-        </button>
+        />
       </div>
     </div>
   );

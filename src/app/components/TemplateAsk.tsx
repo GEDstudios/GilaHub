@@ -14,7 +14,7 @@ type Overlays = ReturnType<typeof useOverlays>;
  */
 export function movedTo(hub: Hub, overlays: Overlays, id: string, from: string | null, to: string, text: string, undoMove: () => void): void {
   if (from === to || !hasTemplate(hub.list(to))) {
-    overlays.toast(text, { action: { label: 'Undo', run: undoMove } });
+    overlays.toast(text, { undo: undoMove });
     return;
   }
   overlays.openSheet((close) => <TemplateAskSheet id={id} listId={to} text={text} undoMove={undoMove} onClose={close} />);
@@ -29,7 +29,7 @@ function TemplateAskSheet({ id, listId, text, undoMove, onClose }: { id: string;
   // Closed any way but "Use it": just moved.
   useEffect(
     () => () => {
-      if (!used.current) toast(text, { action: { label: 'Undo', run: undoMove } });
+      if (!used.current) toast(text, { undo: undoMove });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -50,12 +50,9 @@ function TemplateAskSheet({ id, listId, text, undoMove, onClose }: { id: string;
               used.current = true;
               onClose();
               toast(`${text}, with its template`, {
-                action: {
-                  label: 'Undo',
-                  run: () => {
-                    undo();
-                    undoMove();
-                  },
+                undo: () => {
+                  undo();
+                  undoMove();
                 },
               });
             },

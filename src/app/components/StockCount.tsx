@@ -22,7 +22,7 @@ export function useStockSet(id: string) {
     haptic('select');
     const now = hub.item(id);
     if (!now || now.stock == null || isStocked(before) === isStocked(now)) return;
-    toast(isStocked(now) ? `${now.title}: in stock` : `${now.title}: time to buy`, { action: { label: 'Undo', run: undo } });
+    toast(isStocked(now) ? `${now.title}: in stock` : `${now.title}: time to buy`, { undo });
   };
 }
 

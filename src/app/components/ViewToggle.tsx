@@ -2,14 +2,15 @@ import type { ListView } from '../../core/model';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
+import { G } from '../ui/glyphs';
 
 const VIEWS: Array<[ListView, IconName, string]> = [
-  ['list', 'lines', 'List'],
-  ['cards', 'cards', 'Cards'],
-  ['tags', 'tag', 'By tag'],
+  ['list', G.viewList, 'List'],
+  ['cards', G.viewCards, 'Cards'],
+  ['tags', G.viewTags, 'By tag'],
 ];
 
-/** How a project is looked at, for both of us: a list, cards, or grouped by tag (the aisles). */
+/** How a folder is looked at, for both of us: a list, cards, or grouped by tag. */
 export function ViewToggle({ listId }: { listId: string }) {
   const hub = useHub();
   const now = hub.viewOf(hub.list(listId));

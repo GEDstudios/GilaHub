@@ -6,8 +6,9 @@ import { type LineColor } from '../../core/model';
 import { claimInvite, claimRecovery, InviteError, type InvitePayload } from '../../core/session';
 import { query } from '../router';
 import { Icon } from '../ui/Icon';
-import { IconButton, lineVars, Logo, NameTag } from '../ui/primitives';
+import { IconButton, lineVars, Logo, NameTag, TextButton, Button } from '../ui/primitives';
 import { G } from '../ui/glyphs';
+import { howMany } from '../labels';
 
 export interface OnboardResult {
   kind: 'new' | 'partner' | 'device';
@@ -122,12 +123,12 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
               <Icon name={G.continue} className="icon--sm" />
             </span>
           </button>
-          <button type="button" className="textbtn onboard__link" onClick={() => setStep('code')}>
+          <TextButton onClick={() => setStep('code')} className="onboard__link">
             I have a code
-          </button>
-          <button type="button" className="textbtn onboard__link onboard__link--quiet" onClick={() => setStep('recover')}>
+          </TextButton>
+          <TextButton onClick={() => setStep('recover')} className="onboard__link onboard__link--quiet">
             Recover my account
-          </button>
+          </TextButton>
         </div>
       </main>
     );
@@ -161,9 +162,9 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
               }}
             />
             {error ? <p className="onboard__error">{error}</p> : <p className="hint">It’s on their phone, under “Bring your person in”.</p>}
-            <button type="submit" className="btn btn--block onboard__cta" disabled={normalizeInviteCode(code).length !== 8 || busy}>
+            <Button block type="submit" disabled={normalizeInviteCode(code).length !== 8 || busy} className="onboard__cta">
               {busy ? 'Opening the invite…' : 'Join'}
-            </button>
+            </Button>
           </form>
         </div>
       </main>
@@ -196,9 +197,9 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
               onChange={(e) => setRcode(formatRecoveryCode(normalizeInviteCode(e.target.value).slice(0, 20)))}
             />
             {error ? <p className="onboard__error">{error}</p> : <p className="hint">The 20 letters and numbers you saved when you made it (Settings → Recovery code). You come back as you: your private things, your To-Do and your settings.</p>}
-            <button type="submit" className="btn btn--block onboard__cta" disabled={n.length !== 20 || busy}>
+            <Button block type="submit" disabled={n.length !== 20 || busy} className="onboard__cta">
               {busy ? 'Unlocking…' : 'Recover'}
-            </button>
+            </Button>
           </form>
         </div>
       </main>
@@ -225,9 +226,9 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             })}
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
-          <button type="button" className="btn btn--block onboard__cta" disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked, colors })}>
-            {busy ? 'Setting up…' : picked.length ? `Start with ${picked.length} folder${picked.length > 1 ? 's' : ''}` : 'Start empty'}
-          </button>
+          <Button block disabled={busy} onClick={() => void finish({ kind: 'new', name: name.trim(), color, projects: picked, colors })} className="onboard__cta">
+            {busy ? 'Setting up…' : picked.length ? `Start with ${howMany(picked.length, 'folder')}` : 'Start empty'}
+          </Button>
         </div>
       </main>
     );
@@ -254,9 +255,9 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
             <NameTag name={name.trim() || 'You'} color={color} />
           </div>
           {error ? <p className="onboard__error">{error}</p> : null}
-          <button type="submit" className="btn btn--block onboard__cta" disabled={!name.trim() || busy}>
+          <Button block type="submit" disabled={!name.trim() || busy} className="onboard__cta">
             {busy ? 'Setting up…' : invite ? 'Join' : 'Next'}
-          </button>
+          </Button>
         </form>
       </div>
     </main>

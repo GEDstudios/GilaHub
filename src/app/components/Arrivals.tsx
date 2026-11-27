@@ -6,8 +6,7 @@ import { placeUrl } from './Notes';
 import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
 import { playSound } from '../ui/sounds';
-import { G_TEXT } from '../ui/glyphs';
-import { G } from '../ui/glyphs';
+import { G, G_TEXT } from '../ui/glyphs';
 
 /**
  * Something arrived while the app is open (a reminder came due, my person left a note or asked
@@ -54,7 +53,7 @@ function dismiss(id: number) {
   emit();
 }
 
-const MARK: Record<NonNullable<Arrival['kind']>, IconName> = { reminder: 'bell', note: 'note', ask: 'request', done: 'check', other: 'bell' };
+const MARK: Record<NonNullable<Arrival['kind']>, IconName> = { reminder: G.remind, note: G.note, ask: G.ask, done: G.done, other: G.remind };
 
 /** "/i/abc" → "abc": a thing to do, with Done and Tomorrow. */
 const itemOf = (url?: string) => (url ? /^\/i\/([A-Za-z0-9]+)$/.exec(url)?.[1] : undefined);

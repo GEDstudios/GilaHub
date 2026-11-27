@@ -3,27 +3,19 @@ import type { Item } from '../../core/model';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
 import { useOverlays } from '../ui/overlays';
-import type { Outside, Point } from '../ui/Sortable';
 import { movedTo } from './TemplateAsk';
 import { useOnce } from '../ui/useOnce';
 import { Icon } from '../ui/Icon';
-import { Sortable, useSortableItem } from '../ui/Sortable';
+import { Sortable, type Outside, type Point } from '../ui/Sortable';
 import { DIST } from '../ui/tokens';
 import type { ChipKind } from '../ui/dragOut';
 import { dropMarks, type Landing } from '../ui/dropMark';
 import { dweller, placer, unfoldTo } from '../outline';
 import { SettleContext, useSettle } from '../ui/useSettle';
-import { ItemRow } from './ItemRow';
-import { Disclosure } from '../ui/primitives';
+import { ItemRow, SortableItemRow } from './ItemRow';
+import { Disclosure, DropChip } from '../ui/primitives';
 import { G } from '../ui/glyphs';
 import { isTouch } from '../ui/pointer';
-
-const idOf = (i: Item) => i.id;
-
-function SortableRow({ item, settling }: { item: Item; settling: boolean }) {
-  const s = useSortableItem(item.id, { disabled: settling });
-  return <ItemRow item={item} settling={settling} liRef={s.ref} liStyle={s.style} liClass={s.className} dragProps={s.props} />;
-}
 
 /** A number that bumps when it goes up. */
 function Count({ n }: { n: number }) {
@@ -154,7 +146,7 @@ export function Children({
   readonly?: boolean;
 }) {
   const hub = useHub();
-  const settle = useSettle(idOf);
+  const settle = useSettle<Item>();
   const all = hub.siblings(listId, parentId);
   const open = all.filter((i) => !i.done);
   const done = all.filter((i) => i.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
@@ -179,7 +171,7 @@ export function Children({
         </ul>
       ) : (
         <Sortable
-          ids={open.map(idOf)}
+          ids={open.map((i) => i.id)}
           onMove={onMove}
           onLift={coached}
           outside={liftOut}
@@ -190,12 +182,7 @@ export function Children({
             const item = hub.item(id);
             // Over where it goes in: a small chip saying how (under a task, or out on its own).
             if (item && outside)
-              return (
-                <span className="dropchip">
-                  <Icon name={chip === 'subtask' ? G.subtask : G.move} className="icon--sm" />
-                  <span dir="auto">{item.title}</span>
-                </span>
-              );
+              return <DropChip label={item.title} nesting={chip === 'subtask'} />;
             return item ? (
               <ul className="rows">
                 <ItemRow item={item} />
@@ -205,7 +192,7 @@ export function Children({
         >
           <ul className="rows">
             {rows.map(({ row, settling }) => (
-              <SortableRow key={row.id} item={row} settling={settling} />
+              <SortableItemRow key={row.id} item={row} settling={settling} />
             ))}
           </ul>
         </Sortable>
