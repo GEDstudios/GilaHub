@@ -24,7 +24,7 @@ import { Icon } from '../ui/Icon';
 import { setPrefs, use24h, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
 import { Sortable, type Outside, type Point } from '../ui/Sortable';
-import { barTabOf, folderLean, NewProjectSheet, ProjectCard, SortableProject, useBarDrop } from './Lists';
+import { barTabOf, folderLean, ProjectCard, SortableProject, useBarDrop } from './Lists';
 import { TabChip } from '../components/BarEdit';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
@@ -765,19 +765,16 @@ function either(a: Outside, b: Outside): Outside {
   };
 }
 
-/** The folders inside a project, after its own tasks: open one, drag to reorder, or make another. */
+/** The folders inside a project: open one, drag to reorder. (The + makes another: "Folder inside …".) */
 function SubProjects({ list }: { list: List }) {
   const hub = useHub();
-  const { openSheet } = useOverlays();
   const subs = hub.subLists(list.id);
   const pins = pinsOf(hub);
-  const make = () => openSheet((close) => <NewProjectSheet onClose={close} parentId={list.id} />);
   // Drag one down onto the bar: it's pinned there, like a folder from the Folders page. Or up
   // onto the path: it moves there.
   const toBar = useBarDrop();
   const crumbs = useCrumbDrop(list.id);
   const outside = useMemo(() => either(toBar.folders, crumbs.target), [toBar, crumbs]);
-  // None yet: the + makes one ("Folder inside …").
   if (!subs.length) return null;
   return (
     <section className="subprojects" aria-label={`Inside ${list.name}`}>
@@ -806,12 +803,6 @@ function SubProjects({ list }: { list: List }) {
           {subs.map((l, i) => (
             <SortableProject key={l.id} list={l} arranging={false} pins={pins} index={i} />
           ))}
-          <button type="button" className="projcard projcard--new" onClick={make}>
-            <span className="projcard__plus">
-              <Icon name={G.add} />
-            </span>
-            <span>Folder inside</span>
-          </button>
         </div>
       </Sortable>
     </section>
