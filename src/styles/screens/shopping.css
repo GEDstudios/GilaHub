@@ -4,7 +4,7 @@
 
 .aislearr__rows {
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  box-shadow: var(--lift-1), var(--edge);
 }
 
 .aislearr__row {
@@ -54,7 +54,7 @@
   height: 40px;
   border: 0;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--type-body);
   color: var(--text);
 }
 
@@ -71,7 +71,7 @@ span.aislearr__name {
 }
 
 .aislearr__n {
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
 }
 
@@ -99,7 +99,7 @@ span.aislearr__name {
   align-items: center;
   gap: 8px;
   margin: 0 2px 8px;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-2);
 }

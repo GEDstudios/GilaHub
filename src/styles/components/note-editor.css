@@ -205,7 +205,7 @@ textarea.nf__write {
   display: grid;
   place-items: center;
   padding: 4px 0;
-  transition: transform 280ms var(--spring);
+  transition: transform var(--dur-move) var(--spring);
   animation: pin-drop 560ms var(--spring) both;
   animation-delay: calc(min(var(--i, 0), 12) * 45ms);
 }
@@ -347,13 +347,13 @@ textarea.nf__write {
   background: var(--tile);
   color: var(--text);
   transition:
-    transform 200ms var(--spring),
-    background 160ms var(--ease),
-    color 160ms var(--ease);
+    transform var(--dur-base) var(--spring),
+    background var(--dur-quick) var(--ease),
+    color var(--dur-quick) var(--ease);
 }
 
 .tool:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .tool.is-on {
@@ -384,8 +384,8 @@ textarea.nf__write {
   padding: 14px;
   border-radius: 20px;
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px rgb(10 10 4 / 0.05);
-  animation: pop 200ms var(--spring) both;
+  box-shadow: var(--lift-1), var(--edge-faint);
+  animation: pop var(--dur-base) var(--spring) both;
 }
 
 .tray__row {
@@ -406,7 +406,12 @@ textarea.nf__write {
   background: var(--tile);
   color: var(--text);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--type-label);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.tray__chip:active {
+  scale: var(--press-pill);
 }
 
 .tray__chip.is-on {
@@ -422,7 +427,7 @@ textarea.nf__write {
 }
 
 .tray__a--s {
-  font-size: 13px;
+  font-size: var(--type-meta);
 }
 
 .tray__a--l {
@@ -441,7 +446,11 @@ textarea.nf__write {
   border-radius: 10px;
   background: var(--c, var(--lemon));
   box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.1);
-  transition: transform 200ms var(--spring);
+  transition: transform var(--dur-base) var(--spring), scale var(--dur-quick) var(--ease);
+}
+
+.tray__paper:active {
+  scale: var(--press-disc);
 }
 
 .tray__paper.is-on {
@@ -467,12 +476,12 @@ textarea.nf__write {
   border-radius: 14px;
   background: var(--tile);
   transition:
-    transform 200ms var(--spring),
-    box-shadow 160ms var(--ease);
+    transform var(--dur-base) var(--spring),
+    box-shadow var(--dur-quick) var(--ease);
 }
 
 .tray__tile:active {
-  transform: scale(0.92);
+  transform: scale(var(--press-disc));
 }
 
 .tray__tile.is-on {
@@ -507,13 +516,13 @@ textarea.nf__write {
   border-radius: 14px;
   background: var(--tile);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 600;
-  transition: transform 200ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .tray__action:active {
-  transform: scale(0.94);
+  transform: scale(var(--press-pill));
 }
 
 .tray__action:disabled {
@@ -523,7 +532,7 @@ textarea.nf__write {
 .tray__hint {
   margin: -2px 0 0;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-2);
 }
 
@@ -575,11 +584,16 @@ textarea.nf__write {
   place-items: center;
   border-radius: 50%;
   background: var(--ink);
-  color: #fff;
+  color: var(--cta-text);
   box-shadow: 0 2px 6px rgb(10 10 4 / 0.3);
   /* Stays the same size however big the note is made */
   transform: scale(calc(1 / var(--scale, 1)));
-  animation: fade-in 140ms var(--ease) both;
+  animation: fade-in var(--dur-quick) var(--ease) both;
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.stuck__done:active {
+  scale: var(--press-disc);
 }
 
 .stuck__done .icon {
@@ -637,7 +651,7 @@ textarea.nf__write {
     0 0 0 2.5px #fff,
     0 2px 6px rgb(10 10 4 / 0.3);
   pointer-events: none;
-  transition: width 120ms var(--ease), height 120ms var(--ease);
+  transition: width var(--dur-quick) var(--ease), height var(--dur-quick) var(--ease);
 }
 
 .draw__bar {
@@ -653,6 +667,11 @@ textarea.nf__write {
   place-items: center;
   border-radius: 50%;
   color: var(--text);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.draw__icon:active {
+  scale: var(--press-disc);
 }
 
 .draw__icon:disabled {
@@ -702,7 +721,11 @@ textarea.nf__write {
     0 0 0 2.5px #fff,
     0 1px 4px rgb(10 10 4 / 0.25);
   scroll-snap-align: start;
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring), scale var(--dur-quick) var(--ease);
+}
+
+.draw__dot:active {
+  scale: var(--press-disc);
 }
 
 .draw__dot.is-on {
@@ -755,7 +778,7 @@ textarea.nf__write {
 
 .draw__dot--eraser.is-on {
   background: var(--ink);
-  color: #fff;
+  color: var(--cta-text);
 }
 
 /* The tray never makes the sheet wider than the screen: its column is the tray's width, so a

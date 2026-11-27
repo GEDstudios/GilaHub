@@ -18,8 +18,8 @@
   transform: rotate(var(--tilt));
   box-shadow: var(--fold-shadow);
   transition:
-    transform 260ms var(--spring),
-    box-shadow 200ms var(--ease);
+    transform var(--dur-move) var(--spring),
+    box-shadow var(--dur-base) var(--ease);
 }
 
 .projcard::before {
@@ -45,7 +45,7 @@
 }
 
 button.projcard:active {
-  transform: rotate(0deg) scale(0.97);
+  transform: rotate(0deg) scale(var(--press-card));
 }
 
 .projcard .ccard__top,
@@ -77,19 +77,21 @@ button.projcard:active {
   border-radius: var(--r-l);
   border: 1.5px dashed var(--tile-2);
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 500;
   transition:
-    background 160ms var(--ease),
-    transform 180ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    transform var(--dur-base) var(--ease);
 }
 
-.projcard--new:hover {
-  background: var(--tile);
+@media (hover: hover) {
+  .projcard--new:hover {
+    background: var(--tile);
+  }
 }
 
 .projcard--new:active {
-  transform: scale(0.98);
+  transform: scale(var(--press-card));
 }
 
 .projcard__plus {

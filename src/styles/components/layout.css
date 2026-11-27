@@ -15,10 +15,3 @@
   margin: 0 auto;
   padding: 0 var(--gutter);
 }
-
-@media (min-width: 960px) {
-  .main {
-    margin-left: var(--sidebar-w);
-    padding-bottom: 140px;
-  }
-}

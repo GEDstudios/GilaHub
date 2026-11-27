@@ -27,7 +27,7 @@
 }
 
 .iconlib__groups .token.is-on {
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
   color: var(--ink);
 }
 
@@ -41,7 +41,7 @@
   grid-column: 1 / -1;
   margin: 6px 2px;
   color: var(--text-3);
-  font-size: 14px;
+  font-size: var(--type-label);
 }
 
 .iconlib__more {

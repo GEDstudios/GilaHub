@@ -21,7 +21,7 @@
   min-height: 58px;
   padding: 10px 14px 10px 16px;
   background: var(--tile);
-  transition: background 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease);
 }
 
 .row + .row::before {
@@ -59,14 +59,14 @@
 }
 
 .row__title {
-  font-size: 17px;
+  font-size: var(--type-row);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .row__aside {
   margin-left: 4px;
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
 }
 
@@ -75,7 +75,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
 }
 
@@ -102,9 +102,11 @@
   color: inherit;
 }
 
-.meta--link:hover {
-  color: var(--text);
-  background: rgb(10 10 4 / 0.05);
+@media (hover: hover) {
+  .meta--link:hover {
+    color: var(--text);
+    background: var(--press);
+  }
 }
 
 .row__trail {

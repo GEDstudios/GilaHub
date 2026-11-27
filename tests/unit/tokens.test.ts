@@ -51,4 +51,36 @@ describe('every stylesheet stays on the scales (tokens.css)', () => {
     const off = decls.filter((d) => /radius/.test(d.prop) && px(d.value).some((n) => n < 99 && !RADIUS.has(n)));
     expect(off.map((d) => `${d.f}: ${d.prop}: ${d.value}`)).toEqual([]);
   });
+
+  it('what you read is one of the seven --type sizes (only the serif, and a note\'s own scale, say px)', () => {
+    // 9px and 10px: inside the scaled note face, and an emoji in a 16px mark.
+    const off = decls.filter((d) => d.prop === 'font-size' && px(d.value).some((n) => n < 18 && n !== 9 && n !== 10));
+    expect(off.map((d) => `${d.f}: ${d.value}`)).toEqual([]);
+  });
+
+  it('transitions run at one of the four --dur speeds (a few pieces of choreography keep their own)', () => {
+    // The live cursor, the drag slot, the bar's pill, a note peeling, the day card's hop, the ideas tag; 0: at once.
+    const OWN = new Set([0, 1, 90, 100, 360, 380, 420]);
+    /** How long a part of a transition takes, when it says so in ms or s (after a --dur token, a time is its delay). */
+    const raw = (part: string) => (/var\(--dur-/.test(part) ? undefined : part.match(/(?<![\w.-])(\d*\.?\d+)(ms|s)\b/));
+    const ownTime = (part: string) => {
+      const m = raw(part);
+      return !m || OWN.has(m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]));
+    };
+    const off = decls.filter((d) => /^transition(-duration)?$/.test(d.prop) && !d.value.split(/,(?![^(]*\))/).every(ownTime));
+    expect(off.map((d) => `${d.f}: ${d.value.replace(/\s+/g, ' ')}`)).toEqual([]);
+  });
+
+  it('a press is one of the three --press depths', () => {
+    const rules = files(dir)
+      .filter((f) => !f.endsWith('tokens.css'))
+      .flatMap((f) => [...readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ f: f.slice(dir.length + 1), sel: m[1].trim(), body: m[2] })));
+    const off = rules.filter((r) => r.sel.split(',').every((s) => /:active/.test(s)) && /scale(\(|:)\s*0?\.\d+/.test(r.body));
+    expect(off.map((r) => `${r.f}: ${r.sel.replace(/\s+/g, ' ')}`)).toEqual([]);
+  });
+
+  it('white is the card colour, and text on ink is --cta-text', () => {
+    const off = decls.filter((d) => (d.prop === 'background' || d.prop === 'color') && /^#fff(fff)?$/i.test(d.value) && d.f !== 'screens/pairing.css');
+    expect(off.map((d) => `${d.f}: ${d.prop}: ${d.value}`)).toEqual([]);
+  });
 });

@@ -21,7 +21,7 @@
 
 .onboard__step {
   margin: 32px 0 10px;
-  font-size: 14px;
+  font-size: var(--type-label);
   color: var(--text-3);
 }
 
@@ -50,7 +50,7 @@
 
 .onboard__error {
   margin: 12px 0 0;
-  font-size: 14px;
+  font-size: var(--type-label);
   color: var(--danger);
 }
 
@@ -64,7 +64,7 @@
   font-family: var(--serif);
   font-size: 34px;
   letter-spacing: -0.015em;
-  transition: border-color 160ms var(--ease);
+  transition: border-color var(--dur-quick) var(--ease);
 }
 
 .bigfield:focus {
@@ -92,18 +92,18 @@
   background: var(--tile);
   text-align: start;
   transition:
-    background 160ms var(--ease),
-    box-shadow 160ms var(--ease),
-    transform 160ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    box-shadow var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--ease);
 }
 
 .pick:active {
-  transform: scale(0.99);
+  transform: scale(var(--press-card));
 }
 
 .pick.is-on {
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px rgb(10 10 4 / 0.06);
+  box-shadow: var(--lift-1), var(--edge-faint);
 }
 
 .pick__swatch {
@@ -116,7 +116,7 @@
 
 .pick__name {
   flex: 1;
-  font-size: 17px;
+  font-size: var(--type-row);
   font-weight: 500;
 }
 
@@ -128,7 +128,7 @@
   place-items: center;
   border-radius: 50%;
   border: 1.5px solid var(--text-3);
-  transition: all 200ms var(--spring);
+  transition: all var(--dur-base) var(--spring);
 }
 
 .pick.is-on .pick__check {
@@ -204,7 +204,7 @@
 .welcome__sub {
   max-width: 28ch;
   margin: 56px auto 0;
-  font-size: 16px;
+  font-size: var(--type-body);
   line-height: 1.5;
   color: var(--text-2);
 }
@@ -228,15 +228,15 @@
   height: 64px;
   padding: 0 10px 0 28px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--card);
   box-shadow: var(--lift-2);
-  font-size: 17px;
+  font-size: var(--type-row);
   font-weight: 500;
-  transition: transform 160ms var(--ease);
+  transition: transform var(--dur-quick) var(--ease);
 }
 
 .go:active {
-  transform: scale(0.98);
+  transform: scale(var(--press-card));
 }
 
 .go__arrow {
@@ -299,12 +299,12 @@
 }
 
 .projpin .adddisc {
-  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.05);
-  transition: transform 140ms var(--ease);
+  box-shadow: var(--lift-2), var(--edge-faint);
+  transition: transform var(--dur-quick) var(--ease);
 }
 
 .projpin:active > span {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .projpin__in {
@@ -316,7 +316,7 @@
   background: var(--ink);
   color: var(--cta-text);
   box-shadow: var(--lift-2);
-  transition: transform 140ms var(--ease);
+  transition: transform var(--dur-quick) var(--ease);
 }
 
 .projpin__in .icon {
@@ -341,13 +341,13 @@
   justify-content: center;
   gap: 8px;
   pointer-events: none;
-  transition: opacity 160ms var(--ease);
+  transition: opacity var(--dur-quick) var(--ease);
 }
 
 .bartray .token {
   pointer-events: auto;
   background: var(--card);
-  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+  box-shadow: var(--lift-2), var(--edge-faint);
 }
 
 html.is-dragging .bartray {
@@ -397,7 +397,7 @@ html.is-dragging .bartray {
 
 .is-dropping .lift--card .projcard {
   box-shadow: var(--fold-shadow);
-  transition: box-shadow 320ms var(--ease);
+  transition: box-shadow var(--dur-slow) var(--ease);
 }
 
 /* An aisle saying "not here" when a row is dragged out of it */

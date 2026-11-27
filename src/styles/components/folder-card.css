@@ -58,22 +58,24 @@
   background: var(--card-btn);
   color: var(--ink);
   transition:
-    background 160ms var(--ease),
-    transform 160ms var(--spring);
+    background var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--spring);
 }
 
-.herobtn:hover {
-  background: var(--card-btn-hover);
+@media (hover: hover) {
+  .herobtn:hover {
+    background: var(--card-btn-hover);
+  }
 }
 
 .herobtn:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .herobtn.is-on,
 .herobtn.is-open {
   background: var(--ink);
-  color: #fff;
+  color: var(--cta-text);
 }
 
 .herobtn.is-static {

@@ -3,7 +3,7 @@
 .pairsteps {
   margin: 0;
   padding-left: 20px;
-  font-size: 15px;
+  font-size: var(--type-chip);
   color: var(--text-2);
 }
 
@@ -36,17 +36,17 @@
 }
 
 .codepanel__meta {
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: rgb(10 10 4 / 0.7);
 }
 
 .codepanel__wait {
-  font-size: 15px;
+  font-size: var(--type-chip);
   color: rgb(10 10 4 / 0.6);
 }
 
 .codepanel__err {
-  font-size: 15px;
+  font-size: var(--type-chip);
 }
 
 .pairqr {
@@ -54,7 +54,7 @@
   align-items: center;
   gap: 14px;
   margin-top: 14px;
-  font-size: 14px;
+  font-size: var(--type-label);
   color: var(--text-2);
 }
 

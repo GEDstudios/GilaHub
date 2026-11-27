@@ -21,13 +21,12 @@
 
 /* A press you can feel before the long-press lifts it */
 .row.is-sortable:active:not(.is-ghost) {
-  transform: scale(0.985);
-  transition: transform 200ms var(--ease) 40ms;
+  transform: scale(var(--press-card));
+  transition: transform var(--dur-base) var(--ease) 40ms;
 }
 
 html.is-dragging,
 html.is-dragging * {
-  cursor: grabbing !important;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -45,7 +44,7 @@ html.is-dragging * {
   border-radius: 16px;
   background: var(--card);
   box-shadow: var(--lift-3);
-  animation: lift-in 200ms var(--spring);
+  animation: lift-in var(--dur-base) var(--spring);
 }
 
 /* Rows land back on the gray card */
@@ -258,7 +257,7 @@ li.row:has(> .dropgap) {
   border-radius: 50%;
   color: var(--text-2);
   animation: pop 220ms var(--spring) both;
-  transition: transform 140ms var(--ease);
+  transition: transform var(--dur-quick) var(--ease);
 }
 
 .editx .icon {
@@ -266,7 +265,7 @@ li.row:has(> .dropgap) {
 }
 
 .editx:active {
-  transform: scale(0.88);
+  transform: scale(var(--press-disc));
 }
 
 .editx--badge {
@@ -316,7 +315,7 @@ li.row:has(> .dropgap) {
 .adddisc .icon {
   --s: 16;
   color: inherit;
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .adddisc.is-open .icon {
@@ -361,7 +360,7 @@ li.row:has(> .dropgap) {
   place-items: center;
   border-radius: 12px;
   color: var(--text-3);
-  transition: transform 140ms var(--ease);
+  transition: transform var(--dur-quick) var(--ease);
 }
 
 .slot__btn .icon {
@@ -369,7 +368,7 @@ li.row:has(> .dropgap) {
 }
 
 .slot__btn:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .slot__grip {

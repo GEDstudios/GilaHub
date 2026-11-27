@@ -7,7 +7,7 @@
 
 /* ============================================================ The +: what to make */
 .fab .icon {
-  transition: transform 260ms var(--spring);
+  transition: transform var(--dur-move) var(--spring);
 }
 
 .fab.is-open .icon {
@@ -41,7 +41,7 @@
   align-items: center;
   gap: 12px;
   padding: 0 4px 0 0;
-  animation: addmenu-in 260ms var(--spring) both;
+  animation: addmenu-in var(--dur-move) var(--spring) both;
 }
 
 @keyframes addmenu-in {
@@ -58,7 +58,7 @@
   box-shadow:
     0 0 0 1px rgb(10 10 4 / 0.06),
     0 6px 16px -6px rgb(10 10 4 / 0.25);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -71,7 +71,7 @@
   margin-right: 8px;
   color: var(--text);
   filter: drop-shadow(0 4px 8px rgb(10 10 4 / 0.22));
-  transition: transform 200ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .addmenu__face > .icon {
@@ -79,7 +79,7 @@
 }
 
 .addmenu__item:active .addmenu__face {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 /* Each choice is the little thing it makes: a task card, a bag, a folder, a sticky note */
@@ -117,11 +117,11 @@
 .aisle--urgent .rows--cards .row,
 .main .rows--cards .row,
 .main .rows--cards .row:hover {
-  background: #fff;
+  background: var(--card);
 }
 
 .rows--cards .row:active {
-  transform: scale(0.98);
+  transform: scale(var(--press-card));
 }
 
 /* Urgent things as cards: the whole group is one lemon card, its things white cards inside */
@@ -136,7 +136,7 @@
 .aisle--urgent .rows--cards .row:active,
 .main .aisle--urgent .rows--cards .row,
 .main .aisle--urgent .rows--cards .row:hover {
-  background: #fff;
+  background: var(--card);
   box-shadow:
     0 0 0 1px rgb(10 10 4 / 0.06),
     0 2px 6px -2px rgb(10 10 4 / 0.18);
@@ -154,7 +154,7 @@
 }
 
 .aisle .rows--cards .row__title {
-  font-size: 16px;
+  font-size: var(--type-body);
 }
 
 /* Taking the date off: a plain pill that says so, at the top of the card */
@@ -173,17 +173,19 @@
   border-radius: 18px;
   background: var(--tile);
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 600;
-  transition: background 140ms var(--ease), transform 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease), transform var(--dur-quick) var(--ease);
 }
 
-.whencard__clear:hover {
-  background: var(--tile-2);
+@media (hover: hover) {
+  .whencard__clear:hover {
+    background: var(--tile-2);
+  }
 }
 
 .whencard__clear:active {
-  transform: scale(0.96);
+  transform: scale(var(--press-pill));
 }
 
 /* Urgent as a list: the lemon card holds its things as a white list inside it */
@@ -192,7 +194,7 @@
 }
 
 .aisle--urgent .rows:not(.rows--cards) .row {
-  background: #fff;
+  background: var(--card);
 }
 
 .aisle--urgent .rows:not(.rows--cards) .aisle__cap + .row {

@@ -30,12 +30,12 @@
   color: var(--ink);
   outline: none;
   caret-color: var(--ink);
-  transition: box-shadow 140ms var(--ease), background 140ms var(--ease);
+  transition: box-shadow var(--dur-quick) var(--ease), background var(--dur-quick) var(--ease);
 }
 
 .tentry__box:focus {
   background: var(--card);
-  box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 4px var(--me-light, var(--lemon));
+  box-shadow: inset 0 0 0 2px var(--ink), 0 0 0 4px var(--me-light);
 }
 
 .tentry__colon {
@@ -60,10 +60,14 @@
 
 .tentry__ampm button {
   width: 56px;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 700;
   color: var(--text-3);
-  transition: background 140ms var(--ease), color 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease), scale var(--dur-quick) var(--ease);
+}
+
+.tentry__ampm button:active {
+  scale: var(--press-pill);
 }
 
 .tentry__ampm button + button {
@@ -71,7 +75,7 @@
 }
 
 .tentry__ampm button.is-on {
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
   color: var(--ink);
 }
 
@@ -92,21 +96,21 @@
   background: var(--tile);
   box-shadow: none;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
 .tentry__row--compact .tentry__box:focus {
   background: var(--card);
-  box-shadow: inset 0 0 0 1.5px var(--ink);
+  box-shadow: var(--ring-ink);
 }
 
 .tentry__row--compact .tentry__colon {
   height: 32px;
   padding: 0 1px;
   font-family: var(--font);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 700;
   color: var(--text-2);
 }
@@ -127,7 +131,7 @@
   width: auto;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 700;
   color: var(--text-3);
 }
@@ -151,7 +155,7 @@
   flex: none;
   padding: 6px 10px;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: var(--type-chip);
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
@@ -160,6 +164,8 @@
   color: var(--text);
 }
 
-.whenrow__valuebtn:hover {
-  background: var(--tile);
+@media (hover: hover) {
+  .whenrow__valuebtn:hover {
+    background: var(--tile);
+  }
 }

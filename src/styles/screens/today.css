@@ -15,11 +15,11 @@
   margin-top: 6px;
   padding: 8px 12px 8px 16px;
   border-radius: 16px;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-2);
   text-align: start;
-  transition: background 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease);
 }
 
 @media (hover: hover) {
@@ -46,7 +46,7 @@
 
 .quietline__end .icon {
   --s: 17;
-  transition: transform 220ms var(--ease);
+  transition: transform var(--dur-base) var(--ease);
 }
 
 .quietline[aria-expanded='true'] .quietline__end .icon {
@@ -66,9 +66,9 @@
   padding: 14px 14px 14px 16px;
   border-radius: 20px;
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px rgb(10 10 4 / 0.04);
+  box-shadow: var(--lift-1), var(--edge-faint);
   text-align: start;
-  font-size: 15px;
+  font-size: var(--type-chip);
   color: var(--text-2);
 }
 
@@ -111,7 +111,7 @@
   border-radius: 50%;
   font-size: 22px;
   background: var(--tile);
-  transition: transform 180ms var(--spring), background 160ms var(--ease);
+  transition: transform var(--dur-base) var(--spring), background var(--dur-quick) var(--ease);
 }
 
 .moment__feel.is-on {
@@ -127,7 +127,7 @@
   padding: 6px 6px 6px 16px;
   border-radius: 999px;
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  box-shadow: var(--lift-1), var(--edge);
 }
 
 .moment__write input {
@@ -136,7 +136,7 @@
   height: 40px;
   border: 0;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--type-body);
 }
 
 .moment__write input:focus-visible {
@@ -155,7 +155,7 @@
 }
 
 .moment__ago {
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 600;
   opacity: 0.7;
 }
@@ -172,7 +172,7 @@
 
 .moment__monthname {
   margin: 0 2px 8px;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-3);
 }
@@ -209,11 +209,11 @@
 }
 
 .moment__text {
-  font-size: 16px;
+  font-size: var(--type-body);
 }
 
 .moment__meta {
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
 }
 
@@ -238,11 +238,13 @@
   margin-top: 36px;
   border-radius: 22px;
   border: 1.5px dashed var(--tile-2);
-  transition: background 160ms var(--ease);
+  transition: background var(--dur-quick) var(--ease);
 }
 
-.invite:has(.invite__main:hover) {
-  background: var(--tile);
+@media (hover: hover) {
+  .invite:has(.invite__main:hover) {
+    background: var(--tile);
+  }
 }
 
 .invite__main {
@@ -272,7 +274,7 @@
 }
 
 .invite__x:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .invite__people {
@@ -295,12 +297,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  font-size: 14px;
+  font-size: var(--type-label);
   color: var(--text-2);
 }
 
 .invite__text strong {
-  font-size: 16px;
+  font-size: var(--type-body);
   font-weight: 600;
   color: var(--text);
 }
@@ -328,7 +330,7 @@
 
 /* The first time Today draws in a session, its blocks fade up one after another */
 .home.is-entering > * {
-  animation: home-in 260ms var(--ease) both;
+  animation: home-in var(--dur-move) var(--ease) both;
 }
 
 .home.is-entering > :nth-child(2) {

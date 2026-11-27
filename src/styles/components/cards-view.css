@@ -17,7 +17,11 @@
   place-items: center;
   border-radius: 8px;
   color: var(--text-3);
-  transition: background 140ms var(--ease), color 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease), scale var(--dur-quick) var(--ease);
+}
+
+.viewtoggle__btn:active {
+  scale: var(--press-pill);
 }
 
 .viewtoggle__btn.is-on {
@@ -53,8 +57,8 @@
     0 0 0 1px rgb(10 10 4 / 0.07),
     0 1px 3px rgb(10 10 4 / 0.05);
   transition:
-    transform 200ms var(--spring),
-    box-shadow 200ms var(--ease);
+    transform var(--dur-base) var(--spring),
+    box-shadow var(--dur-base) var(--ease);
 }
 
 .rows--cards .row + .row::before {
@@ -75,7 +79,7 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 16px;
+  font-size: var(--type-body);
   font-weight: 500;
   line-height: 1.25;
   white-space: normal;
@@ -92,11 +96,13 @@
   margin: 0;
 }
 
-.rows--cards .row:hover {
-  box-shadow:
+@media (hover: hover) {
+  .rows--cards .row:hover {
+    box-shadow:
     0 0 0 1px rgb(10 10 4 / 0.09),
     0 6px 16px -6px rgb(10 10 4 / 0.18);
-  transform: translateY(-2px);
+    transform: translateY(-2px);
+  }
 }
 
 @media (min-width: 960px) {
@@ -113,10 +119,10 @@
 
   .main .rows--cards .row,
   .main .column > .rows--cards .row {
-    background: #fff;
+    background: var(--card);
   }
 
   .main .rows--cards .row:hover {
-    background: #fff;
+    background: var(--card);
   }
 }

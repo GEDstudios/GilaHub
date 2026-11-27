@@ -4,7 +4,7 @@
 .echip.echip--vis {
   color: var(--ink);
   font-weight: 600;
-  box-shadow: 0 0 0 1.5px var(--ink) inset;
+  box-shadow: var(--ring-ink);
 }
 
 .echip--vis-ours {
@@ -21,12 +21,12 @@
 
 .echip.echip--vis-private {
   background: var(--ink);
-  color: var(--bg);
+  color: var(--cta-text);
   box-shadow: none;
 }
 
 .echip.echip--vis-private .icon {
-  color: var(--bg);
+  color: var(--cta-text);
 }
 
 .echip__faces {
@@ -54,7 +54,7 @@
   background: transparent;
   color: rgb(10 10 4 / 0.72);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--type-chip);
   line-height: 1.35;
   position: relative;
   z-index: 1;
@@ -125,7 +125,7 @@
   box-shadow:
     0 0 0 1px var(--line),
     0 2px 6px -3px rgb(10 10 4 / 0.25);
-  transition: transform 200ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .groupadd .icon {
@@ -133,7 +133,7 @@
 }
 
 .groupadd:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 /* The recovery code, shown once: big, spaced, easy to copy by hand. */
@@ -141,8 +141,8 @@
   margin: 20px 0 10px;
   padding: 20px 14px;
   border-radius: 16px;
-  background: var(--me-light, var(--lemon));
-  box-shadow: 0 0 0 1.5px var(--ink) inset;
+  background: var(--me-light);
+  box-shadow: var(--ring-ink);
   font-size: 21px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -183,6 +183,11 @@
   border-radius: 50%;
   border: 1.5px dashed rgb(10 10 4 / 0.3);
   color: var(--text-2);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.tagnew__icon:active {
+  scale: var(--press-disc);
 }
 
 .tagnew__icon.is-set,
@@ -190,7 +195,7 @@
   border-style: solid;
   border-color: var(--ink);
   color: var(--ink);
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
 }
 
 .tagnew__pick {

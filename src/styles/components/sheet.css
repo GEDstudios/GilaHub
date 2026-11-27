@@ -27,7 +27,7 @@
   border-radius: 30px 30px 0 0;
   box-shadow: var(--lift-sheet);
   padding: 10px var(--gutter) calc(var(--safe-bottom) + 28px);
-  animation: sheet-up 320ms var(--ease) both;
+  animation: sheet-up var(--dur-slow) var(--ease) both;
 }
 
 .sheet.is-closing .sheet__panel {
@@ -98,7 +98,7 @@
 
 .sheet__lede {
   margin: 0 0 var(--space-4);
-  font-size: 16px;
+  font-size: var(--type-body);
   color: var(--text-2);
 }
 
@@ -171,7 +171,7 @@
   border: 0;
   border-radius: 14px;
   background: var(--tile);
-  font-size: 16px;
+  font-size: var(--type-body);
 }
 
 .notes {
@@ -183,16 +183,16 @@
   border: 0;
   border-radius: 20px;
   background: var(--tile);
-  font-size: 16px;
+  font-size: var(--type-body);
   line-height: 1.5;
   resize: none;
   field-sizing: content;
   transition:
-    background 160ms var(--ease),
-    box-shadow 160ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    box-shadow var(--dur-quick) var(--ease);
 }
 
 .notes:focus {
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  box-shadow: var(--lift-1), var(--edge);
 }

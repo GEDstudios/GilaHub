@@ -36,15 +36,15 @@
   place-items: center;
   border-radius: 999px;
   background: var(--ink);
-  color: #fff;
-  font-size: 13px;
+  color: var(--cta-text);
+  font-size: var(--type-meta);
   font-weight: 600;
 }
 
 .daycard__sentence {
   margin: 12px 0 0;
   max-width: 88%;
-  font-size: 16px;
+  font-size: var(--type-body);
   line-height: 1.4;
   color: rgb(10 10 4 / 0.78);
 }
@@ -65,11 +65,11 @@
   gap: 8px;
   transform: rotate(-3deg);
   box-shadow: var(--lift-1);
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .daycard__tag:active {
-  transform: rotate(-3deg) scale(0.95);
+  transform: rotate(-3deg) scale(var(--press-pill));
 }
 
 .daycard__tag.is-asking {
@@ -93,17 +93,17 @@
   background: var(--tile);
   color: var(--ink);
   transition:
-    background 160ms var(--ease),
-    color 160ms var(--ease),
-    transform 140ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    color var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--ease);
 }
 
 .weekstrip__day:active {
-  transform: scale(0.94);
+  transform: scale(var(--press-pill));
 }
 
 .weekstrip__wd {
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 500;
   color: var(--text-3);
 }
@@ -134,7 +134,7 @@
 
 .weekstrip__day.is-on {
   background: var(--ink);
-  color: #fff;
+  color: var(--cta-text);
 }
 
 .weekstrip__day.is-on .weekstrip__wd {
@@ -142,17 +142,17 @@
 }
 
 .weekstrip__day.is-on .weekstrip__date {
-  color: #fff;
+  color: var(--cta-text);
 }
 
 .weekstrip__day.is-on .weekstrip__dots i {
-  background: #fff;
+  background: var(--card);
   opacity: 0.9;
 }
 
 .weekstrip__label {
   margin: 14px 4px 8px;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-2);
 }
@@ -192,9 +192,9 @@
     0 6px 14px -8px rgb(10 10 4 / 0.28);
   transform: rotate(var(--lean));
   transition:
-    transform 340ms var(--spring),
-    box-shadow 260ms var(--ease),
-    margin 300ms var(--spring);
+    transform var(--dur-slow) var(--spring),
+    box-shadow var(--dur-move) var(--ease),
+    margin var(--dur-slow) var(--spring);
   animation: wcard-in 520ms var(--spring) both;
   animation-delay: calc(var(--i) * 70ms);
 }
@@ -253,7 +253,7 @@
 }
 
 .wcard__face:active {
-  transform: scale(0.985);
+  transform: scale(var(--press-card));
 }
 
 .wcard__num {
@@ -274,12 +274,12 @@
 }
 
 .wcard__label {
-  font-size: 16px;
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
 .wcard__detail {
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: rgb(10 10 4 / 0.68);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -290,7 +290,7 @@
   --s: 18;
   flex: none;
   opacity: 0.55;
-  transition: transform 260ms var(--spring);
+  transition: transform var(--dur-move) var(--spring);
 }
 
 .wcard.is-open .wcard__chev {
@@ -299,7 +299,7 @@
 
 .wcard__more {
   padding: 0 14px 16px;
-  animation: wcard-more 320ms var(--ease) both;
+  animation: wcard-more var(--dur-slow) var(--ease) both;
 }
 
 @keyframes wcard-more {
@@ -318,7 +318,7 @@
 
 .wchart__say {
   margin: 0 0 10px;
-  font-size: 14px;
+  font-size: var(--type-label);
 }
 
 .wchart__bars {
@@ -368,7 +368,7 @@
 }
 
 .wchart__wd {
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
 }
 
@@ -403,12 +403,12 @@
 .wcard__item {
   flex: 1;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--type-chip);
 }
 
 .wcard__ago {
   color: rgb(10 10 4 / 0.55);
-  font-size: 13px;
+  font-size: var(--type-meta);
 }
 
 .wcard__list .heart.is-on .icon {
@@ -455,13 +455,13 @@
   height: 34px;
   padding: 0 14px 0 10px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 600;
   color: var(--ink);
   background: linear-gradient(100deg, var(--me) 0 50%, var(--them) 50% 100%);
-  box-shadow: 0 0 0 1.5px var(--ink) inset;
+  box-shadow: var(--ring-ink);
   align-self: center;
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .scopetag.is-mine {
@@ -469,7 +469,7 @@
 }
 
 .scopetag:active {
-  transform: scale(0.94);
+  transform: scale(var(--press-pill));
 }
 
 .searchlayer__none p {
@@ -484,7 +484,7 @@
 
 .searchlayer__make .token {
   color: var(--ink);
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
   font-weight: 600;
 }
 
@@ -493,7 +493,7 @@
   .daycard {
     transition:
       transform 380ms var(--spring),
-      box-shadow 260ms var(--ease);
+      box-shadow var(--dur-move) var(--ease);
   }
 
   .daycard:hover {

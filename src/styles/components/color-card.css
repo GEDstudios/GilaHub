@@ -12,11 +12,11 @@
   background: var(--c);
   color: var(--ink);
   text-align: start;
-  transition: transform 180ms var(--ease);
+  transition: transform var(--dur-base) var(--ease);
 }
 
 button.ccard:active {
-  transform: scale(0.98);
+  transform: scale(var(--press-card));
 }
 
 .ccard--md {
@@ -58,7 +58,7 @@ button.ccard:active {
 }
 
 .ccard__sub {
-  font-size: 14px;
+  font-size: var(--type-label);
   line-height: 1.4;
   color: rgb(10 10 4 / 0.74);
 }
@@ -72,8 +72,8 @@ button.ccard:active {
   place-items: center;
   border-radius: 999px;
   background: var(--ink);
-  color: var(--bg);
-  font-size: 13px;
+  color: var(--cta-text);
+  font-size: var(--type-meta);
   font-weight: 600;
 }
 
@@ -154,7 +154,7 @@ textarea.ccard__input {
 
 .hero__sub {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--type-chip);
   line-height: 1.4;
   color: rgb(10 10 4 / 0.76);
 }

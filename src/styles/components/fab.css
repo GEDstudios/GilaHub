@@ -16,7 +16,7 @@
   box-shadow:
     0 12px 26px -8px rgb(10 10 4 / 0.5),
     0 2px 6px rgb(10 10 4 / 0.2);
-  transition: transform 200ms var(--spring), opacity 160ms var(--ease);
+  transition: transform var(--dur-base) var(--spring), opacity var(--dur-quick) var(--ease);
 }
 
 .fab .icon {
@@ -29,7 +29,7 @@
 }
 
 .fab:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 /* Out of the way while something else has the stage */

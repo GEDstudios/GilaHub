@@ -10,16 +10,16 @@
   border-radius: 999px;
   background: var(--cta);
   color: var(--cta-text);
-  font-size: 16px;
+  font-size: var(--type-body);
   font-weight: 600;
   transition:
-    transform 140ms var(--ease),
-    opacity 140ms var(--ease),
-    background 140ms var(--ease);
+    transform var(--dur-quick) var(--ease),
+    opacity var(--dur-quick) var(--ease),
+    background var(--dur-quick) var(--ease);
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(var(--press-card));
 }
 
 .btn:disabled {
@@ -38,7 +38,7 @@
 .btn--sm {
   height: 40px;
   padding: 0 20px;
-  font-size: 15px;
+  font-size: var(--type-chip);
 }
 
 .iconbtn {
@@ -50,37 +50,44 @@
   background: var(--tile);
   color: var(--text);
   transition:
-    transform 140ms var(--ease),
-    background 140ms var(--ease);
+    transform var(--dur-quick) var(--ease),
+    background var(--dur-quick) var(--ease);
 }
 
-.iconbtn:hover {
-  background: var(--tile-2);
+@media (hover: hover) {
+  .iconbtn:hover {
+    background: var(--tile-2);
+  }
 }
 
 .iconbtn:active {
-  transform: scale(0.94);
+  transform: scale(var(--press-disc));
 }
-
-/* New: the one black circle in the app (NewButton). */
 
 .textbtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 0;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-2);
   text-decoration: underline;
   text-decoration-color: var(--tile-2);
   text-decoration-thickness: 1.5px;
   text-underline-offset: 4px;
+  transition: scale var(--dur-quick) var(--ease);
 }
 
-.textbtn:hover {
-  color: var(--text);
-  text-decoration-color: currentColor;
+.textbtn:active {
+  scale: var(--press-pill);
+}
+
+@media (hover: hover) {
+  .textbtn:hover {
+    color: var(--text);
+    text-decoration-color: currentColor;
+  }
 }
 
 .mini {
@@ -89,11 +96,11 @@
   border-radius: 999px;
   background: var(--card);
   box-shadow: var(--lift-1);
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .mini:active {
-  transform: scale(0.96);
+  transform: scale(var(--press-pill));
 }

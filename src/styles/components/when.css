@@ -45,7 +45,7 @@
 }
 
 .whenrow__title {
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 500;
 }
 
@@ -57,7 +57,7 @@
   white-space: nowrap;
   text-align: end;
   color: var(--text-3);
-  font-size: 15px;
+  font-size: var(--type-chip);
 }
 
 .whenrow.is-set .whenrow__value {
@@ -68,7 +68,7 @@
 .whenrow__chev {
   flex: none;
   color: var(--text-3);
-  transition: transform 200ms var(--ease);
+  transition: transform var(--dur-base) var(--ease);
 }
 
 .whenrow.is-open .whenrow__chev {
@@ -121,7 +121,7 @@
 
 .month__today {
   margin-right: 6px;
-  font-size: 14px;
+  font-size: var(--type-label);
 }
 
 .iconbtn--sm {
@@ -140,7 +140,7 @@
   display: grid;
   place-items: center;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
 }
 
@@ -152,19 +152,21 @@
   place-items: center;
   border-radius: 50%;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-variant-numeric: tabular-nums;
   transition:
-    background 140ms var(--ease),
-    transform 160ms var(--spring);
+    background var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--spring);
 }
 
-.month__day:hover {
-  background: var(--tile);
+@media (hover: hover) {
+  .month__day:hover {
+    background: var(--tile);
+  }
 }
 
 .month__day:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .month__day.is-past {
@@ -172,7 +174,7 @@
 }
 
 .month__day.is-today {
-  box-shadow: inset 0 0 0 1.5px var(--ink);
+  box-shadow: var(--ring-ink);
   font-weight: 600;
 }
 
@@ -207,4 +209,9 @@
   border-radius: 50%;
   background: var(--tile);
   color: var(--text-2);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.whenrow__clear:active {
+  scale: var(--press-disc);
 }

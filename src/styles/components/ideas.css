@@ -19,8 +19,8 @@
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
   transition:
-    opacity 180ms var(--ease),
-    transform 320ms var(--spring),
+    opacity var(--dur-base) var(--ease),
+    transform var(--dur-slow) var(--spring),
     visibility 0s;
 }
 
@@ -33,8 +33,8 @@
 }
 
 .ideatag:active .ideatag__body {
-  transform: rotate(0deg) scale(0.96);
-  transition-duration: 160ms;
+  transform: rotate(0deg) scale(var(--press-pill));
+  transition-duration: var(--dur-quick);
 }
 
 .ideatag__paper {
@@ -45,7 +45,7 @@
   padding: 0 10px 0 20px;
   background: var(--card);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 600;
   line-height: 1;
   /* A luggage tag: the left end cut to a point, a hole punched through it */
@@ -75,7 +75,7 @@
   box-shadow:
     0 0 0 2px var(--card),
     inset 0 0 0 1.5px color-mix(in srgb, var(--c) 50%, var(--ink));
-  animation: pop 260ms var(--spring) both;
+  animation: pop var(--dur-move) var(--spring) both;
 }
 
 /* Out of the way: a sheet is open, or (on touch) the keyboard is up. A held bar's bubble simply covers it. */
@@ -85,8 +85,8 @@ html:has(.sheet) .ideatag {
   pointer-events: none;
   transform: translateY(10px);
   transition:
-    opacity 140ms var(--ease),
-    transform 200ms var(--ease),
+    opacity var(--dur-quick) var(--ease),
+    transform var(--dur-base) var(--ease),
     visibility 0s 200ms;
 }
 
@@ -97,8 +97,8 @@ html:has(.sheet) .ideatag {
     pointer-events: none;
     transform: translateY(10px);
     transition:
-      opacity 140ms var(--ease),
-      transform 200ms var(--ease),
+      opacity var(--dur-quick) var(--ease),
+      transform var(--dur-base) var(--ease),
       visibility 0s 200ms;
   }
 }
@@ -130,7 +130,7 @@ html:has(.sheet) .ideatag {
   padding: 12px 0;
   border: 0;
   background: transparent;
-  font-size: 17px;
+  font-size: var(--type-row);
   line-height: 1.35;
   resize: none;
 }
@@ -147,7 +147,7 @@ html:has(.sheet) .ideatag {
 
 .ideas__empty {
   margin: 14px 2px 0;
-  font-size: 15px;
+  font-size: var(--type-chip);
   color: var(--text-3);
 }
 
@@ -187,7 +187,7 @@ html:has(.sheet) .ideatag {
   width: 100%;
   padding: 0;
   color: inherit;
-  font-size: 17px;
+  font-size: var(--type-row);
   line-height: 1.3;
   text-align: start;
   cursor: text;
@@ -206,7 +206,7 @@ html:has(.sheet) .ideatag {
   border: 0;
   border-radius: 10px;
   background: var(--card);
-  box-shadow: 0 0 0 1px var(--line);
+  box-shadow: var(--edge);
   resize: none;
 }
 

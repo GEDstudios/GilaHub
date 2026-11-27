@@ -29,16 +29,16 @@
   border-radius: 999px;
   background: var(--tile);
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   white-space: nowrap;
   transition:
-    transform 140ms var(--ease),
-    background 140ms var(--ease);
+    transform var(--dur-quick) var(--ease),
+    background var(--dur-quick) var(--ease);
 }
 
 .token:active {
-  transform: scale(0.96);
+  transform: scale(var(--press-pill));
 }
 
 .token:disabled {
@@ -120,7 +120,7 @@
 
 .inline__prompt {
   margin: 0 0 10px 2px;
-  font-size: 14px;
+  font-size: var(--type-label);
   color: var(--text-2);
 }
 
@@ -152,12 +152,16 @@
   border-radius: 50%;
   background: var(--tile);
   color: var(--text-2);
-  transition: background 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease), scale var(--dur-quick) var(--ease);
+}
+
+.echip--expand:active {
+  scale: var(--press-disc);
 }
 
 .echip--expand .icon {
   --s: 18;
-  transition: transform 200ms var(--ease);
+  transition: transform var(--dur-base) var(--ease);
 }
 
 .echip--expand.is-open .icon {
@@ -180,17 +184,17 @@
   border-radius: 999px;
   background: var(--tile);
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 500;
   white-space: nowrap;
   transition:
-    background 160ms var(--ease),
-    color 160ms var(--ease),
-    transform 140ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    color var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--ease);
 }
 
 .echip:active {
-  transform: scale(0.96);
+  transform: scale(var(--press-pill));
 }
 
 .echip .icon {
@@ -201,7 +205,7 @@
 /* On: the chip fills with my colour, so what's set reads at a glance (open stays ink). */
 .echip.is-set,
 .echip--toggle.is-on {
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
   color: var(--ink);
   box-shadow: none;
 }
@@ -244,7 +248,7 @@
   height: 34px;
   gap: 6px;
   padding: 0 14px 0 12px;
-  font-size: 14px;
+  font-size: var(--type-label);
 }
 
 .echip--sm .icon {
@@ -283,7 +287,7 @@
   padding: 14px;
   border-radius: 22px;
   background: var(--card);
-  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.03);
+  box-shadow: var(--lift-2), var(--edge-faint);
   animation: panel-in 220ms var(--ease) both;
 }
 
@@ -304,7 +308,7 @@
 
 .panel__hint {
   margin: 10px 2px 0;
-  font-size: 13px;
+  font-size: var(--type-meta);
   line-height: 1.45;
   color: var(--text-3);
 }
@@ -333,7 +337,7 @@
 }
 
 .optrow.optrow--panel .optrow__text {
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 500;
 }
 
@@ -352,17 +356,17 @@
   border-radius: 999px;
   background: var(--tile);
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   white-space: nowrap;
   transition:
-    background 140ms var(--ease),
-    color 140ms var(--ease),
-    transform 140ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    color var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--ease);
 }
 
 .option:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(var(--press-pill));
 }
 
 .option:disabled {
@@ -396,7 +400,7 @@
   height: 34px;
   border: 0;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--type-body);
   min-width: 0;
 }
 
@@ -407,7 +411,7 @@
   height: 38px;
   border-radius: 999px;
   background: var(--tile);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 600;
   color: var(--ink);
 }
@@ -419,6 +423,11 @@
   place-items: center;
   border-radius: 50%;
   color: var(--ink);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.stepper button:active {
+  scale: var(--press-disc);
 }
 
 .stepper button .icon {
@@ -439,7 +448,7 @@
 /* The small one, in a chip or a row */
 .stepper--sm {
   height: 30px;
-  font-size: 14px;
+  font-size: var(--type-label);
 }
 
 .stepper--sm button {
@@ -479,7 +488,7 @@
   border: 0;
   background: transparent;
   text-align: center;
-  font-size: 16px;
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
@@ -494,8 +503,13 @@
   height: 40px;
   border-radius: 12px;
   background: var(--tile);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.weekday:active {
+  scale: var(--press-pill);
 }
 
 .weekday.is-on {
@@ -506,7 +520,7 @@
 .choose__label {
   display: block;
   margin: 0 0 10px 2px;
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-2);
 }
@@ -523,12 +537,12 @@
   border-radius: 50%;
   background: var(--c);
   transition:
-    transform 200ms var(--spring),
-    box-shadow 160ms var(--ease);
+    transform var(--dur-base) var(--spring),
+    box-shadow var(--dur-quick) var(--ease);
 }
 
 .swatch:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .swatch.is-on {

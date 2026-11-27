@@ -15,7 +15,7 @@
   padding: 10px 8px 14px 16px;
   border-radius: var(--r-l);
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  box-shadow: var(--lift-1), var(--edge);
   touch-action: pan-y;
   cursor: var(--cur-grab, grab);
 }
@@ -54,7 +54,7 @@
 .homecard__title {
   flex: 1;
   min-width: 0;
-  font-size: 16px;
+  font-size: var(--type-body);
   font-weight: 600;
 }
 
@@ -73,6 +73,11 @@
   color: var(--text-2);
   width: 34px;
   height: 34px;
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.homecard__x:active {
+  scale: var(--press-disc);
 }
 
 .homecard__grip {
@@ -108,7 +113,7 @@
 
 .homecard__sub {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
 }
 
@@ -163,13 +168,13 @@
 }
 
 .homeghost__title {
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 600;
   color: var(--text-2);
 }
 
 .homeghost__sub {
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
 }
 

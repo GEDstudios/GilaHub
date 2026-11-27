@@ -23,7 +23,6 @@
 
 @media (min-width: 960px) {
   .toasts {
-    left: var(--sidebar-w);
     bottom: calc(28px + var(--float-h, 0px));
   }
 }
@@ -39,7 +38,7 @@
   border-radius: 999px;
   background: var(--cta);
   color: var(--cta-text);
-  font-size: 15px;
+  font-size: var(--type-chip);
   box-shadow: var(--lift-2);
   animation: toast-in 280ms var(--spring) both;
   /* Swipe sideways to send it away */
@@ -53,7 +52,7 @@
 }
 
 .toast.is-leaving {
-  animation: fade-out 200ms var(--ease) both;
+  animation: fade-out var(--dur-base) var(--ease) both;
 }
 
 /* Another of the same group folded in ("3 in the cart") */
@@ -74,8 +73,13 @@
   background: var(--lemon);
   color: var(--ink);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--type-label);
   white-space: nowrap;
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.toast__action:active {
+  scale: var(--press-pill);
 }
 
 .toast__actions {

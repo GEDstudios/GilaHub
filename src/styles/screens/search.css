@@ -52,7 +52,7 @@
   padding: 0 6px 0 16px;
   border-radius: 999px;
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  box-shadow: var(--lift-1), var(--edge);
   color: var(--text-3);
   cursor: text;
 }
@@ -63,7 +63,7 @@
   height: 44px;
   border: 0;
   background: transparent;
-  font-size: 17px;
+  font-size: var(--type-row);
   color: var(--text);
 }
 
@@ -74,6 +74,11 @@
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.searchlayer__clear:active {
+  scale: var(--press-disc);
 }
 
 .searchlayer__close {
@@ -101,8 +106,8 @@
   padding: 6px 4px;
   border-radius: var(--r-l);
   background: var(--card);
-  box-shadow: var(--lift-2), 0 0 0 1px var(--line);
-  animation: row-in 200ms var(--ease) both;
+  box-shadow: var(--lift-2), var(--edge);
+  animation: row-in var(--dur-base) var(--ease) both;
 }
 
 .searchlayer__card .rows + .rows {

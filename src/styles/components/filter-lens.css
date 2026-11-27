@@ -49,22 +49,24 @@
   padding: 0 12px;
   border-radius: 999px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   white-space: nowrap;
   transition:
-    background 160ms var(--ease),
-    color 160ms var(--ease),
-    transform 140ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    color var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--ease);
 }
 
-.lens__chip:hover {
-  background: var(--tile);
-  color: var(--text);
+@media (hover: hover) {
+  .lens__chip:hover {
+    background: var(--tile);
+    color: var(--text);
+  }
 }
 
 .lens__chip:active {
-  transform: scale(0.95);
+  transform: scale(var(--press-pill));
 }
 
 .lens__chip .icon {
@@ -81,7 +83,7 @@
 }
 
 .lens__n {
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--text-3);
 }
 
@@ -113,7 +115,7 @@
   transform: rotate(0deg) scale(1.05);
   outline: 3px solid var(--drop-mark);
   outline-offset: 4px;
-  transition: transform 180ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 /* The task being dropped into a project: a small ink chip under the hand. */
@@ -127,7 +129,7 @@
   border-radius: 999px;
   background: var(--cta);
   color: var(--cta-text);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -143,7 +145,7 @@
   background-color: var(--drop-fill);
   color: var(--text);
   box-shadow: 0 0 0 4px var(--drop-fill);
-  transition: background-color 140ms var(--ease);
+  transition: background-color var(--dur-quick) var(--ease);
 }
 
 .crumbs__step.is-droptarget .crumbs__go,

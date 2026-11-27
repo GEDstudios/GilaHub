@@ -17,8 +17,8 @@
   fill: var(--light-fixed, var(--light, var(--light-rest)));
   transform: translate(calc(var(--shift, 0) * var(--nudge)), calc(var(--shift, 0) * var(--nudge)));
   transition:
-    fill 140ms var(--ease),
-    transform 280ms var(--spring);
+    fill var(--dur-quick) var(--ease),
+    transform var(--dur-move) var(--spring);
 }
 
 .icon__line {
@@ -115,13 +115,13 @@
 
 .hint {
   margin: 12px 0 0;
-  font-size: 14px;
+  font-size: var(--type-label);
   line-height: 1.45;
   color: var(--text-3);
 }
 
 .kbd {
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
   padding: 1px 8px;
   border-radius: 6px;

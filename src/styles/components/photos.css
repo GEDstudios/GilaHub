@@ -21,16 +21,16 @@
   height: 88px;
   padding: 4px;
   border-radius: 10px;
-  background: #fff;
+  background: var(--card);
   box-shadow:
     0 1px 2px rgb(10 10 4 / 0.12),
     0 8px 16px -8px rgb(10 10 4 / 0.35);
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
   animation: sticky-in 520ms var(--spring) both;
 }
 
 .photos__print:active {
-  transform: scale(0.95);
+  transform: scale(var(--press-pill));
 }
 
 .photos__print img,
@@ -67,7 +67,7 @@
   padding: 2px;
   border-radius: 50%;
   background: var(--ink);
-  color: #fff;
+  color: var(--cta-text);
 }
 
 .photosheet {

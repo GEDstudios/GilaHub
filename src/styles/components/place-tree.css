@@ -31,7 +31,7 @@
   border: 0;
   background: none;
   font: inherit;
-  font-size: 16px;
+  font-size: var(--type-body);
   color: var(--text);
   outline: none;
 }
@@ -43,6 +43,11 @@
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.findfield__clear:active {
+  scale: var(--press-disc);
 }
 
 .place,
@@ -90,7 +95,7 @@
   padding: 0 8px;
   border-radius: 12px;
   text-align: start;
-  font-size: 15px;
+  font-size: var(--type-chip);
   color: var(--text);
   -webkit-touch-callout: none;
   user-select: none;
@@ -131,7 +136,7 @@
 .place__hint {
   margin-inline-start: auto;
   flex: none;
-  font-size: 12px;
+  font-size: var(--type-caption);
   color: var(--text-4);
 }
 
@@ -153,7 +158,11 @@
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
-  transition: transform var(--dur-base) var(--spring);
+  transition: transform var(--dur-base) var(--spring), scale var(--dur-quick) var(--ease);
+}
+
+.place__open:active {
+  scale: var(--press-disc);
 }
 
 .place__open.is-open {
@@ -162,6 +171,6 @@
 
 .place__none {
   padding: 12px 8px;
-  font-size: 14px;
+  font-size: var(--type-label);
   color: var(--text-3);
 }

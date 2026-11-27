@@ -42,13 +42,13 @@
   overflow: hidden;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 16px;
+  font-size: var(--type-body);
   line-height: 1.22;
   overflow-wrap: anywhere;
 }
 
 .sticky__by {
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 600;
   opacity: 0.62;
 }
@@ -76,8 +76,8 @@
   -webkit-touch-callout: none;
   animation: sticky-in 620ms var(--spring) both;
   transition:
-    transform 260ms var(--spring),
-    filter 200ms var(--ease);
+    transform var(--dur-move) var(--spring),
+    filter var(--dur-base) var(--ease);
 }
 
 .stuck > .sticky {
@@ -123,12 +123,12 @@
   box-shadow:
     0 0 0 1.5px var(--ink),
     0 4px 10px -3px rgb(10 10 4 / 0.35);
-  transition: transform 220ms var(--spring), background 160ms var(--ease);
+  transition: transform var(--dur-base) var(--spring), background var(--dur-quick) var(--ease);
 }
 
 .sticky__check:active {
-  transform: scale(0.88);
-  background: var(--me-light, var(--lemon));
+  transform: scale(var(--press-disc));
+  background: var(--me-light);
 }
 
 .stuck.is-peeling {
@@ -168,7 +168,7 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 16px;
-  font-size: 17px;
+  font-size: var(--type-row);
   font-weight: 600;
 }
 
@@ -202,15 +202,15 @@
   width: auto;
   min-height: 96px;
   padding: 14px 10px 8px;
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .sticky--mini .sticky__text {
-  font-size: 14px;
+  font-size: var(--type-label);
 }
 
 .sticky--mini:active {
-  transform: rotate(0deg) scale(0.96);
+  transform: rotate(0deg) scale(var(--press-pill));
 }
 
 /* Big, in its sheet: to write on, and to read */
@@ -227,7 +227,7 @@
 .note__where {
   margin: 0;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--type-chip);
   text-align: center;
 }
 
@@ -295,7 +295,12 @@ html.is-editing .stickyboard {
   place-items: center;
   border-radius: 50%;
   background: rgb(10 10 4 / 0.7);
-  color: #fff;
+  color: var(--cta-text);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.ideas__unshot:active {
+  scale: var(--press-disc);
 }
 
 .idea__shot {
@@ -308,7 +313,7 @@ html.is-editing .stickyboard {
   background: var(--tile);
   box-shadow: 0 0 0 1px rgb(10 10 4 / 0.08);
   transform: rotate(-2deg);
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .idea__shot img {
@@ -319,7 +324,7 @@ html.is-editing .stickyboard {
 }
 
 .idea__shot:active {
-  transform: rotate(0deg) scale(0.96);
+  transform: rotate(0deg) scale(var(--press-pill));
 }
 
 .idea__shot.is-loading {
@@ -390,7 +395,11 @@ html.is-editing .stickyboard {
   height: 34px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.18);
-  transition: transform 200ms var(--spring);
+  transition: transform var(--dur-base) var(--spring), scale var(--dur-quick) var(--ease);
+}
+
+.sketch__pen:active {
+  scale: var(--press-disc);
 }
 
 .sketch__pen.is-on {

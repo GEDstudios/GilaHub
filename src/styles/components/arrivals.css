@@ -11,14 +11,14 @@
   padding: 6px;
   border-radius: 24px;
   background: var(--ink);
-  color: #fff;
+  color: var(--cta-text);
   box-shadow:
     0 18px 40px -14px rgb(10 10 4 / 0.55),
     0 2px 6px rgb(10 10 4 / 0.25);
   animation: arrival-in 520ms var(--spring) both;
   transition:
-    transform 240ms var(--ease),
-    opacity 240ms var(--ease);
+    transform var(--dur-move) var(--ease),
+    opacity var(--dur-move) var(--ease);
   touch-action: none;
 }
 
@@ -58,7 +58,7 @@
   display: grid;
   place-items: center;
   border-radius: 16px;
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
   color: var(--ink);
   transform: rotate(-6deg);
   animation: arrival-ring 900ms 200ms var(--ease) both;
@@ -102,7 +102,7 @@
 }
 
 .arrival__text strong {
-  font-size: 16px;
+  font-size: var(--type-body);
   font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -110,7 +110,7 @@
 }
 
 .arrival__text span {
-  font-size: 14px;
+  font-size: var(--type-label);
   color: rgb(255 255 255 / 0.72);
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -123,7 +123,7 @@
   padding: 4px 8px;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.16);
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 700;
 }
 
@@ -141,18 +141,18 @@
   height: 42px;
   border-radius: 16px;
   background: rgb(255 255 255 / 0.12);
-  color: #fff;
-  font-size: 15px;
+  color: var(--cta-text);
+  font-size: var(--type-chip);
   font-weight: 600;
 }
 
 .arrival__act:first-child {
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
   color: var(--ink);
 }
 
 .arrival__act:active {
-  transform: scale(0.97);
+  transform: scale(var(--press-pill));
 }
 
 /* "Waiting on you": Urgent only, on its header */
@@ -176,7 +176,7 @@
   gap: 14px;
   margin: 0;
   color: var(--text-3);
-  font-size: 14px;
+  font-size: var(--type-label);
 }
 
 .sticky--ghost {
@@ -211,7 +211,7 @@
 .panel__head {
   margin: 0 2px 10px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 600;
 }
 
@@ -239,12 +239,14 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  transition: background 140ms var(--ease), color 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease);
 }
 
-.crumbs__go:hover {
-  background: var(--press);
-  color: var(--text);
+@media (hover: hover) {
+  .crumbs__go:hover {
+    background: var(--press);
+    color: var(--text);
+  }
 }
 
 .crumbs__go:active {
@@ -270,23 +272,23 @@
   padding: 14px 14px 12px;
   border-radius: 20px;
   background: var(--ink);
-  color: #fff;
+  color: var(--cta-text);
   box-shadow: 0 -10px 30px -12px rgb(10 10 4 / 0.4);
   animation: pop 220ms var(--spring) both;
 }
 
 .moveask p {
   margin: 0 4px 12px;
-  font-size: 16px;
+  font-size: var(--type-body);
 }
 
 .moveask .btn--quiet {
   background: rgb(255 255 255 / 0.12);
-  color: #fff;
+  color: var(--cta-text);
 }
 
 .moveask .btn:not(.btn--quiet) {
-  background: var(--me-light, var(--lemon));
+  background: var(--me-light);
   color: var(--ink);
 }
 
@@ -359,11 +361,11 @@
   place-items: center;
   border-radius: 12px;
   color: var(--ink);
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .cardicon:active {
-  transform: scale(0.88) rotate(-6deg);
+  transform: scale(var(--press-disc)) rotate(-6deg);
 }
 
 .cardicon .cardicon__glyph {

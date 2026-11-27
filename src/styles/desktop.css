@@ -18,7 +18,6 @@
 
 @media (min-width: 960px) {
   :root {
-    --sidebar-w: 0px;
     --bg: #f1f1ed;
     --tile: #e9e9e4;
     --tile-2: #dcdcd6;
@@ -27,7 +26,6 @@
     --gutter: 40px;
     --page: 1200px;
     --column: 760px;
-    --r-s: 8px;
     --r-m: 12px;
     --r-l: 16px;
     --r-xl: 20px;
@@ -83,12 +81,17 @@
     padding: 0 12px 0 10px;
     border-radius: 10px;
     color: var(--text-2);
-    font-size: 15px;
+    font-size: var(--type-chip);
     font-weight: 500;
     white-space: nowrap;
     transition:
-      background 140ms var(--ease),
-      color 140ms var(--ease);
+      background var(--dur-quick) var(--ease),
+      color var(--dur-quick) var(--ease),
+      scale var(--dur-quick) var(--ease);
+  }
+
+  .topnav__tab:active {
+    scale: var(--press-pill);
   }
 
   .topnav__tab .icon {
@@ -109,7 +112,7 @@
   }
 
   .topnav__count {
-    font-size: 12px;
+    font-size: var(--type-caption);
     color: var(--text-3);
   }
 
@@ -130,7 +133,12 @@
     border-radius: 10px;
     background: var(--tile);
     color: var(--text-3);
-    font-size: 14px;
+    font-size: var(--type-label);
+    transition: scale var(--dur-quick) var(--ease);
+  }
+
+  .topnav__search:active {
+    scale: var(--press-pill);
   }
 
   .topnav__search:hover {
@@ -139,7 +147,7 @@
 
   .topnav__search .kbd {
     margin-left: auto;
-    background: #fff;
+    background: var(--card);
     opacity: 1;
     color: var(--text-3);
   }
@@ -152,6 +160,11 @@
     place-items: center;
     border-radius: 10px;
     color: var(--text);
+    transition: scale var(--dur-quick) var(--ease);
+  }
+
+  .topnav__icon:active {
+    scale: var(--press-disc);
   }
 
   .topnav__icon:hover,
@@ -180,8 +193,8 @@
     padding: 0 4px;
     border-radius: 8px;
     background: var(--ink);
-    color: #fff;
-    font-size: 11px;
+    color: var(--cta-text);
+    font-size: var(--type-micro);
     line-height: 16px;
     text-align: center;
   }
@@ -193,6 +206,11 @@
     height: 36px;
     padding: 0 8px 0 4px;
     border-radius: 18px;
+    transition: scale var(--dur-quick) var(--ease);
+  }
+
+  .topnav__us:active {
+    scale: var(--press-pill);
   }
 
   .topnav__faces {
@@ -253,7 +271,7 @@
     order: 0;
     flex: 1 0 100%;
     margin: 0 0 6px;
-    font-size: 13px;
+    font-size: var(--type-meta);
   }
 
   .band__top > .iconbtn:first-child {
@@ -277,7 +295,7 @@
     order: 4;
     flex: 1 0 100%;
     margin-top: 6px;
-    font-size: 15px;
+    font-size: var(--type-chip);
   }
 
   .band > :not(.band__top, .band__title, .band__sub, .crumbs) {
@@ -313,7 +331,7 @@
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: #fff;
+    background: var(--card);
     box-shadow: var(--panel-shadow);
   }
 
@@ -328,7 +346,7 @@
   .main .column > .rows,
   .main .column > .group {
     border-radius: 14px;
-    background: #fff;
+    background: var(--card);
     box-shadow: var(--panel-shadow);
   }
 
@@ -366,7 +384,7 @@
   }
 
   .main .aisle--urgent .rows:not(.rows--cards) .row {
-    background: #fff;
+    background: var(--card);
   }
 
   .main .aisle--urgent .rows:not(.rows--cards) .row:hover {
@@ -392,7 +410,7 @@
   }
 
   .main .section__title {
-    font-size: 14px;
+    font-size: var(--type-label);
     font-weight: 600;
     color: var(--text);
   }
@@ -464,7 +482,7 @@
   }
 
   .projcard {
-    transition: transform 200ms var(--spring);
+    transition: transform var(--dur-base) var(--spring);
   }
 
   .projcard:hover {
@@ -593,7 +611,7 @@
   .btn {
     height: 44px;
     border-radius: 12px;
-    font-size: 15px;
+    font-size: var(--type-chip);
   }
 
   .btn--sm {
@@ -621,7 +639,7 @@
 /* A folder held over the top bar: the places make room for it, a line where it'll land. */
 .topnav__tabs.is-receiving {
   border-radius: 14px;
-  box-shadow: 0 0 0 2px var(--me-light, var(--lemon));
+  box-shadow: 0 0 0 2px var(--me-light);
   background: rgb(10 10 4 / 0.03);
 }
 

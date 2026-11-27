@@ -5,7 +5,7 @@
  *   comfy  up to 5: icon and label
  *   snug   6–7: icons only; the active tab rises and shows its label
  *   dock   8 or more: Today and Projects stay put around a scrolling middle with edge fades
- * A soft pill marks the active tab (the sidebar's .navitem.is-on tile). Hold and slide to
+ * A soft pill marks the active tab. Hold and slide to
  * scrub (TabBar.tsx): .is-held on the bar for the whole gesture, .is-scrubbing while a tab is
  * picked, .is-scrub on the tab under the finger, and --d, each tab's distance from the finger
  * in slots, swells the marks nearby.
@@ -26,7 +26,7 @@
   background: rgb(255 255 255 / 0.9);
   backdrop-filter: saturate(1.6) blur(20px);
   -webkit-backdrop-filter: saturate(1.6) blur(20px);
-  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+  box-shadow: var(--lift-2), var(--edge-faint);
   /* A held tab is a gesture, not a link to preview or text to select. */
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -49,13 +49,13 @@
   align-content: center;
   row-gap: 2px;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--type-caption);
   font-weight: 500;
   color: var(--text-3);
   text-decoration: none;
   -webkit-user-drag: none;
   -webkit-tap-highlight-color: transparent;
-  transition: color 160ms var(--ease);
+  transition: color var(--dur-quick) var(--ease);
 }
 
 .tab__mark {
@@ -67,7 +67,7 @@
   height: 28px;
   transform: translateY(calc(var(--up, 0px) - var(--k) * var(--k) * 11px)) scale(calc(1 + var(--k) * var(--k) * 0.36));
   transform-origin: 50% 75%;
-  transition: transform 320ms var(--spring);
+  transition: transform var(--dur-slow) var(--spring);
 }
 
 .tabbar.is-scrubbing {
@@ -75,7 +75,7 @@
 }
 
 .tabbar.is-scrubbing .tab__mark {
-  transition: transform 120ms var(--ease);
+  transition: transform var(--dur-quick) var(--ease);
 }
 
 .tab:focus-visible {
@@ -85,7 +85,7 @@
 
 .tab .icon {
   --s: 24;
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .tab__label {
@@ -95,12 +95,12 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   transition:
-    opacity 160ms var(--ease),
-    transform 260ms var(--spring);
+    opacity var(--dur-quick) var(--ease),
+    transform var(--dur-move) var(--spring);
 }
 
 .tab:active .icon {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 .tabbar.is-scrubbing .tab .icon {
@@ -154,7 +154,7 @@
   /* Only the active label shows, so it may spread over its quiet neighbours ("Home shopping"). */
   max-width: calc(100% + 30px);
   padding: 0;
-  font-size: 11px;
+  font-size: var(--type-micro);
   opacity: 0;
   transform: translate(-50%, 4px);
   pointer-events: none;
@@ -241,8 +241,8 @@
   opacity: 0;
   transform: scale(0.8);
   transition:
-    opacity 160ms var(--ease),
-    transform 320ms var(--spring);
+    opacity var(--dur-quick) var(--ease),
+    transform var(--dur-slow) var(--spring);
 }
 
 .tabbar--dock .tab.is-on::before,
@@ -271,7 +271,7 @@
   border-radius: 999px;
   background: var(--cta);
   color: var(--cta-text);
-  font-size: 15px;
+  font-size: var(--type-chip);
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -298,7 +298,7 @@
   background: var(--card);
   color: var(--text-2);
   font-weight: 500;
-  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+  box-shadow: var(--lift-2), var(--edge-faint);
 }
 
 .tabbar__bubble.is-cancel .icon {
@@ -315,8 +315,8 @@
 /* While the bar is held, what floats on it steps down and away: the bubble is the one thing above it */
 .toasts {
   transition:
-    opacity 160ms var(--ease),
-    translate 200ms var(--spring);
+    opacity var(--dur-quick) var(--ease),
+    translate var(--dur-base) var(--spring);
 }
 
 /* "Hold and slide to pick", once, the first time the bar holds 6 or more */
@@ -339,10 +339,10 @@
   border-radius: 999px;
   background: var(--card);
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   white-space: nowrap;
-  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+  box-shadow: var(--lift-2), var(--edge-faint);
   transform: translateX(-50%);
   pointer-events: none;
   animation: hint-in 420ms var(--spring) 300ms both;
@@ -368,7 +368,7 @@
 
 .tabbar--edit .tab {
   grid-template-rows: 28px auto;
-  font-size: 11px;
+  font-size: var(--type-micro);
   color: var(--text-2);
 }
 
@@ -376,7 +376,7 @@
   position: static;
   max-width: 100%;
   padding: 0 2px;
-  font-size: 11px;
+  font-size: var(--type-micro);
   opacity: 1;
   transform: none;
 }
@@ -428,14 +428,14 @@
 .tabbar.is-receiving {
   transform: translateY(-6px);
   background: var(--card);
-  box-shadow: var(--lift-3), 0 0 0 1px rgb(10 10 4 / 0.05);
+  box-shadow: var(--lift-3), var(--edge-faint);
   transition:
-    transform 260ms var(--spring),
-    box-shadow 200ms var(--ease);
+    transform var(--dur-move) var(--spring),
+    box-shadow var(--dur-base) var(--ease);
 }
 
 .tabbar.is-refusing {
-  animation: bar-refuse 260ms var(--ease);
+  animation: bar-refuse var(--dur-move) var(--ease);
 }
 
 @keyframes bar-refuse {
@@ -485,12 +485,12 @@
 
 .tab.is-new,
 .tabslot.is-new {
-  animation: tab-pop 320ms var(--spring);
+  animation: tab-pop var(--dur-slow) var(--spring);
 }
 
 .tabslot.is-leaving {
   pointer-events: none;
-  animation: tab-out 200ms var(--ease) forwards;
+  animation: tab-out var(--dur-base) var(--ease) forwards;
 }
 
 /* Found from elsewhere (a covered folder's pin): the tab nods */
@@ -526,13 +526,13 @@
   row-gap: 2px;
   border-radius: 18px;
   background: var(--card);
-  box-shadow: var(--lift-3), 0 0 0 1px rgb(10 10 4 / 0.04);
-  font-size: 11px;
+  box-shadow: var(--lift-3), var(--edge-faint);
+  font-size: var(--type-micro);
   font-weight: 600;
   color: var(--text);
   transition:
-    opacity 160ms var(--ease),
-    scale 200ms var(--spring);
+    opacity var(--dur-quick) var(--ease),
+    scale var(--dur-base) var(--spring);
 }
 
 .tabchip .tab__mark {
@@ -563,10 +563,10 @@
   border-radius: 999px;
   background: var(--card);
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   white-space: nowrap;
-  box-shadow: var(--lift-2), 0 0 0 1px rgb(10 10 4 / 0.04);
+  box-shadow: var(--lift-2), var(--edge-faint);
 }
 
 .handnote .icon {

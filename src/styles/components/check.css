@@ -12,7 +12,7 @@
 .row.is-settling .row__title {
   align-self: flex-start;
   background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1.5px;
-  animation: strike 260ms var(--ease) 60ms forwards;
+  animation: strike var(--dur-move) var(--ease) 60ms forwards;
 }
 
 @keyframes strike {
@@ -39,7 +39,7 @@
 /* A count that just went up */
 .bump {
   display: inline-block;
-  animation: bump 320ms var(--spring);
+  animation: bump var(--dur-slow) var(--spring);
 }
 
 @keyframes bump {
@@ -54,7 +54,7 @@
   align-items: center;
   gap: 8px;
   margin: 10px 2px 0;
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
   animation: fade-in 280ms var(--ease) both;
 }
@@ -67,8 +67,13 @@
   border-radius: 50%;
   color: var(--text-3);
   transition:
-    color 140ms var(--ease),
-    transform 200ms var(--spring);
+    color var(--dur-quick) var(--ease),
+    transform var(--dur-base) var(--spring),
+    scale var(--dur-quick) var(--ease);
+}
+
+.heart:active {
+  scale: var(--press-disc);
 }
 
 .heart.is-on {
@@ -97,13 +102,13 @@
   border: 1.5px solid rgb(10 10 4 / 0.72);
   background: transparent;
   transition:
-    background 180ms var(--ease),
-    border-color 180ms var(--ease),
-    transform 260ms var(--spring);
+    background var(--dur-base) var(--ease),
+    border-color var(--dur-base) var(--ease),
+    transform var(--dur-move) var(--spring);
 }
 
 .check:active::before {
-  transform: scale(0.86);
+  transform: scale(var(--press-disc));
 }
 
 .check__tick {
@@ -111,14 +116,14 @@
   width: 15px;
   height: 15px;
   opacity: 0;
-  transition: opacity 120ms var(--ease);
+  transition: opacity var(--dur-quick) var(--ease);
 }
 
 /* The tick draws itself in (pathLength is 20) */
 .check__tick path {
   stroke-dasharray: 20;
   stroke-dashoffset: 20;
-  transition: stroke-dashoffset 120ms var(--ease);
+  transition: stroke-dashoffset var(--dur-quick) var(--ease);
 }
 
 .check.is-on::before {
@@ -132,7 +137,7 @@
 
 .check.is-on .check__tick path {
   stroke-dashoffset: 0;
-  transition: stroke-dashoffset 240ms var(--ease) 80ms;
+  transition: stroke-dashoffset var(--dur-move) var(--ease) 80ms;
 }
 
 /* Ticked just now: the ring pops (Check adds .is-pop; a settling row does it too) */

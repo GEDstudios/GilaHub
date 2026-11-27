@@ -7,7 +7,7 @@
 
 .searchlayer__label {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 600;
   color: var(--text-3);
 }
@@ -58,7 +58,7 @@
 .savedlist__count {
   margin: 20px 0 10px;
   text-align: center;
-  font-size: 14px;
+  font-size: var(--type-label);
   color: var(--text-3);
 }
 
@@ -115,7 +115,7 @@
   border-radius: 50%;
   background: var(--card-btn);
   color: var(--ink);
-  transition: background 140ms var(--ease), transform 160ms var(--spring);
+  transition: background var(--dur-quick) var(--ease), transform var(--dur-quick) var(--spring);
 }
 
 .herophoto .icon {
@@ -123,7 +123,7 @@
 }
 
 .herophoto:active {
-  transform: scale(0.9);
+  transform: scale(var(--press-disc));
 }
 
 @media (hover: hover) {
@@ -142,7 +142,7 @@
   border-radius: 999px;
   background: var(--ink);
   color: var(--cta-text);
-  font-size: 11px;
+  font-size: var(--type-micro);
   font-weight: 700;
   line-height: 17px;
   text-align: center;
@@ -186,7 +186,7 @@
 }
 
 .stockcol__label {
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 600;
   color: var(--text-3);
 }
@@ -203,7 +203,7 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--type-meta);
   color: var(--text-3);
 }
 
@@ -215,11 +215,18 @@
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
+  transition: scale var(--dur-quick) var(--ease);
 }
 
-.stockfoot__stop:hover {
-  background: var(--tile);
-  color: var(--text);
+.stockfoot__stop:active {
+  scale: var(--press-disc);
+}
+
+@media (hover: hover) {
+  .stockfoot__stop:hover {
+    background: var(--tile);
+    color: var(--text);
+  }
 }
 
 /* ============================================================ The count, where a tick would be
@@ -247,17 +254,17 @@
   padding: 0 6px;
   border: 1.5px solid rgb(10 10 4 / 0.72);
   border-radius: 999px;
-  font-size: 13px;
+  font-size: var(--type-meta);
   font-weight: 700;
   line-height: 1;
   transition:
-    background 180ms var(--ease),
-    border-color 180ms var(--ease),
-    transform 260ms var(--spring);
+    background var(--dur-base) var(--ease),
+    border-color var(--dur-base) var(--ease),
+    transform var(--dur-move) var(--spring);
 }
 
 button.stockcount:active:not(:disabled) .stockcount__ring {
-  transform: scale(0.86);
+  transform: scale(var(--press-disc));
 }
 
 button.stockcount:disabled {
@@ -274,7 +281,7 @@ button.stockcount:disabled {
 .stockcount.is-out .stockcount__ring {
   border-color: var(--danger);
   background: var(--danger);
-  color: #fff;
+  color: var(--cta-text);
 }
 
 /* Open, it keeps the row's gap to the title */
@@ -287,7 +294,7 @@ button.stockcount:disabled {
   padding: 0;
   background: var(--card);
   color: var(--ink);
-  animation: pop 200ms var(--spring) both;
+  animation: pop var(--dur-base) var(--spring) both;
 }
 
 .stockcount__step {
@@ -313,7 +320,7 @@ button.stockcount:disabled {
 
 .stockcount.is-open .stockcount__n {
   min-width: 20px;
-  font-size: 15px;
+  font-size: var(--type-chip);
   text-align: center;
 }
 
@@ -336,7 +343,7 @@ button.stockcount:disabled {
   border: 0;
   background: var(--card-btn);
   color: var(--ink);
-  font-size: 17px;
+  font-size: var(--type-row);
 }
 
 .hero .stockcount.is-open .stockcount__ring {
@@ -355,7 +362,7 @@ button.stockcount:disabled {
 
 .hero .stockcount.is-open .stockcount__n {
   min-width: 24px;
-  font-size: 17px;
+  font-size: var(--type-row);
 }
 
 @media (hover: hover) {

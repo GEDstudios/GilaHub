@@ -56,7 +56,7 @@
   border-radius: 8px;
   font: inherit;
   color: var(--text-3);
-  transition: background 140ms var(--ease), color 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease);
 }
 
 .crumbs__moveto::before {
@@ -74,9 +74,11 @@
   --s: 14;
 }
 
-.crumbs__moveto:hover {
-  background: var(--press);
-  color: var(--text);
+@media (hover: hover) {
+  .crumbs__moveto:hover {
+    background: var(--press);
+    color: var(--text);
+  }
 }
 
 .crumbs__moveto:active {
@@ -94,13 +96,13 @@
   border-radius: 10px;
   font: inherit;
   color: inherit;
-  transition: background 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease);
 }
 
 .section__goarrow {
   --s: 14;
   color: var(--text-3);
-  transition: transform 160ms var(--ease);
+  transition: transform var(--dur-quick) var(--ease);
 }
 
 @media (hover: hover) {
@@ -152,7 +154,7 @@
   --s: 14;
   margin-inline-start: -4px;
   color: var(--text-4);
-  transition: color 140ms var(--ease);
+  transition: color var(--dur-quick) var(--ease);
 }
 
 @media (hover: hover) {
@@ -179,15 +181,15 @@ section.aisle.is-moving > .aisle__head {
 }
 
 section.aisle.is-making-room {
-  transition: transform 220ms var(--spring, var(--ease));
+  transition: transform var(--dur-base) var(--spring);
 }
 
 section.aisle.is-settling-in {
-  transition: transform 180ms var(--ease);
+  transition: transform var(--dur-base) var(--ease);
 }
 
 section.aisle.is-settling-in > .rows {
-  transition: box-shadow 180ms var(--ease);
+  transition: box-shadow var(--dur-base) var(--ease);
   box-shadow: none;
 }
 
@@ -207,13 +209,17 @@ section.aisle.is-settling-in > .rows {
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
-  transition: background 140ms var(--ease), color 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease), scale var(--dur-quick) var(--ease);
+}
+
+.foldbtn:active {
+  scale: var(--press-disc);
 }
 
 .foldbtn .icon {
   --s: 16;
   transform: rotate(-90deg);
-  transition: transform 180ms var(--ease);
+  transition: transform var(--dur-base) var(--ease);
 }
 
 .foldbtn.is-open .icon {

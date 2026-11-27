@@ -76,11 +76,11 @@ div[dir='auto'] {
   color: var(--ink);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 60%, var(--ink));
   transform: rotate(-6deg);
-  transition: transform 220ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .pmark .glyph-emoji {
-  font-size: 13px;
+  font-size: var(--type-meta);
   line-height: 1;
   transform: rotate(6deg);
 }
@@ -91,7 +91,7 @@ div[dir='auto'] {
 }
 
 .pmark--sm .glyph-emoji {
-  font-size: 11px;
+  font-size: var(--type-micro);
 }
 
 .tab .pmark {
@@ -144,12 +144,12 @@ div[dir='auto'] {
   background: var(--tile);
   color: var(--text-2);
   transition:
-    background 140ms var(--ease),
-    transform 140ms var(--ease);
+    background var(--dur-quick) var(--ease),
+    transform var(--dur-quick) var(--ease);
 }
 
 .iconpick__btn:active {
-  transform: scale(0.94);
+  transform: scale(var(--press-pill));
 }
 
 .iconpick__btn .icon {
@@ -160,7 +160,7 @@ div[dir='auto'] {
 .iconpick__btn.is-on {
   background: var(--card);
   color: var(--ink);
-  box-shadow: inset 0 0 0 1.5px var(--ink);
+  box-shadow: var(--ring-ink);
 }
 
 .iconpick__none {
@@ -198,9 +198,14 @@ div[dir='auto'] {
   height: 36px;
   border-radius: 10px;
   background: var(--tile);
-  font-size: 14px;
+  font-size: var(--type-label);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.monthday:active {
+  scale: var(--press-pill);
 }
 
 .monthday.is-on {

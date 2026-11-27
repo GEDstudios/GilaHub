@@ -4,13 +4,13 @@
 .row {
   translate: var(--swipe, 0px) 0;
   transition:
-    background 140ms var(--ease),
-    translate 340ms var(--spring);
+    background var(--dur-quick) var(--ease),
+    translate var(--dur-slow) var(--spring);
 }
 
 .row.is-swiping {
   z-index: 1;
-  transition: background 140ms var(--ease);
+  transition: background var(--dur-quick) var(--ease);
 }
 
 /* A task's photo, small, at the row's end. */
@@ -34,13 +34,13 @@
 
 @media (hover: hover) {
   .meta--fold:hover {
-    background: rgb(10 10 4 / 0.05);
+    background: var(--press);
   }
 }
 
 .meta--fold .meta__chev {
   --s: 13;
-  transition: transform 220ms var(--ease);
+  transition: transform var(--dur-base) var(--ease);
 }
 
 .meta--fold.is-open .meta__chev {
@@ -79,7 +79,7 @@
 }
 
 .rows--sub .row__title {
-  font-size: 15px;
+  font-size: var(--type-chip);
 }
 
 .rows--sub .row + .row::before {

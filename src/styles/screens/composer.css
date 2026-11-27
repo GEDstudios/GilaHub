@@ -54,8 +54,8 @@
   gap: 12px;
   min-height: 42px;
   padding: 0 6px 0 14px;
-  font-size: 15px;
-  animation: row-in 200ms var(--ease) both;
+  font-size: var(--type-chip);
+  animation: row-in var(--dur-base) var(--ease) both;
 }
 
 .composer__step > span[dir] {
@@ -69,7 +69,7 @@
   height: 38px;
   border: 0;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--type-body);
   color: var(--text);
 }
 
@@ -92,6 +92,11 @@
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
+  transition: scale var(--dur-quick) var(--ease);
+}
+
+.composer__stepx:active {
+  scale: var(--press-disc);
 }
 
 .composer__stepadd {
@@ -107,7 +112,7 @@
 
 .composer__stepadd:focus-within {
   background: var(--card);
-  box-shadow: var(--lift-1), 0 0 0 1px var(--line);
+  box-shadow: var(--lift-1), var(--edge);
 }
 
 .composer__stepadd input {
@@ -116,7 +121,7 @@
   height: 40px;
   border: 0;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--type-body);
   color: var(--text);
 }
 
@@ -131,5 +136,5 @@
 .composer__stepgo {
   flex: 0 0 auto;
   margin-right: -8px;
-  animation: pop 200ms var(--spring) both;
+  animation: pop var(--dur-base) var(--spring) both;
 }
