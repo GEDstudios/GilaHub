@@ -1,5 +1,5 @@
 
-import { type Item } from '../model';
+import type { Item } from '../model';
 import { Hub, type Undo } from './base';
 
 /** Asking my person: requests, taking one over, "I did it" and the OK. */

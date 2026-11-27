@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Fo
 import { shortAgo, shortDay } from '../../core/dates';
 import type { Idea } from '../../core/model';
 import { useHub } from '../context';
-import { usePrefs } from '../prefs';
+import { usePrefs } from '../usePrefs';
 import { ideasMarkdown, ideasUnseen, ideasView } from '../views';
 import { markFresh, useFresh } from '../ui/fresh';
 import { haptic } from '../ui/haptics';

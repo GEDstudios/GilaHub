@@ -1,6 +1,6 @@
 
 import { newId } from '../ids';
-import { type Item, type LineColor, type List, type ListKind, type ListView, type Member, type Scope, type ShoppingFlavor, type TaskTemplate, type Visibility } from '../model';
+import type { Item, LineColor, List, ListKind, ListView, Member, Scope, ShoppingFlavor, TaskTemplate, Visibility } from '../model';
 import { byOrder, keyBetween } from '../order';
 import type { Store } from '../store';
 import { suggestIcon } from '../projectIcons';

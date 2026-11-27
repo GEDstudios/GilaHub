@@ -4,7 +4,7 @@ import { useHub } from '../context';
 import { listDefaultVis, visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { haptic } from '../ui/haptics';
 import { lineVars } from '../ui/primitives';
-import { EChip, Options, Panel } from './editors';
+import { EChip, Options, Panel } from './chips';
 import { Swatches } from './pickers';
 import { G } from '../ui/glyphs';
 import type { Hub } from '../../core/hub';

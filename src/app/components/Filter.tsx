@@ -1,7 +1,8 @@
 import type { Hub } from '../../core/hub';
 import type { Item, List } from '../../core/model';
 import { useHub } from '../context';
-import { setPrefs, usePrefs } from '../prefs';
+import { setPrefs } from '../prefs';
+import { usePrefs } from '../usePrefs';
 import type { ReactNode } from 'react';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';

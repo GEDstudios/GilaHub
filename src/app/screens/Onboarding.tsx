@@ -2,22 +2,14 @@ import { Swatches } from '../components/pickers';
 import { useState } from 'react';
 import { pickColors, PROJECT_TEMPLATES } from '../../core/seed';
 import { formatInviteCode, formatRecoveryCode, normalizeInviteCode } from '../../core/ids';
-import { type LineColor } from '../../core/model';
+import type { LineColor } from '../../core/model';
 import { claimInvite, claimRecovery, InviteError, type InvitePayload } from '../../core/session';
 import { query } from '../router';
 import { Icon } from '../ui/Icon';
 import { IconButton, lineVars, Logo, NameTag, TextButton, Button } from '../ui/primitives';
 import { G } from '../ui/glyphs';
 import { howMany } from '../labels';
-
-export interface OnboardResult {
-  kind: 'new' | 'partner' | 'device';
-  name?: string;
-  color?: LineColor;
-  invite?: InvitePayload;
-  projects?: string[];
-  colors?: Record<string, LineColor>;
-}
+import type { OnboardResult } from '../boot';
 
 type Step = 'welcome' | 'name' | 'projects' | 'code' | 'recover';
 

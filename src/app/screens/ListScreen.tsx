@@ -8,7 +8,10 @@ import { useAddAction } from '../addAction';
 import { ListVisOptions } from '../components/ProjectFields';
 import { ActionSheet, Swatches } from '../components/pickers';
 import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
-import { InlineEditor, Options, RepeatPanel, TimeField } from '../components/editors';
+import { InlineEditor } from '../components/InlineEditor';
+import { Options } from '../components/chips';
+import { RepeatPanel } from '../components/RepeatPanel';
+import { TimeField } from '../components/TimeEntry';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
@@ -21,10 +24,11 @@ import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
-import { getPrefs, setPrefs, use24h, usePrefs } from '../prefs';
+import { getPrefs, setPrefs, use24h } from '../prefs';
+import { usePrefs } from '../usePrefs';
 import { ViewToggle } from '../components/ViewToggle';
 import { Sortable, type Outside, type Point } from '../ui/Sortable';
-import { barTabOf, folderLean, ProjectCard, SortableProject, useBarDrop } from './Lists';
+import { barTabOf, FolderCard, folderLean, SortableFolder, useBarDrop } from '../components/FolderCard';
 import { TabChip } from '../components/BarEdit';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
@@ -800,12 +804,12 @@ function SubProjects({ list }: { list: List }) {
           if (l && away && crumbs.over.current !== undefined)
             return <DropChip label={l.name} />;
           const t = away ? barTabOf(hub, listKey(id)) : undefined;
-          return t ? <TabChip t={t} /> : l ? <ProjectCard list={l} /> : null;
+          return t ? <TabChip t={t} /> : l ? <FolderCard list={l} /> : null;
         }}
       >
         <div className="projgrid">
           {subs.map((l, i) => (
-            <SortableProject key={l.id} list={l} arranging={false} pins={pins} index={i} />
+            <SortableFolder key={l.id} list={l} arranging={false} pins={pins} index={i} />
           ))}
         </div>
       </Sortable>

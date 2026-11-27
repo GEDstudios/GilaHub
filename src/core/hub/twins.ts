@@ -1,5 +1,5 @@
 
-import { type Item } from '../model';
+import type { Item } from '../model';
 import { Hub, type Undo } from './base';
 
 /** One thing in two places ("Buy a doorknob" under a chore is also on Home shopping): linking, unlinking. */

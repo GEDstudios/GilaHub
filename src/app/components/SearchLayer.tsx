@@ -7,7 +7,7 @@ import { clearRecentSearches, closeSearch, recentSearches, rememberSearch, searc
 import { Icon } from '../ui/Icon';
 import { lockScroll, useOverlays } from '../ui/overlays';
 import { QuickAddSheet } from './QuickAddSheet';
-import { NewProjectSheet } from '../screens/Lists';
+import { NewFolderSheet } from './NewFolderSheet';
 import { ListBullet, TextButton } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
 import { G } from '../ui/glyphs';
@@ -222,7 +222,7 @@ function Layer() {
                       className="token"
                       onClick={() => {
                         closeSearch();
-                        openSheet((close) => <NewProjectSheet onClose={close} name={term} />);
+                        openSheet((close) => <NewFolderSheet onClose={close} name={term} />);
                       }}
                     >
                       <Icon name={G.folder} />

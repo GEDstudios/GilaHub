@@ -1,5 +1,5 @@
 import { today as todayStr } from '../dates';
-import { type LineColor, type Moment, type Note } from '../model';
+import type { LineColor, Moment, Note } from '../model';
 import { Hub, type Undo, NOTE_MAX, NOTE_MIN } from './base';
 
 /** Sticky notes left for each other, and moments worth looking back on. */

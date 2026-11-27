@@ -3,7 +3,8 @@ import { addDays, fromDateStr, humanTime, relativeAgo, today as todayStr } from 
 import type { Item, LineColor } from '../../core/model';
 import { useHub, usePartnerHere } from '../context';
 import { summaryOf, weekBy, weekCounts, weekDays } from '../home';
-import { setPrefs, use24h, usePrefs } from '../prefs';
+import { setPrefs, use24h } from '../prefs';
+import { usePrefs } from '../usePrefs';
 import { howMany } from '../labels';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
@@ -11,7 +12,7 @@ import { useOverlays } from '../ui/overlays';
 import { PersonCursor } from '../ui/PersonCursor';
 import { Avatar, lightVar, lineVars, ThanksButton, Button, Section } from '../ui/primitives';
 import { haptic } from '../ui/haptics';
-import { RequestActions } from '../ui/tags';
+import { RequestActions } from './RowTags';
 import type { Settle } from '../ui/useSettle';
 import type { TodayView } from '../views';
 import { ItemRow } from './ItemRow';

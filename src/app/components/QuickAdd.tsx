@@ -6,7 +6,8 @@ import { parseQuickAdd, type ParseContext, type ParseResult } from '../../smart/
 import { composeDraft, overriddenTokens, parsedDraft } from '../compose';
 import { useHub, useRt } from '../context';
 import { notifyAbout, setUpReminders } from '../notify';
-import { dayFirst, getPrefs, setPrefs, use24h, usePrefs, weekStart, workdays } from '../prefs';
+import { dayFirst, getPrefs, setPrefs, use24h, weekStart, workdays } from '../prefs';
+import { usePrefs } from '../usePrefs';
 import { allowedVis, itemVisChoice, visFields, type VisChoice } from '../privacy';
 import { ifNotInView, markFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';

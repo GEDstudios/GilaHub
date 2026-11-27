@@ -1,5 +1,5 @@
 
-import { type Item, type Scope, type Visibility } from '../model';
+import type { Item, Scope, Visibility } from '../model';
 import { fold } from '../../smart/normalize';
 import { listKey, listIdOf } from '../keys';
 import { Hub } from './base';

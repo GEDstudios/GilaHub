@@ -1,5 +1,5 @@
 import { diffDays, today as todayStr } from '../dates';
-import { type AisleConf } from '../model';
+import type { AisleConf } from '../model';
 import { byOrder, keyBetween } from '../order';
 import { aisleGlyph, categorize, categoryMeta, categoryOrder, type Flavor } from '../../smart/categorize';
 import { suggestIcon } from '../projectIcons';

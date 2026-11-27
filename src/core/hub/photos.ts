@@ -1,6 +1,6 @@
 
 import { newId } from '../ids';
-import { type Photo, type Scope } from '../model';
+import type { Photo, Scope } from '../model';
 import { Hub, type Undo } from './base';
 
 /** Pictures: on ideas, notes, tasks and folders, each kept in the scope of what it's on. */

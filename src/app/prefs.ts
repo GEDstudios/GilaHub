@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from 'react';
 import { prefersDayFirst, weekStartsOn } from '../core/dates';
 
 /**
@@ -116,14 +115,10 @@ export function applyPrefs(patch: Partial<Prefs>): void {
   for (const fn of listeners) fn();
 }
 
-export function usePrefs(): Prefs {
-  return useSyncExternalStore(
-    (fn) => {
-      listeners.add(fn);
-      return () => listeners.delete(fn);
-    },
-    () => current,
-  );
+/** Hear about every change (the hook in usePrefs.ts; kept apart so this module needs no React). */
+export function subscribePrefs(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
 }
 
 const locale = () => (typeof navigator !== 'undefined' ? navigator.language : 'en-IL');

@@ -1,6 +1,6 @@
 import { atLocal, today as todayStr, type DateStr } from '../dates';
 import { newId } from '../ids';
-import { type Item, type LogEntry } from '../model';
+import type { Item, LogEntry } from '../model';
 import { itemKey } from '../../smart/normalize';
 import { isFlexible, nextDue, shiftForAway, skipDue } from '../../smart/recurrence';
 import { Hub, type TickLogs, type Undo } from './base';

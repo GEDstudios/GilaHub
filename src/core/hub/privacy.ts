@@ -1,5 +1,5 @@
 
-import { type Item, type Scope } from '../model';
+import type { Item, Scope } from '../model';
 import { Hub, type ItemVisibility } from './base';
 
 /** Who sees and may change what: an item's privacy, its owner, re-scoping when it moves. */

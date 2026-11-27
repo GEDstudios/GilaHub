@@ -1,6 +1,6 @@
 import { today as todayStr } from '../dates';
 import { newId } from '../ids';
-import { type Item } from '../model';
+import type { Item } from '../model';
 import { keyBetween } from '../order';
 import { firstDue } from '../../smart/recurrence';
 import { Hub, type NewItem, type Undo } from './base';

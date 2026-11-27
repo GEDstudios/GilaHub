@@ -1,5 +1,5 @@
 
-import { type Idea } from '../model';
+import type { Idea } from '../model';
 import { Hub, type Undo } from './base';
 
 /** Ideas for Gila Hub itself. */

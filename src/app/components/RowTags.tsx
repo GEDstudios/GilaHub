@@ -2,12 +2,12 @@ import type { Item } from '../../core/model';
 import { useHub, useRt } from '../context';
 import { notifyAbout } from '../notify';
 import { reqLabel, visLabel, visTagFor, VIS_ICON, type ReqState } from '../privacy';
-import { haptic } from './haptics';
-import { Icon } from './Icon';
-import { useOverlays } from './overlays';
-import { CursorMark, lineVars } from './primitives';
-import { useSettleHold } from './useSettle';
-import { G } from './glyphs';
+import { haptic } from '../ui/haptics';
+import { Icon } from '../ui/Icon';
+import { useOverlays } from '../ui/overlays';
+import { CursorMark, lineVars } from '../ui/primitives';
+import { useSettleHold } from '../ui/useSettle';
+import { G } from '../ui/glyphs';
 import { myName } from '../labels';
 
 /** The lemon "Urgent" word pill: the same in every card and row. */

@@ -1,6 +1,6 @@
 
 import { newId } from '../ids';
-import { type Item, type Tag } from '../model';
+import type { Item, Tag } from '../model';
 import { byOrder, keyBetween } from '../order';
 import { aisleGlyph, categorize, categoryMeta, categoryOrder, lookup, routeFlavor, type Flavor } from '../../smart/categorize';
 import { fold, itemKey } from '../../smart/normalize';
