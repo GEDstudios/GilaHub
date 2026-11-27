@@ -24,7 +24,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
+  height: var(--ctl-s);
   padding: 0 14px;
   border-radius: 999px;
   background: var(--tile);
@@ -87,13 +87,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
+  height: var(--ctl-s);
   padding: 0 6px 0 12px;
 }
 
 .token--split > .token__x {
   width: 30px;
-  height: 34px;
+  height: var(--ctl-s);
   padding: 0;
   display: grid;
   place-items: center;
@@ -136,8 +136,8 @@
   position: absolute;
   top: 0;
   inset-inline-end: 0;
-  width: 38px;
-  height: 38px;
+  width: var(--ctl-m);
+  height: var(--ctl-m);
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -165,7 +165,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 38px;
+  height: var(--ctl-m);
   padding: 0 16px 0 14px;
   border-radius: 999px;
   background: var(--tile);
@@ -321,7 +321,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: var(--ctl-m);
   padding: 0 14px;
   border-radius: 999px;
   background: var(--tile);
@@ -378,7 +378,7 @@
   display: inline-flex;
   align-items: center;
   flex: none;
-  height: 38px;
+  height: var(--ctl-m);
   border-radius: 999px;
   background: var(--tile);
   font-size: var(--type-chip);

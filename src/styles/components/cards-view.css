@@ -12,7 +12,7 @@
 
 .viewtoggle__btn {
   width: 34px;
-  height: 28px;
+  height: var(--ctl-s);
   display: grid;
   place-items: center;
   border-radius: 8px;

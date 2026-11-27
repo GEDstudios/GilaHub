@@ -160,8 +160,8 @@ section.aisle.is-settling-in > .rows {
 /* The one fold arrow (FoldButton): a folder's groups, Done, In stock… */
 .foldbtn {
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: var(--ctl-s);
+  height: var(--ctl-s);
   margin-inline-start: auto;
   display: grid;
   place-items: center;

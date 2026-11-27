@@ -283,9 +283,9 @@ li.row:has(> .dropgap) {
 
 /* + where something can be added; it turns into × while its container is open */
 .adddisc {
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: var(--ctl-s);
+  height: var(--ctl-s);
+  flex: 0 0 var(--ctl-s);
   display: grid;
   place-items: center;
   border-radius: 50%;

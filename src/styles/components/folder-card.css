@@ -40,14 +40,14 @@
 
 /* All three on one line down the edge: the same box, centred on the same axis. */
 .hero__rail .cardicon {
-  width: 36px;
-  height: 36px;
+  width: var(--ctl-m);
+  height: var(--ctl-m);
   margin: 0;
 }
 
 .herobtn {
-  width: 36px;
-  height: 36px;
+  width: var(--ctl-m);
+  height: var(--ctl-m);
   display: grid;
   place-items: center;
   border-radius: 50%;

@@ -23,7 +23,7 @@
 
 .iconlib__groups .token {
   flex: none;
-  height: 32px;
+  height: var(--ctl-s);
 }
 
 .iconlib__groups .token.is-on {

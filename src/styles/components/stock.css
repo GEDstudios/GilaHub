@@ -85,8 +85,8 @@
   position: absolute;
   inset-inline-end: 24px;
   bottom: 20px;
-  width: 40px;
-  height: 40px;
+  width: var(--ctl-m);
+  height: var(--ctl-m);
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -138,7 +138,7 @@
 
 /* A time on a phone, in a row: the phone's own picker, in a field */
 .timefield {
-  height: 36px;
+  height: var(--ctl-m);
   padding: 0 10px;
   border: 0;
   border-radius: 10px;

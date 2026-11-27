@@ -26,6 +26,8 @@
     --gutter: 40px;
     --page: 1200px;
     --column: 760px;
+    /* A computer's header is tighter */
+    --ctl-l: 36px;
     --r-m: 12px;
     --r-l: 16px;
     --r-xl: 20px;
@@ -328,8 +330,6 @@
   }
 
   .band .iconbtn {
-    width: 36px;
-    height: 36px;
     border-radius: 10px;
     background: var(--card);
     box-shadow: var(--panel-shadow);
@@ -387,10 +387,6 @@
     background: var(--card);
   }
 
-  .main .aisle--urgent .rows:not(.rows--cards) .row:hover {
-    background: #f7f7f3;
-  }
-
   /* As cards, Urgent is one lemon card with white cards in it */
   .main .aisle--urgent:has(.rows--cards) {
     padding: 12px 12px 12px;
@@ -443,6 +439,12 @@
   html:not(.is-dragging) .main .rows .row:hover:not(:has(.row--nested:hover)),
   html:not(.is-dragging) .row--tap:hover:not(:has(.row--nested:hover)) {
     background: var(--press);
+  }
+
+  /* In the lemon Urgent card a row is white: under the mouse it stays solid (a shade off white),
+     or the lemon would show through it */
+  html:not(.is-dragging) .main .aisle--urgent .rows .row:hover:not(:has(.row--nested:hover)) {
+    background: #f7f7f3;
   }
 
   /* ---------------------------------------------------------- Today */
@@ -615,7 +617,7 @@
   }
 
   .btn--sm {
-    height: 34px;
+    height: var(--ctl-s);
     padding: 0 14px;
     border-radius: 10px;
   }

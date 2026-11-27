@@ -400,7 +400,7 @@ textarea.nf__write {
 
 .tray__chip {
   flex: none;
-  height: 34px;
+  height: var(--ctl-s);
   padding: 0 14px;
   border-radius: 18px;
   background: var(--tile);

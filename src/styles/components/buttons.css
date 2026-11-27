@@ -36,14 +36,14 @@
 }
 
 .btn--sm {
-  height: 40px;
+  height: var(--ctl-m);
   padding: 0 20px;
   font-size: var(--type-chip);
 }
 
 .iconbtn {
-  width: 42px;
-  height: 42px;
+  width: var(--ctl-l);
+  height: var(--ctl-l);
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -66,16 +66,16 @@
 
 /* The 36px one inside a panel (a month's arrows). */
 .iconbtn--sm {
-  width: 36px;
-  height: 36px;
+  width: var(--ctl-m);
+  height: var(--ctl-m);
 }
 
 /* A small round glyph beside a thing in a row (× clears or removes it, › opens it): quiet until
    touched. Filled, it's the gray disc that sits on a card. */
 .glyphbtn {
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: var(--ctl-s);
+  height: var(--ctl-s);
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -137,7 +137,7 @@
 }
 
 .mini {
-  height: 30px;
+  height: var(--ctl-s);
   padding: 0 12px;
   border-radius: 999px;
   background: var(--card);

@@ -114,8 +114,8 @@
   justify-content: center;
   position: relative;
   z-index: 1;
-  width: 32px;
-  height: 32px;
+  width: var(--ctl-s);
+  height: var(--ctl-s);
   /* Riding the group's bottom edge: half on the last row, half below. */
   /* (and its overhang not counted in the gap below) */
   margin: -16px 14px -16px auto;
@@ -176,8 +176,8 @@
 }
 
 .tagnew__icon {
-  width: 36px;
-  height: 36px;
+  width: var(--ctl-m);
+  height: var(--ctl-m);
   display: grid;
   place-items: center;
   border-radius: 50%;

@@ -109,6 +109,13 @@
   --space-3: 16px;
   --space-4: 24px;
   --space-5: 36px;
+  /* Three heights for what you press (a disc is as wide as it is high):
+     s: small things inside a row or beside a field (a token, a switch of two, a × or ›) ·
+     m: chips, and the round buttons on a colour card · l: the round buttons in a header.
+     The big black button and the on/off switch keep their own. */
+  --ctl-s: 32px;
+  --ctl-m: 38px;
+  --ctl-l: 42px;
   --r-m: 18px;
   --r-l: 24px;
   --r-xl: 30px;
