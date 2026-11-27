@@ -34,20 +34,26 @@
   - Deletes are tombstones. Ordering uses fractional index keys (`src/core/order.ts`), so a reorder touches one item.
 - **Outbox**: every local write is queued as an op, so the app works offline indefinitely. Ops are sealed only at send time.
 - **Domain layer (`src/core/hub/`, the `Hub`)**: every change anyone makes (add, tick, move, set privacy, count stock…) expressed as store writes, with every privacy rule in one place. `base.ts` is the class and its core (people, folders, the tree: `isLive`, `treeIds`, `isWithin`, `isUnder`, `siblings`); each subject adds its methods from its own file (`privacy`, `requests`, `items`, `tick`, `twins`, `stock`, `adding`, `tags`, `notes`, `ideas`, `photos`, `backup`, `migrations`). Import it from `core/hub`. Where a household starts lives in `src/core/seed.ts`; folder keys (`l:<id>`) in `src/core/keys.ts`.
-- **App layer (`src/app/`)**: what screens show (`views.ts`, `query.ts`, `home.ts`), how it's said (`labels.ts`), privacy rules (`privacy.ts`), and the UI: shared building blocks in `ui/` and `components/` (see 03 · Design system), screens in `screens/`.
+- **App layer (`src/app/`)**, in four rings, each importing only inward ([`tests/unit/architecture.test.ts`](../tests/unit/architecture.test.ts) fails when one doesn't):
+  - *what the app knows* (the modules at the top of `src/app/`): what screens show (`views.ts`, `query.ts`, `home.ts`, `tabs.ts`, `highlights.ts`), how it's said (`labels.ts`), privacy rules (`privacy.ts`), reminders and notifications, the plain stores (`prefs.ts`, `router.ts`, `search.ts`), and starting up (`boot.ts`, `runtime.ts`). No components.
+  - `ui/`: the design system (see 03 · Design system). It knows nothing about the Hub.
+  - `components/`: pieces of screens, which do. Never a screen.
+  - `screens/`: whole pages (`Today`, `Folders`, `FolderScreen`, `ItemScreen`, `Settings` with its sections under `settings/`, `Onboarding`). Only `App.tsx` puts them together.
 - **Smart layer (`src/smart/`)**: quick-add parser, bilingual categorizer, recurrence engine, buy-again suggestions. All pure functions with unit tests and no network.
-- **Service worker (`src/sw/sw.js`)**: precaches the app shell for offline use, receives push and decrypts it with the household or personal key from IndexedDB, and handles notification taps.
+- **Service worker (`src/sw/sw.js`)**: precaches the app shell for offline use, receives push and decrypts it with the household or personal key from IndexedDB, and handles notification taps. A notification's Done / Tomorrow run in `src/sw/act.ts`, bundled on its own with the core it needs (and no React: the test above keeps it so).
 
 ## Data model
 
 | Table | Purpose |
 |---|---|
 | `member` | Name and line color per person. |
-| `list` | Name, kind (`tasks` / `shopping` / `chores`), flavor (grocery / home), color, icon, owner, visibility, order. |
+| `list` | A folder (the UI's word; the table keeps its first name): name, color, icon, owner, visibility, order, the folder it sits in, how it's looked at (list, cards, by tag), its task template. Older data may carry a kind or flavor; they're read once and converted (`hub/migrations.ts`). |
 | `item` | Everything on a list. Nests via `parentId` without limit. Holds dates, repeat rule, owner, privacy, urgent flag, aisle, and a stock count for things kept stocked. |
 | `log` | Completions of repeating items and purchases (for history, ♡ thanks and buy-again). |
 | `memory` | Learned aisle corrections per item name, shared by both partners. |
-| `store` | (v1.1) Per-store aisle order. |
+| `tag` | Our tags (aisles among them), in the order we walk them. |
+| `note`, `photo` | Sticky notes left for each other; photos on tasks and folders. |
+| `settings` | The household's record, and each person's own preferences (`prefs:<member>`, in their personal scope). |
 | `idea` | Ideas for Gila Hub itself: text, author, manual order, edited / resolved by whom and when. Always household scope. |
 
 A device that meets a table it doesn't know yet (an op from a newer version) keeps and syncs the record but shows nothing until it updates.
@@ -116,6 +122,7 @@ This gives you `https://gila-hub.<you>.workers.dev`. Open it on each device and 
 ## Testing
 
 - **Unit (Vitest)**: store convergence and privacy transitions, HLC, order keys, crypto, invite derivation, recurrence rules (early/late/collapse), quick-add parser (EN/HE), quantity parser, categorizer, buy-again.
+- **Rules the code keeps** (also Vitest): every stylesheet stays on the token scales (`tokens.test.ts`), and the layers above import only inward (`architecture.test.ts`).
 - **Web Push**: RFC 8291 Appendix A test vector.
 - **End-to-end (Playwright)**: two browser contexts (Guy & Hila) against `wrangler dev`. They pair, add items, see live sync, and confirm "Only me" items never reach the partner.
-- **Visual**: screenshots at phone and desktop widths in light and dark.
+- **Visual**: the end-to-end run saves screenshots at phone and desktop widths.
