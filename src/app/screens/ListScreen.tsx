@@ -57,15 +57,19 @@ function FolderTools({ list }: { list: List }) {
   return (
     <InlineEditor
       className="foldertools"
+      compact
       value={NO_DRAFT}
       onChange={() => undefined}
       fields={[]}
       extras={[
-        { key: 'photo', label: photoN ? `Photos ${photoN}` : 'Photo', icon: G.photo, set: photoN > 0, toggle: () => void addPhoto() },
-        { key: 'tpl', label: tpl ? 'Template' : 'Task template', icon: G.template, set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
+        // A photo is just its glyph (and how many there are), so the three fit on one line.
+        { key: 'photo', label: photoN ? String(photoN) : '', name: photoN ? `Photos: ${photoN}. Add another` : 'Add a photo', icon: G.photo, set: photoN > 0, toggle: () => void addPhoto() },
+        { key: 'tpl', label: 'Template', name: 'How new tasks here start', icon: G.template, set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
         {
           key: 'shows',
-          label: shows.length ? `Shows ${shows.map((l) => l.name).join(', ')}` : 'Show tasks from',
+          // Other folders' tasks, shown here too: "Tasks from Chores" says which once there are some.
+          label: shows.length ? `Tasks from ${shows.length === 1 ? shows[0].name : `${shows.length} folders`}` : 'Tasks from…',
+          name: 'Show other folders’ tasks here too',
           icon: G.shows,
           set: shows.length > 0,
           toggle: () => openSheet((close) => <ShowsSheet listId={listId} onClose={close} />),

@@ -56,8 +56,6 @@ export const G = {
   time: 'clock',
   person: 'user',
   ask: 'request',
-  /** "I'll take it". */
-  claim: 'hand',
   /** The same thing, also somewhere else. */
   linked: 'link',
   /** A folder showing tasks from other folders. */

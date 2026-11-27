@@ -20,7 +20,7 @@ const same = (a: Place | null | undefined, b: Place | null | undefined) => !!a &
  * parent, a ⌄ or a long press opens one), and with `tasks` each folder's open tasks and their
  * subtasks (unfolded from the start). A search field on top narrows it. Tap a row to pick
  * it. Every "where" question in the app asks it this way: moving a task or a folder, Also in,
- * Goes on, a filtered list's folder, a folder on Today, Show tasks from, the composer's place.
+ * Goes on, a filtered list's folder, a folder on Today, Tasks from…, the composer's place.
  */
 export function PlaceTree({
   onPick,

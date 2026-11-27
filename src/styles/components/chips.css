@@ -545,3 +545,37 @@
   width: 42px;
   height: 42px;
 }
+
+/* A chip that's just its glyph (a folder's Photo): round, the size of the others */
+.echip--icon {
+  width: 38px;
+  padding: 0;
+  justify-content: center;
+}
+
+.echip--sm.echip--icon {
+  width: 34px;
+}
+
+/* A folder's own settings: secondary, so the quieter size, all on one line */
+.foldertools .inline__chips {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+/* A long "Tasks from Groceries" gives way first */
+.foldertools .echip {
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 0 12px 0 10px;
+}
+
+.foldertools .echip:last-child {
+  flex-shrink: 1;
+}
+
+.foldertools .echip > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

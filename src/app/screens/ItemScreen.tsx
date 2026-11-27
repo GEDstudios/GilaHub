@@ -651,12 +651,6 @@ export function ItemScreen({ id }: { id: string }) {
           />
         ) : null}
 
-        {vis === 'ours' && !item.assignee && editable && partner && !item.done ? (
-          <button type="button" className="textbtn takeit" onClick={() => hub.takeIt(id)}>
-            <Icon name={G.claim} className="icon--sm" /> I’ll take it
-          </button>
-        ) : null}
-
         <Photos on={`item:${id}`} />
 
         <textarea

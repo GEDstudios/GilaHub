@@ -18,9 +18,6 @@ declare module './base' {
     /** "Not yet": back to the doer's list, saying so (they see "{asker} said not yet"). */
     sendBack(id: string): Undo;
 
-    /** Take an unowned shared task: "I'll take it". */
-    takeIt(id: string): void;
-
     /**
      * What a tick on it does. Repeating things roll forward. A request that needs an OK: the
      * doer's tick asks for it (and a second tick takes that back); the asker's tick gives it.
@@ -74,10 +71,6 @@ Hub.prototype.sendBack = function (this: Hub, id: string): Undo {
   const said = item.requestedBy === this.meId ? { sentBackAt: Date.now(), sentBackBy: this.meId } : {};
   this.store.mutate('item', id, { submittedAt: null, submittedBy: null, ...said });
   return () => this.store.mutate('item', id, prev);
-};
-
-Hub.prototype.takeIt = function (this: Hub, id: string): void {
-  this.store.mutate('item', id, { assignee: this.meId });
 };
 
 Hub.prototype.tickKind = function (this: Hub, item: Item): 'undone' | 'roll' | 'submit' | 'take-back' | 'confirm' | 'done' {

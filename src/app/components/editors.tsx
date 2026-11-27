@@ -54,8 +54,12 @@ export function EChip({
   compact,
   tone,
   style,
+  name,
 }: {
+  /** Empty: just its glyph (then `name` says what it is). */
   label: ReactNode;
+  /** What it is, for a chip with no words (and its tooltip). */
+  name?: string;
   icon?: IconName;
   lead?: ReactNode;
   set: boolean;
@@ -91,14 +95,16 @@ export function EChip({
     <button
       ref={ref}
       type="button"
-      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${compact ? 'echip--sm' : ''} ${tone ?? ''}`}
+      className={`echip ${set ? 'is-set' : ''} ${open ? 'is-open' : ''} ${ghost ? 'echip--ghost' : ''} ${compact ? 'echip--sm' : ''} ${label === '' ? 'echip--icon' : ''} ${tone ?? ''}`}
       style={style}
       onClick={onToggle}
       aria-expanded={open}
+      aria-label={name}
+      title={name}
       disabled={disabled}
     >
       {lead ?? (icon ? <Icon name={icon} className="icon--sm" /> : null)}
-      <span dir="auto">{label}</span>
+      {label === '' ? null : <span dir="auto">{label}</span>}
     </button>
   );
 }
@@ -297,7 +303,7 @@ export function InlineEditor({
   /** For "turns": whose turn it is. */
   turn?: string | null;
   /** Extra chips that come first, each with its own panel (e.g. "Done…" on chores, List in the composer). */
-  extras?: Array<{ key: string; label: ReactNode; icon?: IconName; lead?: ReactNode; set?: boolean; panel?: (close: () => void) => ReactNode; /** A plain on/off chip: no panel. */ toggle?: () => void }>;
+  extras?: Array<{ key: string; label: ReactNode; name?: string; icon?: IconName; lead?: ReactNode; set?: boolean; panel?: (close: () => void) => ReactNode; /** A plain on/off chip: no panel. */ toggle?: () => void }>;
   /** 'compose' while the thing is being written ("Ask Hila" rather than "Asked Hila"). */
   whoMode?: 'item' | 'compose';
   /** The add row's smaller chips. */
@@ -318,8 +324,8 @@ export function InlineEditor({
     const step = sheetOpened(() => setOpen(null));
     return () => step.closed();
   }, [open]);
-  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f)) => (
-    <EChip key={f} label={label} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} disabled={readOnly} compact={compact} />
+  const chip = (f: string, label: ReactNode, icon: IconName | undefined, set: boolean, lead?: ReactNode, onToggle = () => toggle(f), name?: string) => (
+    <EChip key={f} label={label} name={name} icon={icon} lead={lead} set={set} open={open === f} onToggle={onToggle} disabled={readOnly} compact={compact} />
   );
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -327,7 +333,7 @@ export function InlineEditor({
   const hiddenChips: ReactNode[] = [];
   for (const x of extras) {
     const into = more && !(x.set ?? true) && open !== x.key ? hiddenChips : extraChips;
-    into.push(chip(x.key, x.label, x.icon, x.set ?? true, x.lead, x.toggle));
+    into.push(chip(x.key, x.label, x.icon, x.set ?? true, x.lead, x.toggle, x.name));
     if (open === x.key && x.panel) into.push(<Panel key={`${x.key}:panel`}>{x.panel(() => setOpen(null))}</Panel>);
   }
   const chips: ReactNode[] = more ? [] : extraChips;
