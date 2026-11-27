@@ -5,14 +5,15 @@ import { reqLabel, visLabel, visTagFor, VIS_ICON, type ReqState } from '../priva
 import { haptic } from './haptics';
 import { Icon } from './Icon';
 import { useOverlays } from './overlays';
-import { lineVars } from './primitives';
+import { CursorMark, lineVars } from './primitives';
 import { useSettleHold } from './useSettle';
+import { G } from './glyphs';
 
 /** The lemon "Urgent" word pill: the same in every card and row. `short`: just the lightning, for narrow tiles. */
 export function UrgentTag({ title = 'Urgent', short }: { title?: string; short?: boolean }) {
   return (
     <span className={`urgent ${short ? 'urgent--short' : ''}`} title={title} aria-label={title} role="img">
-      <Icon name="urgent" className="icon--xs on-color" />
+      <Icon name={G.urgent} className="icon--xs on-color" />
       {short ? null : 'Urgent'}
     </span>
   );
@@ -54,9 +55,7 @@ export function VisTag({ item }: { item: Item }) {
 export function ReqTag({ state }: { state: ReqState }) {
   return (
     <span className="rtag" style={lineVars(state.other?.color)} dir="auto">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 3l15 7.5-6.5 1.8L10.5 19z" fill="currentColor" />
-      </svg>
+      <CursorMark />
       {reqLabel(state)}
     </span>
   );

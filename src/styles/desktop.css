@@ -735,10 +735,6 @@
     border-radius: var(--r-xl);
   }
 
-  .sheet__actions {
-    border-radius: var(--r-l);
-  }
-
   .btn {
     height: 44px;
     border-radius: 11px;

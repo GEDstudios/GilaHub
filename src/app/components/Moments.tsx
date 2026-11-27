@@ -7,6 +7,7 @@ import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
 import { FEELS, onThisDay } from '../moments';
+import { G } from '../ui/glyphs';
 
 const monthOf = (day: string) => fromDateStr(day).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 const dayOf = (day: string) => fromDateStr(day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -95,7 +96,7 @@ export function MomentsSheet({ onClose }: { onClose: () => void }) {
                         toast('Forgotten', { action: { label: 'Undo', run: undo } });
                       }}
                     >
-                      <Icon name="x" className="icon--xs" />
+                      <Icon name={G.close} className="icon--xs" />
                     </button>
                   </li>
                 );

@@ -8,6 +8,7 @@ import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem, type Outside } from '../ui/Sortable';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
 import { calm } from '../ui/tokens';
+import { G } from '../ui/glyphs';
 
 const TAB_LEAN = () => ({ rest: -4, land: 0 });
 const LEAVE_MS = 200;
@@ -80,7 +81,7 @@ function TokenFace({ t }: { t: TabDef }) {
     <>
       <TabMark t={t} />
       <span dir="auto">{t.label}</span>
-      <Icon name="plus" className="token__plus" />
+      <Icon name={G.add} className="token__plus" />
     </>
   );
 }
@@ -219,7 +220,7 @@ export function BarEdit({
       drop: (id) => latest.current.onPins(latest.current.ids.filter((k) => k !== id)),
       note: (
         <span className="handnote">
-          <Icon name="x" />
+          <Icon name={G.close} />
           Let go to take it out
         </span>
       ),

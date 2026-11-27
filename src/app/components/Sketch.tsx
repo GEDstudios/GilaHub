@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { haptic } from '../ui/haptics';
-import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
+import { G } from '../ui/glyphs';
+import { IconButton } from '../ui/primitives';
 
 /**
  * Draw on a screenshot: circle the thing, scribble an arrow, write "this!". The picture fills
@@ -150,9 +151,7 @@ export function SketchSheet({ src, onDone, onClose, title = 'Draw on it' }: { sr
               />
             ))}
           </div>
-          <button type="button" className="iconbtn" aria-label="Undo the last line" disabled={!count} onClick={undo}>
-            <Icon name="undo" />
-          </button>
+          <IconButton icon={G.undo} label="Undo the last line" disabled={!count} onClick={undo} />
           <button type="button" className="textbtn" disabled={!count} onClick={clear}>
             Clear
           </button>

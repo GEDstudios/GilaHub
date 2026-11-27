@@ -7,6 +7,7 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Avatar, ListBullet } from '../ui/primitives';
 import { TagMark } from './Tags';
+import { G } from '../ui/glyphs';
 
 /**
  * Show only some things, on any screen: with these tags (any of them), for whom, urgent ones.
@@ -142,7 +143,7 @@ export function Lens({ filter, items, lists, children }: { filter: FilterState; 
         ))}
         {urgentN || f.urgent ? (
           <button type="button" className={`lens__chip ${f.urgent ? 'is-on' : ''}`} aria-pressed={f.urgent} onClick={() => pick({ ...f, urgent: !f.urgent })}>
-            <Icon name="urgent" className="icon--sm" />
+            <Icon name={G.urgent} className="icon--sm" />
             <span>Urgent</span>
             <span className="lens__n num">{urgentN}</span>
           </button>

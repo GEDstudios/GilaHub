@@ -11,6 +11,7 @@ export const PROJECT_ICONS: IconName[] = [
   'home',
   'sparkle',
   'broom',
+  'task',
   'lines',
   'calendar',
   'heart',

@@ -6,11 +6,12 @@
 import type { Hub, ItemVisibility } from '../core/actions';
 import type { Item, List, Member } from '../core/model';
 import type { IconName } from './ui/icons.gen';
+import { G } from './ui/glyphs';
 
 /** "theirs" = Mine, but my partner's. */
 export type VisChoice = 'ours' | 'mine' | 'theirs' | 'private';
 
-export const VIS_ICON: Record<VisChoice, IconName> = { ours: 'ours', mine: 'mine', theirs: 'theirs', private: 'lock' };
+export const VIS_ICON: Record<VisChoice, IconName> = { ours: G.ours, mine: G.mine, theirs: G.theirs, private: G.private };
 
 /** What a new thing in this project is, unless someone says otherwise. */
 export function listDefaultVis(hub: Hub, list: Pick<List, 'visibility' | 'owner'> | undefined): VisChoice {

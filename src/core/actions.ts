@@ -200,7 +200,7 @@ export class Hub {
     if (!me || me.personalFolder || this.store.record('list', id)) return null;
     const first = this.topLists()[0];
     this.store.batch(() => {
-      this.createList({ id, name: 'To-Do', visibility: 'private', color: me.color === 'ink' ? 'lemon' : me.color, icon: 'i:star', description: 'My default private folder' });
+      this.createList({ id, name: 'To-Do', visibility: 'private', color: me.color === 'ink' ? 'lemon' : me.color, icon: 'i:task', description: 'My default private folder' });
       this.store.mutate('list', id, { personal: true, order: keyBetween(null, first?.order ?? null) });
       this.upsertMember(this.meId, { personalFolder: id });
     });
@@ -241,6 +241,8 @@ export class Hub {
           icon = PROJECT_TEMPLATES.find((x) => x.name === l.name)?.icon ?? suggestIcon(l.name, l.flavor ? 'shopping' : l.kind, l.flavor, undefined, taken);
           this.store.mutate('list', l.id, { icon });
         }
+        // My To-Do started with a star; a star now means "keep it on Today", so it's a tick.
+        if (l.id === this.personalFolderId() && icon === 'i:star') this.store.mutate('list', l.id, { icon: 'i:task' });
         if (l.visibility !== 'private') taken.add(icon);
       }
     });

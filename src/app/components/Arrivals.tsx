@@ -6,6 +6,8 @@ import { placeUrl } from './Notes';
 import { haptic } from '../ui/haptics';
 import { Icon, type IconName } from '../ui/Icon';
 import { playSound } from '../ui/sounds';
+import { G_TEXT } from '../ui/glyphs';
+import { G } from '../ui/glyphs';
 
 /**
  * Something arrived while the app is open (a reminder came due, my person left a note or asked
@@ -127,7 +129,7 @@ function Card({ a, more }: { a: Shown; more: number }) {
               go('?do=done');
             }}
           >
-            <Icon name="check" className="icon--sm" /> Done
+            <Icon name={G.done} className="icon--sm" /> Done
           </button>
           <button type="button" className="arrival__act" onClick={() => go('?do=later')}>
             Tomorrow
@@ -152,12 +154,12 @@ export function useArrivalWatch(hub: Hub): void {
       for (const n of hub.notesForMe()) {
         if (seen.has(n.id)) continue;
         seen.add(n.id);
-        if (n.createdAt > since && n.by !== hub.meId && sawItHappen(n.createdAt)) announce({ kind: 'note', title: `📝 ${partner.name} left you a note`, body: n.text, url: placeUrl(n.place) });
+        if (n.createdAt > since && n.by !== hub.meId && sawItHappen(n.createdAt)) announce({ kind: 'note', title: `${G_TEXT.note} ${partner.name} left you a note`, body: n.text, url: placeUrl(n.place) });
       }
       for (const i of hub.store.all('item')) {
         if (seen.has(`ask:${i.id}`) || i.done || i.requestedBy !== partner.id || i.assignee !== hub.meId) continue;
         seen.add(`ask:${i.id}`);
-        if ((i.createdAt ?? 0) > since && sawItHappen(i.createdAt ?? 0)) announce({ kind: 'ask', title: `🙋 ${partner.name} asked you`, body: i.title, url: `/i/${i.id}` });
+        if ((i.createdAt ?? 0) > since && sawItHappen(i.createdAt ?? 0)) announce({ kind: 'ask', title: `${G_TEXT.ask} ${partner.name} asked you`, body: i.title, url: `/i/${i.id}` });
       }
     };
     look();

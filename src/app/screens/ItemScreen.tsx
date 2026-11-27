@@ -1,19 +1,18 @@
 import { PathCrumbs } from '../components/PathCrumbs';
 import { addPhotoTo, Photos } from '../components/Photos';
-import { haptic } from '../ui/haptics';
 import { useBackGuard } from '../ui/backGuard';
-import { PlacePicker } from '../components/PlacePicker';
-import { StockCount } from '../components/ItemRow';
+import { PlaceTree } from '../components/PlaceTree';
+import { StockCount, stockTone, useStockSet } from '../components/StockCount';
 import { useAlsoShop } from '../alsoShop';
 import { tourOpened } from '../tour';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { addDays, humanDate, relativeAgo, today as todayStr } from '../../core/dates';
 import { isFlexible } from '../../smart/recurrence';
 import { Children } from '../components/Children';
 import { InlineEditor, Panel, useSummary } from '../components/editors';
 import { notifyAbout, setUpReminders } from '../notify';
 import { freshAgain, useLater, useTick } from '../tick';
-import { OptRow } from '../components/pickers';
+import { ActionSheet } from '../components/pickers';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { useAddAction } from '../addAction';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
@@ -25,10 +24,12 @@ import { usePrefs } from '../prefs';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Check, Empty, IconButton, lineVars, ListBullet, NewButton, Section } from '../ui/primitives';
+import { Avatar, Band, Check, Choices, Empty, IconButton, lineVars, ListBullet, Section, StarButton, Stepper } from '../ui/primitives';
 import { RequestActions } from '../ui/tags';
 import { AutoTitle } from '../ui/AutoTitle';
 import type { Draft } from '../draft';
+import { G_TEXT } from '../ui/glyphs';
+import { G } from '../ui/glyphs';
 
 function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; onGone: () => void }) {
   const hub = useHub();
@@ -36,46 +37,42 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
   const item = hub.item(id);
   if (!item) return null;
   return (
-    <Sheet onClose={onClose} title="More">
-      <div className="group">
-        {item.parentId ? (
-          <OptRow
-            icon="arrow-back"
-            title="Make it its own task"
-            sub={`Out from under “${hub.item(item.parentId)?.title ?? 'its task'}”, in ${hub.list(item.listId)?.name ?? 'its folder'}`}
-            onClick={() => {
-              const was = { listId: item.listId, parentId: item.parentId ?? null };
-              hub.move(id, { listId: item.listId, parentId: null });
-              onClose();
-              toast(`“${item.title}” is its own task`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
-            }}
-          />
-        ) : null}
-        <OptRow
-          icon="copy"
-          title="Duplicate"
-          onClick={() => {
+    <ActionSheet
+      title="More"
+      onClose={onClose}
+      actions={[
+        {
+          icon: G.move,
+          title: 'Make it its own task',
+          sub: `Out from under “${hub.item(item.parentId)?.title ?? 'its task'}”, in ${hub.list(item.listId)?.name ?? 'its folder'}`,
+          hidden: !item.parentId,
+          run: () => {
+            const was = { listId: item.listId, parentId: item.parentId ?? null };
+            hub.move(id, { listId: item.listId, parentId: null });
+            toast(`“${item.title}” is its own task`, { action: { label: 'Undo', run: () => hub.move(id, was) } });
+          },
+        },
+        {
+          icon: G.copy,
+          title: 'Duplicate',
+          run: () => {
             const nid = hub.duplicate(id);
-            onClose();
             if (nid) navigate({ name: 'item', id: nid }, { replace: true });
             toast('Duplicated');
-          }}
-        />
-        <OptRow
-          icon="trash"
-          title="Delete"
-          danger
-          onClick={() => {
+          },
+        },
+        {
+          icon: G.delete,
+          title: 'Delete',
+          danger: true,
+          run: () => {
             const undo = hub.delete(id);
-            onClose();
             onGone();
-            toast(`Deleted “${item.title}”`, {
-              action: { label: 'Undo', run: undo },
-            });
-          }}
-        />
-      </div>
-    </Sheet>
+            toast(`Deleted “${item.title}”`, { action: { label: 'Undo', run: undo } });
+          },
+        },
+      ]}
+    />
   );
 }
 
@@ -90,7 +87,6 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
   const [to, setTo] = useState<{ listId: string; parentId: string | null } | null>(null);
   if (!item) return null;
   // Opened from the start: the folders down to where it is, then its tasks.
-  const path = [...hub.listPath(item.listId).map((l) => l.id), item.listId, ...hub.ancestors(item).map((a) => a.id)];
   const fromName = from ? (hub.list(from)?.name ?? hub.item(from)?.title) : null;
   const name = (p: { listId: string; parentId: string | null }) => {
     const l = hub.list(p.listId)?.name ?? '';
@@ -117,30 +113,29 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
             }}
           >
             Open {fromName}
-            <Icon name="arrow" className="icon--xs" />
+            <Icon name={G.continue} className="icon--xs" />
           </button>
         </p>
       ) : null}
-      <PlacePicker
-        itemId={id}
-        here
-        initialOpen={path}
-        filter={(l) => !l.owner || l.owner === hub.meId || l.visibility === 'visible'}
-        onPick={(listId, parentId) => setTo({ listId, parentId })}
+      <PlaceTree
+        tasks
+        excludeItem={id}
+        current={{ listId: item.listId, parentId: item.parentId ?? null }}
+        offer={(l) => !l.owner || l.owner === hub.meId || l.visibility === 'visible'}
+        onPick={(p) => p && setTo(p)}
       />
       {to ? (
         <div className="moveask" role="alertdialog" aria-label={`Move to ${name(to)}?`}>
           <p dir="auto">
             Move to <strong>{name(to)}</strong>?
           </p>
-          <div className="moveask__btns">
-            <button type="button" className="btn btn--quiet" onClick={() => setTo(null)}>
-              Cancel
-            </button>
-            <button type="button" className="btn" onClick={go}>
-              Move
-            </button>
-          </div>
+          <Choices
+            row
+            choices={[
+              { label: 'Cancel', quiet: true, run: () => setTo(null) },
+              { label: 'Move', run: go },
+            ]}
+          />
         </div>
       ) : null}
     </Sheet>
@@ -148,19 +143,11 @@ function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onC
 }
 
 /** One column of the stock panel: a word over − n +. */
-function StockCol({ label, value, min = 0, max, onChange, tone }: { label: string; value: number; min?: number; max?: number; onChange: (n: number) => void; tone?: string }) {
+function StockCol({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className={`stockcol ${tone ?? ''}`}>
+    <div className="stockcol">
       <span className="stockcol__label">{label}</span>
-      <span className="stockcol__step">
-        <button type="button" aria-label={`${label}: one less`} disabled={value <= min} onClick={() => onChange(value - 1)}>
-          −
-        </button>
-        <span className="stockcol__n num">{value}</span>
-        <button type="button" aria-label={`${label}: one more`} disabled={max != null && value >= max} onClick={() => onChange(value + 1)}>
-          +
-        </button>
-      </span>
+      {children}
     </div>
   );
 }
@@ -172,18 +159,10 @@ function StockCol({ label, value, min = 0, max, onChange, tone }: { label: strin
  */
 function StockPanel({ id }: { id: string }) {
   const hub = useHub();
-  const { toast, openSheet } = useOverlays();
+  const { openSheet } = useOverlays();
   const item = hub.item(id);
   const on = item?.stock != null;
-  const set = (patch: Parameters<typeof hub.setStock>[1]) => {
-    const before = hub.item(id)?.stockLink ?? null;
-    hub.setStock(id, patch);
-    const now = hub.item(id);
-    if (now?.stockLink && now.stockLink !== before) {
-      const at = hub.stockPlace(now);
-      toast(`On ${at.parentId ? `“${hub.item(at.parentId)?.title ?? ''}”` : (hub.list(at.listId)?.name ?? 'the list')}`);
-    }
-  };
+  const set = useStockSet(id);
   // Opening it is starting it.
   useEffect(() => {
     if (item && item.stock == null) hub.setStock(id, { stock: 2, stockFull: 4, stockAddAt: 1, stockUrgentAt: 0 });
@@ -194,19 +173,19 @@ function StockPanel({ id }: { id: string }) {
   const want = item.stockFull ?? Math.max(have, (item.stockAddAt ?? 1) + 1);
   const at = item.stockAddAt ?? 1;
   const urgentAt = item.stockUrgentAt ?? null;
-  const low = have <= at;
-  const out = urgentAt != null && have <= urgentAt;
+  const tone = stockTone(hub, item);
   const place = hub.stockPlace(item);
   const placeName = place.parentId ? (hub.item(place.parentId)?.title ?? '') : (hub.list(place.listId)?.name ?? '');
   const pickPlace = () =>
     openSheet((close) => (
       <Sheet onClose={close} title="Goes on">
-        <PlacePicker
-          itemId={id}
-          initialOpen={[...hub.listPath(place.listId).map((l) => l.id), place.listId]}
-          filter={(l) => !l.owner || l.owner === hub.meId || l.visibility === 'visible'}
-          onPick={(listId, parentId) => {
-            set({ stockTo: listId, stockUnder: parentId });
+        <PlaceTree
+          tasks
+          excludeItem={id}
+          value={place}
+          offer={(l) => !l.owner || l.owner === hub.meId || l.visibility === 'visible'}
+          onPick={(p) => {
+            if (p) set({ stockTo: p.listId, stockUnder: p.parentId });
             close();
           }}
         />
@@ -216,11 +195,17 @@ function StockPanel({ id }: { id: string }) {
   return (
     <Panel>
       <div className="stockcols">
-        <StockCol label="Have" value={have} onChange={(n) => set({ stock: n })} tone={out ? 'is-out' : low ? 'is-low' : ''} />
-        <StockCol label="Want" value={want} min={Math.max(1, at + 1)} onChange={(n) => set({ stockFull: n })} />
-        <StockCol label="Buy at" value={at} max={want - 1} onChange={(n) => set({ stockAddAt: Math.min(n, want - 1) })} />
+        <StockCol label="Have">
+          <Stepper label="Have" value={have} tone={tone} onChange={(n) => set({ stock: n ?? 0 })} />
+        </StockCol>
+        <StockCol label="Want">
+          <Stepper label="Want" value={want} min={Math.max(1, at + 1)} onChange={(n) => set({ stockFull: n })} />
+        </StockCol>
+        <StockCol label="Buy at">
+          <Stepper label="Buy at" value={at} max={want - 1} onChange={(n) => set({ stockAddAt: Math.min(n ?? 0, want - 1) })} />
+        </StockCol>
       </div>
-      <div className={`stockbar ${out ? 'is-out' : low ? 'is-low' : ''}`} role="img" aria-label={`${have} of ${want}; bought at ${at}`}>
+      <div className={`stockbar ${tone ? `is-${tone}` : ''}`} role="img" aria-label={`${have} of ${want}; bought at ${at}`}>
         <span className="stockbar__fill" style={{ width: pct(have) }} />
         <span className="stockbar__notch" style={{ left: pct(at) }} />
       </div>
@@ -231,13 +216,7 @@ function StockPanel({ id }: { id: string }) {
         </button>
         <span className={`stockfoot__chip stockfoot__urgent ${urgentAt == null ? 'is-off' : ''}`} title="Urgent at">
           <Icon name="urgent" className="icon--xs" />
-          <button type="button" aria-label="Urgent at: one less" disabled={urgentAt == null} onClick={() => set({ stockUrgentAt: urgentAt == null || urgentAt <= 0 ? null : urgentAt - 1 })}>
-            −
-          </button>
-          <span className="num">{urgentAt == null ? 'off' : urgentAt}</span>
-          <button type="button" aria-label="Urgent at: one more" disabled={urgentAt != null && urgentAt >= at} onClick={() => set({ stockUrgentAt: urgentAt == null ? 0 : urgentAt + 1 })}>
-            +
-          </button>
+          <Stepper size="sm" look="bare" nullable label="Urgent at" value={urgentAt} max={at} onChange={(n) => set({ stockUrgentAt: n })} />
         </span>
         <button type="button" className="stockfoot__stop" onClick={() => set({ stock: null })} aria-label="Stop counting" title="Stop counting">
           <Icon name="x" className="icon--xs" />
@@ -272,7 +251,7 @@ function DonePanel({ id, close }: { id: string; close: () => void }) {
         Yesterday
       </button>
       <label className="option option--input">
-        <Icon name="calendar" className="icon--sm" />
+        <Icon name={G.date} className="icon--sm" />
         <input
           type="date"
           max={ref}
@@ -418,7 +397,7 @@ export function ItemScreen({ id }: { id: string }) {
   const alsoChip = {
     key: 'also',
     label: twin && twinList ? `Also in ${(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}` : 'Also in…',
-    icon: 'link' as const,
+    icon: G.linked,
     set: !!twinList,
     panel: (close: () => void) =>
       twin && twinList ? (
@@ -441,7 +420,7 @@ export function ItemScreen({ id }: { id: string }) {
               toast(`Taken out of ${where}`, { action: { label: 'Undo', run: undo } });
             }}
           >
-            <Icon name="x" className="token__x" />
+            <Icon name={G.close} className="token__x" />
             <span dir="auto">Remove from {(twin.parentId && hub.item(twin.parentId)?.title) || twinList.name}</span>
           </button>
           <button
@@ -456,14 +435,17 @@ export function ItemScreen({ id }: { id: string }) {
               toast(`Taken out of ${here}`, { action: { label: 'Undo', run: undo } });
             }}
           >
-            <Icon name="x" className="token__x" />
+            <Icon name={G.close} className="token__x" />
             <span dir="auto">Remove from {(item.parentId && hub.item(item.parentId)?.title) || list?.name || 'here'}</span>
           </button>
         </div>
       ) : (
-        <PlacePicker
-          itemId={id}
-          onPick={(lid, parentId) => {
+        <PlaceTree
+          tasks
+          excludeItem={id}
+          onPick={(p) => {
+            if (!p) return;
+            const { listId: lid, parentId } = p;
             const other = hub.alsoIn(id, lid, parentId);
             const it = other ? hub.item(other) : undefined;
             const where = parentId ? hub.item(parentId)?.title : hub.list(lid)?.name;
@@ -517,7 +499,7 @@ export function ItemScreen({ id }: { id: string }) {
       hub.assign(id, p.assignee ?? null);
       const now = hub.item(id);
       if (now && hub.isRequest(p.assignee) && now.requestedBy === hub.meId && item.assignee !== p.assignee) {
-        notifyAbout(rt, hub, now, p.assignee as string, `🙋 ${hub.me()?.name ?? 'Your partner'} asked you`, now.title);
+        notifyAbout(rt, hub, now, p.assignee as string, `${G_TEXT.ask} ${hub.me()?.name ?? 'Your partner'} asked you`, now.title);
       }
       return;
     }
@@ -546,22 +528,16 @@ export function ItemScreen({ id }: { id: string }) {
           editable ? (
             <>
               {/* Highlights: a star by the "…" */}
-              <button
-                type="button"
-                className={`iconbtn starbtn ${inQuick ? 'is-on' : ''}`}
-                aria-pressed={inQuick}
-                aria-label={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
-                title={inQuick ? 'In your Highlights' : 'Add to your Highlights'}
-                onClick={() => {
-                  haptic('select');
-                  const undo = setQuick(id, !inQuick);
-                  toast(inQuick ? 'Out of your Highlights' : 'In your Highlights, on Today', { action: { label: 'Undo', run: undo } });
+              <StarButton
+                on={inQuick}
+                onLabel="In your Highlights"
+                offLabel="Add to your Highlights"
+                onChange={(on) => {
+                  const undo = setQuick(id, on);
+                  toast(on ? 'In your Highlights, on Today' : 'Out of your Highlights', { action: { label: 'Undo', run: undo } });
                 }}
-              >
-                <Icon name="star" lit={inQuick} />
-              </button>
-              <IconButton icon="more" label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} />
-              <NewButton label="Add a subtask" onClick={openNew} />
+              />
+              <IconButton icon={G.more} label="More" onClick={() => openSheet((close) => <ItemMenu id={id} onClose={close} onGone={() => back(upTo)} />)} />
             </>
           ) : undefined
         }
@@ -625,7 +601,7 @@ export function ItemScreen({ id }: { id: string }) {
           {editable ? (
             // A photo: at the card's foot, under the tick.
             <button type="button" className="herophoto" aria-label={photoN ? `Add a photo (${photoN})` : 'Add a photo'} title="Add a photo" onClick={() => void addPhoto()}>
-              <Icon name="image" />
+              <Icon name={G.photo} />
               {photoN ? <span className="herophoto__n num">{photoN}</span> : null}
             </button>
           ) : null}
@@ -643,7 +619,7 @@ export function ItemScreen({ id }: { id: string }) {
                     {
                       key: 'done',
                       label: 'Done…',
-                      icon: 'check' as const,
+                      icon: G.done,
                       panel: (close: () => void) => <DonePanel id={id} close={close} />,
                     },
                   ]
@@ -653,7 +629,7 @@ export function ItemScreen({ id }: { id: string }) {
                     {
                       key: 'stock',
                       label: item.stock != null ? `${item.stock} in stock` : 'Stock',
-                      icon: 'package' as const,
+                      icon: G.stock,
                       set: item.stock != null,
                       panel: () => <StockPanel id={id} />,
                     },
@@ -677,7 +653,7 @@ export function ItemScreen({ id }: { id: string }) {
 
         {vis === 'ours' && !item.assignee && editable && partner && !item.done ? (
           <button type="button" className="textbtn takeit" onClick={() => hub.takeIt(id)}>
-            <Icon name="hand" className="icon--sm" /> I’ll take it
+            <Icon name={G.claim} className="icon--sm" /> I’ll take it
           </button>
         ) : null}
 
@@ -731,11 +707,11 @@ export function ItemScreen({ id }: { id: string }) {
                         aria-label="Say thanks"
                         aria-pressed={!!l.thankedBy}
                       >
-                        <Icon name={l.thankedBy ? 'heart-fill' : 'heart'} />
+                        <Icon name={l.thankedBy ? G.thanked : G.thanks} />
                       </button>
                     ) : l.thankedBy ? (
                       <span className="heart is-on" title="Thanked">
-                        <Icon name="heart-fill" />
+                        <Icon name={G.thanked} />
                       </span>
                     ) : null}
                   </li>
@@ -762,7 +738,7 @@ function SubtaskAdd({ listId, parentId }: { listId: string; parentId: string }) 
   };
   return (
     <label className="composer__stepadd subtaskadd">
-      <Icon name="plus" className="icon--sm" />
+      <Icon name={G.add} className="icon--sm" />
       <input
         value={t}
         dir="auto"

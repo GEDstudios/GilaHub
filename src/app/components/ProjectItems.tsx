@@ -16,6 +16,7 @@ import { getPrefs, setPrefs, usePrefs } from '../prefs';
 import { useGroupDrag } from '../ui/groupDrag';
 import { TagMark } from './Tags';
 import { listIdOf } from '../../core/keys';
+import { G } from '../ui/glyphs';
 
 const idOf = (i: Item) => i.id;
 
@@ -277,7 +278,7 @@ export function ProjectItems({
           <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--plain'} ${isFolded(g) ? 'is-folded' : ''}`} aria-label={g.label ?? undefined} data-group={g.key} data-list={g.listId ?? undefined} data-tag={g.tag ?? undefined} data-sort={sortable && sortScope(g) ? g.key : undefined} data-sort-scope={sortScope(g) ?? undefined}>
             {g.label ? (
               <h2 className={`aisle__head ${sortable && sortScope(g) ? 'aisle__head--drag' : ''}`} title={sortable && sortScope(g) ? 'Hold to move this group' : undefined}>
-                {sortable && sortScope(g) ? <Icon name="grip" className="aisle__grip" /> : null}
+                {sortable && sortScope(g) ? <Icon name={G.grip} className="aisle__grip" /> : null}
                 {g.tag !== undefined ? (
                   <>
                     <TagMark icon={g.tag ? g.icon : null} className="" />
@@ -288,7 +289,7 @@ export function ProjectItems({
                   <span className="aisle__path">
                     {pathTo(list).map((l, i, all) => (
                       <Fragment key={l.id}>
-                        {i ? <Icon name="subtask" className="aisle__sep" /> : null}
+                        {i ? <Icon name={G.subtask} className="aisle__sep" /> : null}
                         <button type="button" className={`aisle__go aisle__golabel ${i < all.length - 1 ? 'is-up' : ''}`} onClick={() => navigate({ name: 'list', id: l.id })}>
                           {i === all.length - 1 ? <ListBullet list={l} size="xs" /> : null}
                           <span dir="auto">{l.name}</span>
@@ -308,7 +309,7 @@ export function ProjectItems({
                   title={isFolded(g) ? 'Show its tasks' : 'Fold it'}
                   onClick={() => flipFold(g)}
                 >
-                  <Icon name="chevron-down" />
+                  <Icon name={G.fold} />
                 </button>
               </h2>
             ) : null}
@@ -326,7 +327,7 @@ export function ProjectItems({
             {list && g.label && g.tag === undefined && !isFolded(g) ? (
               // Add straight into this folder, without going in.
               <button type="button" className="groupadd" aria-label={`Add to ${list.name}`} onClick={() => openSheet((close) => <QuickAddSheet onClose={close} listId={list.id} />)}>
-                <Icon name="plus" />
+                <Icon name={G.add} />
               </button>
             ) : null}
           </section>
@@ -365,7 +366,7 @@ export function ProjectItems({
             if (item && outside)
               return (
                 <span className="dropchip">
-                  <Icon name={nestRef.current ? 'subtask' : 'move'} className="icon--sm" />
+                  <Icon name={nestRef.current ? G.subtask : G.move} className="icon--sm" />
                   <span dir="auto">{item.title}</span>
                 </span>
               );

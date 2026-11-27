@@ -13,6 +13,8 @@ import { Sheet, useOverlays } from '../ui/overlays';
 import { NoteEditor, NoteFace, PAPER, PHOTO_HOME, type NoteLook, type PhotoPos, type PhotoShape, type Stroke } from './NoteFace';
 import { lineVars } from '../ui/primitives';
 import { HOLD } from '../ui/tokens';
+import { G_TEXT } from '../ui/glyphs';
+import { G } from '../ui/glyphs';
 
 /**
  * Sticky notes: one of us leaves a note on a screen for the other ("Don't forget the milk 💛"
@@ -140,7 +142,7 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
     haptic('tick');
     onClose();
     toast(`Stuck on ${where} for ${partner?.name ?? 'them'}`, { action: { label: 'Undo', run: () => hub.deleteNote(id) } });
-    if (partner) void notifyMembers(rt, [partner.id], { title: `📝 ${hub.me()?.name ?? 'Your person'} left you a note`, body: look.text.trim() || (look.photo ? '📷 A photo' : '✏️ A drawing'), url: href(routeOf(place)), tag: `note-${id}` });
+    if (partner) void notifyMembers(rt, [partner.id], { title: `${G_TEXT.note} ${hub.me()?.name ?? 'Your person'} left you a note`, body: look.text.trim() || (look.photo ? '📷 A photo' : '✏️ A drawing'), url: href(routeOf(place)), tag: `note-${id}` });
   };
   // The phone's Back with something on it: stick it, or throw it away.
   useBackGuard({ dirty: ready, title: 'Stick this note?', saveLabel: 'Stick it', discardLabel: 'Throw it away', onSave: stick, onDiscard: onClose });
@@ -536,7 +538,7 @@ function StuckNote({
             onLift(false);
           }}
         >
-          <Icon name="x" className="icon--sm" />
+          <Icon name={G.done} className="icon--sm" />
         </button>
       ) : null}
       <button
@@ -549,7 +551,7 @@ function StuckNote({
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <Icon name="check" className="icon--sm" />
+        <Icon name={G.done} className="icon--sm" />
       </button>
     </div>
   );
@@ -590,12 +592,12 @@ function NoteSheet({ ids, onClose }: { ids: string[]; onClose: () => void }) {
                 </div>
               )}
               <button type="button" className="btn btn--block notesheet__keep" onClick={(e) => peel(n, false, e.currentTarget)}>
-                <Icon name="check" className="icon--sm" /> Keep to our notes 💛
+                <Icon name={G.done} className="icon--sm" /> Keep to our notes 💛
               </button>
               {mine ? (
                 <p className="notesheet__delete">
                   <button type="button" className="textbtn textbtn--danger" onClick={() => peel(n, true)}>
-                    <Icon name="trash" className="icon--sm" /> Delete
+                    <Icon name={G.delete} className="icon--sm" /> Delete
                   </button>
                 </p>
               ) : null}
@@ -653,7 +655,7 @@ export function NotesElsewhere() {
               </strong>{' '}
               on <span dir="auto">{placeName(hub, place)}</span>
             </span>
-            <Icon name="chevron-right" />
+            <Icon name={G.go} />
           </button>
         );
       })}
@@ -734,7 +736,7 @@ function CollectedSheet({ id, onClose }: { id: string; onClose: () => void }) {
             navigate(routeOf(n.place));
           }}
         >
-          <Icon name="undo" className="icon--sm" />
+          <Icon name={G.undo} className="icon--sm" />
           Put it back on {placeName(hub, n.place)}
         </button>
         <button

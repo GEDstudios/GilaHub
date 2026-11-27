@@ -3,6 +3,7 @@ import type { LineColor } from '../core/model';
 import type { Route } from './router';
 import type { IconName } from './ui/Icon';
 import { listKey, listIdOf } from '../core/keys';
+import { G } from './ui/glyphs';
 
 /**
  * Between Today and Projects you pin as many as you like: Search or any project. Past 5 tabs the
@@ -44,7 +45,7 @@ export function barDensity(n: number, { editing = false }: { editing?: boolean }
 export function pinOptions(hub: Hub): TabDef[] {
   const lists = hub.lists();
   return [
-    { key: 'search', label: 'Search', path: '/search', icon: 'search' },
+    { key: 'search', label: 'Search', path: '/search', icon: G.search },
     ...lists.map((l) => ({ key: listKey(l.id), label: l.name, path: `/l/${l.id}`, color: l.color, glyph: l.icon })),
   ];
 }
@@ -136,9 +137,9 @@ export function togglePin(hub: Hub, key: string): boolean {
 export function tabsOf(hub: Hub): TabDef[] {
   const opts = new Map(pinOptions(hub).map((t) => [t.key, t]));
   return [
-    { key: 'today', label: 'Today', path: '/', icon: 'sun' },
+    { key: 'today', label: 'Today', path: '/', icon: G.today },
     ...pinsOf(hub).map((k) => opts.get(k)!),
-    { key: 'projects', label: 'Folders', path: '/lists', icon: 'folders' },
+    { key: 'projects', label: 'Folders', path: '/lists', icon: G.folders },
   ];
 }
 

@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { formatInviteCode } from '../../core/ids';
 import { createInvite } from '../../core/session';
 import { useHub, useRt } from '../context';
-import { Icon } from '../ui/Icon';
 import { Sheet } from '../ui/overlays';
+import { G } from '../ui/glyphs';
+import { Choices } from '../ui/primitives';
 
 function QR({ text }: { text: string }) {
   const svg = useMemo(() => {
@@ -85,27 +86,15 @@ export function PairSheet({ kind, onClose }: { kind: 'partner' | 'device'; onClo
           <span>Or scan it</span>
         </div>
       ) : null}
-      <div className="sheet__actions">
-        <button type="button" className="btn btn--quiet" onClick={make}>
-          <Icon name="refresh" className="icon--sm" /> New code
-        </button>
-        {code && 'share' in navigator ? (
-          <button
-            type="button"
-            className="btn"
-            style={{ flex: 1 }}
-            onClick={() =>
-              navigator.share({ title: 'Gila Hub', text: `Join me on Gila Hub. Code: ${formatInviteCode(code)}`, url: link }).catch(() => {})
-            }
-          >
-            <Icon name="share" className="icon--sm" /> Share
-          </button>
-        ) : (
-          <button type="button" className="btn" style={{ flex: 1 }} onClick={onClose}>
-            Done
-          </button>
-        )}
-      </div>
+      <Choices
+        row
+        choices={[
+          { label: 'New code', icon: G.reload, quiet: true, run: make },
+          code && 'share' in navigator
+            ? { label: 'Share', icon: G.share, run: () => void navigator.share({ title: 'Gila Hub', text: `Join me on Gila Hub. Code: ${formatInviteCode(code)}`, url: link }).catch(() => {}) }
+            : { label: 'Done', run: onClose },
+        ]}
+      />
     </Sheet>
   );
 }

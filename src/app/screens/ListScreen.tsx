@@ -1,12 +1,12 @@
+import { PlaceTree } from '../components/PlaceTree';
 import { PathCrumbs, projectPath } from '../components/PathCrumbs';
 import { openSearch } from '../search';
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Item, List, TaskTemplate } from '../../core/model';
 import { Lens, useFilter } from '../components/Filter';
 import { useAddAction } from '../addAction';
-import { OptRow } from '../components/pickers';
 import { ListVisOptions } from '../components/ProjectFields';
-import { Swatches } from '../components/pickers';
+import { ActionSheet, Swatches } from '../components/pickers';
 import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
 import { InlineEditor, Options, Panel, RepeatPanel, TimeField } from '../components/editors';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
@@ -19,7 +19,7 @@ import { useHub, usePartnerHere, useRt } from '../context';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, ListBullet, NewButton, Switch } from '../ui/primitives';
+import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
 import { setPrefs, use24h, usePrefs } from '../prefs';
 import { ViewToggle } from '../components/ViewToggle';
@@ -41,6 +41,7 @@ import { DUR } from '../ui/tokens';
 import { listKey } from '../../core/keys';
 import type { Draft } from '../draft';
 import { ruleShort } from '../labels';
+import { G } from '../ui/glyphs';
 
 /** The folder's own settings, in place under its card: a photo, on Today, its task template, the tasks it shows from elsewhere, where it sits. Each says what it's set to. */
 const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, assignee: null, urgent: false, visibility: 'ours' };
@@ -60,12 +61,12 @@ function FolderTools({ list }: { list: List }) {
       onChange={() => undefined}
       fields={[]}
       extras={[
-        { key: 'photo', label: photoN ? `Photos ${photoN}` : 'Photo', icon: 'image', set: photoN > 0, toggle: () => void addPhoto() },
-        { key: 'tpl', label: tpl ? 'Template' : 'Task template', icon: 'layout', set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
+        { key: 'photo', label: photoN ? `Photos ${photoN}` : 'Photo', icon: G.photo, set: photoN > 0, toggle: () => void addPhoto() },
+        { key: 'tpl', label: tpl ? 'Template' : 'Task template', icon: G.template, set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
         {
           key: 'shows',
           label: shows.length ? `Shows ${shows.map((l) => l.name).join(', ')}` : 'Show tasks from',
-          icon: 'link',
+          icon: G.shows,
           set: shows.length > 0,
           toggle: () => openSheet((close) => <ShowsSheet listId={listId} onClose={close} />),
         },
@@ -80,35 +81,33 @@ export function ListMenu({ listId, onClose }: { listId: string; onClose: () => v
   const { toast } = useOverlays();
   const list = hub.list(listId);
   if (!list) return null;
-  const mineToChange = !list.owner || list.owner === hub.meId;
   return (
-    <Sheet onClose={onClose} title={list.name}>
-      <div className="group">
-        <OptRow
-          icon="archive"
-          title="Archive"
-          onClick={() => {
+    <ActionSheet
+      title={list.name}
+      onClose={onClose}
+      actions={[
+        {
+          icon: G.archive,
+          title: 'Archive',
+          run: () => {
             hub.updateList(listId, { archived: true });
-            onClose();
             navigate({ name: 'lists' }, { replace: true });
             toast(`Archived ${list.name}`, { action: { label: 'Undo', run: () => hub.updateList(listId, { archived: false }) } });
-          }}
-        />
-        {mineToChange ? (
-          <OptRow
-            icon="trash"
-            title="Delete folder"
-            danger
-            onClick={() => {
-              const undo = hub.deleteList(listId);
-              onClose();
-              navigate({ name: 'lists' }, { replace: true });
-              toast(`Deleted ${list.name}`, { action: { label: 'Undo', run: undo } });
-            }}
-          />
-        ) : null}
-      </div>
-    </Sheet>
+          },
+        },
+        {
+          icon: G.delete,
+          title: 'Delete folder',
+          danger: true,
+          hidden: !!list.owner && list.owner !== hub.meId,
+          run: () => {
+            const undo = hub.deleteList(listId);
+            navigate({ name: 'lists' }, { replace: true });
+            toast(`Deleted ${list.name}`, { action: { label: 'Undo', run: undo } });
+          },
+        },
+      ]}
+    />
   );
 }
 
@@ -126,12 +125,12 @@ function TemplateDayPanel({ listId }: { listId: string }) {
         onPick={(v) => hub.setListTemplate(listId, { dueIn: v === 'none' ? null : Number(v) })}
       />
       <label className="tpltime">
-        <Icon name="clock" className="icon--sm" />
+        <Icon name={G.time} className="icon--sm" />
         <span>Time</span>
         <TimeField value={t.dueTime ?? null} onChange={(v) => hub.setListTemplate(listId, { dueTime: v })} />
         {t.dueTime ? (
           <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => hub.setListTemplate(listId, { dueTime: null })}>
-            <Icon name="x" className="icon--xs" />
+            <Icon name={G.close} className="icon--xs" />
           </button>
         ) : null}
       </label>
@@ -217,7 +216,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
           {
             key: 'day',
             label: t.dueIn != null ? `${dayIn(t.dueIn)}${t.dueTime ? `, ${humanTime(t.dueTime, h24)}` : ''}` : t.dueTime ? humanTime(t.dueTime, h24) : 'Date',
-            icon: 'calendar' as const,
+            icon: G.date,
             set: t.dueIn != null || !!t.dueTime,
             panel: () => <TemplateDayPanel listId={listId} />,
           },
@@ -232,7 +231,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
           {
             key: 'steps',
             label: t.steps?.length ? `Subtasks ${t.steps.length}` : 'Subtasks',
-            icon: 'subtask' as const,
+            icon: G.subtask,
             set: !!t.steps?.length,
             panel: () => (
               <Panel>
@@ -252,7 +251,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
           {
             key: 'notes',
             label: t.notes ? 'Note' : 'Note',
-            icon: 'note' as const,
+            icon: G.note,
             set: !!t.notes,
             panel: () => (
               <Panel>
@@ -265,7 +264,7 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
                 {
                   key: 'again',
                   label: t.nag ? `Again ${ruleShort(t.nag).toLowerCase()}` : 'Again until done',
-                  icon: 'refresh' as const,
+                  icon: G.nag,
                   set: !!t.nag,
                   panel: () => <RepeatPanel nag rule={t.nag ?? null} defaultFrom="schedule" title="Notify again until done" onChange={(nag) => hub.setListTemplate(listId, { nag })} />,
                 },
@@ -296,51 +295,17 @@ function TemplateSheet({ listId, onClose }: { listId: string; onClose: () => voi
 function ShowsSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const list = hub.list(listId);
-  const on = new Set(list?.shows ?? []);
-  // Folders inside folders fold into their parent; open from the start, the way down to the ones it shows.
-  const [open, setOpen] = useState<Set<string>>(() => new Set((list?.shows ?? []).flatMap((x) => hub.listPath(x).map((l) => l.id))));
   if (!list) return null;
-  const inside = new Set(hub.nestedLists(listId).map((l) => l.id));
-  const offered = (l: List) => l.id !== listId && !inside.has(l.id);
-  const flip = (id: string) =>
-    setOpen((s) => {
-      const n = new Set(s);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
-  const rows = (ls: List[], depth: number): ReactNode[] =>
-    ls.flatMap((l) => {
-      const subs = hub.subLists(l.id).filter((x) => x.id !== listId && !inside.has(x.id));
-      return [
-        <li key={l.id}>
-          {/* The switch leads its row, so it steps in with each level: what's inside what reads at a glance. */}
-          <div className={`place__row showrow ${depth ? 'is-nested' : ''}`} style={{ marginInlineStart: depth * 26 }}>
-            {offered(l) ? (
-              <Switch on={on.has(l.id)} label={`Show ${l.name}’s tasks in ${list.name}`} onChange={(v) => hub.setShows(listId, l.id, v)} />
-            ) : (
-              <span className="showrow__here">This folder</span>
-            )}
-            <span className="place__pick showrow__name">
-              <ListBullet list={l} size="xs" />
-              <span dir="auto">{l.name}</span>
-            </span>
-            {subs.length ? (
-              <button type="button" className={`place__open ${open.has(l.id) ? 'is-open' : ''}`} aria-label={open.has(l.id) ? 'Fold' : 'Unfold'} aria-expanded={open.has(l.id)} onClick={() => flip(l.id)}>
-                <Icon name="chevron-down" className="icon--sm" />
-              </button>
-            ) : null}
-          </div>
-        </li>,
-        ...(open.has(l.id) ? rows(subs, depth + 1) : []),
-      ];
-    });
+  const on = new Set(list.shows ?? []);
   return (
     <Sheet onClose={onClose} title={`Show in ${list.name}`}>
       <p className="sheet__lede">Their tasks show here too, each folder in its own group. {list.name}’s own tasks stay where they are.</p>
-      <ul className="place" aria-label="Folders">
-        {rows(hub.topLists().filter((l) => !inside.has(l.id)), 0)}
-      </ul>
+      <PlaceTree
+        excludeList={listId}
+        // The switch leads its row, so it steps in with each level: what's inside what reads at a glance.
+        lead={(l) => <Switch on={on.has(l.id)} label={`Show ${l.name}’s tasks in ${list.name}`} onChange={(v) => hub.setShows(listId, l.id, v)} />}
+        onPick={(p) => p && hub.setShows(listId, p.listId, !on.has(p.listId))}
+      />
     </Sheet>
   );
 }
@@ -352,27 +317,6 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
   const list = hub.list(listId);
   if (!list) return null;
   const here = hub.parentOf(listId)?.id ?? null;
-  const inside = new Set(hub.nestedLists(listId).map((l) => l.id));
-  // Folders inside folders fold into their parent: open from the start, only the way down to
-  // where it sits now.
-  const [open, setOpen] = useState<Set<string>>(() => new Set(here ? [...hub.listPath(here).map((l) => l.id), here] : []));
-  const flip = (id: string) =>
-    setOpen((s) => {
-      const n = new Set(s);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
-  const tree: Array<{ l: List; depth: number; subs: number }> = [];
-  const walk = (ls: List[], depth: number) => {
-    for (const l of ls) {
-      if (l.id === listId || inside.has(l.id)) continue;
-      const subs = hub.subLists(l.id).filter((x) => x.id !== listId && !inside.has(x.id));
-      tree.push({ l, depth, subs: subs.length });
-      if (open.has(l.id)) walk(subs, depth + 1);
-    }
-  };
-  walk(hub.topLists(), 0);
   const go = (to: string | null) => {
     if (to === here) return onClose();
     const was = here;
@@ -384,33 +328,13 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
   };
   return (
     <Sheet onClose={onClose} title={`Move ${list.name}`}>
-      <ul className="place" aria-label="Where it sits">
-        <li>
-          <div className="place__row">
-            <button type="button" className="place__pick" aria-current={here === null || undefined} disabled={here === null} onClick={() => go(null)}>
-              <Icon name="folders" className="icon--sm" />
-              <span>Folders</span>
-              <span className="place__hint">the top</span>
-            </button>
-          </div>
-        </li>
-        {tree.map(({ l, depth, subs }) => (
-          <li key={l.id}>
-            <div className="place__row" style={{ paddingInlineStart: 6 + (depth + 1) * 18 }}>
-              <button type="button" className="place__pick" aria-current={here === l.id || undefined} disabled={here === l.id} onClick={() => go(l.id)}>
-                <ListBullet list={l} size="xs" />
-                <span dir="auto">{l.name}</span>
-                {here === l.id ? <span className="place__hint">here now</span> : null}
-              </button>
-              {subs ? (
-                <button type="button" className={`place__open ${open.has(l.id) ? 'is-open' : ''}`} aria-label={open.has(l.id) ? 'Fold' : 'Unfold'} aria-expanded={open.has(l.id)} onClick={() => flip(l.id)}>
-                  <Icon name="chevron-down" className="icon--sm" />
-                </button>
-              ) : null}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <PlaceTree
+        label="Where it sits"
+        excludeList={listId}
+        current={here ? { listId: here, parentId: null } : null}
+        root={{ label: 'Folders', icon: G.folders, hint: 'the top', here: here === null }}
+        onPick={(p) => go(p?.listId ?? null)}
+      />
     </Sheet>
   );
 }
@@ -418,7 +342,7 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
 /** The project's settings button. */
 export function ProjectMenuButton({ listId }: { listId: string }) {
   const { openSheet } = useOverlays();
-  return <IconButton icon="more" label="Folder settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
+  return <IconButton icon={G.more} label="Folder settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
 }
 
 /**
@@ -473,7 +397,7 @@ export function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
         </div>
         <div className="hero__rail">
           <button type="button" className={`herobtn ${pinned ? 'is-on' : ''}`} aria-pressed={pinned} aria-label={pinned ? 'In the bar' : 'Pin to the bar'} title={pinned ? 'In the bar' : 'Pin to the bar'} onClick={pin}>
-            <Icon name="pin" className="icon--sm" />
+            <Icon name={G.pinToBar} className="icon--sm" />
           </button>
           {canVis ? (
             <button
@@ -533,34 +457,28 @@ function TodayStar({ listId }: { listId: string }) {
   const { toast } = useOverlays();
   const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === listKey(listId));
   return (
-    <button
-      type="button"
-      className={`iconbtn starbtn ${onHome ? 'is-on' : ''}`}
-      aria-pressed={onHome}
-      aria-label={onHome ? 'On your Today' : 'Put it on your Today'}
-      title={onHome ? 'On your Today' : 'Put it on your Today'}
-      onClick={() => {
-        haptic('select');
-        if (onHome) {
+    <StarButton
+      on={onHome}
+      onLabel="On your Today"
+      offLabel="Put it on your Today"
+      onChange={(on) => {
+        if (!on) {
           hideHome(hub, listKey(listId));
           toast('Off your Today', { action: { label: 'Undo', run: () => showHome(hub, listKey(listId)) } });
         } else if (showHome(hub, listKey(listId))) toast('On your Today', { action: { label: 'Undo', run: () => hideHome(hub, listKey(listId)) } });
         else toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
       }}
-    >
-      <Icon name="star" lit={onHome} />
-    </button>
+    />
   );
 }
 
-/** The folder's header buttons: search it, its "…" and its New. */
-export function ProjectActions({ listId, label, onNew }: { listId: string; label: string; onNew: () => void }) {
+/** The folder's header buttons: its star, search it, its "…". */
+export function ProjectActions({ listId }: { listId: string }) {
   return (
     <>
       <TodayStar listId={listId} />
-      <IconButton icon="search" label="Search this folder" onClick={() => openSearch(listId)} />
+      <IconButton icon={G.search} label="Search this folder" onClick={() => openSearch(listId)} />
       <ProjectMenuButton listId={listId} />
-      <NewButton label={label} onClick={onNew} />
     </>
   );
 }
@@ -688,7 +606,7 @@ function ProjectPage({ id }: { id: string }) {
     <div className={`projpage ${focus ? 'is-onit' : ''}`}>
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
-        actions={<ProjectActions listId={id} label={label} onNew={openNew} />}
+        actions={<ProjectActions listId={id} />}
         mini={list.name}
         crumbs={<PathCrumbs steps={projectPath(hub, id)} onMove={() => openSheet((close) => <MoveProjectSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
       >
@@ -718,11 +636,11 @@ function ProjectPage({ id }: { id: string }) {
               {v.again.map((s) => (
                 <span key={s.key} className="token token--split" title={cadenceLabel(s.avgDays)}>
                   <button type="button" onClick={() => again(s.name)}>
-                    <Icon name="plus" />
+                    <Icon name={G.add} />
                     <span dir="auto">{s.name}</span>
                   </button>
                   <button type="button" className="token__x" aria-label={`Not now: ${s.name}`} onClick={() => setPrefs({ dismissed: { ...prefs.dismissed, [s.key]: s.lastAt } })}>
-                    <Icon name="x" />
+                    <Icon name={G.close} />
                   </button>
                 </span>
               ))}
@@ -875,7 +793,7 @@ function SubProjects({ list }: { list: List }) {
           if (l && away && crumbs.over.current !== undefined)
             return (
               <span className="dropchip">
-                <Icon name="move" className="icon--sm" />
+                <Icon name={G.move} className="icon--sm" />
                 <span dir="auto">{l.name}</span>
               </span>
             );
@@ -889,7 +807,7 @@ function SubProjects({ list }: { list: List }) {
           ))}
           <button type="button" className="projcard projcard--new" onClick={make}>
             <span className="projcard__plus">
-              <Icon name="plus" />
+              <Icon name={G.add} />
             </span>
             <span>Folder inside</span>
           </button>

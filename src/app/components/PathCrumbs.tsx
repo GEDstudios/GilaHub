@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import type { Hub } from '../../core/actions';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
+import { G } from '../ui/glyphs';
 
 /** One step of the way here: its name, where tapping it goes, and (on a task I can change) moving it there. */
 export interface Crumb {
@@ -40,14 +41,14 @@ export function PathCrumbs({
     <nav className="crumbs crumbs--path" aria-label="Where you are">
       {steps.map((s, i) => (
         <Fragment key={s.key}>
-          {i ? <Icon name="chevron-right" className="crumbs__sep" /> : null}
+          {i ? <Icon name={G.go} className="crumbs__sep" /> : null}
           <span className="crumbs__step" data-drop-list={s.drop} data-drop-item={s.dropItem} data-drop-root={s.root ? '' : undefined}>
             <button type="button" className="crumbs__go" onClick={s.go} dir="auto">
               {s.label}
             </button>
             {s.move ? (
               <button type="button" className="crumbs__move" onClick={s.move} aria-label={`Move it into ${s.label}`} title={`Move it into ${s.label}`}>
-                <Icon name="chevron-down" />
+                <Icon name={G.fold} />
               </button>
             ) : null}
           </span>
@@ -58,13 +59,13 @@ export function PathCrumbs({
         <span className="crumbs__acts">
           {onMove ? (
             <button type="button" className="crumbs__moveto" onClick={onMove} aria-label={moveLabel} title={moveLabel}>
-              <Icon name="move" />
+              <Icon name={G.move} />
               <span>Move to…</span>
             </button>
           ) : null}
           {also ? (
             <button type="button" className={`crumbs__moveto ${also.on ? 'is-on' : ''}`} onClick={also.onClick}>
-              <Icon name="link" />
+              <Icon name={G.linked} />
               <span dir="auto">{also.label}</span>
             </button>
           ) : null}

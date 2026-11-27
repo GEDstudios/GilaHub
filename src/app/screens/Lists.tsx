@@ -15,16 +15,17 @@ import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Disclosure, lineVars, ListBullet, NewButton } from '../ui/primitives';
+import { Band, Disclosure, lineVars, ListBullet } from '../ui/primitives';
 import { SyncBadge } from '../components/SyncBadge';
 import { Glyph, showsGlyph } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { useBackGuard } from '../ui/backGuard';
-import { listVisLabel } from '../privacy';
+import { listVisLabel, VIS_ICON } from '../privacy';
 import { MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
 import { projectCount } from '../views';
 import { CollectedNotes } from '../components/Notes';
 import { listKey, listIdOf } from '../../core/keys';
+import { G } from '../ui/glyphs';
 
 /** A name on a card of its color, then the same chips as a project's page. */
 export function NewProjectSheet({
@@ -188,7 +189,7 @@ function ProjPin({ list, pins, index }: { list: List; pins: string[]; index: num
     >
       {on ? (
         <span className="projpin__in">
-          <Icon name="pin" />
+          <Icon name={G.pinToBar} />
         </span>
       ) : (
         <AddDisc />
@@ -241,7 +242,7 @@ export function ProjectCard({ list, onClick }: { list: List; onClick?: () => voi
       </span>
       <span className="ccard__sub projcard__foot">
         <span>
-          {list.visibility === 'private' ? <Icon name="lock" className="ccard__lock" /> : null}
+          {list.visibility === 'private' ? <Icon name={VIS_ICON.private} className="ccard__lock" /> : null}
           {count.text}
           {list.visibility !== 'shared' ? ` · ${listVisLabel(hub, list)}` : ''}
         </span>
@@ -325,7 +326,7 @@ export function Lists() {
       {arranging ? null : <NewProjectAction run={newProject} />}
       <Band
         top={<SyncBadge />}
-        actions={arranging ? <DoneButton ref={doneRef} onClick={stop} /> : <NewButton label="New folder" onClick={newProject} />}
+        actions={arranging ? <DoneButton ref={doneRef} onClick={stop} /> : undefined}
         title="Folders"
         sub={arranging ? 'Drag folders into the bar, or tabs out of it.' : undefined}
       />
@@ -350,7 +351,7 @@ export function Lists() {
             {arranging ? null : (
               <button type="button" className="projcard projcard--new" onClick={newProject}>
                 <span className="projcard__plus">
-                  <Icon name="plus" />
+                  <Icon name={G.add} />
                 </span>
                 <span>New folder</span>
               </button>
@@ -366,7 +367,7 @@ export function Lists() {
           <p className="editlink editlink--phone">
             <button ref={arrangeRef} type="button" className="textbtn" onClick={start}>
               Arrange the bar
-              <Icon name="layout" className="icon--xs" />
+              <Icon name={G.edit} className="icon--xs" />
             </button>
           </p>
         )}
@@ -425,13 +426,13 @@ function StockLink() {
   return (
     <button type="button" className="stocklink" onClick={() => navigate({ name: 'stock' })}>
       <span className="stocklink__mark">
-        <Icon name="package" />
+        <Icon name={G.stock} />
       </span>
       <span className="stocklink__text">
         <span className="stocklink__title">Stock</span>
         <span className="stocklink__sub">{all.length ? `${all.length} counted${low ? ` · ${low} running low` : ''}` : 'Count what you keep at home'}</span>
       </span>
-      <Icon name="chevron-right" className="icon--sm" />
+      <Icon name={G.go} className="icon--sm" />
     </button>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Item, List } from '../../core/model';
-import { FolderTree } from '../components/FolderTree';
+import { PlaceTree } from '../components/PlaceTree';
+import { stockTone, useStockSet } from '../components/StockCount';
 import { PathCrumbs } from '../components/PathCrumbs';
 import { useHub } from '../context';
 import { getPrefs, setPrefs, usePrefs } from '../prefs';
@@ -8,8 +9,9 @@ import { navigate } from '../router';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, ListBullet, Section } from '../ui/primitives';
+import { Band, ListBullet, Section, Stepper } from '../ui/primitives';
 import { TOAST } from '../ui/tokens';
+import { G } from '../ui/glyphs';
 
 /**
  * Stock: everything we count, from every folder, in one place. What's running low first (and
@@ -49,10 +51,10 @@ export function StockScreen() {
   const pickHome = () =>
     openSheet((close) => (
       <Sheet onClose={close} title="New things to count go in…">
-        <FolderTree
-          marked={(l) => l.id === home?.id}
-          onPick={(id) => {
-            setPrefs({ stockFolder: id });
+        <PlaceTree
+          value={home ? { listId: home.id, parentId: null } : null}
+          onPick={(p) => {
+            if (p) setPrefs({ stockFolder: p.listId });
             close();
           }}
         />
@@ -75,7 +77,7 @@ export function StockScreen() {
             onKeyDown={(e) => e.key === 'Enter' && add()}
           />
           <button type="button" className="btn stockadd__btn" disabled={!name.trim()} onClick={add} aria-label="Add">
-            <Icon name="plus" />
+            <Icon name={G.add} />
           </button>
         </div>
         <button type="button" className="textbtn stockadd__where" onClick={pickHome}>
@@ -86,7 +88,7 @@ export function StockScreen() {
           ) : (
             'Goes in a Stock folder'
           )}
-          <Icon name="chevron-down" className="icon--xs" />
+          <Icon name={G.fold} className="icon--xs" />
         </button>
 
         {low.length ? (
@@ -108,7 +110,7 @@ export function StockScreen() {
                 <button type="button" className="section__go" onClick={() => navigate({ name: 'list', id: listId })}>
                   <ListBullet list={l} size="xs" />
                   <span dir="auto">{l.name}</span>
-                  <Icon name="chevron-right" className="section__goarrow" />
+                  <Icon name={G.go} className="section__goarrow" />
                 </button>
               }
               count={items.length}
@@ -135,20 +137,13 @@ export function StockScreen() {
 /** One thing we count: its name (tap for the rest), where it is or went, and − n +. */
 function StockRow({ item, showList }: { item: Item; showList?: boolean }) {
   const hub = useHub();
-  const { toast } = useOverlays();
+  const set = useStockSet(item.id);
   const n = item.stock ?? 0;
   const link = item.stockLink ? hub.item(item.stockLink) : undefined;
   const onList = link && !link.done ? hub.list(link.listId) : undefined;
-  const out = item.stockUrgentAt != null && n <= item.stockUrgentAt;
-  const set = (next: number) => {
-    const before = item.stockLink ?? null;
-    const undo = hub.setStock(item.id, { stock: next });
-    haptic('select');
-    const now = hub.item(item.id);
-    if (now?.stockLink && now.stockLink !== before) toast(`${item.title}: on ${hub.list(hub.item(now.stockLink)?.listId)?.name ?? 'the list'}`, { action: { label: 'Undo', run: undo } });
-  };
+  const tone = stockTone(hub, item);
   return (
-    <li className={`row row--tap stockrow ${out ? 'is-out' : hub.stockLow(item) ? 'is-low' : ''}`} onClick={() => navigate({ name: 'item', id: item.id })}>
+    <li className={`row row--tap stockrow ${tone ? `is-${tone}` : ''}`} onClick={() => navigate({ name: 'item', id: item.id })}>
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title}
@@ -162,22 +157,14 @@ function StockRow({ item, showList }: { item: Item; showList?: boolean }) {
           ) : null}
           {onList ? (
             <span className="meta meta--stock is-low">
-              <Icon name="cart" /> On {onList.name}
+              <Icon name={G.onList} /> On {onList.name}
             </span>
           ) : item.stockFull != null ? (
             <span className="meta">of {item.stockFull}</span>
           ) : null}
         </span>
       </div>
-      <span className="stepper stockrow__step" onClick={(e) => e.stopPropagation()}>
-        <button type="button" aria-label={`${item.title}: one less`} disabled={n <= 0} onClick={() => set(n - 1)}>
-          −
-        </button>
-        <span className="num stockline__n">{n}</span>
-        <button type="button" aria-label={`${item.title}: one more`} onClick={() => set(n + 1)}>
-          +
-        </button>
-      </span>
+      <Stepper look="card" tone={tone} label={item.title} value={n} onChange={(v) => set({ stock: v ?? 0 })} />
     </li>
   );
 }

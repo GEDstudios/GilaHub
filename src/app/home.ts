@@ -9,6 +9,7 @@ import { runQuery } from './query';
 import type { IconName } from './ui/Icon';
 import { openCount, type TodayView } from './views';
 import { listIdOf, listKey } from '../core/keys';
+import { G } from './ui/glyphs';
 
 /**
  * My Today page: a fixed summary, then widgets in my order. Only order and on/off are mine
@@ -37,10 +38,10 @@ export interface WidgetDef {
 
 export const WIDGETS: Record<WidgetKey, WidgetDef> = {
   // Today holds what my person asked of me too (docs/07-HOME.md): one list of things to do.
-  today: { title: () => 'Today', icon: 'sun' },
-  quick: { title: () => 'Highlights', icon: 'sparkle' },
-  upcoming: { title: () => 'The week', icon: 'calendar' },
-  week: { title: (hub) => (hub.partner() ? 'Us' : 'Your week'), icon: 'heart' },
+  today: { title: () => 'Today', icon: G.today },
+  quick: { title: () => 'Highlights', icon: G.highlight },
+  upcoming: { title: () => 'The week', icon: G.date },
+  week: { title: (hub) => (hub.partner() ? 'Us' : 'Your week'), icon: G.ours },
 };
 
 export const isWidget = (key: string): key is WidgetKey => Object.prototype.hasOwnProperty.call(WIDGETS, key);

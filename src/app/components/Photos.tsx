@@ -6,6 +6,7 @@ import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { shrinkImage } from './Sketch';
 import { TOAST } from '../ui/tokens';
+import { G } from '../ui/glyphs';
 
 /**
  * Photos on a task or a folder: a strip of little prints (each a touch turned, like the notes),
@@ -86,8 +87,8 @@ export function Photos({ on, always = false }: { on: string; always?: boolean })
         );
       })}
       <button type="button" className="photos__add" aria-label="Add a photo" onClick={() => void add()}>
-        <Icon name="image" />
-        <Icon name="plus" className="photos__plus" />
+        <Icon name={G.photo} />
+        <Icon name={G.add} className="photos__plus" />
       </button>
     </div>
   );
@@ -111,7 +112,7 @@ function PhotoSheet({ id, onClose }: { id: string; onClose: () => void }) {
             toast('Photo removed', { action: { label: 'Undo', run: undo } });
           }}
         >
-          <Icon name="trash" className="icon--sm" /> Remove photo
+          <Icon name={G.delete} className="icon--sm" /> Remove photo
         </button>
       </div>
     </Sheet>

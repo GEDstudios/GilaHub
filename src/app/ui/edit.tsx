@@ -1,5 +1,6 @@
 import type { Ref } from 'react';
 import { Icon } from './Icon';
+import { G } from './glyphs';
 
 /**
  * One edit-mode language for the bar, Today and Projects (round 7, DECISIONS §2). Styles live in
@@ -14,7 +15,7 @@ import { Icon } from './Icon';
 export function EditX({ size, label, onClick, className }: { size: 'badge' | 'head'; label: string; onClick: () => void; className?: string }) {
   return (
     <button type="button" className={`editx editx--${size}${className ? ` ${className}` : ''}`} aria-label={label} title={label} onClick={onClick}>
-      <Icon name="x" />
+      <Icon name={G.close} />
     </button>
   );
 }
@@ -23,7 +24,7 @@ export function EditX({ size, label, onClick, className }: { size: 'badge' | 'he
 export function AddDisc({ open = false, className }: { open?: boolean; className?: string }) {
   return (
     <span className={`adddisc${open ? ' is-open' : ''}${className ? ` ${className}` : ''}`} aria-hidden="true">
-      <Icon name="plus" />
+      <Icon name={G.add} />
     </span>
   );
 }

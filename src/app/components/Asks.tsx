@@ -9,6 +9,7 @@ import { RequestActions } from '../ui/tags';
 import type { Settle } from '../ui/useSettle';
 import type { TodayView } from '../views';
 import { ItemRow } from './ItemRow';
+import { G } from '../ui/glyphs';
 
 /** The tile shows this many rows before "Show n more". */
 const CAP = 6;
@@ -43,7 +44,7 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
         setPrefs({ asksUrgentOnly: !prefs.asksUrgentOnly });
       }}
     >
-      <Icon name="urgent" className="icon--sm" />
+      <Icon name={G.urgent} className="icon--sm" />
       <span>Urgent only</span>
     </button>
   ) : null;
@@ -51,7 +52,7 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
     <button type="button" className="quietline" onClick={() => setPeek(true)}>
       {hidden} not urgent
       <span className="quietline__end">
-        <Icon name="chevron-down" />
+        <Icon name={G.fold} />
       </span>
     </button>
   ) : null;
@@ -73,7 +74,7 @@ export function AsksWidget({ v, settle, bare }: { v: TodayView; settle: Settle<I
         <button type="button" className="quietline" onClick={() => setMore(true)}>
           Show {rows.length - CAP} more
           <span className="quietline__end">
-            <Icon name="chevron-down" />
+            <Icon name={G.fold} />
           </span>
         </button>
       ) : null}
@@ -117,7 +118,7 @@ export function AskedLine({ v, settle }: { v: TodayView; settle: Settle<Item> })
         <Avatar member={partner} size="xs" />
         <span dir="auto">{text}</span>
         <span className="quietline__end">
-          <Icon name="chevron-down" />
+          <Icon name={G.fold} />
         </span>
       </button>
       {open ? (

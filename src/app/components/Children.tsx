@@ -11,6 +11,7 @@ import { Sortable, useSortableItem } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 import { Disclosure } from '../ui/primitives';
+import { G } from '../ui/glyphs';
 
 const idOf = (i: Item) => i.id;
 
@@ -137,7 +138,7 @@ export function Children({
             if (item && outside)
               return (
                 <span className="dropchip">
-                  <Icon name="move" className="icon--sm" />
+                  <Icon name={G.move} className="icon--sm" />
                   <span dir="auto">{item.title}</span>
                 </span>
               );
@@ -157,7 +158,7 @@ export function Children({
       )}
       {coach ? (
         <p className="coach">
-          <Icon name="hand" className="icon--sm" />
+          <Icon name={G.holdHint} className="icon--sm" />
           {matchMedia('(pointer: coarse)').matches ? `Hold any ${cards ? 'card' : 'row'} to reorder` : `Drag any ${cards ? 'card' : 'row'} to reorder`}
         </p>
       ) : null}

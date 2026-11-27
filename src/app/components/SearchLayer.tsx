@@ -10,6 +10,7 @@ import { QuickAddSheet } from './QuickAddSheet';
 import { NewProjectSheet } from '../screens/Lists';
 import { ListBullet } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
+import { G } from '../ui/glyphs';
 
 /**
  * Search in place: a field drops into the top of the screen and the results float over the
@@ -78,7 +79,7 @@ function Layer() {
       <div className="searchlayer__top">
         <div className="searchlayer__field column">
           <label className="searchlayer__box">
-            <Icon name="search" className="icon--sm" />
+            <Icon name={G.search} className="icon--sm" />
             <input
               ref={input}
               value={q}
@@ -91,7 +92,7 @@ function Layer() {
             />
             {q ? (
               <button type="button" className="searchlayer__clear" onClick={() => setQ('')} aria-label="Clear">
-                <Icon name="x" className="icon--xs" />
+                <Icon name={G.close} className="icon--xs" />
               </button>
             ) : null}
           </label>
@@ -107,7 +108,7 @@ function Layer() {
             <button type="button" className="token is-on" onClick={searchEverywhere} aria-label={`Only in ${scope.name}. Tap to search everything`}>
               <ListBullet list={scope} size="xs" />
               <span dir="auto">In {scope.name}</span>
-              <Icon name="x" className="token__x" />
+              <Icon name={G.close} className="token__x" />
             </button>
           </div>
         ) : null}
@@ -115,9 +116,9 @@ function Layer() {
           <div className="tokens searchlayer__parts" aria-label="Filters">
             {parsed.parts.map((pt) => (
               <button key={pt.token} type="button" className="token is-on" onClick={() => drop(pt.token)} aria-label={`Remove ${pt.label}`}>
-                {pt.kind === 'tag' ? <Icon name="tag" /> : <Icon name="funnel" />}
+                {pt.kind === 'tag' ? <Icon name={G.tag} /> : <Icon name={G.filter} />}
                 <span dir="auto">{pt.label}</span>
-                <Icon name="x" className="token__x" />
+                <Icon name={G.close} className="token__x" />
               </button>
             ))}
           </div>
@@ -134,7 +135,7 @@ function Layer() {
               ))}
               {tagIdeas.map((t) => (
                 <button key={t.id} type="button" className="token" onClick={() => add(`#${t.name.replace(/\s+/g, '')}`)}>
-                  <Icon name="tag" />
+                  <Icon name={G.tag} />
                   <span dir="auto">{t.name}</span>
                 </button>
               ))}
@@ -146,7 +147,7 @@ function Layer() {
             <div className="tokens">
               {recent.map((r) => (
                 <button key={r} type="button" className="token" onClick={() => setQ(r)}>
-                  <Icon name="clock" />
+                  <Icon name={G.recent} />
                   <span dir="auto">{r}</span>
                 </button>
               ))}
@@ -213,7 +214,7 @@ function Layer() {
                       openSheet((close) => <QuickAddSheet onClose={close} text={term} listId={here} parentId={it?.id} route={inside} />);
                     }}
                   >
-                    <Icon name="plus" />
+                    <Icon name={G.add} />
                     <span dir="auto">Create “{term}” task?</span>
                   </button>
                   {scope ? null : (
@@ -225,7 +226,7 @@ function Layer() {
                         openSheet((close) => <NewProjectSheet onClose={close} name={term} />);
                       }}
                     >
-                      <Icon name="folder" />
+                      <Icon name={G.folder} />
                       <span dir="auto">Create “{term}” folder?</span>
                     </button>
                   )}

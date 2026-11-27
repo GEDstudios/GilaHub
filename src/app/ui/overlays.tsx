@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from './Icon';
 import { currentPath, sheetOpened } from '../router';
 import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastAction } from './motion';
 import { calm, EASE, TOAST } from './tokens';
+import { G } from './glyphs';
+import { IconButton } from './primitives';
 
 /**
  * The page under a sheet (or search) doesn't scroll. Counted, so sheets that open over one
@@ -449,9 +450,7 @@ export function Sheet({
       <div className="sheet__scrim" ref={scrim} onClick={onOutside ?? onClose} />
       <div className="sheet__panel" ref={panel} style={wide ? { maxWidth: 760 } : undefined}>
         <div className="sheet__handle" aria-hidden="true" />
-        <button type="button" className="iconbtn sheet__close" onClick={onClose} aria-label="Close">
-          <Icon name="x" />
-        </button>
+        <IconButton icon={G.close} label="Close" className="sheet__close" onClick={onClose} />
         {title ? <h2 className="sheet__title">{title}</h2> : null}
         {children}
       </div>

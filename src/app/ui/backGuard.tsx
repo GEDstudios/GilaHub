@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { afterSheets, leavingByBack, sheetOpened } from '../router';
-import { Icon } from './Icon';
 import { Sheet, useOverlays } from './overlays';
+import { G } from './glyphs';
+import { Choices } from './primitives';
 
 /**
  * Unsaved changes, and the phone's Back: once something's been written or changed and not kept
@@ -107,16 +108,12 @@ function LeaveSheet({
   return (
     <Sheet onClose={onClose} title={title}>
       {text ? <p className="sheet__lede">{text}</p> : null}
-      <div className="leaveq">
-        <button type="button" className="btn btn--block" onClick={() => pick(onSave)}>
-          <Icon name="check" className="icon--sm" />
-          {saveLabel}
-        </button>
-        <button type="button" className="btn btn--block btn--quiet leaveq__discard" onClick={() => pick(onDiscard)}>
-          <Icon name="trash" className="icon--sm" />
-          {discardLabel}
-        </button>
-      </div>
+      <Choices
+        choices={[
+          { label: saveLabel, icon: G.done, run: () => pick(onSave) },
+          { label: discardLabel, icon: G.delete, quiet: true, danger: true, run: () => pick(onDiscard) },
+        ]}
+      />
     </Sheet>
   );
 }

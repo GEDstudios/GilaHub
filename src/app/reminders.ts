@@ -6,6 +6,7 @@ import { isFlexible, nextDue } from '../smart/recurrence';
 import { use24h } from './prefs';
 import { sealNote, type NotePayload, type Runtime } from './runtime';
 import { whenText } from './labels';
+import { G_TEXT } from './ui/glyphs';
 
 export interface ReminderSpec {
   id: string;
@@ -72,7 +73,7 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
           members,
           scope,
           note: {
-            title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`,
+            title: `${item.urgent ? G_TEXT.urgent : G_TEXT.remind} ${item.title}`,
             body: `${when} · ${list.name}`,
             url: `/i/${item.id}`,
             tag: item.id,
@@ -98,7 +99,7 @@ export function desiredReminders(hub: Hub, now = Date.now()): ReminderSpec[] {
             members,
             scope,
             note: {
-              title: `${item.urgent ? '⚡' : '⏰'} ${item.title}`,
+              title: `${item.urgent ? G_TEXT.urgent : G_TEXT.remind} ${item.title}`,
               body: `Still to do · was due ${humanDate(item.due)} · ${list.name}`,
               url: `/i/${item.id}`,
               tag: item.id,

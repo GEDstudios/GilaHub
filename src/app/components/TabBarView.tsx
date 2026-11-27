@@ -3,6 +3,7 @@ import type { BarGap } from '../barEdit';
 import { barDensity, type TabDef } from '../tabs';
 import { Icon } from '../ui/Icon';
 import { ProjectMark } from '../ui/ProjectMark';
+import { G } from '../ui/glyphs';
 
 /** Keep the dock's edge fades only on the sides that have more to scroll to. */
 export function markEdges(sc: HTMLElement): void {
@@ -143,7 +144,7 @@ export function TabBarView({
           marks(gap.tab)
         ) : (
           <span className="tab__mark">
-            <Icon name="plus" />
+            <Icon name={G.add} />
           </span>
         )}
       </span>,

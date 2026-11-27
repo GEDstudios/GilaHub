@@ -2135,6 +2135,10 @@ html.is-dragging * {
 }
 
 /* A switch row inside a panel ("Needs my OK when done") */
+.optrow--switch {
+  cursor: pointer;
+}
+
 .optrow.optrow--panel {
   min-height: 48px;
   margin-top: 8px;
@@ -2220,27 +2224,74 @@ html.is-dragging * {
 .stepper {
   display: inline-flex;
   align-items: center;
-  height: 36px;
+  flex: none;
+  height: 38px;
   border-radius: 999px;
   background: var(--tile);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .stepper button {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 100%;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  font-size: 18px;
-  line-height: 1;
+  color: var(--ink);
+}
+
+.stepper button .icon {
+  --s: 16;
 }
 
 .stepper button:disabled {
-  opacity: 0.3;
+  opacity: 0.28;
 }
 
-.stepper > span {
-  padding: 0 4px;
+.stepper__n {
+  min-width: 22px;
+  padding: 0 2px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* The small one, in a chip or a row */
+.stepper--sm {
+  height: 30px;
+  font-size: 14px;
+}
+
+.stepper--sm button {
+  width: 28px;
+}
+
+.stepper--sm button .icon {
+  --s: 14;
+}
+
+/* On a tile already: white, a hairline */
+.stepper--card {
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.stepper--bare {
+  background: none;
+}
+
+.stepper.is-low .stepper__n {
+  color: #9a6a00;
+}
+
+.stepper.is-out .stepper__n {
+  color: var(--danger);
+}
+
+.stepper.is-off .stepper__n {
+  font-weight: 500;
+  color: var(--text-3);
 }
 
 .stepper input {
@@ -2554,12 +2605,6 @@ html.is-dragging * {
   margin: 0;
   font-size: 15.5px;
   color: var(--text-2);
-}
-
-.sheet__actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
 }
 
 @media (min-width: 720px) {
@@ -3973,7 +4018,53 @@ html:has(.sheet) .ideatag {
   }
 }
 
-/* "Also in…": projects, and (long-press or the arrow) their tasks and subtasks */
+/* ============================================================ The place tree
+ * PlaceTree: every "where" question. Folders in folders, tasks and their subtasks under a folder;
+ * each level steps in, a faint line back to its parent. A search field once it's long.
+ */
+.placetree {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.placetree--scroll .place {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.placetree__find {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 6px 0 14px;
+  border-radius: 999px;
+  background: var(--tile);
+  color: var(--text-3);
+}
+
+.placetree__find input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  outline: none;
+}
+
+.placetree__clear {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
 .place,
 .place__kids {
   margin: 0;
@@ -3982,10 +4073,31 @@ html:has(.sheet) .ideatag {
 }
 
 .place__row {
+  position: relative;
   display: flex;
   align-items: center;
+  gap: 8px;
   min-height: 44px;
+  padding-inline-start: calc(var(--depth, 0) * 22px);
   border-radius: 12px;
+}
+
+/* A folder a level in: a faint line back to its parent (a task's row has its subtask mark). */
+.place__kids .place__row:not(:has(.place__mark))::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(var(--depth) * 22px - 12px);
+  top: -6px;
+  bottom: 50%;
+  width: 9px;
+  border-inline-start: 1.5px solid var(--line);
+  border-bottom: 1.5px solid var(--line);
+  border-end-start-radius: 8px;
+  pointer-events: none;
+}
+
+.place__row.is-on {
+  background: var(--tile);
 }
 
 .place__pick {
@@ -4004,6 +4116,19 @@ html:has(.sheet) .ideatag {
   user-select: none;
 }
 
+.place__pick > span[dir] {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) {
+  .place__pick:hover:not(:disabled) {
+    background: var(--press);
+  }
+}
+
 .place__pick:active:not(:disabled) {
   background: var(--tile);
 }
@@ -4012,24 +4137,53 @@ html:has(.sheet) .ideatag {
   color: var(--text-4);
 }
 
+/* A task's row: the subtask mark leads it, a shade quieter than a folder. */
+.place__mark {
+  --s: 16;
+  flex: none;
+  color: var(--text-3);
+}
+
+.place__mark + span {
+  color: var(--text-2);
+}
+
 .place__hint {
-  margin-left: auto;
+  margin-inline-start: auto;
+  flex: none;
   font-size: 12px;
   color: var(--text-4);
 }
 
+.place__on {
+  --s: 18;
+  margin-inline-start: auto;
+  flex: none;
+}
+
+.place__hint + .place__on {
+  margin-inline-start: 8px;
+}
+
 .place__open {
+  flex: none;
   width: 40px;
   height: 40px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
-  transition: transform 200ms var(--spring);
+  transition: transform var(--dur-base) var(--spring);
 }
 
 .place__open.is-open {
   transform: rotate(180deg);
+}
+
+.place__none {
+  padding: 12px 8px;
+  font-size: 14px;
+  color: var(--text-3);
 }
 
 /* ============================================================ The + (Fab)
@@ -4078,7 +4232,6 @@ html:has(.iconlib) .fab {
   pointer-events: none;
   transform: scale(0.8);
 }
-
 
 /* ============================================================ Projects inside projects */
 /* A folder holding folders: another sheet peeks out behind it, top right. */
@@ -4365,7 +4518,6 @@ html:has(.iconlib) .fab {
   transform: scale(0.88);
   background: var(--me-light, var(--lemon));
 }
-
 
 .stuck.is-peeling {
   transition:
@@ -5002,12 +5154,6 @@ html:has(.home--editing, .aislearr) .stickyboard {
 .moveask p {
   margin: 0 4px 12px;
   font-size: 15.5px;
-}
-
-.moveask__btns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
 }
 
 .moveask .btn--quiet {
@@ -6532,7 +6678,6 @@ textarea.nf__write {
 .draw__colors > :nth-child(8) { grid-area: 2 / 6 / 3 / 8; }
 .draw__colors > :nth-child(9) { grid-area: 2 / 8 / 3 / 10; }
 
-
 .draw__dot {
   position: relative;
   flex: none;
@@ -6610,8 +6755,6 @@ textarea.nf__write {
 .draw__bar {
   min-width: 0;
 }
-
-
 
 /* ============================================================ Tasks as cards */
 /* List or cards: a small two-way switch over a project's tasks */
@@ -6737,79 +6880,6 @@ textarea.nf__write {
 }
 
 /* ============================================================ Where it goes: the tree */
-/* Projects in their folders (folded), a task project's open tasks under it: pick a project, or a
-   task to add a subtask under it */
-.desttree {
-  display: grid;
-  gap: 1px;
-  max-height: min(52vh, 420px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 4px 2px;
-}
-
-.desttree__row {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  border-radius: 10px;
-}
-
-.desttree__row.is-on {
-  background: var(--tile);
-}
-
-.desttree__fold {
-  flex: none;
-  width: 28px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  color: var(--text-3);
-}
-
-.desttree__fold .icon {
-  --s: 14;
-  transition: transform 180ms var(--ease);
-}
-
-.desttree__fold.is-open .icon {
-  transform: rotate(90deg);
-}
-
-.desttree__pick {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 10px 0 2px;
-  border-radius: 8px;
-  font-size: 15px;
-  text-align: start;
-}
-
-.desttree__pick:hover {
-  background: var(--press);
-}
-
-.desttree__pick > span {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.desttree__task {
-  color: var(--text-2);
-}
-
-.desttree__on {
-  margin-left: auto;
-  flex: none;
-}
-
 /* A folder's tab stands up 13px above its card: the same air under the path a task gets, above
    the tab. (On a phone the header's margins collapse into one, so this is the whole gap.) */
 .crumbs--path ~ .hero--folder {
@@ -7982,51 +8052,23 @@ textarea.nf__write {
 }
 
 /* Unsaved changes, on Back: Save or Discard. */
-.leaveq {
+.choices {
   display: grid;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: var(--space-3);
 }
 
-.leaveq .btn {
+.choices--row {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.choices .btn {
   gap: 8px;
 }
 
-.leaveq__discard {
-  color: var(--danger, #c0392b);
-}
-
-/* Show tasks from…: a folded tree, a switch on each folder. */
-.showrow {
-  gap: 10px;
-  padding-inline: 6px 4px;
-  position: relative;
-}
-
-/* A folder inside: a faint line back to its parent's switch */
-.showrow.is-nested::before {
-  content: '';
-  position: absolute;
-  inset-inline-start: -14px;
-  top: -6px;
-  bottom: 50%;
-  width: 10px;
-  border-inline-start: 1.5px solid var(--line);
-  border-bottom: 1.5px solid var(--line);
-  border-end-start-radius: 8px;
-}
-
-.showrow__name {
-  flex: 1;
-  cursor: default;
-}
-
-.showrow__here {
-  flex: none;
-  min-width: 44px;
-  font-size: 12px;
-  line-height: 1.2;
-  color: var(--text-3);
+.btn--danger {
+  color: var(--danger);
 }
 
 /* A folder inside, as a group's heading: its dot and name go there. */
@@ -8097,10 +8139,6 @@ textarea.nf__write {
   margin-bottom: 14px;
 }
 
-.recovery__ok {
-  margin: 4px 0 14px;
-}
-
 .bigfield.codeinput.codeinput--long {
   font-size: 18px;
   letter-spacing: 0.02em;
@@ -8154,7 +8192,6 @@ textarea.nf__write {
   --s: 13;
   color: var(--text-3);
 }
-
 
 .aisle__golabel.is-up {
   color: var(--text-3);
@@ -8480,7 +8517,6 @@ textarea.nf__write {
   color: var(--text);
 }
 
-
 .tpltext {
   margin: 0;
   min-height: 0;
@@ -8649,12 +8685,6 @@ section.aisle.is-settling-in > .rows {
   color: var(--text-3);
 }
 
-.stockline__n {
-  min-width: 34px;
-  text-align: center;
-  font-weight: 600;
-}
-
 .stockto {
   margin-top: 10px;
 }
@@ -8767,14 +8797,6 @@ section.aisle.is-settling-in > .rows {
   padding: 4px 10px 12px;
 }
 
-.savedlist__switch {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 18px 2px 0;
-  font-weight: 500;
-}
-
 .savedlist__count {
   margin: 20px 0 10px;
   text-align: center;
@@ -8870,16 +8892,6 @@ section.aisle.is-settling-in > .rows {
 
 .stockrow {
   gap: 12px;
-}
-
-.stockrow__step {
-  flex: none;
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.stockrow.is-low .stockline__n {
-  color: #9a6a00;
 }
 
 .stockrow.is-out .stockline__n {
@@ -9089,42 +9101,6 @@ section.aisle.is-settling-in > .rows {
   color: var(--text-3);
 }
 
-.stockcol__step {
-  display: inline-flex;
-  align-items: center;
-  height: 38px;
-  border-radius: 999px;
-  background: var(--tile);
-}
-
-.stockcol__step button {
-  width: 32px;
-  height: 38px;
-  font-size: 17px;
-  line-height: 1;
-  color: var(--ink);
-}
-
-.stockcol__step button:disabled {
-  opacity: 0.28;
-}
-
-.stockcol__n {
-  min-width: 22px;
-  text-align: center;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.stockcol.is-low .stockcol__n {
-  color: #9a6a00;
-}
-
-.stockcol.is-out .stockcol__n {
-  color: var(--danger);
-}
-
 /* Have, of want, with a notch where it gets bought */
 .stockbar {
   position: relative;
@@ -9191,33 +9167,11 @@ section.aisle.is-settling-in > .rows {
 }
 
 .stockfoot__urgent {
-  padding: 0 4px 0 10px;
-}
-
-.stockfoot__urgent button {
-  width: 22px;
-  height: 30px;
-  font-size: 15px;
-  color: var(--ink);
-}
-
-.stockfoot__urgent button:disabled {
-  opacity: 0.28;
-}
-
-.stockfoot__urgent .num {
-  min-width: 18px;
-  text-align: center;
-  color: var(--ink);
+  padding: 0 0 0 10px;
 }
 
 .stockfoot__urgent:not(.is-off) {
   background: var(--lemon);
-}
-
-.stockfoot__urgent.is-off .num {
-  font-weight: 500;
-  color: var(--text-3);
 }
 
 .stockfoot__stop {
@@ -9244,28 +9198,6 @@ section.aisle.is-settling-in > .rows {
 /* A row's count, opened: − n + right where it is */
 .stockcount--open {
   display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  padding: 0;
-  gap: 0;
-  height: 32px;
-  border-radius: 999px;
   animation: fade-in 120ms var(--ease) both;
 }
 
-.stockcount--open button {
-  width: 30px;
-  height: 32px;
-  font-size: 17px;
-  font-weight: 600;
-  color: inherit;
-}
-
-.stockcount--open button:disabled {
-  opacity: 0.3;
-}
-
-.stockcount--open .num {
-  min-width: 18px;
-  text-align: center;
-}

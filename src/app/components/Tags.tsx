@@ -8,6 +8,7 @@ import { GLYPHS } from '../ui/icons.gen';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { IconPicker } from './IconPicker';
+import { G } from '../ui/glyphs';
 
 /** A tag's mark: its icon ("i:" any of the app's, "x:" from the library) or emoji, else the plain tag. */
 export function TagMark({ icon, className = 'icon--sm' }: { icon: string | null | undefined; className?: string }) {
@@ -16,7 +17,7 @@ export function TagMark({ icon, className = 'icon--sm' }: { icon: string | null 
   if (v.startsWith('i:') && v.slice(2) in GLYPHS) return <Icon name={v.slice(2) as IconName} className={cls} />;
   if (v.startsWith('x:') && v.length > 2) return <Icon name={v as IconName} className={cls} />;
   if (v && !v.startsWith('i:')) return <span className={`glyph-emoji ${cls}`}>{v}</span>;
-  return <Icon name="tag" className={cls} />;
+  return <Icon name={G.tag} className={cls} />;
 }
 
 /** A row's tags, small, after its other meta (at most two, then "+n"). */
@@ -87,7 +88,7 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
   return (
     <div className="tagpick">
       <label className="tagpick__find">
-        <Icon name="search" className="icon--sm" />
+        <Icon name={G.search} className="icon--sm" />
         <input
           value={q}
           dir="auto"
@@ -114,7 +115,7 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
           >
             <TagMark icon={t.icon} />
             <span dir="auto">{t.name}</span>
-            {on.has(t.id) ? <Icon name="check" className="icon--xs" /> : null}
+            {on.has(t.id) ? <Icon name={G.done} className="icon--xs" /> : null}
           </button>
         ))}
         {query && !exact ? (
@@ -130,7 +131,7 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
               <TagMark icon={newIcon ?? null} />
             </button>
             <button type="button" className="tagtoken tagtoken--new" onClick={make}>
-              <Icon name="plus" className="icon--sm" />
+              <Icon name={G.add} className="icon--sm" />
               <span dir="auto">New tag “{q.trim().replace(/^#/, '')}”</span>
             </button>
           </span>
@@ -149,7 +150,7 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
         </div>
       ) : null}
       <button type="button" className="textbtn tagpick__manage" onClick={() => openSheet((close) => <TagManager onClose={close} />)}>
-        <Icon name="edit" className="icon--sm" />
+        <Icon name={G.edit} className="icon--sm" />
         Edit tags
       </button>
     </div>
@@ -274,10 +275,10 @@ function TagRow({ id, n, onRemove }: { id: string; n: number; onRemove: () => vo
       />
       {n ? <span className="aislearr__n num">{n}</span> : null}
       <button type="button" className="homecard__x" aria-label={`Remove ${tag.name}`} onClick={onRemove}>
-        <Icon name="x" className="icon--sm" />
+        <Icon name={G.close} className="icon--sm" />
       </button>
       <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="homecard__grip" aria-label={`Move ${tag.name}`}>
-        <Icon name="grip" />
+        <Icon name={G.grip} />
       </button>
       {picking ? (
         <div className="aislearr__pick">
@@ -308,7 +309,7 @@ function TagFace({ id, n }: { id: string; n: number }) {
       <span className="aislearr__name">{tag?.name}</span>
       {n ? <span className="aislearr__n num">{n}</span> : null}
       <span className="homecard__grip">
-        <Icon name="grip" />
+        <Icon name={G.grip} />
       </span>
     </li>
   );

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { LineColor, Member } from '../../core/model';
 import { useOpenIdeas } from '../components/Ideas';
 import { PairSheet } from '../components/PairSheet';
-import { OptRow, Swatches } from '../components/pickers';
+import { OptRow, Swatches, SwitchRow } from '../components/pickers';
 import { TagManager } from '../components/Tags';
 import { PersonCursor } from '../ui/PersonCursor';
 import { useHub, useRt, useSync } from '../context';
@@ -23,7 +23,8 @@ import { Icon } from '../ui/Icon';
 import { makeRecovery } from '../../core/session';
 import { formatRecoveryCode } from '../../core/ids';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, initialOf, lightVar, lineVars, Logo, Section, Seg, Switch } from '../ui/primitives';
+import { Band, Choices, CursorMark, initialOf, lightVar, lineVars, Logo, Section, Seg, Switch } from '../ui/primitives';
+import { G } from '../ui/glyphs';
 
 /**
  * Settings (SETTINGS, DECISIONS #9): one calm page where everything changes in place.
@@ -56,7 +57,7 @@ function downloadBackup(rt: Runtime, toast: Toast) {
   toast('Backup saved. Keep it somewhere safe.');
 }
 
-function LeaveSheet({ onClose }: { onClose: () => void }) {
+function ResetSheet({ onClose }: { onClose: () => void }) {
   const rt = useRt();
   const prefs = usePrefs();
   const { toast } = useOverlays();
@@ -68,30 +69,30 @@ function LeaveSheet({ onClose }: { onClose: () => void }) {
       </p>
       {needsBackup(prefs.lastBackupAt) ? (
         <button type="button" className="token leave__backup" onClick={() => downloadBackup(rt, toast)}>
-          <Icon name="download" />
+          <Icon name={G.download} />
           Download a backup first
         </button>
       ) : null}
       <input className="field" placeholder="Type RESET to confirm" value={sure} onChange={(e) => setSure(e.target.value)} aria-label="Confirm" />
-      <button
-        type="button"
-        className="btn btn--block"
-        style={{ marginTop: 16 }}
-        disabled={sure.trim().toUpperCase() !== 'RESET'}
-        onClick={async () => {
-          rt.sync?.stop();
-          await disablePush(rt).catch(() => {});
-          await rt.persistence.wipe();
-          try {
-            localStorage.clear();
-          } catch {
-            /* storage blocked */
-          }
-          location.href = '/';
-        }}
-      >
-        Reset this device
-      </button>
+      <Choices
+        choices={[
+          {
+            label: 'Reset this device',
+            disabled: sure.trim().toUpperCase() !== 'RESET',
+            run: async () => {
+              rt.sync?.stop();
+              await disablePush(rt).catch(() => {});
+              await rt.persistence.wipe();
+              try {
+                localStorage.clear();
+              } catch {
+                /* storage blocked */
+              }
+              location.href = '/';
+            },
+          },
+        ]}
+      />
     </Sheet>
   );
 }
@@ -143,13 +144,10 @@ function RecoverySheet({ onClose }: { onClose: () => void }) {
               );
             }}
           >
-            <Icon name="copy" className="icon--sm" /> Copy
+            <Icon name={G.copy} className="icon--sm" /> Copy
           </button>
         </div>
-        <label className="optrow recovery__ok">
-          <span className="optrow__text">I’ve saved it somewhere safe</span>
-          <Switch on={saved} label="I’ve saved it" onChange={setSaved} />
-        </label>
+        <SwitchRow title="I’ve saved it somewhere safe" on={saved} onChange={setSaved} />
         <button type="button" className="btn btn--block" disabled={!saved} onClick={onClose}>
           Done
         </button>
@@ -172,14 +170,6 @@ function RecoverySheet({ onClose }: { onClose: () => void }) {
 
 // ---------------------------------------------------------------- Profile
 
-/** The cursor the name tags carry: two people in the same space. */
-function Cursor() {
-  return (
-    <svg className="nametag__cursor" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 3l15 7.5-6.5 1.8L10.5 19z" fill="currentColor" />
-    </svg>
-  );
-}
 
 /**
  * My card: my name in the serif (edit in place), a sync pill, one line about us, and my
@@ -296,7 +286,7 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
               aria-label="Your name"
             />
             <button type="button" className="mecard__sync" onClick={() => void syncNow()} aria-label={syncAria(sync.status, sync.lastSyncedAt)} aria-live="polite">
-              {poked && !poked.done ? <Icon name="refresh" className="icon--xs mecard__spin" /> : <span className={`syncdot syncdot--${sync.status}`} />}
+              {poked && !poked.done ? <Icon name={G.reload} className="icon--xs mecard__spin" /> : <span className={`syncdot syncdot--${sync.status}`} />}
               {poked ? (poked.done ? 'Synced just now' : 'Syncing…') : syncLabel(sync.status, wide())}
             </button>
           </span>
@@ -321,8 +311,8 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
           </span>
         ) : (
           <button type="button" className="nametag mecard__tag mecard__tag--empty" onClick={() => openSheet((close) => <PairSheet kind="partner" onClose={close} />)}>
-            <Cursor />
-            <Icon name="plus" className="icon--xs" />
+            <CursorMark className="nametag__cursor" />
+            <Icon name={G.add} className="icon--xs" />
             Your person?
           </button>
         )}
@@ -342,7 +332,7 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
             input.current?.select();
           }}
         >
-          <Icon name="edit" />
+          <Icon name={G.edit} />
           Name
         </button>
         <button
@@ -353,7 +343,7 @@ function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
             openSheet((close) => <PairSheet kind="device" onClose={close} />);
           }}
         >
-          <Icon name="device" />
+          <Icon name={G.device} />
           Add a device
         </button>
         {colors ? (
@@ -384,9 +374,9 @@ function UnblockSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet onClose={onClose} title="Let notifications in">
       <div className="group">
-        <OptRow icon="device" title="iPhone" sub="Settings → Notifications → Gila Hub → Allow Notifications" />
-        <OptRow icon="device" title="Android" sub="Hold the Gila Hub icon → App info → Notifications" />
-        <OptRow icon="search" title="In a browser" sub="Tap the icon by the address, then allow notifications" />
+        <OptRow icon={G.device} title="iPhone" sub="Settings → Notifications → Gila Hub → Allow Notifications" />
+        <OptRow icon={G.device} title="Android" sub="Hold the Gila Hub icon → App info → Notifications" />
+        <OptRow icon={G.browser} title="In a browser" sub="Tap the icon by the address, then allow notifications" />
       </div>
       <button type="button" className="btn btn--quiet btn--block" style={{ marginTop: 20 }} onClick={onClose}>
         Got it
@@ -455,7 +445,7 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
     >
       <div className="group">
         <OptRow
-          icon="bell"
+          icon={G.remind}
           title={
             <>
               <span className="on-phone">On this phone</span>
@@ -472,37 +462,36 @@ function Notifications({ me, partner }: { me: Member; partner: Member | undefine
         ) : null}
         {partner ? (
           <>
-            <OptRow
-              icon="hand"
+            <SwitchRow
+              icon={G.ask}
               title={`When ${partner.name} asks me for something`}
               sub={`And when ${partner.name} does what I asked, or says not yet`}
-              trail={<Switch on={me.requestAlerts !== false} onChange={(on) => hub.upsertMember(me.id, { requestAlerts: on })} label="Request alerts" />}
+              on={me.requestAlerts !== false}
+              onChange={(on) => hub.upsertMember(me.id, { requestAlerts: on })}
+              label="Request alerts"
             />
-            <OptRow
-              icon="cart"
+            <SwitchRow
+              icon={G.onList}
               title={`When ${partner.name} starts shopping`}
-              trail={<Switch on={me.shopAlerts !== false} onChange={(on) => hub.upsertMember(me.id, { shopAlerts: on })} label="Shopping alerts" />}
+              on={me.shopAlerts !== false}
+              onChange={(on) => hub.upsertMember(me.id, { shopAlerts: on })}
+              label="Shopping alerts"
             />
           </>
         ) : null}
         {/* Android launchers don't show a web app's count (it shows a dot for notifications
             instead), so the option only appears where it works: iPhone and computers. */}
         {'setAppBadge' in navigator && !/Android/i.test(navigator.userAgent) ? (
-          <OptRow
-            icon="badge"
+          <SwitchRow
+            icon={G.badge}
             title="Count on the app icon"
             sub="How many things are due today"
-            trail={
-              <Switch
-                on={prefs.badge}
-                onChange={async (on) => {
-                  // iPhone shows the count only once notifications are allowed.
-                  if (on && 'Notification' in window && Notification.permission === 'default') setPush(await enablePush(rt));
-                  setPrefs({ badge: on });
-                }}
-                label="Count on the app icon"
-              />
-            }
+            on={prefs.badge}
+            onChange={async (on) => {
+              // iPhone shows the count only once notifications are allowed.
+              if (on && 'Notification' in window && Notification.permission === 'default') setPush(await enablePush(rt));
+              setPrefs({ badge: on });
+            }}
           />
         ) : null}
       </div>
@@ -528,7 +517,7 @@ function ThisDevice() {
     <Section title="Yours, on every device">
       <div className="group">
         <OptRow
-          icon="plus"
+          icon={G.add}
           title="New things from Today"
           sub={prefs.todayNew === 'ours' ? `Into your last shared folder, for you and ${partner?.name ?? 'your person'}` : 'Into your To-Do, private to you'}
           trail={
@@ -545,13 +534,13 @@ function ThisDevice() {
           }
         />
         <OptRow
-          icon="bell"
+          icon={G.remind}
           title="Notify at"
           sub="When a task has a day but no time"
           trail={<TimeField value={hub.me()?.remindAt || DEFAULT_REMIND_AT} label="Notify at, for a task with only a day" onChange={(t) => hub.upsertMember(hub.meId, { remindAt: t ?? null })} />}
         />
         <OptRow
-          icon="calendar"
+          icon={G.date}
           title="Week starts"
           trail={
             <Seg
@@ -567,7 +556,7 @@ function ThisDevice() {
           }
         />
         <OptRow
-          icon="clock"
+          icon={G.time}
           title="Clock"
           trail={
             <Seg
@@ -582,51 +571,31 @@ function ThisDevice() {
             />
           }
         />
-        <OptRow
-          icon="lightbulb"
-          title="Ideas tag"
-          sub="Wishes for Gila Hub, on every screen"
-          trail={<Switch on={prefs.ideasTag} label="Ideas tag" onChange={(on) => setPrefs({ ideasTag: on })} />}
-        />
+        <SwitchRow icon={G.idea} title="Ideas tag" sub="Wishes for Gila Hub, on every screen" on={prefs.ideasTag} onChange={(on) => setPrefs({ ideasTag: on })} />
         {coarse() ? (
-          <OptRow
-            icon="hand"
+          <SwitchRow
+            icon={G.vibrate}
             title="Vibration"
             sub="A light tap when you tick, drag or pick"
-            trail={
-              <Switch
-                on={prefs.haptics}
-                label="Vibration"
-                onChange={(on) => {
-                  setPrefs({ haptics: on });
-                  if (on) haptic('tick');
-                }}
-              />
-            }
+            on={prefs.haptics}
+            onChange={(on) => {
+              setPrefs({ haptics: on });
+              if (on) haptic('tick');
+            }}
           />
         ) : null}
         {hasMouse() ? (
-          <OptRow
-            icon="hand"
-            title="Lively cursor"
-            sub="Your mouse leans, bounces, and waves hello when you rest"
-            trail={<Switch on={wantsLiveCursor(prefs.livelyCursor)} label="Lively cursor" onChange={(on) => setPrefs({ livelyCursor: on })} />}
-          />
+          <SwitchRow icon={G.cursor} title="Lively cursor" sub="Your mouse leans, bounces, and waves hello when you rest" on={wantsLiveCursor(prefs.livelyCursor)} onChange={(on) => setPrefs({ livelyCursor: on })} />
         ) : null}
-        <OptRow
-          icon="bell"
+        <SwitchRow
+          icon={G.sound}
           title="Sounds"
           sub="Soft, round pops when you tick, pick and finish"
-          trail={
-            <Switch
-              on={prefs.sounds}
-              label="Sounds"
-              onChange={(on) => {
-                setPrefs({ sounds: on });
-                if (on) playSound('success');
-              }}
-            />
-          }
+          on={prefs.sounds}
+          onChange={(on) => {
+            setPrefs({ sounds: on });
+            if (on) playSound('success');
+          }}
         />
         {prefs.sounds ? (
           <p className="editlink">
@@ -691,7 +660,7 @@ function YourData() {
     <Section title="Your data">
       <div className="group">
         <OptRow
-          icon="lock"
+          icon={G.key}
           title="Recovery code"
           sub={
             me?.recoverySetAt
@@ -701,17 +670,17 @@ function YourData() {
           chev
           onClick={() => openSheet((close) => <RecoverySheet onClose={close} />)}
         />
-        <OptRow icon="download" title="Download a backup" sub={backupSub(prefs.lastBackupAt)} chev onClick={() => downloadBackup(rt, toast)} />
-        <OptRow icon="upload" title="Restore from a backup" sub="Adds what’s missing. Never deletes." chev onClick={() => file.current?.click()} />
+        <OptRow icon={G.download} title="Download a backup" sub={backupSub(prefs.lastBackupAt)} chev onClick={() => downloadBackup(rt, toast)} />
+        <OptRow icon={G.upload} title="Restore from a backup" sub="Adds what’s missing. Never deletes." chev onClick={() => file.current?.click()} />
       </div>
       <div className="group group--danger">
         <OptRow
-          icon="trash"
+          icon={G.delete}
           title="Reset this device"
           sub="Removes Gila Hub from this device only"
           danger
           chev
-          onClick={() => openSheet((close) => <LeaveSheet onClose={close} />)}
+          onClick={() => openSheet((close) => <ResetSheet onClose={close} />)}
         />
       </div>
       <input
@@ -783,9 +752,9 @@ function About({ me, partner }: { me: Member; partner: Member | undefined }) {
     <>
       <Section title="About">
         <div className="group">
-          <OptRow icon="lightbulb" title="Ideas" value={n ? `${n} open` : undefined} chev onClick={openIdeas} />
+          <OptRow icon={G.idea} title="Ideas" value={n ? `${n} open` : undefined} chev onClick={openIdeas} />
           <OptRow
-            icon="sparkle"
+            icon={G.tour}
             title="Show me around"
             sub="Start here: a few things to try, in a folder of your own"
             chev
@@ -825,7 +794,7 @@ function TagsSection() {
     <Section title="Tags">
       <div className="group">
         <OptRow
-          icon="tag"
+          icon={G.tag}
           title="Your tags"
           sub={tags.length ? tags.slice(0, 4).map((t) => t.name).join(', ') + (tags.length > 4 ? '…' : '') : 'Make some, then filter any screen by them'}
           value={tags.length || undefined}

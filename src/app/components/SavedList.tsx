@@ -8,12 +8,14 @@ import { DUE_LABEL, runQuery, type DueWindow, type TaskQuery } from '../query';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { ListBullet, Section, Switch } from '../ui/primitives';
+import { ListBullet, Section } from '../ui/primitives';
 import type { Settle } from '../ui/useSettle';
 import { Options } from './editors';
-import { FolderTree } from './FolderTree';
+import { PlaceTree } from './PlaceTree';
 import { ItemRow } from './ItemRow';
 import { TagPicker } from './Tags';
+import { G } from '../ui/glyphs';
+import { SwitchRow } from './pickers';
 
 const SHOWN = 8;
 
@@ -31,7 +33,7 @@ export function SavedListWidget({ id, settle }: { id: string; settle: Settle<Ite
     <Section
       title={
         <>
-          <Icon name="funnel" className="icon--sm" />
+          <Icon name={G.filter} className="icon--sm" />
           <span dir="auto">{saved.name}</span>
         </>
       }
@@ -120,7 +122,7 @@ export function SavedListSheet({ id, onClose }: { id?: string; onClose: () => vo
 
       <div className="group savedlist__rows">
         <button type="button" className={`whenrow__btn savedlist__row ${part === 'folder' ? 'is-open' : ''}`} onClick={() => setPart(part === 'folder' ? null : 'folder')}>
-          <Icon name="folder" className="icon--sm" />
+          <Icon name={G.folder} className="icon--sm" />
           <span className="whenrow__title">Folder</span>
           <span className="whenrow__value" dir="auto">
             {folder ? (
@@ -133,28 +135,18 @@ export function SavedListSheet({ id, onClose }: { id?: string; onClose: () => vo
           </span>
         </button>
         {part === 'folder' ? (
-          <FolderTree
-            initialOpen={folder ? hub.listPath(folder.id).map((l) => l.id) : []}
-            marked={(l) => l.id === q.listId}
-            top={
-              <li>
-                <div className="place__row">
-                  <button type="button" className="place__pick" aria-current={!q.listId || undefined} disabled={!q.listId} onClick={() => (setQ({ ...q, listId: null }), setPart(null))}>
-                    <Icon name="folders" className="icon--sm" />
-                    <span>Any folder</span>
-                  </button>
-                </div>
-              </li>
-            }
-            onPick={(listId) => {
-              setQ({ ...q, listId });
+          <PlaceTree
+            value={q.listId ? { listId: q.listId, parentId: null } : null}
+            root={{ label: 'Any folder', icon: G.folders, on: !q.listId }}
+            onPick={(p) => {
+              setQ({ ...q, listId: p?.listId ?? null });
               setPart(null);
             }}
           />
         ) : null}
 
         <button type="button" className={`whenrow__btn savedlist__row ${part === 'tags' ? 'is-open' : ''}`} onClick={() => setPart(part === 'tags' ? null : 'tags')}>
-          <Icon name="tag" className="icon--sm" />
+          <Icon name={G.tag} className="icon--sm" />
           <span className="whenrow__title">Tags</span>
           <span className="whenrow__value" dir="auto">
             {q.tags?.length ? q.tags.map((t) => hub.tag(t)?.name).filter(Boolean).join(', ') : 'Any'}
@@ -185,16 +177,13 @@ export function SavedListSheet({ id, onClose }: { id?: string; onClose: () => vo
         </>
       ) : null}
 
-      <div className="savedlist__switch">
-        <span>Urgent only</span>
-        <Switch on={!!q.urgent} label="Urgent only" onChange={(v) => setQ({ ...q, urgent: v || undefined })} />
-      </div>
+      <SwitchRow panel icon={G.urgent} title="Urgent only" on={!!q.urgent} onChange={(v) => setQ({ ...q, urgent: v || undefined })} />
 
       <p className="savedlist__count">
         {n} {n === 1 ? 'task' : 'tasks'} right now
       </p>
       <button type="button" className="btn btn--block" onClick={save}>
-        <Icon name={id ? 'check' : 'plus'} className="icon--sm" />
+        <Icon name={id ? G.done : G.add} className="icon--sm" />
         {id ? 'Save' : 'Put it on Today'}
       </button>
       {id ? (

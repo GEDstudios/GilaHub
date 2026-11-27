@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import type { LineColor, List, Member } from '../../core/model';
 import { haptic } from './haptics';
 import { Icon, type IconName } from './Icon';
+import { G } from './glyphs';
 
 export const lineVars = (c: LineColor | undefined): CSSProperties =>
   ({ '--c': c ? `var(--${c})` : 'var(--tile-2)', '--c-soft': c ? `var(--${c}-soft)` : 'var(--tile)' }) as CSSProperties;
@@ -94,24 +95,125 @@ export function useScrolledPast<T extends HTMLElement>(): [React.RefObject<T | n
 }
 
 /** A gray circle for header and sheet chrome (Search, …, Back, Close, Pause). */
-export function IconButton({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
+/**
+ * A round button with just a glyph. `pressed`: an on/off one (its glyph lit when on, e.g. the
+ * star); `small`: the 36px size inside panels.
+ */
+export function IconButton({
+  icon,
+  label,
+  onClick,
+  pressed,
+  disabled,
+  small,
+  className,
+}: {
+  icon: IconName;
+  label: string;
+  onClick: () => void;
+  pressed?: boolean;
+  disabled?: boolean;
+  small?: boolean;
+  className?: string;
+}) {
   return (
-    <button type="button" className="iconbtn" onClick={onClick} aria-label={label} title={label}>
-      <Icon name={icon} />
+    <button
+      type="button"
+      className={`iconbtn${small ? ' iconbtn--sm' : ''}${pressed ? ' is-on' : ''}${className ? ` ${className}` : ''}`}
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      disabled={disabled}
+    >
+      <Icon name={icon} lit={pressed} />
     </button>
   );
 }
 
 /**
- * New: the one black "+" in the app, always the rightmost thing in a screen's header.
- * It opens a sheet already pointed at where you are (see addAction.ts).
+ * − n +: one stepper for every count (a repeat's "every", stock levels, urgent-at). `nullable`:
+ * below its lowest it's off ("off"), and + from off starts at the lowest. `size` sm is the 30px
+ * one that sits in a chip or a row; `look` card sits on a tile (white, a hairline).
  */
+export function Stepper({
+  value,
+  onChange,
+  label,
+  min = 0,
+  max,
+  nullable,
+  size = 'md',
+  look = 'tile',
+  tone,
+  format,
+  className,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+  /** What it counts, for the buttons' names ("Have: one less"). */
+  label: string;
+  min?: number;
+  max?: number;
+  nullable?: boolean;
+  size?: 'sm' | 'md';
+  look?: 'tile' | 'card' | 'bare';
+  tone?: 'low' | 'out' | '';
+  format?: (v: number | null) => ReactNode;
+  className?: string;
+}) {
+  const off = value == null;
+  const n = value ?? min;
+  return (
+    <span className={`stepper stepper--${size} stepper--${look}${tone ? ` is-${tone}` : ''}${off ? ' is-off' : ''}${className ? ` ${className}` : ''}`} onClick={(e) => e.stopPropagation()}>
+      <button type="button" aria-label={`${label}: one less`} disabled={off || (!nullable && n <= min)} onClick={() => onChange(nullable && n <= min ? null : n - 1)}>
+        <Icon name={G.less} />
+      </button>
+      <span className="stepper__n num">{format ? format(value) : off ? 'off' : n}</span>
+      <button type="button" aria-label={`${label}: one more`} disabled={!off && max != null && n >= max} onClick={() => onChange(off ? min : n + 1)}>
+        <Icon name={G.add} />
+      </button>
+    </span>
+  );
+}
+
+/** One answer to a question a sheet asks. The first is the main one; `quiet` ones are lighter. */
+export type Choice = { label: string; icon?: IconName; run: () => void; quiet?: boolean; danger?: boolean; disabled?: boolean };
+
 /**
- * New lives in one place now: the big round + over the bottom bar (Fab, in the App shell), which
- * runs what the screen registered with useAddAction. Headers no longer carry their own.
+ * The answers to a sheet's question, as full-width buttons: stacked, or side by side (`row`).
+ * Every "Keep or put back?", "Use the template?", "Move it?" asks this way.
  */
-export function NewButton(_props: { onClick: () => void; label?: string }) {
-  return null;
+export function Choices({ choices, row }: { choices: Choice[]; row?: boolean }) {
+  return (
+    <div className={`choices${row ? ' choices--row' : ''}`}>
+      {choices.map((c) => (
+        <button key={c.label} type="button" className={`btn btn--block${c.quiet ? ' btn--quiet' : ''}${c.danger ? ' btn--danger' : ''}`} disabled={c.disabled} onClick={c.run}>
+          {c.icon ? <Icon name={c.icon} className="icon--sm" /> : null}
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The star: keep it on Today (a task in my Highlights, a folder's block). One look, one sound,
+ * one undo wherever it is.
+ */
+export function StarButton({ on, onLabel, offLabel, onChange }: { on: boolean; onLabel: string; offLabel: string; onChange: (on: boolean) => void }) {
+  return (
+    <IconButton
+      icon={G.highlight}
+      className="starbtn"
+      pressed={on}
+      label={on ? onLabel : offLabel}
+      onClick={() => {
+        haptic('select');
+        onChange(!on);
+      }}
+    />
+  );
 }
 
 
@@ -148,7 +250,7 @@ export function Band({
       <header className={`band ${className ?? ''}`} ref={ref}>
         {onBack || top || actions ? (
           <div className="band__top">
-            {onBack ? <IconButton icon="arrow-back" label="Back" onClick={onBack} /> : <span className="band__corner">{top}</span>}
+            {onBack ? <IconButton icon={G.back} label="Back" onClick={onBack} /> : <span className="band__corner">{top}</span>}
             {actions ? <div className="band__actions">{actions}</div> : null}
           </div>
         ) : null}
@@ -164,7 +266,7 @@ export function Band({
       <div className={`miniband ${past ? 'is-on' : ''}`} aria-hidden={!past}>
         {onBack ? (
           <button type="button" className="miniband__back" onClick={onBack} aria-label="Back" tabIndex={past ? 0 : -1}>
-            <Icon name="arrow-back" />
+            <Icon name={G.back} />
           </button>
         ) : null}
         <span dir="auto">{mini ?? (typeof title === 'string' ? title : '')}</span>
@@ -173,13 +275,20 @@ export function Band({
   );
 }
 
+/** The small cursor a name tag carries (Tasky's): two people in the same space. */
+export function CursorMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 3l15 7.5-6.5 1.8L10.5 19z" fill="currentColor" />
+    </svg>
+  );
+}
+
 /** A name tag with a cursor — two people working in the same space. */
 export function NameTag({ name, color, style, flip }: { name: string; color: LineColor; style?: CSSProperties; flip?: boolean }) {
   return (
     <span className={`nametag ${flip ? 'nametag--flip' : ''}`} style={{ ...lineVars(color), ...style }}>
-      <svg className="nametag__cursor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 3l15 7.5-6.5 1.8L10.5 19z" fill="currentColor" />
-      </svg>
+      <CursorMark className="nametag__cursor" />
       <span dir="auto">{name}</span>
     </span>
   );

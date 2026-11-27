@@ -17,6 +17,7 @@ import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
 import { isOpen } from '../../core/model';
 import { listKey } from '../../core/keys';
+import { G } from '../ui/glyphs';
 
 /**
  * The blocks of the Today page (HOME §2–3). Today.tsx draws the summary and notices, then
@@ -58,7 +59,7 @@ export function HomeNotices() {
             </strong>{' '}
             Need anything?
           </span>
-          <Icon name="chevron-right" />
+          <Icon name={G.go} />
         </button>
       ) : null}
     </>
@@ -78,7 +79,7 @@ export function QuickView({ settle, show }: { settle: Settle<Item>; show?: (i: I
     <Section
       title={
         <>
-          <Icon name="sparkle" className="icon--sm" />
+          <Icon name={G.highlight} className="icon--sm" />
           <span>Highlights</span>
         </>
       }
@@ -108,7 +109,7 @@ export function ProjectWidget({ listId, settle, show }: { listId: string; day?: 
     <button type="button" className="section__go" onClick={() => navigate({ name: 'list', id: listId })}>
       <ProjectMark color={list.color} icon={list.icon} size="sm" />
       <span dir="auto">{list.name}</span>
-      <Icon name="chevron-right" className="section__goarrow" />
+      <Icon name={G.go} className="section__goarrow" />
     </button>
   );
   // Urgent first, then in the project's order: the first five.
@@ -145,13 +146,13 @@ export function InviteCard() {
         <span className="invite__people" aria-hidden="true">
           <Avatar member={hub.me()} size="md" />
           <span className="invite__empty">
-            <Icon name="plus" className="icon--sm" />
+            <Icon name={G.add} className="icon--sm" />
           </span>
         </span>
         <span className="invite__text">
           <strong>Bring your person in</strong>
         </span>
-        <Icon name="chevron-right" />
+        <Icon name={G.go} />
       </button>
       <button
         type="button"
@@ -163,7 +164,7 @@ export function InviteCard() {
           toast('Okay. It’s in Settings when you’re ready.');
         }}
       >
-        <Icon name="x" />
+        <Icon name={G.close} />
       </button>
     </div>
   );

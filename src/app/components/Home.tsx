@@ -16,6 +16,7 @@ import type { TodayView } from '../views';
 import { ItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
 import { calm } from '../ui/tokens';
+import { G } from '../ui/glyphs';
 
 /*
  * Today, as docs/07-HOME.md has it: the day's card (my colour, a sentence, my person's tag on its
@@ -182,7 +183,7 @@ export function TodayList({ v, day, settle, asksHere = false }: { v: TodayView; 
               {who} asked you for {things(folded.length || quiet.length)}
             </span>
             <span className="quietline__end">
-              <Icon name="chevron-down" />
+              <Icon name={G.fold} />
             </span>
           </button>
           {open ? (
@@ -262,7 +263,7 @@ export function WeekStrip({ v, day }: { v: TodayView; day: string }) {
         <button type="button" className="quietline" onClick={() => openSheet((close) => <QuickAddSheet onClose={close} defaultDue={chosen} />)}>
           Nothing yet. Plan something
           <span className="quietline__end">
-            <Icon name="plus" />
+            <Icon name={G.add} />
           </span>
         </button>
       )}
@@ -388,7 +389,7 @@ export function UsTile({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
                     </span>
                   ) : null}
                 </span>
-                <Icon name="chevron-down" className="wcard__chev" />
+                <Icon name={G.fold} className="wcard__chev" />
               </button>
               {on ? <div className="wcard__more">{c.more}</div> : null}
             </div>
@@ -474,7 +475,7 @@ function DidList({ v }: { v: TodayView }) {
                 aria-label={`Thank ${partner.name} for ${r.item.title}`}
                 aria-pressed={!!r.log.thankedBy}
               >
-                <Icon name={r.log.thankedBy ? 'heart-fill' : 'heart'} />
+                <Icon name={r.log.thankedBy ? G.thanked : G.thanks} />
               </button>
             ) : null}
           </li>
@@ -492,7 +493,7 @@ function DidList({ v }: { v: TodayView }) {
             });
           }}
         >
-          <Icon name="heart" className="icon--sm" /> Thank {partner.name} for all
+          <Icon name={G.thanks} className="icon--sm" /> Thank {partner.name} for all
         </button>
       ) : null}
     </>

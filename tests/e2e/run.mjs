@@ -823,8 +823,8 @@ try {
     await plus(guy);
     await guy.locator('.composer__input').fill('Visa photos');
     await guy.locator('.sheet .echip', { hasText: 'Packing' }).click();
-    await guy.locator('.desttree__pick', { hasText: 'Passport' }).click();
-    await guy.locator('.sheet .echip', { hasText: '↳ Passport' }).waitFor({ timeout: 3000 });
+    await guy.locator('.place__pick', { hasText: 'Passport' }).click();
+    await guy.locator('.sheet .echip', { hasText: 'Passport' }).waitFor({ timeout: 3000 });
     await shot(guy, '12a-subtask-pick');
     await guy.locator('.composer__input').press('Enter');
     await guy.locator('.composer').waitFor({ state: 'detached', timeout: 5000 });

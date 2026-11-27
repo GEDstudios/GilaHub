@@ -6,6 +6,7 @@ import { useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
 import { useShotPicker } from './Sketch';
 import { HOLD } from '../ui/tokens';
+import { G } from '../ui/glyphs';
 
 /**
  * One note, drawn the same everywhere: stuck on a screen, big while you write it, small on Our
@@ -684,8 +685,8 @@ export function NoteEditor({
   const TOOLS: Array<{ id: Tool; label: string; face: ReactNode }> = [
     { id: 'text', label: 'Text size', face: <span className="tool__aa">Aa</span> },
     { id: 'paper', label: 'Paper', face: <span className="tool__paper" style={lineVars(look.color)} /> },
-    { id: 'photo', label: look.photo ? 'Photo' : 'Add a photo', face: <Icon name="image" /> },
-    { id: 'pen', label: 'Draw on the note', face: <Icon name="edit" /> },
+    { id: 'photo', label: look.photo ? 'Photo' : 'Add a photo', face: <Icon name={G.photo} /> },
+    { id: 'pen', label: 'Draw on the note', face: <Icon name={G.edit} /> },
   ];
   return (
     <div className="noteedit">
@@ -760,7 +761,7 @@ export function NoteEditor({
               </div>
               <div className="tray__actions">
                 <button type="button" className="tray__action" onClick={picker.pick}>
-                  <Icon name="image" />
+                  <Icon name={G.photo} />
                   <span>Replace</span>
                 </button>
                 <button
@@ -771,7 +772,7 @@ export function NoteEditor({
                     setTool(null);
                   }}
                 >
-                  <Icon name="trash" />
+                  <Icon name={G.delete} />
                   <span>Remove</span>
                 </button>
               </div>
@@ -823,7 +824,7 @@ export function NoteEditor({
                 </button>
                 </div>
                 <button type="button" className="draw__icon" aria-label="Undo" title="Undo" disabled={!look.ink.length} onClick={() => set({ ink: look.ink.slice(0, -1) })}>
-                  <Icon name="undo" />
+                  <Icon name={G.undo} />
                 </button>
                 <button type="button" className="btn btn--sm draw__done" aria-label="Done drawing" onClick={() => setTool(null)}>
                   Done

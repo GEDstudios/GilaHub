@@ -12,6 +12,7 @@ import { BarEdit, useFresh } from './BarEdit';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
 import { calm, CLICK_SWALLOW_MS } from '../ui/tokens';
 import { listKey, listIdOf } from '../../core/keys';
+import { G } from '../ui/glyphs';
 
 /** One finger on the bar: waiting for the hold, then scrubbing (`live`). */
 interface Gesture {
@@ -246,7 +247,7 @@ export function useBarScrub({
     },
     bubble: scrub ? (
       <span ref={bubbleRef} className={`tabbar__bubble${scrubTab ? ' is-lit' : ' is-cancel'}`} aria-hidden="true">
-        {scrubTab ? <TabMark t={scrubTab} /> : <Icon name="x" className="icon--sm" />}
+        {scrubTab ? <TabMark t={scrubTab} /> : <Icon name={G.close} className="icon--sm" />}
         <span dir="auto">{scrubTab ? scrubTab.label : 'Let go to cancel'}</span>
       </span>
     ) : null,
@@ -370,7 +371,7 @@ export function TabBar() {
       {bubble}
       {hint && !receiving && !scrubKey && !bubble && !covered ? (
         <span className="tabbar__hint" role="status">
-          <Icon name="hand" className="icon--sm" />
+          <Icon name={G.holdHint} className="icon--sm" />
           Hold and slide to pick
         </span>
       ) : null}

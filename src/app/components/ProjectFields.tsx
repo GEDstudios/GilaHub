@@ -9,6 +9,7 @@ import { lineVars } from '../ui/primitives';
 import { EChip, Options, Panel } from './editors';
 import { IconPicker } from './IconPicker';
 import { Swatches } from './pickers';
+import { G } from '../ui/glyphs';
 
 /** What a choice means for a project: who sees it, and whose it is. */
 export function listVisOf(hub: ReturnType<typeof useHub>, v: VisChoice): { visibility: Visibility; owner: string | null } {
@@ -119,7 +120,7 @@ export function ProjectFields({
             onChange({ pinned: !value.pinned });
           }}
         >
-          <Icon name="pin" className="icon--sm" />
+          <Icon name={G.pinToBar} className="icon--sm" />
           <span>{value.pinned ? 'Pinned to bar' : 'Pin to bar'}</span>
         </button>
       </div>

@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import type { Hub } from '../../core/actions';
 import { useHub } from '../context';
 import { applyTemplate, hasTemplate, templateSummary } from '../template';
-import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
+import { G } from '../ui/glyphs';
+import { Choices } from '../ui/primitives';
 
 type Overlays = ReturnType<typeof useOverlays>;
 
@@ -39,32 +40,29 @@ function TemplateAskSheet({ id, listId, text, undoMove, onClose }: { id: string;
       <p className="sheet__lede" dir="auto">
         {templateSummary(hub, list.template)}
       </p>
-      <div className="leaveq">
-        <button
-          type="button"
-          className="btn btn--block"
-          onClick={() => {
-            const undo = applyTemplate(hub, id, listId);
-            used.current = true;
-            onClose();
-            toast(`${text}, with its template`, {
-              action: {
-                label: 'Undo',
-                run: () => {
-                  undo();
-                  undoMove();
+      <Choices
+        choices={[
+          {
+            label: 'Use it',
+            icon: G.template,
+            run: () => {
+              const undo = applyTemplate(hub, id, listId);
+              used.current = true;
+              onClose();
+              toast(`${text}, with its template`, {
+                action: {
+                  label: 'Undo',
+                  run: () => {
+                    undo();
+                    undoMove();
+                  },
                 },
-              },
-            });
-          }}
-        >
-          <Icon name="layout" className="icon--sm" />
-          Use it
-        </button>
-        <button type="button" className="btn btn--block btn--quiet" onClick={onClose}>
-          Keep it as it is
-        </button>
-      </div>
+              });
+            },
+          },
+          { label: 'Keep it as it is', quiet: true, run: onClose },
+        ]}
+      />
     </Sheet>
   );
 }

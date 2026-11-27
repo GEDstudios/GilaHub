@@ -1,6 +1,6 @@
 import { hasTemplate, startFromTemplate, templateDay } from '../template';
 import { playSound } from '../ui/sounds';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import type { List } from '../../core/model';
 import { parseQuickAdd, type ParseContext, type ParseResult } from '../../smart/parse';
 import { composeDraft, overriddenTokens, parsedDraft } from '../compose';
@@ -10,6 +10,7 @@ import { dayFirst, getPrefs, setPrefs, use24h, usePrefs, weekStart, workdays } f
 import { allowedVis, itemVisChoice, visFields, type VisChoice } from '../privacy';
 import { ifNotInView, markFresh } from '../ui/fresh';
 import { Icon } from '../ui/Icon';
+import { PlaceTree } from './PlaceTree';
 import { useOverlays } from '../ui/overlays';
 import { ListBullet } from '../ui/primitives';
 
@@ -17,9 +18,9 @@ import { TagMark, TagPicker, tagsLabel } from './Tags';
 import type { Hub } from '../../core/actions';
 import { usePingUrgent } from './add';
 import { TOAST } from '../ui/tokens';
-import { isOpen } from '../../core/model';
-import { listKey } from '../../core/keys';
 import type { Draft } from '../draft';
+import { G_TEXT } from '../ui/glyphs';
+import { G } from '../ui/glyphs';
 
 /** What a composer had picked: kept with a draft so a reload brings it all back. */
 export interface ComposeSeed {
@@ -194,7 +195,7 @@ export function useCompose({
     if (d.remind != null && typeof Notification !== 'undefined' && Notification.permission === 'default') setUpReminders(rt, toast);
     const made = hub.item(id);
     if (made && asking && made.requestedBy === hub.meId) {
-      notifyAbout(rt, hub, made, d.assignee as string, `🙋 ${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
+      notifyAbout(rt, hub, made, d.assignee as string, `${G_TEXT.ask} ${hub.me()?.name ?? 'Your partner'} asked you`, made.title);
     }
     // New (from Today, Search…) opens on the last project used.
     if (!parent) setPrefs({ lastList: to.id });
@@ -231,23 +232,25 @@ export function tagChip(c: Compose, hub: Hub) {
 }
 
 /**
- * Where it goes: the project's bullet and name (or "↳ the task" it goes under). Its panel is the
+ * Where it goes: the project's bullet and name (or the task it goes under, with the subtask mark). Its panel is the
  * tree of projects, nested ones folded away; a task project unfolds to its open tasks, and
  * picking a task makes the new one its subtask.
  */
 export function listChip(c: Compose, lists: List[]) {
   const dest = c.dest;
+  const offered = new Set(lists.map((l) => l.id));
   return {
     key: 'list',
-    label: c.parent ? `↳ ${c.parent.title}` : (dest?.name ?? 'List'),
-    lead: <ListBullet list={dest} size="xs" />,
+    label: c.parent ? c.parent.title : (dest?.name ?? 'List'),
+    lead: c.parent ? <Icon name={G.subtask} className="icon--sm" /> : <ListBullet list={dest} size="xs" />,
     panel: (close: () => void) => (
-      <DestTree
-        lists={lists}
-        listId={dest?.id ?? null}
-        parentId={c.parent?.id ?? null}
-        onPick={(listId, parentId) => {
-          c.pickList(listId, parentId);
+      <PlaceTree
+        tasks
+        scroll
+        offer={(l) => offered.has(l.id)}
+        value={dest ? { listId: dest.id, parentId: c.parent?.id ?? null } : null}
+        onPick={(p) => {
+          if (p) c.pickList(p.listId, p.parentId);
           close();
         }}
       />
@@ -255,78 +258,12 @@ export function listChip(c: Compose, lists: List[]) {
   };
 }
 
-function DestTree({ lists, listId, parentId, onPick }: { lists: List[]; listId: string | null; parentId: string | null; onPick: (listId: string, parentId: string | null) => void }) {
-  const hub = useHub();
-  const ids = new Set(lists.map((l) => l.id));
-  // Unfolded at first: the way down to where it's going now.
-  const [open, setOpen] = useState<Set<string>>(() => {
-    const keys = new Set<string>();
-    if (listId) for (const l of [...hub.listPath(listId), hub.list(listId)]) if (l) keys.add(listKey(l.id));
-    const p = hub.item(parentId);
-    if (p) for (const a of [...hub.ancestors(p), p]) keys.add(`i:${a.id}`);
-    return keys;
-  });
-  const toggle = (key: string) =>
-    setOpen((s) => {
-      const n = new Set(s);
-      if (n.has(key)) n.delete(key);
-      else n.add(key);
-      return n;
-    });
-  const tasksOf = (l: List, under: string | null) => hub.siblings(l.id, under).filter(isOpen);
-  const row = (key: string, depth: number, label: ReactNode, on: boolean, canOpen: boolean, pick: () => void) => (
-    <div key={key} className={`desttree__row ${on ? 'is-on' : ''}`} style={{ paddingInlineStart: 6 + depth * 18 }}>
-      {canOpen ? (
-        <button type="button" className={`desttree__fold ${open.has(key) ? 'is-open' : ''}`} aria-label={open.has(key) ? 'Fold' : 'Unfold'} aria-expanded={open.has(key)} onClick={() => toggle(key)}>
-          <Icon name="chevron-right" />
-        </button>
-      ) : (
-        <span className="desttree__fold" aria-hidden="true" />
-      )}
-      <button type="button" className="desttree__pick" aria-pressed={on} onClick={pick}>
-        {label}
-        {on ? <Icon name="check" className="icon--sm desttree__on" /> : null}
-      </button>
-    </div>
-  );
-  const taskRows = (l: List, under: string | null, depth: number): ReactNode[] =>
-    tasksOf(l, under).flatMap((i) => {
-      const key = `i:${i.id}`;
-      const kids = tasksOf(l, i.id);
-      return [
-        row(key, depth, <span className="desttree__task" dir="auto">{i.title}</span>, i.id === parentId, kids.length > 0, () => onPick(l.id, i.id)),
-        ...(open.has(key) ? taskRows(l, i.id, depth + 1) : []),
-      ];
-    });
-  const listRows = (l: List, depth: number): ReactNode[] => {
-    const key = listKey(l.id);
-    const subs = hub.subLists(l.id).filter((x) => ids.has(x.id));
-    const canOpen = subs.length > 0 || tasksOf(l, null).length > 0;
-    return [
-      row(
-        key,
-        depth,
-        <>
-          <ListBullet list={l} size="xs" />
-          <span dir="auto">{l.name}</span>
-        </>,
-        l.id === listId && !parentId,
-        canOpen,
-        () => onPick(l.id, null),
-      ),
-      ...(open.has(key) ? [...subs.flatMap((x) => listRows(x, depth + 1)), ...taskRows(l, null, depth + 1)] : []),
-    ];
-  };
-  const top = lists.filter((l) => !l.parentId || !ids.has(l.parentId));
-  return <div className="desttree" role="tree">{top.flatMap((l) => listRows(l, 0))}</div>;
-}
-
 /** What a parsed word became, as a token: tap to keep it as text. */
 export function ParsedToken({ label, onKeep }: { label: string; onKeep: () => void }) {
   return (
     <button type="button" className="token is-parsed" onClick={onKeep} title="Tap to keep this as text">
       <span dir="auto">{label}</span>
-      <Icon name="x" className="token__x" />
+      <Icon name={G.close} className="token__x" />
     </button>
   );
 }

@@ -15,6 +15,7 @@ import { UrgentTag } from '../ui/tags';
 import { EChip, InlineEditor, useSummary } from './editors';
 import { listChip, ParsedToken, tagChip, useCompose, type ComposeSeed } from './QuickAdd';
 import type { Field } from '../draft';
+import { G } from '../ui/glyphs';
 
 /**
  * New: the one way to add, from the black + on every screen. You write straight onto the
@@ -314,7 +315,7 @@ function Composer({
           {
             key: 'tpl',
             label: c.useTpl ? 'Template' : 'No template',
-            icon: 'layout' as const,
+            icon: G.template,
             set: c.useTpl,
             toggle: () => c.setUseTpl(!c.useTpl),
           },
@@ -361,7 +362,7 @@ function Composer({
             </span>
           ) : draft.repeat ? (
             <span className="ccard__badge">
-              <Icon name="repeat" className="icon--sm" />
+              <Icon name={G.repeat} className="icon--sm" />
             </span>
           ) : null}
         </span>
@@ -380,7 +381,7 @@ function Composer({
         <div className="tokens tokens--scroll composer__suggest">
           {suggestions.map((s) => (
             <button key={s} type="button" className="token" onClick={() => submit(s)}>
-              <Icon name="plus" />
+              <Icon name={G.add} />
               <span dir="auto">{s}</span>
             </button>
           ))}
@@ -399,7 +400,7 @@ function Composer({
           <>
             {parent ? (
               <EChip
-                icon={asStep ? 'subtask' : 'lines'}
+                icon={asStep ? G.subtask : G.task}
                 label={asStep ? 'A subtask' : 'Its own task'}
                 set={asStep}
                 open={false}
@@ -426,7 +427,7 @@ function Composer({
                     aria-label={`Subtask ${i + 1}`}
                   />
                   <button type="button" className="composer__stepx" aria-label={`Open ${t}`} disabled={!title} onClick={() => openSub(i)}>
-                    <Icon name="chevron-right" className="icon--sm" />
+                    <Icon name={G.go} className="icon--sm" />
                   </button>
                   <button
                     type="button"
@@ -436,14 +437,14 @@ function Composer({
                       editSteps(steps.filter((_, j) => j !== i));
                     }}
                   >
-                    <Icon name="x" className="icon--xs" />
+                    <Icon name={G.close} className="icon--xs" />
                   </button>
                 </li>
               ))}
             </ul>
           ) : null}
           <label className="composer__stepadd">
-            <Icon name="plus" className="icon--sm" />
+            <Icon name={G.add} className="icon--sm" />
             <input
               value={stepText}
               dir="auto"

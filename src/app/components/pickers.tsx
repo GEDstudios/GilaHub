@@ -2,8 +2,11 @@ import type { ReactNode } from 'react';
 import { LINE_COLORS, type LineColor } from '../../core/model';
 import { replay } from '../ui/flip';
 import { haptic } from '../ui/haptics';
+import { Switch } from '../ui/primitives';
+import { Sheet } from '../ui/overlays';
 import { Icon, type IconName } from '../ui/Icon';
 import { lineVars } from '../ui/primitives';
+import { G } from '../ui/glyphs';
 
 /**
  * A quiet row inside a grouped card (settings, lists to pick from). `chev`: it opens something.
@@ -46,9 +49,9 @@ export function OptRow({
         ) : null}
       </span>
       {value !== undefined ? <span className="optrow__value">{value}</span> : null}
-      {on ? <Icon name="check" /> : null}
+      {on ? <Icon name={G.done} /> : null}
       {trail}
-      {chev ? <Icon name="chevron-right" className="optrow__chev" /> : null}
+      {chev ? <Icon name={G.go} className="optrow__chev" /> : null}
     </>
   );
   return onClick ? (
@@ -57,6 +60,55 @@ export function OptRow({
     </button>
   ) : (
     <div className={`optrow ${danger ? 'optrow--danger' : ''}`}>{body}</div>
+  );
+}
+
+/** One thing a "…" menu can do. It runs after the sheet closes. */
+export type Action = { icon: IconName; title: string; sub?: ReactNode; danger?: boolean; hidden?: boolean; run: () => void };
+
+/** A "…" menu: a sheet of actions, each one row; tapping one closes the sheet and does it. */
+export function ActionSheet({ title, actions, onClose }: { title: string; actions: Action[]; onClose: () => void }) {
+  return (
+    <Sheet onClose={onClose} title={title}>
+      <div className="group">
+        {actions
+          .filter((a) => !a.hidden)
+          .map((a) => (
+            <OptRow
+              key={a.title}
+              icon={a.icon}
+              title={a.title}
+              sub={a.sub}
+              danger={a.danger}
+              onClick={() => {
+                onClose();
+                a.run();
+              }}
+            />
+          ))}
+      </div>
+    </Sheet>
+  );
+}
+
+/**
+ * A row that's on or off: a title (and a quieter line), a switch at the end. The whole row flips
+ * it. `panel`: the quieter size, inside an editor's panel.
+ */
+export function SwitchRow({ icon, title, sub, on, onChange, label, panel }: { icon?: IconName; title: ReactNode; sub?: ReactNode; on: boolean; onChange: (on: boolean) => void; label?: string; panel?: boolean }) {
+  return (
+    <label className={`optrow optrow--switch ${panel ? 'optrow--panel' : ''}`}>
+      {icon ? <Icon name={icon} className="optrow__icon" /> : null}
+      <span className="optrow__text">
+        <span dir="auto">{title}</span>
+        {sub ? (
+          <span className="optrow__sub" dir="auto">
+            {sub}
+          </span>
+        ) : null}
+      </span>
+      <Switch on={on} onChange={onChange} label={label ?? (typeof title === 'string' ? title : '')} />
+    </label>
   );
 }
 

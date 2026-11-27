@@ -11,8 +11,10 @@ import { visHint, visLabel, VIS_ICON, type VisChoice } from '../privacy';
 import { withNotification } from '../compose';
 import { Icon, type IconName } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Avatar, lightVar, Switch } from '../ui/primitives';
+import { Avatar, IconButton, lightVar, Stepper, Switch } from '../ui/primitives';
 import { PairSheet } from './PairSheet';
+import { G } from '../ui/glyphs';
+import { SwitchRow } from './pickers';
 
 
 
@@ -205,7 +207,7 @@ export function WhoChip({
   if (!partner) {
     return (
       <>
-        <EChip label="Ask your person" icon="user" set={false} open={open} onToggle={onToggle} disabled={disabled} ghost compact={compact} />
+        <EChip label="Ask your person" icon={G.person} set={false} open={open} onToggle={onToggle} disabled={disabled} ghost compact={compact} />
         {open ? (
           <Panel>
             <p className="panel__hint panel__hint--first">Hand things to your person, and ask for an OK when they’re done.</p>
@@ -229,7 +231,7 @@ export function WhoChip({
         : whoText(hub, value);
   return (
     <>
-      <EChip label={label} icon="user" set={!!value} open={open} onToggle={onToggle} disabled={disabled} compact={compact} />
+      <EChip label={label} icon={G.person} set={!!value} open={open} onToggle={onToggle} disabled={disabled} compact={compact} />
       {open ? (
         <Panel>
           <Options
@@ -249,10 +251,7 @@ export function WhoChip({
           />
           {asking && !repeating ? (
             <>
-              <div className="optrow optrow--panel">
-                <span className="optrow__text">Needs my OK when done</span>
-                <Switch on={needsOk} label="Needs my OK when done" onChange={(v) => onChange({ needsOk: v })} />
-              </div>
+              <SwitchRow panel title="Needs my OK when done" on={needsOk} onChange={(v) => onChange({ needsOk: v })} />
               <p className="panel__hint">{partner.name} gets a notification.</p>
             </>
           ) : null}
@@ -345,8 +344,8 @@ export function InlineEditor({
       const marks = (
         <>
           {text}
-          {repeatInside && value.repeat && value.due ? <Icon name="repeat" className="echip__mark" title={ruleShort(value.repeat)} /> : null}
-          {remindInside && value.remind != null ? <Icon name="bell" className="echip__mark" title={`Notify ${(remindText(value.remind) ?? '').toLowerCase()}`} /> : null}
+          {repeatInside && value.repeat && value.due ? <Icon name={G.repeat} className="echip__mark" title={ruleShort(value.repeat)} /> : null}
+          {remindInside && value.remind != null ? <Icon name={G.remind} className="echip__mark" title={`Notify ${(remindText(value.remind) ?? '').toLowerCase()}`} /> : null}
         </>
       );
       chips.push(chip('when', marks, 'calendar', !!value.due || (repeatInside && !!value.repeat)));
@@ -430,7 +429,7 @@ export function InlineEditor({
           aria-pressed={value.urgent}
           disabled={readOnly}
         >
-          <Icon name="urgent" className="icon--sm" />
+          <Icon name={G.urgent} className="icon--sm" />
           <span>Urgent</span>
         </button>,
       );
@@ -442,7 +441,7 @@ export function InlineEditor({
     if (hiddenChips.length) {
       chips.push(
         <button key="more" type="button" className={`echip--expand ${moreOpen ? 'is-open' : ''}`} aria-expanded={moreOpen} aria-label={moreOpen ? 'Fewer' : 'More'} title={moreOpen ? 'Fewer' : 'More'} onClick={() => setMoreOpen(!moreOpen)}>
-          <Icon name="chevron-down" />
+          <Icon name={G.fold} />
         </button>,
       );
       if (moreOpen) chips.push(...hiddenChips);
@@ -543,7 +542,7 @@ export function WhenCard({
       {value.due ? (
         <div className="whencard__head">
           <button type="button" className="whencard__clear" onClick={() => setDay(null)}>
-            <Icon name="x" className="icon--sm" />
+            <Icon name={G.close} className="icon--sm" />
             Remove date
           </button>
         </div>
@@ -556,14 +555,14 @@ export function WhenCard({
           <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
             <div className="whenrow__line">
               <label className="whenrow__btn whenrow__btn--time">
-                <Icon name="clock" className="icon--sm" lit={!!value.dueTime} />
+                <Icon name={G.time} className="icon--sm" lit={!!value.dueTime} />
                 <span className="whenrow__title">Time</span>
                 <span className="whenrow__value">{value.dueTime ? humanTime(value.dueTime, h24) : 'Any time'}</span>
                 <input type="time" className="whenrow__native" value={value.dueTime ?? ''} onChange={(e) => setTime(e.target.value || null)} aria-label="Time" />
               </label>
               {value.dueTime ? (
                 <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
-                  <Icon name="x" className="icon--xs" />
+                  <Icon name={G.close} className="icon--xs" />
                 </button>
               ) : null}
             </div>
@@ -573,7 +572,7 @@ export function WhenCard({
           <div className={`whenrow ${value.dueTime ? 'is-set' : ''}`}>
             <div className="whenrow__line">
               <span className="whenrow__btn whenrow__btn--static">
-                <Icon name="clock" className="icon--sm" lit={!!value.dueTime} />
+                <Icon name={G.time} className="icon--sm" lit={!!value.dueTime} />
                 <span className="whenrow__title">Time</span>
               </span>
               {timeEdit ? (
@@ -596,20 +595,20 @@ export function WhenCard({
               )}
               {value.dueTime && !timeEdit ? (
                 <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
-                  <Icon name="x" className="icon--xs" />
+                  <Icon name={G.close} className="icon--xs" />
                 </button>
               ) : null}
             </div>
           </div>
         )}
         {repeat ? (
-          <WhenRow icon="repeat" title="Repeat" value={value.repeat ? ruleShort(value.repeat) : 'Never'} on={!!value.repeat} open={part === 'repeat'} onOpen={() => flip('repeat')}>
+          <WhenRow icon={G.repeat} title="Repeat" value={value.repeat ? ruleShort(value.repeat) : 'Never'} on={!!value.repeat} open={part === 'repeat'} onOpen={() => flip('repeat')}>
             <RepeatPanel bare rule={value.repeat} defaultFrom={repeatFrom} onChange={onRepeat} />
           </WhenRow>
         ) : null}
         {remind ? (
           <WhenRow
-            icon="bell"
+            icon={G.remind}
             title="Notify"
             value={notifyOn ? (remindText(value.remind) ?? '') : 'Off'}
             on={notifyOn}
@@ -621,7 +620,7 @@ export function WhenCard({
           </WhenRow>
         ) : null}
         {again ? (
-          <WhenRow icon="refresh" title="Again until done" value={value.nag ? ruleShort(value.nag) : 'Just once'} on={!!value.nag} open={part === 'again'} onOpen={() => flip('again')} sub>
+          <WhenRow icon={G.nag} title="Again until done" value={value.nag ? ruleShort(value.nag) : 'Just once'} on={!!value.nag} open={part === 'again'} onOpen={() => flip('again')} sub>
             <RepeatPanel bare nag rule={value.nag ?? null} defaultFrom="schedule" onChange={(nag) => onChange({ nag })} />
           </WhenRow>
         ) : null}
@@ -654,12 +653,8 @@ function MonthPicker({ value, onPick }: { value: string | null; onPick: (d: stri
             Today
           </button>
         ) : null}
-        <button type="button" className="iconbtn iconbtn--sm" aria-label="Earlier month" onClick={() => shift(-1)}>
-          <Icon name="chevron-left" className="icon--sm" />
-        </button>
-        <button type="button" className="iconbtn iconbtn--sm" aria-label="Later month" onClick={() => shift(1)}>
-          <Icon name="chevron-right" className="icon--sm" />
-        </button>
+        <IconButton small icon={G.prev} label="Earlier month" onClick={() => shift(-1)} />
+        <IconButton small icon={G.next} label="Later month" onClick={() => shift(1)} />
       </div>
       <div className="month__grid" role="grid" aria-label={title}>
         {[...Array(7).keys()].map((i) => (
@@ -721,7 +716,7 @@ function WhenRow({
           <span className="whenrow__value" dir="auto">
             {value}
           </span>
-          {trail ? null : <Icon name="chevron-down" className="whenrow__chev icon--xs" />}
+          {trail ? null : <Icon name={G.fold} className="whenrow__chev icon--xs" />}
         </button>
         {trail}
       </div>
@@ -1040,15 +1035,7 @@ export function RepeatPanel({
       />
       {mode === 'custom' && rule?.type === 'interval' ? (
         <div className="panel__row">
-          <span className="stepper">
-            <button type="button" onClick={() => onChange({ ...rule, every: Math.max(1, rule.every - 1) })} aria-label="Fewer">
-              −
-            </button>
-            <span className="num">Every {rule.every}</span>
-            <button type="button" onClick={() => onChange({ ...rule, every: Math.min(365, rule.every + 1) })} aria-label="More">
-              +
-            </button>
-          </span>
+          <Stepper label="Every" value={rule.every} min={1} max={365} format={(v) => `Every ${v}`} onChange={(v) => onChange({ ...rule, every: v ?? 1 })} />
           <Options
             value={rule.unit}
             options={(['day', 'week', 'month'] as const).map((u) => ({ value: u, label: rule.every === 1 ? u : `${u}s` }))}
@@ -1101,10 +1088,7 @@ export function RepeatPanel({
         </div>
       ) : null}
       {rule?.type === 'interval' && !nag ? (
-        <div className="optrow optrow--panel">
-          <span className="optrow__text">Count from when it’s done</span>
-          <Switch on={rule.from === 'done'} label="Count from when it’s done" onChange={(v) => onChange({ ...rule, from: v ? 'done' : 'schedule' })} />
-        </div>
+        <SwitchRow panel title="Count from when it’s done" on={rule.from === 'done'} onChange={(v) => onChange({ ...rule, from: v ? 'done' : 'schedule' })} />
       ) : null}
     </Wrap>
   );

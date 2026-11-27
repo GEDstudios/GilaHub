@@ -42,6 +42,7 @@ import { ProjectMark } from './ui/ProjectMark';
 import { activeTabKey, pinsOf, tabsOf } from './tabs';
 import { projectCount, todayRef, todayView } from './views';
 import { listIdOf } from '../core/keys';
+import { G } from './ui/glyphs';
 
 type Phase = { name: 'boot' } | { name: 'onboard'; persistence: Persistence } | { name: 'ready'; rt: Runtime } | { name: 'error'; message: string };
 
@@ -164,7 +165,7 @@ function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
           setOpen(!open);
         }}
       >
-        <Icon name="plus" />
+        <Icon name={G.add} />
       </button>
     </>
   );
@@ -220,13 +221,13 @@ function TopNav() {
         </nav>
         <div className="topnav__end">
           <button type="button" className="topnav__search" onClick={() => openSearch()} aria-label="Search" aria-keyshortcuts="/">
-            <Icon name="search" className="icon--sm" />
+            <Icon name={G.search} className="icon--sm" />
             <span>Search</span>
             <span className="kbd">/</span>
           </button>
           {prefs.ideasTag ? (
             <button type="button" className="topnav__icon" onClick={openIdeas} aria-label={`Ideas${ideas.n ? `, ${ideas.n} open` : ''}`} title="Ideas for Gila Hub">
-              <Icon name="lightbulb" />
+              <Icon name={G.idea} />
               {ideas.fresh && ideas.partner ? <span className="topnav__dot" style={lineVars(ideas.partner.color)} /> : ideas.n ? <span className="topnav__n num">{ideas.n}</span> : null}
             </button>
           ) : null}

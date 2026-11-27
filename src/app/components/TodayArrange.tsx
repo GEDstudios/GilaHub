@@ -5,12 +5,13 @@ import { hiddenWidgets, hideHome, homePreview, isDefaultHome, isWidget, MAX_HOME
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { FolderTree } from './FolderTree';
+import { PlaceTree } from './PlaceTree';
 import { SavedListSheet } from './SavedList';
 import { ProjectMark } from '../ui/ProjectMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { todayView } from '../views';
 import { listKey, listIdOf } from '../../core/keys';
+import { G } from '../ui/glyphs';
 
 /**
  * Edit Today, on Today itself: every block shows as itself (a short, still peek of what it
@@ -53,7 +54,7 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
       {hidden.map((k) => (
         <button key={k} type="button" className="homeghost hatch" onClick={() => (haptic('tick'), showHome(hub, k))} aria-label={`Show ${WIDGETS[k].title(hub)}`}>
           <span className="homeghost__add">
-            <Icon name="plus" className="icon--sm" />
+            <Icon name={G.add} className="icon--sm" />
           </span>
           <span className="homeghost__text">
             <span className="homeghost__title">{WIDGETS[k].title(hub)}</span>
@@ -73,7 +74,7 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
             title={full ? `Up to ${MAX_HOME_PROJECTS} folders` : undefined}
           >
             <span className="homeghost__add">
-              <Icon name="folder" className="icon--sm" />
+              <Icon name={G.folder} className="icon--sm" />
             </span>
             <span className="homeghost__text">
               <span className="homeghost__title">Pin a folder</span>
@@ -83,12 +84,13 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
           {picking && !full ? (
             // The usual folder tree, folded: open a folder to reach the ones inside.
             <div className="homeghost__tree">
-              <FolderTree
-                marked={(l) => pins.includes(l.id)}
-                hint={(l) => (pins.includes(l.id) ? 'on Today' : null)}
-                onPick={(id) => {
+              <PlaceTree
+                disabled={(p) => pins.includes(p.listId)}
+                hint={(p) => (pins.includes(p.listId) ? 'on Today' : null)}
+                onPick={(p) => {
+                  if (!p) return;
                   setPicking(false);
-                  showHome(hub, listKey(id));
+                  showHome(hub, listKey(p.listId));
                 }}
               />
             </div>
@@ -99,7 +101,7 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
       {/* A list of my own: by tag, folder, due, urgent, whose */}
       <button type="button" className="homeghost hatch" onClick={() => openSheet((close) => <SavedListSheet onClose={close} />)}>
         <span className="homeghost__add">
-          <Icon name="funnel" className="icon--sm" />
+          <Icon name={G.filter} className="icon--sm" />
         </span>
         <span className="homeghost__text">
           <span className="homeghost__title">Add a filtered list</span>
@@ -126,10 +128,10 @@ function HomeCard({ k, peek, sub, onHide }: { k: string; peek: ReactNode; sub: s
     <section ref={s.ref} style={s.style as CSSProperties} className={`homecard ${s.className}`} {...s.props} data-grip="card">
       <CardHead k={k} title={title}>
         <button type="button" className="homecard__x" aria-label={`Hide ${title}`} onClick={onHide}>
-          <Icon name="x" className="icon--sm" />
+          <Icon name={G.close} className="icon--sm" />
         </button>
         <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="homecard__grip" aria-label={`Move ${title}`}>
-          <Icon name="grip" />
+          <Icon name={G.grip} />
         </button>
       </CardHead>
       <Peek peek={peek} sub={sub} />
@@ -144,7 +146,7 @@ function CardFace({ k, peek, sub }: { k: string; peek: ReactNode; sub: string })
     <section className="homecard is-lifted">
       <CardHead k={k} title={slotTitle(hub, k)}>
         <span className="homecard__grip">
-          <Icon name="grip" />
+          <Icon name={G.grip} />
         </span>
       </CardHead>
       <Peek peek={peek} sub={sub} />
@@ -158,7 +160,7 @@ function CardHead({ k, title, children }: { k: string; title: string; children: 
   return (
     <header className="homecard__head">
       <span className="homecard__mark">
-        {list ? <ProjectMark color={list.color} icon={list.icon} size="sm" /> : isWidget(k) ? <Icon name={WIDGETS[k].icon} /> : k.startsWith('q:') ? <Icon name="funnel" /> : null}
+        {list ? <ProjectMark color={list.color} icon={list.icon} size="sm" /> : isWidget(k) ? <Icon name={WIDGETS[k].icon} /> : k.startsWith('q:') ? <Icon name={G.filter} /> : null}
       </span>
       <span className="homecard__title" dir="auto">
         {title}

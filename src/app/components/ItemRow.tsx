@@ -1,6 +1,6 @@
 import { useDragOut } from '../ui/dragOut';
 import { movedTo } from './TemplateAsk';
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { memo, useCallback, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
@@ -8,6 +8,7 @@ import { useHub } from '../context';
 import { getPrefs, setPrefs, use24h, usePrefs } from '../prefs';
 import { haptic } from '../ui/haptics';
 import { navigate } from '../router';
+import { StockCount } from './StockCount';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { ticksAway, useTick } from '../tick';
@@ -19,9 +20,9 @@ import { useSettleHold } from '../ui/useSettle';
 import { useSwipe } from '../ui/swipe';
 import { TagPills } from './Tags';
 import { stepProgress, todayRef } from '../views';
-import { TOAST } from '../ui/tokens';
 import { isOpen } from '../../core/model';
 import { whenText } from '../labels';
+import { G } from '../ui/glyphs';
 
 export function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
   if (!item.due) return null;
@@ -232,7 +233,7 @@ export const ItemRow = memo(function ItemRow({
             {req ? <ReqTag state={req} /> : null}
             {stockOn ? (
               <span className="meta meta--stock is-low">
-                <Icon name="cart" />
+                <Icon name={G.onList} />
                 <span dir="auto">{hub.list(stockOn.listId)?.name}</span>
               </span>
             ) : null}
@@ -240,13 +241,13 @@ export const ItemRow = memo(function ItemRow({
             {due ? <span className={`meta ${due.soft ? 'meta--soft' : ''}`}>{due.text}</span> : null}
             {item.repeat ? (
               <span className="meta" title={describeRule(item.repeat, (n) => weekdayName(n))}>
-                <Icon name="repeat" />
+                <Icon name={G.repeat} />
               </span>
             ) : null}
             {steps.total ? (
               nested ? (
                 <span className="meta">
-                  <Icon name="subtask" />
+                  <Icon name={G.subtask} />
                   {steps.done}/{steps.total}
                 </span>
               ) : (
@@ -257,9 +258,9 @@ export const ItemRow = memo(function ItemRow({
                   aria-label={`${unfolded ? 'Fold' : 'Unfold'} the subtasks of ${item.title}: ${steps.done} of ${steps.total} done`}
                   onClick={fold}
                 >
-                  <Icon name="subtask" />
+                  <Icon name={G.subtask} />
                   {steps.done}/{steps.total}
-                  <Icon name="chevron-down" className="meta__chev" />
+                  <Icon name={G.fold} className="meta__chev" />
                 </button>
               )
             ) : null}
@@ -287,75 +288,6 @@ export const ItemRow = memo(function ItemRow({
   );
 });
 
-/**
- * Where a task's tick would be, something we count shows how many are in. Tap it: it opens into
- * − n + right there (used some, or filled back up), and closes by itself after a moment.
- */
-export function StockCount({ item, readonly }: { item: Item; readonly?: boolean }) {
-  const hub = useHub();
-  const { toast } = useOverlays();
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLSpanElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const linger = () => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setOpen(false), 3500);
-  };
-  useEffect(() => {
-    if (!open) return;
-    linger();
-    const away = (e: PointerEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('pointerdown', away, true);
-    return () => {
-      document.removeEventListener('pointerdown', away, true);
-      if (timer.current) clearTimeout(timer.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-  const n = item.stock ?? 0;
-  const out = item.stockUrgentAt != null && n <= item.stockUrgentAt;
-  const low = hub.stockLow(item);
-  const tone = out ? 'is-out' : low ? 'is-low' : '';
-  const set = (next: number) => {
-    const before = item.stockLink ?? null;
-    hub.setStock(item.id, { stock: next });
-    haptic('select');
-    linger();
-    const now = hub.item(item.id);
-    if (now?.stockLink && now.stockLink !== before) toast(`${item.title}: on ${hub.list(hub.item(now.stockLink)?.listId)?.name ?? 'the list'}`, { ms: TOAST.short });
-  };
-  if (open && !readonly)
-    return (
-      <span ref={box} className={`stockcount stockcount--open ${tone}`} onClick={(e) => e.stopPropagation()}>
-        <button type="button" aria-label={`${item.title}: one less`} disabled={n <= 0} onClick={() => set(n - 1)}>
-          −
-        </button>
-        <span className="num">{n}</span>
-        <button type="button" aria-label={`${item.title}: one more`} onClick={() => set(n + 1)}>
-          +
-        </button>
-      </span>
-    );
-  return (
-    <button
-      type="button"
-      className={`stockcount num ${tone}`}
-      aria-label={`${item.title}: ${n} in stock`}
-      title={`${n} in stock`}
-      disabled={readonly}
-      onClick={(e) => {
-        e.stopPropagation();
-        haptic('select');
-        setOpen(true);
-      }}
-    >
-      {n}
-    </button>
-  );
-}
-
 /** "Also on Home shopping": the same thing lives there too; tap to go to it. */
 export function TwinTag({ twin, label }: { twin: Item; label?: string }) {
   const hub = useHub();
@@ -370,7 +302,7 @@ export function TwinTag({ twin, label }: { twin: Item; label?: string }) {
         navigate({ name: 'item', id: twin.parentId ?? twin.id });
       }}
     >
-      <Icon name="link" className="icon--xs" />
+      <Icon name={G.linked} className="icon--xs" />
       <span dir="auto">{label ?? list.name}</span>
     </button>
   );

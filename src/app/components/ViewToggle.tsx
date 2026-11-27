@@ -5,7 +5,7 @@ import { Icon, type IconName } from '../ui/Icon';
 
 const VIEWS: Array<[ListView, IconName, string]> = [
   ['list', 'lines', 'List'],
-  ['cards', 'folders', 'Cards'],
+  ['cards', 'cards', 'Cards'],
   ['tags', 'tag', 'By tag'],
 ];
 

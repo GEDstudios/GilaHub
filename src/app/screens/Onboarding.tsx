@@ -6,6 +6,7 @@ import { claimInvite, claimRecovery, InviteError, type InvitePayload } from '../
 import { query } from '../router';
 import { Icon } from '../ui/Icon';
 import { IconButton, lineVars, Logo, NameTag } from '../ui/primitives';
+import { G } from '../ui/glyphs';
 
 export interface OnboardResult {
   kind: 'new' | 'partner' | 'device';
@@ -117,7 +118,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
           <button type="button" className="go" onClick={() => setStep('name')}>
             Get started
             <span className="go__arrow">
-              <Icon name="arrow" className="icon--sm" />
+              <Icon name={G.continue} className="icon--sm" />
             </span>
           </button>
           <button type="button" className="textbtn onboard__link" onClick={() => setStep('code')}>
@@ -135,7 +136,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     return (
       <main className="onboard">
         <div className="onboard__body">
-          <IconButton icon="arrow-back" label="Back" onClick={() => setStep('welcome')} />
+          <IconButton icon={G.back} label="Back" onClick={() => setStep('welcome')} />
           <h1 className="onboard__q">Type the code from the other phone</h1>
           <form
             onSubmit={(e) => {
@@ -173,7 +174,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     return (
       <main className="onboard">
         <div className="onboard__body">
-          <IconButton icon="arrow-back" label="Back" onClick={() => setStep('welcome')} />
+          <IconButton icon={G.back} label="Back" onClick={() => setStep('welcome')} />
           <h1 className="onboard__q">Type your recovery code</h1>
           <form
             onSubmit={(e) => {
@@ -207,7 +208,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
     return (
       <main className="onboard">
         <div className="onboard__body">
-          <IconButton icon="arrow-back" label="Back" onClick={() => setStep('name')} />
+          <IconButton icon={G.back} label="Back" onClick={() => setStep('name')} />
           <p className="onboard__step">2 of 2</p>
           <h1 className="onboard__q">What do you want to keep track of?</h1>
           <div className="picks">
@@ -217,7 +218,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
                 <button key={t.key} type="button" className={`pick ${on ? 'is-on' : ''}`} style={lineVars(colors[t.key])} onClick={() => toggle(t.key)} aria-pressed={on}>
                   <span className="pick__swatch" />
                   <span className="pick__name">{t.name}</span>
-                  <span className="pick__check">{on ? <Icon name="check" className="icon--sm" /> : null}</span>
+                  <span className="pick__check">{on ? <Icon name={G.done} className="icon--sm" /> : null}</span>
                 </button>
               );
             })}
@@ -234,7 +235,7 @@ export function Onboarding({ onDone }: { onDone: (r: OnboardResult) => Promise<v
   return (
     <main className="onboard">
       <div className="onboard__body">
-        <IconButton icon="arrow-back" label="Back" onClick={() => setStep(invite ? 'code' : 'welcome')} />
+        <IconButton icon={G.back} label="Back" onClick={() => setStep(invite ? 'code' : 'welcome')} />
         {invite?.fromName ? <p className="onboard__step">{invite.fromName} invited you</p> : <p className="onboard__step">1 of 2</p>}
         <h1 className="onboard__q">What should we call you?</h1>
         <form

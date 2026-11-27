@@ -14,10 +14,10 @@ const OUT = resolve(root, 'src/app/ui/icons.gen.ts');
 const LEFT = 'M24,96a72,72,0,1,0,144,0a72,72,0,1,0,-144,0Z';
 const RIGHT = 'M88,160a72,72,0,1,0,144,0a72,72,0,1,0,-144,0Z';
 
-/** App IconName → [Phosphor name, mode]. mode: 'duo' | 'line' (control, no light) | a light path override. */
+/** App IconName → [Phosphor name, mode]. mode: 'duo' | 'line' (control, no light) | a light path override; or ['custom', [light, line]]. */
 const MAP = {
   // controls — line only; the button around them is the light
-  plus: ['plus', 'line'], check: ['check', 'line'], x: ['x', 'line'],
+  plus: ['plus', 'line'], minus: ['minus', 'line'], check: ['check', 'line'], x: ['x', 'line'],
   'chevron-right': ['caret-right', 'line'], 'chevron-left': ['caret-left', 'line'],
   'chevron-down': ['caret-down', 'line'], 'chevron-up': ['caret-up', 'line'],
   arrow: ['arrow-right', 'line'], 'arrow-back': ['arrow-left', 'line'],
@@ -38,7 +38,11 @@ const MAP = {
   cart: ['shopping-cart-simple', 'duo'], link: ['link', 'duo'], eye: ['eye', 'duo'], 'eye-off': ['eye-slash', 'duo'],
   moon: ['moon', 'duo'], hand: ['hand', 'duo'], pin: ['push-pin', 'duo'], urgent: ['lightning', 'duo'],
   layout: ['layout', 'duo'], sliders: ['sliders-horizontal', 'duo'], inbox: ['tray', 'duo'], stack: ['rows', 'duo'],
-  request: ['hand-waving', 'duo'], 'user-plus': ['user-plus', 'duo'], badge: ['notification', 'duo'],
+  request: ['hand-waving', 'duo'], cards: ['cards', 'duo'], history: ['clock-counter-clockwise', 'duo'],
+  'bell-ringing': ['bell-ringing', 'duo'], eraser: ['eraser', 'duo'], key: ['key', 'duo'], speaker: ['speaker-high', 'duo'],
+  vibrate: ['vibrate', 'duo'], browser: ['browser', 'duo'], task: ['check-circle', 'duo'], shows: ['stack-plus', 'duo'],
+  // our own: a task's subtask (an elbow down into a row), drawn on the same grid
+  subtask: ['custom', ['M196,168L156,128L156,208Z', 'M52,48A8,8,0,0,1,68,48V128A32,32,0,0,0,100,160H196A8,8,0,0,1,196,176H100A48,48,0,0,1,52,128ZM161.66,122.34L201.66,162.34A8,8,0,0,1,190.34,173.66L150.34,133.66A8,8,0,0,1,161.66,122.34ZM150.34,202.34L190.34,162.34A8,8,0,0,1,201.66,173.66L161.66,213.66A8,8,0,0,1,150.34,202.34Z']], 'user-plus': ['user-plus', 'duo'], badge: ['notification', 'duo'],
   lightbulb: ['lightbulb', 'duo'], image: ['image', 'duo'], scribble: ['scribble-loop', 'duo'],
   // cursors (a computer's mouse): drawn in my colour, ui/cursors.ts
   'cursor-arrow': ['cursor', 'duo'], 'hand-pointing': ['hand-pointing', 'duo'], 'hand-grabbing': ['hand-grabbing', 'duo'], 'cursor-rotate': ['arrow-clockwise', 'duo'], 'cursor-scale': ['arrows-out-simple', 'duo'],
@@ -69,6 +73,10 @@ const round = (d) =>
 
 const out = [];
 for (const [name, [ph, mode]] of Object.entries(MAP)) {
+  if (ph === 'custom') {
+    out.push(`  '${name}': ['${mode[0]}', '${mode[1]}'],`);
+    continue;
+  }
   const file = mode === 'line' ? `${assets}/regular/${ph}.svg` : `${assets}/duotone/${ph}-duotone.svg`;
   const svg = readFileSync(file, 'utf8');
   const light = [], line = [];

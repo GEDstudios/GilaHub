@@ -12,6 +12,7 @@ import { Check, Disclosure, lineVars } from '../ui/primitives';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { useSettle } from '../ui/useSettle';
 import { SketchSheet, useShotPicker } from './Sketch';
+import { G } from '../ui/glyphs';
 
 /**
  * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag sits in the page
@@ -116,7 +117,7 @@ export function IdeaTag() {
     >
       <span className="ideatag__body">
         <span className="ideatag__paper">
-          <Icon name="lightbulb" />
+          <Icon name={G.idea} />
           {n ? <span className="ideatag__n num">{n}</span> : null}
         </span>
         {fresh ? <span className="ideatag__dot" style={lineVars(partner.color)} /> : null}
@@ -160,7 +161,7 @@ function Composer() {
   return (
     <form className={`addrow ideas__compose ${shot ? 'has-shot' : ''}`} onSubmit={add}>
       <span className="addrow__plus" aria-hidden="true">
-        <Icon name="plus" />
+        <Icon name={G.add} />
       </span>
       <textarea
         ref={field}
@@ -179,12 +180,12 @@ function Composer() {
         <span className="ideas__pending">
           <img src={shot} alt="Your picture" />
           <button type="button" className="ideas__unshot" aria-label="Take the picture off" onClick={() => setShot(null)}>
-            <Icon name="x" className="icon--xs" />
+            <Icon name={G.close} className="icon--xs" />
           </button>
         </span>
       ) : (
         <button type="button" className="slot__btn ideas__shotbtn" aria-label="Add a screenshot to draw on" title="Add a screenshot" onClick={picker.pick}>
-          <Icon name="image" />
+          <Icon name={G.photo} />
         </button>
       )}
       {picker.input}
@@ -225,7 +226,7 @@ function ShotSheet({ id, onClose }: { id: string; onClose: () => void }) {
           className="btn btn--block"
           onClick={() => openSheet((close) => <SketchSheet src={src} onDone={(jpeg) => hub.setIdeaShot(id, jpeg)} onClose={close} title="Draw on it" />)}
         >
-          <Icon name="scribble" className="icon--sm" /> Draw on it
+          <Icon name={G.draw} className="icon--sm" /> Draw on it
         </button>
         <button
           type="button"
@@ -346,7 +347,7 @@ function OpenRow({ idea, settling, onResolve }: { idea: Idea; settling: boolean;
       </div>
       <Check on={settling} color={hub.me()?.color} onToggle={() => onResolve(idea.id)} label={idea.text} disabled={settling} />
       <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="slot__btn slot__grip" aria-label={`Move ${idea.text}`}>
-        <Icon name="grip" />
+        <Icon name={G.grip} />
       </button>
     </li>
   );
@@ -370,7 +371,7 @@ function LiftedRow({ idea }: { idea: Idea }) {
         </div>
         <span className="check" aria-hidden="true" />
         <span className="slot__btn slot__grip" aria-hidden="true">
-          <Icon name="grip" />
+          <Icon name={G.grip} />
         </span>
       </li>
     </ul>
@@ -406,7 +407,7 @@ function ResolvedRow({ idea }: { idea: Idea }) {
           toast('Idea deleted', { action: { label: 'Undo', run: undo } });
         }}
       >
-        <Icon name="x" />
+        <Icon name={G.close} />
       </button>
     </li>
   );
@@ -474,7 +475,7 @@ export function IdeasSheet({ onClose, since }: { onClose: () => void; since: num
       {open.length ? (
         <div className="ideas__foot">
           <button type="button" className="textbtn" onClick={() => void copy()}>
-            <Icon name="copy" className="icon--sm" />
+            <Icon name={G.copy} className="icon--sm" />
             Copy open ideas
           </button>
         </div>

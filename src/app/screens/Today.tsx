@@ -15,14 +15,15 @@ import { visibleHome, queryIdOf } from '../home';
 import { openSearch } from '../search';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Band, IconButton, lightVar, NewButton } from '../ui/primitives';
+import { Band, IconButton, lightVar } from '../ui/primitives';
 import { haptic } from '../ui/haptics';
 import { setPrefs, usePrefs } from '../prefs';
-import { isMineSide } from '../privacy';
+import { isMineSide, VIS_ICON } from '../privacy';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { todayView, type TodayView } from '../views';
 import { calm } from '../ui/tokens';
 import { listIdOf } from '../../core/keys';
+import { G } from '../ui/glyphs';
 
 const idOf = (i: Item) => i.id;
 
@@ -85,7 +86,7 @@ export function Today() {
         setPrefs({ todayScope: mineOnly ? 'all' : 'mine' });
       }}
     >
-      <Icon name={mineOnly ? 'mine' : 'ours'} className="icon--sm" />
+      <Icon name={VIS_ICON[mineOnly ? 'mine' : 'ours']} className="icon--sm" />
       {mineOnly ? 'Mine' : 'Ours'}
     </button>
   ) : null;
@@ -152,7 +153,7 @@ export function Today() {
   const editLink = (
     <div className="homeedit">
       <button type="button" className="textbtn" onClick={() => edit(true)}>
-        <Icon name="edit" />
+        <Icon name={G.edit} />
         Edit Today
       </button>
     </div>
@@ -186,8 +187,7 @@ export function Today() {
         actions={
           <>
             {scopeTag}
-            <IconButton icon="search" label="Search" onClick={() => openSearch()} />
-            <NewButton onClick={openNew} />
+            <IconButton icon={G.search} label="Search" onClick={() => openSearch()} />
           </>
         }
         title={`${greeting()}, ${me?.name ?? 'you'}!`}
