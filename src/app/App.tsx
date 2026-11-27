@@ -1,7 +1,7 @@
 import { startTour, tourDone, tourList, tourWatch } from './tour';
 import { updateReady } from './update';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { seedHousehold } from '../core/actions';
+import { seedHousehold } from '../core/seed';
 import { addDays, today as todayStr } from '../core/dates';
 import { afterTick } from './notify';
 import type { Persistence } from '../core/db';

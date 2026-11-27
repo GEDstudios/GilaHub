@@ -124,6 +124,9 @@
 }
 
 /* While search is open the floating things below it rest. */
+html.is-searching :is(.tabbar:not(.tabbar--preview), .ideatag) {
+  visibility: hidden;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .searchlayer__veil,

@@ -320,6 +320,12 @@
 }
 
 /* "Hold and slide to pick", once, the first time the bar holds 6 or more */
+:root:has(.tabbar.is-held:not(.tabbar--preview)) .toasts {
+  opacity: 0;
+  translate: 0 8px;
+  pointer-events: none;
+}
+
 .tabbar__hint {
   position: absolute;
   left: 50%;

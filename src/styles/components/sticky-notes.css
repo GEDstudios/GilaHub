@@ -253,6 +253,10 @@ html.is-searching .stickyboard {
 }
 
 /* Arranging a screen (Today, the bar, the categories) is no time for notes: they wait for the regular view. */
+html:has(.home--editing) .stickyboard {
+  display: none;
+}
+
 html.is-editing .stickyboard {
   display: none;
 }

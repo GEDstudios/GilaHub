@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { seedHousehold } from '../../src/core/actions';
+import { seedHousehold } from '../../src/core/seed';
 import { projectView } from '../../src/app/views';
 import { person, sync } from './_helpers';
 

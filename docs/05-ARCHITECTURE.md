@@ -33,7 +33,8 @@
   - Two people editing different fields of one item never conflict. For the same field, the same winner is chosen on every device.
   - Deletes are tombstones. Ordering uses fractional index keys (`src/core/order.ts`), so a reorder touches one item.
 - **Outbox**: every local write is queued as an op, so the app works offline indefinitely. Ops are sealed only at send time.
-- **Domain layer (`src/core/actions.ts`)**: user intents (add, complete, move, set privacy, finish trip…) expressed as store writes.
+- **Domain layer (`src/core/actions.ts`, the `Hub`)**: user intents (add, complete, move, set privacy…) expressed as store writes, with one helper per question (`isLive`, `treeIds`, `isWithin`, `isUnder`, `siblings`). Where a household starts lives in `src/core/seed.ts`; folder keys (`l:<id>`) in `src/core/keys.ts`.
+- **App layer (`src/app/`)**: what screens show (`views.ts`, `query.ts`, `home.ts`), how it's said (`labels.ts`), privacy rules (`privacy.ts`), and the UI: shared building blocks in `ui/` and `components/` (see 03 · Design system), screens in `screens/`.
 - **Smart layer (`src/smart/`)**: quick-add parser, quantity parser, bilingual categorizer, recurrence engine, buy-again suggestions. All pure functions with unit tests and no network.
 - **Service worker (`src/sw/sw.js`)**: precaches the app shell for offline use, receives push and decrypts it with the household or personal key from IndexedDB, and handles notification taps.
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Hub, seedHousehold } from '../../src/core/actions';
+import { Hub } from '../../src/core/actions';
+import { seedHousehold } from '../../src/core/seed';
 import { isForMe, projectView } from '../../src/app/views';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';

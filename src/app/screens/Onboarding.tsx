@@ -1,6 +1,6 @@
 import { Swatches } from '../components/pickers';
 import { useState } from 'react';
-import { pickColors, PROJECT_TEMPLATES } from '../../core/actions';
+import { pickColors, PROJECT_TEMPLATES } from '../../core/seed';
 import { formatInviteCode, formatRecoveryCode, normalizeInviteCode } from '../../core/ids';
 import { type LineColor } from '../../core/model';
 import { claimInvite, claimRecovery, InviteError, type InvitePayload } from '../../core/session';

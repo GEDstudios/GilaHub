@@ -1,6 +1,6 @@
 import { atLocal, diffDays, today as todayStr, type DateStr } from './dates';
 import { newId } from './ids';
-import { type AisleConf, type Idea, isOpen, type Item, LINE_COLORS, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Moment, type Note, type Photo, type Scope, type ShoppingFlavor, type Tag, type TaskTemplate, type Visibility } from './model';
+import { type AisleConf, type Idea, isOpen, type Item, type LineColor, type List, type ListKind, type ListView, type LogEntry, type Member, type Moment, type Note, type Photo, type Scope, type ShoppingFlavor, type Tag, type TaskTemplate, type Visibility } from './model';
 import { byOrder, keyBetween } from './order';
 import type { Store } from './store';
 import { aisleGlyph, categorize, categoryMeta, categoryOrder, lookup, routeFlavor, type Flavor } from '../smart/categorize';
@@ -8,6 +8,7 @@ import { fold, itemKey, parseQuantity } from '../smart/normalize';
 import { suggestIcon } from './projectIcons';
 import { firstDue, isFlexible, nextDue, shiftForAway, skipDue } from '../smart/recurrence';
 import { listKey, listIdOf } from './keys';
+import { pickColor, PROJECT_TEMPLATES } from './seed';
 
 export type ItemVisibility = 'ours' | 'mine' | 'private';
 export type Undo = () => void;
@@ -850,6 +851,8 @@ export class Hub {
     return null;
   }
 
+  // ---------- repeating, moving, deleting ----------
+
   /** Done for a repeating item/chore, on any day (early, late, yesterday…). */
   completeRepeating(id: string, onDate: DateStr = todayStr()): Undo {
     const item = this.item(id);
@@ -999,7 +1002,7 @@ export class Hub {
     return this.store.batch(() => copy(item, item.parentId ?? null));
   }
 
-  // ---------- adding, and the tray of things just done ----------
+  // ---------- adding (and Shopping, where buying goes), and the tray of things just done ----------
 
   /** The Shopping project (from the move from before, or a shopping template): where "Buy a doorknob" also goes. */
   shopRoot(): List | undefined {
@@ -1459,7 +1462,7 @@ export class Hub {
     });
   }
 
-  // ---------- chores ----------
+  // ---------- household settings and thanks ----------
 
   settings() {
     return this.store.get('settings', 'house');
@@ -1597,7 +1600,7 @@ export class Hub {
     return () => this.store.mutate('note', id, { peeledAt: was });
   }
 
-  // ---------- ideas (for Gila Hub itself) ----------
+  // ---------- ideas (for Gila Hub itself), and pictures on ideas, notes and tasks ----------
 
   idea(id: string | null | undefined): Idea | undefined {
     return id ? this.store.get('idea', id) : undefined;
@@ -1913,64 +1916,6 @@ const PERSON_FIELDS = [
   'editedBy',
   'awayBy',
 ] as const;
-
-export interface ProjectTemplate {
-  key: string;
-  name: string;
-  icon: string;
-  /** A shopping list (made inside Shopping): groceries or things for the home. */
-  flavor?: ShoppingFlavor;
-  visibility?: Visibility;
-  blurb: string;
-}
-
-/** Starting points offered at onboarding and in "New project". Nothing is created unless picked. */
-export const PROJECT_TEMPLATES: ProjectTemplate[] = [
-  { key: 'groceries', name: 'Groceries', icon: 'i:cart', flavor: 'grocery', blurb: 'Sorted by aisle, for both of you' },
-  { key: 'home', name: 'Home shopping', icon: 'i:bag', flavor: 'home', blurb: 'Bulbs, towels, a new pan' },
-  { key: 'chores', name: 'Chores', icon: 'i:broom', blurb: 'Things that repeat, shared fairly' },
-  { key: 'todo', name: 'To do', icon: 'i:lines', blurb: 'Everything else, with dates and steps' },
-  { key: 'trip', name: 'Next trip', icon: 'i:suitcase', blurb: 'Plans and packing' },
-  { key: 'gifts', name: 'Gift ideas', icon: 'i:gift', visibility: 'private', blurb: 'Only you can see it' },
-];
-
-/** A starting project; a shopping one goes inside Shopping (made if needed), with its aisles as tags. */
-export function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineColor): string {
-  return hub.store.batch(() => {
-    const parentId = t.flavor ? hub.ensureShopRoot() : null;
-    if (t.flavor) hub.ensureBuiltinTags(t.flavor);
-    return hub.createList({ name: t.name, flavor: t.flavor, color, icon: t.icon, visibility: t.visibility ?? 'shared', parentId, view: t.flavor ? 'tags' : undefined });
-  });
-}
-
-/** A random color from the palette, preferring ones no project uses yet, then ones not in `avoid`. */
-export function pickColor(used: LineColor[], rand: () => number = Math.random, avoid: LineColor[] = []): LineColor {
-  const free = LINE_COLORS.filter((c) => !used.includes(c));
-  const apart = LINE_COLORS.filter((c) => !avoid.includes(c));
-  const pool = free.length ? free : apart.length ? apart : LINE_COLORS;
-  return pool[Math.floor(rand() * pool.length)];
-}
-
-/** Distinct random colors for several new projects at once. */
-export function pickColors(keys: string[], used: LineColor[] = [], rand: () => number = Math.random): Record<string, LineColor> {
-  const out: Record<string, LineColor> = {};
-  const taken = [...used];
-  for (const k of keys) {
-    out[k] = pickColor(taken, rand);
-    taken.push(out[k]);
-  }
-  return out;
-}
-
-/** A brand-new household: only the projects the person picked. */
-export function seedHousehold(hub: Hub, templateKeys: string[], colors: Record<string, LineColor> = {}): void {
-  hub.store.batch(() => {
-    for (const key of templateKeys) {
-      const t = PROJECT_TEMPLATES.find((x) => x.key === key);
-      if (t) createFromTemplate(hub, t, colors[key]);
-    }
-  });
-}
 
 /** Words that mean "this is shopping": buy/get/order/pick up, or Hebrew לקנות/קנה. */
 const BUY = /^(?:buy|get|order|pick up|grab|לקנות|קנה|קני|להזמין)\s+(.+)$/i;

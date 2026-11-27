@@ -60,6 +60,23 @@ Every screen that holds things has exactly two adds ([`addAction.ts`](../src/app
 
 **Empty lists** show only the add row, with up to four gray tokens to add in one tap where it helps (chores: Dishes, Laundry, Bins, Sheets; shopping: what you often buy). The big serif line is kept for "gone" and "not found".
 
+### The building blocks
+
+Every recurring piece of UI is one component, and every screen uses it rather than its own copy.
+
+| Need | Component (file) | Notes |
+|---|---|---|
+| Choose where something goes: a folder, or a task in one | `PlaceTree` ([`components/PlaceTree.tsx`](../src/app/components/PlaceTree.tsx)) | Folders fold, tasks and subtasks unfold, a long press opens, a search field once the tree is long, a faint line per level. Move, Also in, Goes on, a filtered list's folder, a folder on Today, Show tasks from, the composer's place. |
+| On/off with a label | `SwitchRow` ([`components/pickers.tsx`](../src/app/components/pickers.tsx)) | The whole row flips the `Switch`. `panel` for the quieter size inside an editor. |
+| One of a few, inline | `Seg` (raised pill), `Options` (wrapping pills) | |
+| − n + | `Stepper` ([`ui/primitives.tsx`](../src/app/ui/primitives.tsx)) | `nullable` goes below its lowest to "off"; `size` sm, `look` tile / card / bare, `tone` low / out. |
+| Keep it on Today | `StarButton` | A task's Highlights and a folder's block on Today: one star, one sound, one undo. |
+| A round glyph button | `IconButton` | `pressed`, `disabled`, `small`. |
+| A "…" menu | `ActionSheet` | Closes, then runs the action. Whatever deletes goes last and is `danger`. |
+| A sheet's answers | `Choices` | Stacked, or side by side (`row`). |
+| How things are said | [`app/labels.ts`](../src/app/labels.ts) | Names, who does it, when, how it repeats, when it notifies. |
+| What a glyph means | [`ui/glyphs.ts`](../src/app/ui/glyphs.ts) | `G.subtask`, `G.close`, `G.highlight`…: components name the meaning, never a raw glyph. `G_TEXT` for notification titles. |
+
 ### Component families
 
 One job per family.
@@ -67,19 +84,19 @@ One job per family.
 | Family | Only job | Size | Examples |
 |---|---|---|---|
 | `.btn` / `.btn--quiet` | Commit an action / secondary action | 54, 40 with `--sm` | Add, Finish, Bring them in |
-| `.iconbtn` | Header and sheet chrome, always gray. `--solid` is New, and only New. | 42 | Search, …, Back, Close, Pause |
+| `.iconbtn` | Header and sheet chrome, always gray (`IconButton`) | 42, 36 with `--sm` | Search, …, Back, Close, the star |
 | `.echip` | A property of the thing; opens an inline panel | 38 (34 in the add row) | Date, Repeat, Who, Ours, Urgent, List |
 | `.option` | A choice inside a panel or sheet | 36 | Ours / Mine / Only me, Every week |
 | `.token` | A suggestion or parsed result to tap (add, keep, drop) | 34 | "Sunday ×", Dishes, Buy again, templates |
 | `.mini` | An in-row action on a tile | 30 | OK / Not yet, Today / Tomorrow, Restore |
-| `.textbtn` | A disclosure or low-emphasis link | — | Show / Hide, Going away?, Invite your person |
+| `.textbtn` | A disclosure or low-emphasis link | — | Show / Hide, Edit Today, Invite your person |
 | `.urgent` `.vtag` `.rtag` (+ project `.tag`) | Read-only status | 22 (project tag 30) | Urgent, Mine, Hila asked |
 
 - Nothing but New is a black circle. Dashed borders mean "create or bring in", and nothing else: the add row's plus, the New project tile, the invite card and the ghost Who chip.
 - **Disclosure** (`Disclosure` in [`primitives.tsx`](../src/app/ui/primitives.tsx)): a section title with its count, and "Show" / "Hide" on the right. In the cart, Done, Paused and Archived all fold this way. ("n from earlier" on Today is a quiet line instead, because it lives inside the Today block.)
 - **"…" menus** hold only rare or destructive things. Whatever deletes or removes goes last and is red (`OptRow danger`, `--danger`): Delete, Delete project, Remove from list, Reset this device.
 - **One Finish.** The shopbar's in the store; a quiet button under the cart otherwise.
-- **Same words for the same thing.** Away mode says "Chores paused. Have a good trip." from Chores and from Settings; the sync dot has one set of titles wherever it shows.
+- **Same words for the same thing** (`app/labels.ts`): a date and time read "Fri 4 Dec · 17:00" in a row, a chip and a notification, and "Fri 4 Dec at 17:00" in a sentence; the sync dot has one set of titles wherever it shows.
 
 ## Icons — Gila Duo
 
@@ -103,13 +120,26 @@ Every icon is an **ink line** and a solid **light** behind it, drawn from Phosph
 - **The offset appears only when lit** (and grows to 2.5 px while a row is lifted, `.is-lifted`).
 - **Privacy family:** Ours is two overlapping circles whose shared lens is the light; Mine fills my circle in my color; my partner's fills theirs in their color; Only me is a lock.
 - **Sizes** are set with `--s` (px), never width/height: 24 tab bar and folder cards · 22 default (icon buttons) · 20 sidebar, settings rows, icon picker, aisle headers · 18 chips and options (`.icon--sm`) · 16 the Ideas tag · 15 meta and tokens (`.icon--xs`) · 14 card lock and the urgent tag · 13 add-row plus and token ×. Never above 28 px: the line gets too heavy.
-- **Adding an icon:** add one row to `MAP` in [`scripts/build-glyphs.mjs`](../scripts/build-glyphs.mjs) and run `npm run glyphs`. Never hand-edit `src/app/ui/icons.gen.ts`. Use `<Icon name="…" />`; `lit` lights it when no parent state does.
+- **One meaning, one glyph.** Components use [`G`](../src/app/ui/glyphs.ts) (`<Icon name={G.subtask} />`), never a raw glyph name, so the same idea always looks the same and no glyph means two things (the star is "keep it on Today", for a task and a folder alike; the To-Do folder's mark is a tick).
+- **Adding an icon:** add one row to `MAP` in [`scripts/build-glyphs.mjs`](../scripts/build-glyphs.mjs) (our own drawings go in as `['custom', [light, line]]`) and run `npm run glyphs`, then give it a meaning in `G`. Never hand-edit `src/app/ui/icons.gen.ts`. `lit` lights it when no parent state does.
+
+## Scales
+
+Every value comes from one scale; [`tests/unit/tokens.test.ts`](../tests/unit/tokens.test.ts) fails when a stylesheet steps off one.
+
+- **Space** (padding, margin, gap): 2 4 6 8 10 12 14 16 20 24 28 32 36 40 48 56 64. Stacking blocks use `--space-1…5` (8 12 16 24 36). The page gutter is 24.
+- **Radius**: 2 4 6 8 10 12 14 16 18 20 22 24 28 30 32 36 40, 50% and 999px for round.
+- **Type**: whole pixels; 11–18 for what you read, the serif larger. A field you type into is at least 16 px (a phone zooms in on smaller ones).
+- **Stacking** (`--z-*` in tokens.css): raised 20 · band 30 · fab 35 · bar 40 · sheet 60 · search 70 · toast 80 · drag 200 · effects and the cursor on top.
+- **Feel** ([`ui/tokens.ts`](../src/app/ui/tokens.ts), mirrored in tokens.css): `HOLD.press` 350 ms is every press-and-hold (a row, a subtask, a note, a group, a tree row); `HOLD.handle` 120 ms a grip; `HOLD.bar` 240 ms the tab bar's scrub. `SLOP` says how far a pointer may wander; `DUR`, `EASE` and `TOAST` the timings; `calm()` is reduced motion. [`ui/pointer.ts`](../src/app/ui/pointer.ts) is the one place that asks what the device points with.
+
+The styles are one family per file: [`styles/components/`](../src/styles/components) and [`styles/screens/`](../src/styles/screens), imported in cascade order by `components.css` and `screens.css`; tokens in `tokens.css`; the computer layout in `desktop.css`.
 
 ## Motion
 
 140–320 ms with `cubic-bezier(.2,.8,.2,1)`. A spring on checks, switches and swatches. `prefers-reduced-motion` turns movement off.
 
-- **Drag to reorder** is one component, [`ui/Sortable.tsx`](../src/app/ui/Sortable.tsx), for rows, steps, aisles, folders and the Settings arrangers. A long-press (320 ms, so an unhurried tap still opens the row) lifts a row on a phone; a grip starts after 3 px. The lifted copy floats above everything at 1.035×, leans 1.5° and tilts up to ±3° with the finger's speed, with a deep shadow (`--lift-3`). Folders keep their own tilt and add 3°. The spot it left is a dashed slot; neighbours slide over 260 ms with a little overshoot, and the drop glides home in 320 ms with a small landing beat. A shopping row stays in its aisle: pull it out and the aisle shakes no.
+- **Drag to reorder** is one component, [`ui/Sortable.tsx`](../src/app/ui/Sortable.tsx), for rows, steps, aisles, folders and the Settings arrangers. A long-press (`HOLD.press`, so an unhurried tap still opens the row) lifts a row on a phone; a grip starts after 4 px with a mouse. The lifted copy floats above everything at 1.035×, leans 1.5° and tilts up to ±3° with the finger's speed, with a deep shadow (`--lift-3`). Folders keep their own tilt and add 3°. The spot it left is a dashed slot; neighbours slide over 260 ms with a little overshoot, and the drop glides home in 320 ms with a small landing beat. A shopping row stays in its aisle: pull it out and the aisle shakes no.
 - **Ticking** ([`ui/useSettle.ts`](../src/app/ui/useSettle.ts)): the ring pops, the tick draws itself, a line strikes the title, and the row folds away after about half a second. The data changes at once; only the row waits.
 - **Hold and slide** ([`TabBar.tsx`](../src/app/components/TabBar.tsx)): hold the bar still for 240 ms and slide. The tab under the finger lights up, swells with its neighbours (`--d`) and is named in a black bubble; letting go goes there, lifting the finger 72 px above the bar cancels. Rest past the outermost tab in view (or in the edge fade) for 300 ms and the dock steps one tab, then another every 230 ms, so the edge tab itself can always be picked. The Settings preview scrubs the same way. A tap is still instant and a quick swipe still scrolls the dock. The first time the bar holds 6 or more, it says so once: "Hold and slide to pick".
 - **Sheets and toasts** follow the finger ([`ui/overlays.tsx`](../src/app/ui/overlays.tsx), the math in [`ui/motion.ts`](../src/app/ui/motion.ts)): a sheet pulled short springs back over 420 ms with `cubic-bezier(.34,1.4,.64,1)`; a toast swiped past 64 px (or flicked) flies off. A folded toast pops once more.

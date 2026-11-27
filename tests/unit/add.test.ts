@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Hub, seedHousehold } from '../../src/core/actions';
+import { Hub } from '../../src/core/actions';
+import { seedHousehold } from '../../src/core/seed';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
 import { parseQuickAdd, type ParseContext } from '../../src/smart/parse';

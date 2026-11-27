@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Hub, seedHousehold } from '../../src/core/actions';
+import { Hub } from '../../src/core/actions';
+import { seedHousehold } from '../../src/core/seed';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
 import { activeTabKey, barDensity, cleanPins, keepDormant, MAX_PINS, pinAt, pinOptions, pinsOf, placePin, setPins, tabsOf, togglePin } from '../../src/app/tabs';
