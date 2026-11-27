@@ -199,7 +199,9 @@ textarea.ccard__input {
   width: 40px;
   height: 40px;
   flex: 0 0 40px;
-  margin: 0;
+  /* Centred on the title's first line: the middle of its capitals (32px Newsreader, 1.08) sits
+     6px above the middle of a 40px box at the line's top. */
+  margin: -6px 0 0;
 }
 
 .hero .check::before {
