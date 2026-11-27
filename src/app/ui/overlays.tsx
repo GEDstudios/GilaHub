@@ -346,7 +346,7 @@ function useSheetPull(panel: React.RefObject<HTMLDivElement | null>, scrim: Reac
     const onStart = (e: TouchEvent) => {
       if (e.touches.length !== 1 || matchMedia('(min-width: 720px)').matches) return;
       const target = e.target as HTMLElement;
-      const grip = !!target.closest('.sheet__handle, .sheet__title');
+      const grip = !!target.closest('.sheet__handle, .sheet__head');
       // Fields, sliders and sideways strips keep their own gestures.
       if (!grip && target.closest('input, textarea, select, [contenteditable="true"], .tokens--scroll, [data-no-pull]')) return;
       const t = e.touches[0];
@@ -452,8 +452,11 @@ export function Sheet({
       <div className="sheet__scrim" ref={scrim} onClick={onOutside ?? onClose} />
       <div className="sheet__panel" ref={panel} style={wide ? { maxWidth: 760 } : undefined}>
         <div className="sheet__handle" aria-hidden="true" />
-        <IconButton icon={G.close} label="Close" className="sheet__close" onClick={onClose} />
-        {title ? <h2 className="sheet__title">{title}</h2> : null}
+        {/* One header row for every sheet: its title (or nothing), and × at the end of it, so nothing ever sits under the ×. */}
+        <div className={`sheet__head ${title ? '' : 'sheet__head--bare'}`}>
+          {title ? <h2 className="sheet__title">{title}</h2> : null}
+          <IconButton icon={G.close} label="Close" className="sheet__close" onClick={onClose} />
+        </div>
         {children}
       </div>
     </div>,

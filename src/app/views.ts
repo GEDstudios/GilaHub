@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { addDays, fromDateStr, today as todayStr } from '../core/dates';
 import type { Idea, Item, List, LogEntry } from '../core/model';
 import { byOrder } from '../core/order';
@@ -309,7 +309,11 @@ export function openCount(hub: Hub, listId: string): number {
  */
 export function projectCount(hub: Hub, list: List): { n: number; text: string } {
   const n = [list, ...hub.nestedLists(list.id)].reduce((sum, l) => sum + openCount(hub, l.id), 0);
-  return { n, text: n ? `${n} open` : 'All clear' };
+  if (n) return { n, text: `${n} open` };
+  // Nothing open: all clear when things were done here, empty when nothing ever was.
+  const ids = new Set(hub.treeIds(list.id));
+  const any = hub.store.all('item').some((i) => ids.has(i.listId) && !i.parentId);
+  return { n, text: any ? 'All clear' : 'Empty' };
 }
 
 export function stepProgress(hub: Hub, id: string): { done: number; total: number } {

@@ -4,36 +4,8 @@
   gap: 10px;
 }
 
-.iconlib__search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 42px;
-  padding: 0 12px;
-  border-radius: 14px;
-  background: var(--tile);
-  color: var(--text-2);
-}
 
-.iconlib__search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font: inherit;
-  font-size: 16px;
-  outline: none;
-}
 
-.iconlib__clear {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  color: var(--text-2);
-}
 
 /* The groups scroll sideways, one line. */
 .iconlib__groups {

@@ -237,3 +237,28 @@ describe('repeat on days of the month', () => {
     expect(parseQuickAdd('Water plants every 3 days', ctx).repeat?.type).toBe('interval');
   });
 });
+
+describe('#: a folder or a tag', () => {
+  const lists = [
+    { id: 'l1', name: 'Home shopping' },
+    { id: 'l2', name: 'Chores' },
+  ];
+  const tags = [
+    { id: 't1', name: 'Home' },
+    { id: 't2', name: 'Money matters' },
+  ];
+  it('an exact name wins: a folder, then a tag', () => {
+    expect(parseQuickAdd('Sweep #chores', { lists, tags })).toMatchObject({ title: 'Sweep', listId: 'l2' });
+    const r = parseQuickAdd('Fix the shelf #home', { lists, tags });
+    expect(r.title).toBe('Fix the shelf');
+    expect(r.listId).toBeUndefined();
+    expect(r.tagIds).toEqual(['t1']);
+  });
+  it('then a folder it starts, then a tag it starts, else a new tag', () => {
+    expect(parseQuickAdd('Bulbs #home', { lists, tags: [] }).listId).toBe('l1');
+    expect(parseQuickAdd('Pay rent #money', { lists, tags }).tagIds).toEqual(['t2']);
+    const r = parseQuickAdd('Call the bank #errands #money', { lists, tags });
+    expect(r).toMatchObject({ title: 'Call the bank', tagIds: ['t2'], newTags: ['errands'] });
+    expect(parseQuickAdd('Room #12', { lists, tags }).newTags).toBeUndefined();
+  });
+});

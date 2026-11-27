@@ -3,7 +3,7 @@
  * them, and the households most tests start from. Every helper is plain and synchronous where it
  * can be, so a test still reads top to bottom.
  */
-import { Hub } from '../../src/core/actions';
+import { Hub } from '../../src/core/hub';
 import { seedHousehold } from '../../src/core/seed';
 import { MemoryPersistence } from '../../src/core/db';
 import type { LineColor, Scope } from '../../src/core/model';

@@ -8,6 +8,7 @@ import { movedTo } from './TemplateAsk';
 import { useOnce } from '../ui/useOnce';
 import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem } from '../ui/Sortable';
+import { DIST } from '../ui/tokens';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 import { Disclosure } from '../ui/primitives';
@@ -47,7 +48,8 @@ function stepAt(p: Point): { el: HTMLElement; list?: string; item?: string } | n
 
 /**
  * A subtask dragged up onto the path (Folders › Home › Paint the hall): let go on a folder and
- * it's a task of its own there; on a task further up, it's that task's subtask instead.
+ * it's a task of its own there; on a task further up, it's that task's subtask instead. Onto a
+ * sister subtask's middle (or pulled right, under the one above), it's a subtask of that one.
  */
 function useLiftOut(parentId: string | null): Outside | undefined {
   const hub = useHub();
@@ -62,11 +64,50 @@ function useLiftOut(parentId: string | null): Outside | undefined {
       if (el) haptic('select');
       lit.current = el;
     };
+    // Where the hand was when the drag began (the first aim after a lift), for "pulled right".
+    let liftX: number | null = null;
+    let lifted: string | null = null;
+    /** Onto a sister subtask's middle, or pulled right under the one above: a subtask of it. */
+    const nestAt = (p: Point): { el: HTMLElement; id: string } | null => {
+      if (!lifted) return null;
+      const rows = [...document.querySelectorAll<HTMLElement>('li.row[data-id]')]
+        .filter((li) => li.dataset.id !== lifted && !li.closest('.dragwrap') && hub.item(li.dataset.id)?.parentId === parentId)
+        .map((li) => {
+          const r = li.getBoundingClientRect();
+          const t = getComputedStyle(li).transform;
+          const top = r.top - (t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42);
+          return { li, id: li.dataset.id!, top, height: r.height, left: r.left, right: r.right };
+        });
+      const ok = (id: string) => !hub.item(id)?.done;
+      for (const r of rows) {
+        const band = (p.y - r.top) / r.height;
+        if (p.x < r.left || p.x > r.right || band < 0.3 || band > 0.7) continue;
+        return ok(r.id) ? { el: r.li, id: r.id } : null;
+      }
+      if (liftX !== null && p.x - liftX > DIST.nest) {
+        const above = rows.filter((r) => r.top + r.height / 2 < p.y).sort((a, b) => b.top - a.top)[0];
+        return above && ok(above.id) ? { el: above.li, id: above.id } : null;
+      }
+      return null;
+    };
+    const targetAt = (p: Point): { el: HTMLElement; list?: string; item?: string } | null => {
+      const step = stepAt(p);
+      if (step) return step;
+      const n = nestAt(p);
+      return n ? { el: n.el, item: n.id } : null;
+    };
     return {
-      hit: (p) => !!stepAt(p),
-      aim: (p) => light(p ? (stepAt(p)?.el ?? null) : null),
+      lift: (id) => {
+        lifted = id;
+        liftX = null;
+      },
+      hit: (p) => {
+        if (liftX === null) liftX = p.x;
+        return !!targetAt(p);
+      },
+      aim: (p) => light(p ? (targetAt(p)?.el ?? null) : null),
       drop: (id, p) => {
-        const t = stepAt(p);
+        const t = targetAt(p);
         light(null);
         const item = hub.item(id);
         if (!t || !item) return;
@@ -77,7 +118,11 @@ function useLiftOut(parentId: string | null): Outside | undefined {
         const where = to.parentId ? `under “${hub.item(to.parentId)?.title ?? 'it'}”` : `its own task in ${hub.list(to.listId)?.name ?? 'there'}`;
         movedTo(hub, overlays, id, was.listId, to.parentId ? was.listId : to.listId, `${item.title}: ${where}`, () => hub.move(id, was));
       },
-      end: () => light(null),
+      end: () => {
+        light(null);
+        lifted = null;
+        liftX = null;
+      },
     };
   }, [hub, overlays, parentId]);
 }

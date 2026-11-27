@@ -3,6 +3,7 @@ import type { Tag } from '../../core/model';
 import { fold } from '../../smart/normalize';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
+import { FindField } from '../ui/primitives';
 import { Icon, type IconName } from '../ui/Icon';
 import { GLYPHS } from '../ui/icons.gen';
 import { Sheet, useOverlays } from '../ui/overlays';
@@ -87,23 +88,7 @@ export function TagPicker({ value, onChange, suggested = [] }: { value: string[]
   };
   return (
     <div className="tagpick">
-      <label className="tagpick__find">
-        <Icon name={G.search} className="icon--sm" />
-        <input
-          value={q}
-          dir="auto"
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              make();
-            }
-          }}
-          placeholder="Find or make a tag"
-          aria-label="Find or make a tag"
-          enterKeyHint="done"
-        />
-      </label>
+      <FindField value={q} onChange={setQ} onEnter={make} placeholder="Find or make a tag" enterKeyHint="done" />
       <div className="tagpick__tags" role="group" aria-label="Tags">
         {list.map((t) => (
           <button

@@ -132,6 +132,38 @@ export function IconButton({
 }
 
 /**
+ * Type to find, inside a sheet or panel: the one search field (a place, a tag, an icon). A × clears
+ * it once there's something in it. Enter runs `onEnter` (e.g. make the tag).
+ */
+export function FindField({ value, onChange, placeholder, onEnter, enterKeyHint = 'search' }: { value: string; onChange: (v: string) => void; placeholder: string; onEnter?: () => void; enterKeyHint?: 'search' | 'done' }) {
+  return (
+    <label className="findfield">
+      <Icon name={G.search} className="icon--sm" />
+      <input
+        value={value}
+        dir="auto"
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && onEnter) {
+            e.preventDefault();
+            onEnter();
+          }
+        }}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        enterKeyHint={enterKeyHint}
+        autoComplete="off"
+      />
+      {value ? (
+        <button type="button" className="findfield__clear" aria-label="Clear" onClick={() => onChange('')}>
+          <Icon name={G.close} className="icon--xs" />
+        </button>
+      ) : null}
+    </label>
+  );
+}
+
+/**
  * − n +: one stepper for every count (a repeat's "every", stock levels, urgent-at). `nullable`:
  * below its lowest it's off ("off"), and + from off starts at the lowest. `size` sm is the 30px
  * one that sits in a chip or a row; `look` card sits on a tile (white, a hairline).

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Hub } from '../../src/core/actions';
+import type { Hub } from '../../src/core/hub';
 import { shortAgo, shortDay } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { encodeHlc } from '../../src/core/hlc';

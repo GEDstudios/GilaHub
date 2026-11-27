@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { humanDate, humanTime, weekdayName } from '../core/dates';
 import type { Assignee, RepeatRule } from '../core/model';
 import { describeRule } from '../smart/recurrence';

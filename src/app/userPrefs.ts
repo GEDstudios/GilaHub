@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { applyPrefs, DEVICE_ONLY, getPrefs, PREF_KEYS, setPrefsWriter, type Prefs } from './prefs';
 
 /**

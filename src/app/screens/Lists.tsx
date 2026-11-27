@@ -1,9 +1,8 @@
 import { GrowField } from '../ui/AutoTitle';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import type { Hub } from '../../core/actions';
+import type { Hub } from '../../core/hub';
 import { suggestIcon } from '../../core/projectIcons';
 import type { List, Visibility } from '../../core/model';
-import { useAddAction } from '../addAction';
 import { barTarget, getAim, setAim, setArranging, useBarEdit } from '../barEdit';
 import { BarToken, BarTokenLifted, TabChip } from '../components/BarEdit';
 import { ProjectFields, type ProjectLook } from '../components/ProjectFields';
@@ -252,11 +251,6 @@ export function ProjectCard({ list, onClick }: { list: List; onClick?: () => voi
   );
 }
 
-/** "+ New project" for the header, N and the sidebar; not while the bar is being arranged. */
-function NewProjectAction({ run }: { run: () => void }) {
-  useAddAction(run, 'New folder');
-  return null;
-}
 
 /** While the bar tray floats over the page, the page makes room for it (as for the shopbar). */
 function useFloatHeight(el: HTMLElement | null) {
@@ -323,7 +317,6 @@ export function Lists() {
 
   return (
     <>
-      {arranging ? null : <NewProjectAction run={newProject} />}
       <Band
         top={<SyncBadge />}
         actions={arranging ? <DoneButton ref={doneRef} onClick={stop} /> : undefined}

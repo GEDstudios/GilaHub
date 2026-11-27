@@ -23,6 +23,7 @@ import { stepProgress, todayRef } from '../views';
 import { isOpen } from '../../core/model';
 import { whenText } from '../labels';
 import { G } from '../ui/glyphs';
+import { DIST } from '../ui/tokens';
 
 export function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
   if (!item.due) return null;
@@ -116,15 +117,35 @@ export const ItemRow = memo(function ItemRow({
   // A subtask unfolded here can be dragged out from under its task: onto the page (its own task),
   // onto another group or a step of the path (its own task there), or onto another task (under that one).
   const overlays = useOverlays();
-  const lit = useRef<HTMLElement | null>(null);
-  const light = (el: HTMLElement | null) => {
-    if (lit.current === el) return;
-    lit.current?.classList.remove('is-droptarget');
-    el?.classList.add('is-droptarget');
+  const lit = useRef<{ el: HTMLElement; cls: string } | null>(null);
+  // What the hand is over says how: a whole row lit (it goes under that one), or a line above or
+  // below a subtask (it goes there, among its sisters).
+  const light = (el: HTMLElement | null, cls = 'is-droptarget') => {
+    if (lit.current?.el === el && lit.current?.cls === cls) return;
+    lit.current?.el.classList.remove(lit.current.cls);
+    el?.classList.add(cls);
     if (el) haptic('select');
-    lit.current = el;
+    lit.current = el ? { el, cls } : null;
   };
-  const outTarget = (p: { x: number; y: number }, from: { x: number; y: number }): { el: HTMLElement | null; listId: string; parentId: string | null; before?: string | null } | null => {
+  type Target = { el: HTMLElement | null; cls?: string; listId: string; parentId: string | null; before?: string | null };
+  /** Over one of its sisters: pulled right, under it; else above or below it, by which half. */
+  const amongSisters = (p: { x: number; y: number }, from: { x: number; y: number }): Target | null | undefined => {
+    const sister = document
+      .elementsFromPoint(p.x, p.y)
+      .map((e) => e.closest<HTMLElement>('li.row--nested[data-id]'))
+      .find((e) => !!e && e.dataset.id !== item.id && !e.closest('.dragout'));
+    const under = sister ? hub.item(sister.dataset.id) : undefined;
+    if (!sister || !under || under.parentId !== item.parentId) return undefined;
+    if (p.x - from.x > DIST.nest) return under.done ? null : { el: sister, listId: under.listId, parentId: under.id };
+    const sisters = hub.siblings(item.listId, item.parentId ?? null).filter((x) => x.id !== item.id);
+    const r = sister.getBoundingClientRect();
+    const below = p.y > r.top + r.height / 2;
+    const before = below ? (sisters[sisters.findIndex((x) => x.id === under.id) + 1]?.id ?? null) : under.id;
+    return { el: sister, cls: below ? 'is-dropafter' : 'is-dropbefore', listId: item.listId, parentId: item.parentId ?? null, before };
+  };
+  const outTarget = (p: { x: number; y: number }, from: { x: number; y: number }): Target | null => {
+    const near = amongSisters(p, from);
+    if (near !== undefined) return near;
     // Beside its own task: pulled out to either edge of the list (or past it) takes it out, right
     // after that task; the middle is a slip of the hand, and nothing changes. The edge is generous:
     // on a phone the list nearly fills the screen.
@@ -158,12 +179,21 @@ export const ItemRow = memo(function ItemRow({
   const outRef = useDragOut<HTMLLIElement>({
     label: item.title,
     enabled: !!nested && !!item.parentId && !readonly && !item.done,
-    aim: (p, from) => light(p ? (outTarget(p, from)?.el ?? null) : null),
+    aim: (p, from) => {
+      const t = p ? outTarget(p, from) : null;
+      light(t?.el ?? null, t?.cls);
+    },
     drop: (p, from) => {
       light(null);
       const t = outTarget(p, from);
       if (!t) return;
       const was = { listId: item.listId, parentId: item.parentId ?? null };
+      // Among its sisters: just its place changes.
+      if (t.parentId === was.parentId && t.listId === was.listId && t.before !== undefined) {
+        hub.move(item.id, { before: t.before });
+        haptic('drop');
+        return;
+      }
       hub.move(item.id, { listId: t.listId, parentId: t.parentId, before: t.before ?? undefined });
       haptic('success');
       const where = t.parentId ? `under “${hub.item(t.parentId)?.title ?? 'it'}”` : `its own task${t.listId !== was.listId ? ` in ${hub.list(t.listId)?.name ?? 'there'}` : ''}`;

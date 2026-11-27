@@ -66,7 +66,7 @@ Every recurring piece of UI is one component, and every screen uses it rather th
 
 | Need | Component (file) | Notes |
 |---|---|---|
-| Choose where something goes: a folder, or a task in one | `PlaceTree` ([`components/PlaceTree.tsx`](../src/app/components/PlaceTree.tsx)) | Folders fold, tasks and subtasks unfold, a long press opens, a search field once the tree is long, a faint line per level. Move, Also in, Goes on, a filtered list's folder, a folder on Today, Show tasks from, the composer's place. |
+| Choose where something goes: a folder, or a task in one | `PlaceTree` ([`components/PlaceTree.tsx`](../src/app/components/PlaceTree.tsx)) | Folders fold, tasks and subtasks unfold, a long press opens, a search field on top, a faint line per level. Move, Also in, Goes on, a filtered list's folder, a folder on Today, Show tasks from, the composer's place. |
 | On/off with a label | `SwitchRow` ([`components/pickers.tsx`](../src/app/components/pickers.tsx)) | The whole row flips the `Switch`. `panel` for the quieter size inside an editor. |
 | One of a few, inline | `Seg` (raised pill), `Options` (wrapping pills) | |
 | − n + | `Stepper` ([`ui/primitives.tsx`](../src/app/ui/primitives.tsx)) | `nullable` goes below its lowest to "off"; `size` sm, `look` tile / card / bare, `tone` low / out. |

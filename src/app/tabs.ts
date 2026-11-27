@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import type { LineColor } from '../core/model';
 import type { Route } from './router';
 import type { IconName } from './ui/Icon';

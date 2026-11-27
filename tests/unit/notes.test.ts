@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Hub } from '../../src/core/actions';
+import { Hub } from '../../src/core/hub';
 import { person } from './_helpers';
 
 describe('Notes kept, and brought back', () => {
@@ -40,7 +40,7 @@ describe('sticky notes', () => {
 
 describe('sticky notes, sized', () => {
   it('keeps a size between the smallest and biggest, and either of us can tick it', async () => {
-    const { NOTE_MAX, NOTE_MIN } = await import('../../src/core/actions');
+    const { NOTE_MAX, NOTE_MIN } = await import('../../src/core/hub');
     const hub = await person('guy');
     hub.upsertMember('guy', { name: 'Guy', color: 'sky', createdAt: 1 });
     hub.upsertMember('hila', { name: 'Hila', color: 'pink', createdAt: 2 });

@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { atLocal, humanDate, today } from '../core/dates';
 import type { Item, List, Scope } from '../core/model';
 import { api } from '../core/session';

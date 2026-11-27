@@ -1,4 +1,4 @@
-import type { Hub } from './actions';
+import type { Hub } from './hub';
 import { LINE_COLORS, type LineColor, type ShoppingFlavor, type Visibility } from './model';
 
 /**

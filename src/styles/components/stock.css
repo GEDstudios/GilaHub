@@ -36,7 +36,11 @@
 
 /* Edit Today: picking a folder from the tree */
 .homeghost__tree {
-  padding: 4px 8px 10px;
+  margin: 4px 8px 10px;
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--lift-1);
 }
 
 /* A filtered list: making it, and its block on Today */

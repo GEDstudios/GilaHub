@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Hub } from '../../src/core/actions';
+import type { Hub } from '../../src/core/hub';
 import { person, sync } from './_helpers';
 
 describe('Photos', () => {

@@ -10,7 +10,7 @@ import { describeRule, firstDue } from './recurrence';
  * ambiguous words ("morning run", "sat down") stay in the title.
  */
 
-export type TokenKind = 'date' | 'time' | 'repeat' | 'assignee' | 'list' | 'urgent' | 'qty';
+export type TokenKind = 'date' | 'time' | 'repeat' | 'assignee' | 'list' | 'tag' | 'urgent' | 'qty';
 
 export interface Token {
   kind: TokenKind;
@@ -26,6 +26,8 @@ export interface ParseContext {
   members?: Array<{ id: string; name: string }>;
   meId?: string;
   lists?: Array<{ id: string; name: string }>;
+  /** Tags there are: "#name" that isn't a folder is one of these, or a new one. */
+  tags?: Array<{ id: string; name: string }>;
   /** 13/12 (day first) vs 12/13. */
   dayFirst?: boolean;
   /** 0 = week starts Sunday (Israel), 1 = Monday. */
@@ -46,6 +48,9 @@ export interface ParseResult {
   repeat?: RepeatRule;
   assignee?: string;
   listId?: string;
+  /** "#name" tags: ones there are, and new names to make. */
+  tagIds?: string[];
+  newTags?: string[];
   urgent?: boolean;
   qty?: string;
   tokens: Token[];
@@ -311,17 +316,39 @@ export function parseQuickAdd(input: string, ctx: ParseContext = {}): ParseResul
     return who.name;
   });
 
-  // ---------- #list ----------
-  scan('list', /(?<![\p{L}\p{N}])#([\p{L}\p{N}_-]+)/gu, (m) => {
+  // ---------- #folder, #tag ----------
+  // A name said exactly wins (a folder, then a tag); then a folder it starts; then a tag it starts,
+  // or a new tag.
+  const HASH = /(?<![\p{L}\p{N}])#([\p{L}\p{N}_-]+)/gu;
+  const same = (name: string, q: string) => fold(name) === q || fold(name).replace(/\s+/g, '') === q;
+  const pickList = (l: { id: string; name: string } | undefined) => {
+    if (!l) return null;
+    out.listId = l.id;
+    return l.name;
+  };
+  const pickTag = (t: { id: string; name: string } | undefined) => {
+    if (!t) return null;
+    if (!out.tagIds?.includes(t.id)) out.tagIds = [...(out.tagIds ?? []), t.id];
+    return t.name;
+  };
+  scan('list', HASH, (m) => pickList(ctx.lists?.find((l) => same(l.name, fold(m[1])))));
+  scan('tag', HASH, (m) => pickTag(ctx.tags?.find((t) => same(t.name, fold(m[1])))), false);
+  scan('list', HASH, (m) => {
     const q = fold(m[1]);
-    const list =
-      ctx.lists?.find((l) => fold(l.name) === q) ??
-      ctx.lists?.find((l) => fold(l.name).startsWith(q)) ??
-      ctx.lists?.find((l) => fold(l.name).split(' ').some((w) => w.startsWith(q)));
-    if (!list) return null;
-    out.listId = list.id;
-    return list.name;
+    return pickList(ctx.lists?.find((l) => fold(l.name).startsWith(q)) ?? ctx.lists?.find((l) => fold(l.name).split(' ').some((w) => w.startsWith(q))));
   });
+  scan(
+    'tag',
+    HASH,
+    (m) => {
+      const tag = pickTag(ctx.tags?.find((t) => fold(t.name).startsWith(fold(m[1]))));
+      if (tag) return tag;
+      if (!/^\p{L}/u.test(m[1])) return null;
+      out.newTags = [...(out.newTags ?? []), m[1]];
+      return m[1];
+    },
+    false,
+  );
 
   // ---------- title ----------
   // A little word left in front of what was taken out ("at" 5pm, "ב" 5/12) goes with it; the

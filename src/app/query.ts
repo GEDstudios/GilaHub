@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { addDays, today as todayStr, weekday } from '../core/dates';
 import type { Item } from '../core/model';
 import { fold } from '../smart/normalize';

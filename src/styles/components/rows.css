@@ -172,3 +172,12 @@
   font-weight: 500;
   color: var(--text-2);
 }
+
+/* A subtask dragged among its sisters: a line where it will land */
+li.row.is-dropbefore {
+  box-shadow: inset 0 2px 0 var(--ink);
+}
+
+li.row.is-dropafter {
+  box-shadow: inset 0 -2px 0 var(--ink);
+}

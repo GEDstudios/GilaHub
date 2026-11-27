@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import type { Hub } from '../../core/actions';
+import type { Hub } from '../../core/hub';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { G } from '../ui/glyphs';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Hub } from '../../src/core/actions';
+import { Hub } from '../../src/core/hub';
 import { MemoryPersistence } from '../../src/core/db';
 import { History } from '../../src/core/history';
 import { Store } from '../../src/core/store';

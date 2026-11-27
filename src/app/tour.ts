@@ -1,5 +1,5 @@
 import { quietly } from '../core/history';
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { today as todayStr } from '../core/dates';
 import type { Item, List } from '../core/model';
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Hub } from '../../core/actions';
+import type { Hub } from '../../core/hub';
 import { useHub } from '../context';
 import { applyTemplate, hasTemplate, templateSummary } from '../template';
 import { Sheet, useOverlays } from '../ui/overlays';

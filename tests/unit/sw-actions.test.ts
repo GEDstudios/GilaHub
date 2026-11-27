@@ -1,6 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
-import { Hub } from '../../src/core/actions';
+import { Hub } from '../../src/core/hub';
 import { addDays, today } from '../../src/core/dates';
 import { IdbPersistence } from '../../src/core/db';
 import { newSession, readableScopes, saveSession } from '../../src/core/session';

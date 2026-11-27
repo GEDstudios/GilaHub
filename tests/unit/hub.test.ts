@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Hub } from '../../src/core/actions';
+import { Hub } from '../../src/core/hub';
 import { seedHousehold } from '../../src/core/seed';
 import { isForMe, projectView } from '../../src/app/views';
 import { addDays, today } from '../../src/core/dates';
@@ -411,7 +411,7 @@ describe('renameOldDefaults', () => {
 
 describe('one thing, two places', () => {
   it('"Buy a doorknob" under a chore lands on Home shopping, and ticking either ticks both', async () => {
-    const { buyWords, toBuy } = await import('../../src/core/actions');
+    const { buyWords, toBuy } = await import('../../src/core/hub');
     expect(buyWords('Buy a new doorknob')).toBe(true);
     expect(toBuy('Buy a new doorknob')).toBe('new doorknob');
     expect(buyWords('Replace the doorknob')).toBe(false);

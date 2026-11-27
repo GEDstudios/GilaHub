@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { addDays, humanDate, today as todayStr } from '../core/dates';
 import type { Item } from '../core/model';
 import { isFlexible } from '../smart/recurrence';

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { shortAgo } from '../../core/dates';
 import type { Note } from '../../core/model';
-import { NOTE_MAX, NOTE_MIN } from '../../core/actions';
+import { NOTE_MAX, NOTE_MIN } from '../../core/hub';
 import { useHub, useRt } from '../context';
 import { href, navigate, useRoute, type Route } from '../router';
 import { notifyMembers } from '../runtime';

@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { addDays, diffDays, fromDateStr, humanDate, today as todayStr, weekdayName } from '../core/dates';
 import { onThisDay } from './moments';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';

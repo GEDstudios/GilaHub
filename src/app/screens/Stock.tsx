@@ -15,7 +15,7 @@ import { G } from '../ui/glyphs';
 
 /**
  * Stock: everything we count, from every folder, in one place. What's running low first (and
- * where it went to be bought), then each folder's. − / + right on each line; tap a name for the
+ * where it went to be bought), then each folder's, then what's full. − / + right on each line; tap a name for the
  * rest (its levels, where it goes). Add something new to count right here. Nothing here is ever
  * "done", so nothing is cleared away.
  */
@@ -26,8 +26,10 @@ export function StockScreen() {
   const [name, setName] = useState('');
   const all = hub.stockItems().sort((a, b) => a.title.localeCompare(b.title));
   const low = all.filter((i) => hub.stockLow(i));
+  // Full (as many as we want, or more): out of the way at the bottom.
+  const full = all.filter((i) => !hub.stockLow(i) && hub.stockFull(i));
   const byFolder = new Map<string, Item[]>();
-  for (const i of all) if (!hub.stockLow(i)) byFolder.set(i.listId, [...(byFolder.get(i.listId) ?? []), i]);
+  for (const i of all) if (!hub.stockLow(i) && !hub.stockFull(i)) byFolder.set(i.listId, [...(byFolder.get(i.listId) ?? []), i]);
   const home = hub.list(prefs.stockFolder ?? undefined);
 
   // Where new ones go: my choice, else a "Stock" folder (made the first time).
@@ -50,7 +52,7 @@ export function StockScreen() {
   };
   const pickHome = () =>
     openSheet((close) => (
-      <Sheet onClose={close} title="New things to count go in…">
+      <Sheet onClose={close} title="Where new ones go">
         <PlaceTree
           value={home ? { listId: home.id, parentId: null } : null}
           onPick={(p) => {
@@ -122,6 +124,16 @@ export function StockScreen() {
             </Section>
           );
         })}
+
+        {full.length ? (
+          <Section title="Full" count={full.length}>
+            <ul className="rows">
+              {full.map((i) => (
+                <StockRow key={i.id} item={i} showList />
+              ))}
+            </ul>
+          </Section>
+        ) : null}
 
         {!all.length ? (
           <p className="hint stock__empty">

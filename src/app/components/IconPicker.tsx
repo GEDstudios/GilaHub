@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { LineColor } from '../../core/model';
 import { Icon, type IconName } from '../ui/Icon';
 import { LIB_GROUPS, searchLibrary, useLibrary } from '../ui/library';
-import { lineVars } from '../ui/primitives';
+import { FindField, lineVars } from '../ui/primitives';
 import { Glyph, parseGlyph, PLAIN_FOLDER, PROJECT_ICONS, showsGlyph } from '../ui/ProjectMark';
 
 const firstGrapheme = (s: string): string => {
@@ -44,28 +44,16 @@ export function IconPicker({ value, color, onChange }: { value: string | undefin
 
   return (
     <div className="iconlib" style={lineVars(color)}>
-      <label className="iconlib__search">
-        <Icon name="search" className="icon--sm" />
-        <input
-          value={q}
-          dir="auto"
-          onChange={(e) => {
-            // A search starts from everything; the groups then narrow it.
-            if (!q.trim() && e.target.value.trim()) setGroup(null);
-            setQ(e.target.value);
-            setShown(PAGE);
-          }}
-          placeholder="Search icons"
-          aria-label="Search icons"
-          enterKeyHint="search"
-          autoComplete="off"
-        />
-        {q ? (
-          <button type="button" className="iconlib__clear" aria-label="Clear" onClick={() => setQ('')}>
-            <Icon name="x" className="icon--xs" />
-          </button>
-        ) : null}
-      </label>
+      <FindField
+        value={q}
+        onChange={(v) => {
+          // A search starts from everything; the groups then narrow it.
+          if (!q.trim() && v.trim()) setGroup(null);
+          setQ(v);
+          setShown(PAGE);
+        }}
+        placeholder="Search icons"
+      />
       <div className="iconlib__groups" role="radiogroup" aria-label="Icon groups">
         <button type="button" role="radio" aria-checked={group === null} className={`token ${group === null ? 'is-on' : ''}`} onClick={() => setGroup(null)}>
           {q.trim() ? 'All' : 'Favourites'}

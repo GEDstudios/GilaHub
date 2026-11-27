@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import type { Presence, SyncStatus } from '../core/sync';
 import type { Runtime } from './runtime';
 

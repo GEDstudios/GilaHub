@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Hub } from '../../core/actions';
+import type { Hub } from '../../core/hub';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';

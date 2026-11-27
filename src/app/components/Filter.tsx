@@ -1,4 +1,4 @@
-import type { Hub } from '../../core/actions';
+import type { Hub } from '../../core/hub';
 import type { Item, List } from '../../core/model';
 import { useHub } from '../context';
 import { setPrefs, usePrefs } from '../prefs';

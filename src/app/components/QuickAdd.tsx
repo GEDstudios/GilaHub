@@ -15,7 +15,7 @@ import { useOverlays } from '../ui/overlays';
 import { ListBullet } from '../ui/primitives';
 
 import { TagMark, TagPicker, tagsLabel } from './Tags';
-import type { Hub } from '../../core/actions';
+import type { Hub } from '../../core/hub';
 import { usePingUrgent } from './add';
 import { TOAST } from '../ui/tokens';
 import type { Draft } from '../draft';
@@ -39,6 +39,7 @@ export function useParseContext(_list?: List): ParseContext {
     members: hub.members().map((m) => ({ id: m.id, name: m.name })),
     meId: hub.meId,
     lists: hub.lists().map((l) => ({ id: l.id, name: l.name })),
+    tags: hub.tags().map((t) => ({ id: t.id, name: t.name })),
     dayFirst: dayFirst(),
     weekStart: weekStart(prefs),
     workdays: workdays(),
@@ -105,7 +106,9 @@ export function useCompose({
   const [useTpl, setUseTpl] = useState(seed?.useTpl ?? true);
   const hasTpl = !!dest?.template && Object.values(dest.template).some((v) => v !== null && v !== undefined && v !== false && !(Array.isArray(v) && !v.length));
   const tpl = useTpl && hasTpl ? (dest?.template ?? null) : null;
-  const tags = picked ?? (tpl?.tags?.length ? [...new Set([...tpl.tags.filter((t) => !!hub.tag(t)), ...suggested.auto])] : suggested.auto);
+  // "#name" in the words: tags too (a new name is made when it's added).
+  const hashTags = parsed.tagIds ?? [];
+  const tags = picked ?? [...new Set([...hashTags, ...(tpl?.tags?.length ? tpl.tags.filter((t) => !!hub.tag(t)) : []), ...suggested.auto])];
   const allowed = allowedVis(hub, dest, parent);
   const inherited: VisChoice = parent ? itemVisChoice(hub, parent) : tpl?.visibility && allowed.includes(tpl.visibility) ? tpl.visibility : allowed[0];
   const defVis = allowed.includes(inherited) ? inherited : allowed[0];
@@ -158,11 +161,13 @@ export function useCompose({
     if (!to || !title) return undefined;
     // Picked tags go on this one; other words (a pasted line, a suggestion) find their own.
     const tplTags = (useTpl ? (to.template?.tags ?? []) : []).filter((t) => !!hub.tag(t));
+    // "#name" that isn't a tag yet becomes one.
+    const hashed = [...(p.tagIds ?? []), ...(p.newTags ?? []).map((n) => hub.createTag(n)).filter((x): x is string => !!x)];
     const ownTags =
       raw === undefined
-        ? (picked ?? (tplTags.length ? tags : undefined))
-        : tplTags.length
-          ? [...new Set([...tplTags, ...hub.suggestTags(p.title, to.id).auto])]
+        ? (picked ?? (tplTags.length || hashed.length ? [...new Set([...hashed, ...tags])] : undefined))
+        : tplTags.length || hashed.length
+          ? [...new Set([...hashed, ...tplTags, ...hub.suggestTags(p.title, to.id).auto])]
           : undefined;
     const asking = hub.isRequest(d.assignee);
     // Never twice: one already open says so (+1); one done before comes back.

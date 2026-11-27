@@ -7,7 +7,7 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { G } from '../ui/glyphs';
 import type { IconName } from '../ui/Icon';
-import { ListBullet } from '../ui/primitives';
+import { FindField, ListBullet } from '../ui/primitives';
 import { HOLD } from '../ui/tokens';
 
 /** A place in the tree: a folder, or a task in one (its subtasks go under it). */
@@ -15,13 +15,10 @@ export type Place = { listId: string; parentId: string | null };
 
 const same = (a: Place | null | undefined, b: Place | null | undefined) => !!a && !!b && a.listId === b.listId && (a.parentId ?? null) === (b.parentId ?? null);
 
-/** How many rows before the tree offers a search field. */
-const SEARCH_FROM = 9;
-
 /**
  * The one tree for choosing where something goes: folders inside folders (folded into their
  * parent, a ⌄ or a long press opens one), and with `tasks` each folder's open tasks and their
- * subtasks (unfolded from the start). A search field narrows it once it's long. Tap a row to pick
+ * subtasks (unfolded from the start). A search field on top narrows it. Tap a row to pick
  * it. Every "where" question in the app asks it this way: moving a task or a folder, Also in,
  * Goes on, a filtered list's folder, a folder on Today, Show tasks from, the composer's place.
  */
@@ -134,12 +131,10 @@ export function PlaceTree({
   const taskOpen = (id: string) => (hits ? true : !open.has(`shut:${id}`));
   const shown = (key: string) => !hits || hits.has(key);
 
-  let count = 0;
   const taskRows = (l: List, under: string | null, depth: number): ReactNode[] =>
     tasksOf(l, under)
       .filter((t) => shown(`i:${t.id}`))
       .map((t) => {
-        count++;
         const p = { listId: l.id, parentId: t.id };
         const kids = tasksOf(l, t.id).length > 0;
         const here = same(current, p);
@@ -169,7 +164,6 @@ export function PlaceTree({
     ls
       .filter((l) => shown(l.id))
       .map((l) => {
-        count++;
         const p = { listId: l.id, parentId: null };
         const subs = subsOf(l.id);
         const expandable = subs.length > 0 || tasksOf(l, null).length > 0;
@@ -199,21 +193,9 @@ export function PlaceTree({
       });
 
   const rows = folderRows(tops, 0);
-  // Counted while drawing: a long tree (or one being searched) keeps its search field.
-  const searchable = count >= SEARCH_FROM || !!q;
   return (
     <div className={`placetree ${scroll ? 'placetree--scroll' : ''}`}>
-      {searchable ? (
-        <label className="placetree__find">
-          <Icon name={G.search} className="icon--sm" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a folder or task" aria-label="Find a folder or task" enterKeyHint="search" dir="auto" />
-          {q ? (
-            <button type="button" className="placetree__clear" aria-label="Clear" onClick={() => setQ('')}>
-              <Icon name={G.close} className="icon--xs" />
-            </button>
-          ) : null}
-        </label>
-      ) : null}
+      <FindField value={q} onChange={setQ} placeholder="Find a folder or task" />
       <ul className="place" role="tree" aria-label={label}>
         {root && !hits ? (
           <Row

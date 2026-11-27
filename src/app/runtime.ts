@@ -1,4 +1,4 @@
-import { Hub } from '../core/actions';
+import { Hub } from '../core/hub';
 import { sealJSON } from '../core/crypto';
 import { IdbPersistence, MemoryPersistence, type Persistence } from '../core/db';
 import type { Scope } from '../core/model';

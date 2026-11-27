@@ -14,7 +14,7 @@ const BY_WORD: Array<[RegExp, string[]]> = [
   [/trip|travel|vacation|holiday|flight|abroad|rome|paris|london|berlin|tokyo|טיול|חופשה/, ['suitcase', 'plane']],
   [/gift|present|birthday|מתנ|יום הולדת/, ['gift', 'cake']],
   [/garden|plant|balcony|גינה|צמח/, ['plant', 'leaf']],
-  [/wedding|love|anniversary|date night|honeymoon|חתונה/, ['heart', 'star']],
+  [/wedding|love|anniversary|date night|honeymoon|חתונה/, ['heart', 'gift']],
   [/\bcar\b|vehicle|garage|רכב|אוטו/, ['car', 'wrench']],
   [/book|read|library|ספר/, ['book', 'graduation']],
   [/recipe|cook|meal|dinner|baking|מתכונ|ארוח/, ['cooking-pot', 'utensils']],
@@ -28,7 +28,7 @@ const BY_WORD: Array<[RegExp, string[]]> = [
   [/movie|film|series|watch|show|סרט/, ['film']],
   [/music|song|concert|playlist|מוזיקה/, ['music']],
   [/coffee|קפה/, ['coffee']],
-  [/party|celebrat|מסיב/, ['cake', 'star']],
+  [/party|celebrat|מסיב/, ['cake', 'music']],
   [/study|course|learn|class|לימוד/, ['graduation', 'book']],
   [/health|doctor|medical|dentist|בריאות|רופא/, ['first-aid']],
   [/fix|repair|diy|tool|תיקונ/, ['wrench']],
@@ -41,7 +41,7 @@ const BY_KIND: Partial<Record<ListKind | 'home', string[]>> = {
 };
 
 /** Neither says anything: plain marks, so a bar of such projects isn't a row of folders. */
-const PLAIN = ['star', 'leaf', 'bell', 'music', 'book', 'coffee', 'heart', 'calendar', 'plant', 'film'];
+const PLAIN = ['sparkle', 'leaf', 'bell', 'music', 'book', 'coffee', 'heart', 'calendar', 'plant', 'film'];
 
 const hash = (s: string): number => {
   let h = 0;

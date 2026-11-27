@@ -26,6 +26,12 @@ export const SLOP = {
   swipe: 10,
 } as const;
 
+/** Distances (px) that change what a drag does. */
+export const DIST = {
+  /** Pulled this far right while dragging: it goes under the task (or subtask) it's over, or above. */
+  nest: 48,
+} as const;
+
 /** After a drag or swipe ends, the click it would cause is swallowed for this long (ms). */
 export const CLICK_SWALLOW_MS = 350;
 

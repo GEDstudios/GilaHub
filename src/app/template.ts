@@ -1,4 +1,4 @@
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import type { List, TaskTemplate } from '../core/model';
 import { getPrefs, use24h } from './prefs';
 import { firstDue } from '../smart/recurrence';

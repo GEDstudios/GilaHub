@@ -12,8 +12,6 @@
 .composer__card {
   min-height: 140px;
   gap: 20px;
-  /* Clear of the sheet's close button */
-  margin-top: 48px;
 }
 
 .composer__input {

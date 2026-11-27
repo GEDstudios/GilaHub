@@ -3,7 +3,7 @@
  * decides how privacy and requests read (docs/04-FEATURES.md, "Ours, Mine and Only me").
  * Pure functions over the Hub, so rows, chips, sheets and tests all agree.
  */
-import type { Hub, ItemVisibility } from '../core/actions';
+import type { Hub, ItemVisibility } from '../core/hub';
 import type { Item, List, Member } from '../core/model';
 import type { IconName } from './ui/icons.gen';
 import { G } from './ui/glyphs';

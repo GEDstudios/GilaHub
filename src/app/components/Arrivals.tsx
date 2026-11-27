@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import type { Hub } from '../../core/actions';
+import type { Hub } from '../../core/hub';
 import { useHub } from '../context';
 import { navigate } from '../router';
 import { placeUrl } from './Notes';

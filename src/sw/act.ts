@@ -5,7 +5,7 @@
  * right (no more "again until done" for a done thing). Bundled into the worker as
  * `self.GilaAct` (vite.config.ts); used only when no window of the app is open to do it.
  */
-import { Hub } from '../core/actions';
+import { Hub } from '../core/hub';
 import { addDays, today } from '../core/dates';
 import { IdbPersistence } from '../core/db';
 import { authToken, keyring, loadSession, readableScopes } from '../core/session';

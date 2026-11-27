@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Hub } from '../core/actions';
+import type { Hub } from '../core/hub';
 import { History } from '../core/history';
 import type { Store } from '../core/store';
 import { Sheet } from './ui/overlays';
