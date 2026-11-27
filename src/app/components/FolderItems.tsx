@@ -5,7 +5,7 @@ import { navigate } from '../router';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { FoldButton, ListBullet, DropChip } from '../ui/primitives';
+import { Button, FoldButton, ListBullet, DropChip } from '../ui/primitives';
 import { Sortable, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import type { FolderGroup } from '../views';
@@ -339,6 +339,58 @@ export function FolderItems({
       ) : (
         body
       )}
+    </SettleContext.Provider>
+  );
+}
+
+/**
+ * Ongoing: what we're doing now (a task swiped right). The ones still to do are real rows, the
+ * ticked ones chips that tap back out, the bar how far along it is, and Clear files the ticked away.
+ */
+export function OngoingTray({ open, done, onOut, onClear }: { open: Item[]; done: Item[]; onOut: (i: Item) => void; onClear: () => void }) {
+  const total = open.length + done.length;
+  const pct = total ? Math.round((done.length / total) * 100) : 0;
+  const settle = useSettle<Item>();
+  const rows = settle.view('ongoing', open);
+  return (
+    <SettleContext.Provider value={settle}>
+      <section className={`ongoing ${open.length === 0 ? 'is-full' : ''}`} aria-label={`Ongoing: ${done.length} of ${total} done`}>
+        <div className="ongoing__head">
+          <span className="ongoing__mark" key={total}>
+            <Icon name={G.ongoing} />
+            {open.length ? <span className="ongoing__n num">{open.length}</span> : null}
+          </span>
+          <span>Ongoing</span>
+          <span className="ongoing__bar" aria-hidden="true">
+            <span style={{ width: `${pct}%` }} />
+          </span>
+          <span className="ongoing__of num">
+            {done.length}/{total}
+          </span>
+        </div>
+        {done.length ? (
+          <Button small quiet={open.length > 0} className="ongoing__clear" onClick={onClear}>
+            Clear
+          </Button>
+        ) : null}
+        {rows.length ? (
+          <ul className="rows ongoing__rows">
+            {rows.map(({ row: i, settling }) => (
+              <ItemRow key={i.id} item={i} inTray settling={settling} />
+            ))}
+          </ul>
+        ) : null}
+        {done.length ? (
+          <div className="ongoing__done">
+            {done.map((i) => (
+              <button key={i.id} type="button" className="donechip" onClick={() => onOut(i)} aria-label={`Not done: ${i.title}`}>
+                <Icon name={G.done} className="icon--sm" />
+                <span dir="auto">{i.title}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </section>
     </SettleContext.Provider>
   );
 }

@@ -15,7 +15,7 @@ import { TimeField } from '../components/TimeEntry';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
-import { FolderItems } from '../components/FolderItems';
+import { FolderItems, OngoingTray } from '../components/FolderItems';
 import { Photos, useAddPhoto } from '../components/Photos';
 import { ItemRow } from '../components/ItemRow';
 import { useHub } from '../context';
@@ -495,7 +495,7 @@ function usePartnerNews(open: Item[]): Set<string> {
 export function FolderScreen({ id }: { id: string }) {
   const hub = useHub();
   const prefs = usePrefs();
-  const { openSheet } = useOverlays();
+  const { openSheet, toast } = useOverlays();
   const list = hub.list(id);
   const nested = hub.nestedLists(id);
   // A folder shows everything inside it; the lens narrows it to one folder.
@@ -517,7 +517,10 @@ export function FolderScreen({ id }: { id: string }) {
     );
   }
 
-  const keep = (i: Item) => filter.test(i, true);
+  // Ongoing (swiped right): in its own card above, not in the lists below.
+  const ongoingOpen = v.open.filter((i) => i.ongoingAt);
+  const ongoingDone = v.tray.filter((i) => i.ongoingAt);
+  const keep = (i: Item) => !i.ongoingAt && filter.test(i, true);
   const groups = v.groups.map((g) => ({ ...g, items: g.items.filter(keep) })).filter((g) => g.items.length || g.listId === id || !filter.active);
   const urgent = v.urgent.filter(keep);
   const shownN = groups.reduce((n, g) => n + g.items.length, 0);
@@ -525,7 +528,17 @@ export function FolderScreen({ id }: { id: string }) {
   const parent = hub.parentOf(id);
   const n = v.open.length;
   // Everything else done is just Done.
-  const done = [...v.tray, ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
+  const done = [...v.tray.filter((i) => !i.ongoingAt), ...v.cleared].sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0));
+
+  const clearOngoing = () => {
+    const k = ongoingDone.length;
+    const undo = hub.clearDone(
+      v.lists.map((l) => l.id),
+      ongoingDone.map((i) => i.id),
+    );
+    haptic('success');
+    toast(`Cleared ${k}`, { undo });
+  };
 
   const again = (name: string) => {
     const res = hub.add(inside ? hub.placeFor(name, id) : id, { title: name });
@@ -574,6 +587,8 @@ export function FolderScreen({ id }: { id: string }) {
         ) : null}
 
         <Photos on={`list:${id}`} />
+
+        {ongoingOpen.length || ongoingDone.length ? <OngoingTray open={ongoingOpen} done={ongoingDone} onOut={(i) => hub.toggle(i.id)} onClear={clearOngoing} /> : null}
 
         <FolderItems
           pageId={id}

@@ -103,6 +103,23 @@ async function openAsks(p) {
     // No card (or already open).
   }
 }
+/** A finger dragging a row sideways by dx (right is positive), as a phone's touch would. */
+async function swipeRow(p, ctx, row, dx) {
+  await row.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+  await p.waitForTimeout(250);
+  const r = await row.boundingBox();
+  const cdp = await ctx.newCDPSession(p);
+  const x = r.x + 60;
+  const y = r.y + r.height / 2;
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  for (let i = 1; i <= 12; i++) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + (dx * i) / 12, y, id: 1 }] });
+    await p.waitForTimeout(16);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await p.waitForTimeout(500);
+  await cdp.detach();
+}
 let failures = 0;
 const check = async (label, fn) => {
   try {
@@ -210,6 +227,25 @@ try {
     } finally {
       await shot(guy, '07b-shop-guy');
     }
+  });
+
+  await check('Hila swipes the tomatoes right: they go into Ongoing; ticked there, Guy sees them done', async () => {
+    const tomato = (p) => p.locator('li.row', { has: p.locator('.row__title', { hasText: 'עגבניות' }) }).first();
+    // Nothing swiped in yet: milk was ticked off plainly, so no card.
+    if (await hila.locator('.ongoing').count()) throw new Error('an Ongoing card before anything went in');
+    await swipeRow(hila, hilaCtx, tomato(hila), 150);
+    await hila.locator('.ongoing li.row', { hasText: 'עגבניות' }).waitFor({ timeout: 3000 });
+    // In the card, not also in the list under it.
+    const n = await hila.locator('.row__title', { hasText: 'עגבניות' }).count();
+    if (n !== 1) throw new Error(`expected the tomatoes once, found ${n}`);
+    await shot(hila, '07c-shop-ongoing');
+    await hila.locator('.ongoing li.row', { hasText: 'עגבניות' }).getByRole('checkbox').click();
+    await hila.locator('.ongoing .donechip', { hasText: 'עגבניות' }).waitFor({ timeout: 3000 });
+    await guy.goto(`${url}/shop`);
+    await waitFor(async () => (await guy.locator('li.row:not(.is-done)', { hasText: 'עגבניות' }).count()) === 0, 15000, 'tomatoes done on guy');
+    // Clear files it away; the card goes.
+    await hila.locator('.ongoing').getByRole('button', { name: 'Clear', exact: true }).click();
+    await hila.locator('.ongoing').waitFor({ state: 'detached', timeout: 3000 });
   });
 
   // ---------- Privacy

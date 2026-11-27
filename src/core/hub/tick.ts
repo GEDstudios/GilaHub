@@ -32,6 +32,12 @@ declare module './base' {
     /** Clear: what was done here (or just these) is filed away (Again? remembers it). */
     clearDone(listIds: string[], only?: string[]): Undo;
 
+    /**
+     * Ongoing: put a task in (I'm doing it now: swiped right) or take it out. Only a top-level
+     * task that's still open goes in; one already ticked stays until it's cleared.
+     */
+    setOngoing(id: string, on: boolean): Undo;
+
     /** Housekeeping: a tray left for 12h is cleared by itself. */
     autoArchive(now?: number): void;
 
@@ -49,7 +55,17 @@ Hub.prototype.toggle = function (this: Hub, id: string, opts: { withChildren?: b
   // Something we count the stock of is never "done": it stays, counted (it's never cleared away).
   if (!item || item.stock != null) return () => {};
   const kind = this.tickKind(item);
-  if (kind === 'roll') return this.completeRepeating(id);
+  if (kind === 'roll') {
+    // A repeating one done this time is out of Ongoing (it's back for its next time).
+    const was = item.ongoingAt ?? null;
+    const undo = this.completeRepeating(id);
+    if (!was) return undo;
+    this.store.mutate('item', id, { ongoingAt: null, ongoingBy: null });
+    return () => {
+      undo();
+      this.store.mutate('item', id, { ongoingAt: was, ongoingBy: item.ongoingBy ?? null });
+    };
+  }
   if (kind === 'confirm') return this.confirm(id);
   if (kind === 'take-back') return this.sendBack(id);
   if (kind === 'submit') {
@@ -148,6 +164,14 @@ Hub.prototype.setPaused = function (this: Hub, id: string, paused: boolean): Und
     fields.due = isFlexible(item.repeat) ? todayStr() : shiftForAway(item.repeat, item.due, 0);
   }
   return this.updateItem(id, fields);
+};
+
+Hub.prototype.setOngoing = function (this: Hub, id: string, on: boolean): Undo {
+  const item = this.item(id);
+  if (!item || item.parentId || (on && item.done) || !!item.ongoingAt === on) return () => {};
+  const prev = { ongoingAt: item.ongoingAt ?? null, ongoingBy: item.ongoingBy ?? null };
+  this.store.mutate('item', id, on ? { ongoingAt: Date.now(), ongoingBy: this.meId } : { ongoingAt: null, ongoingBy: null });
+  return () => this.store.mutate('item', id, prev);
 };
 
 Hub.prototype.clearDone = function (this: Hub, listIds: string[], only?: string[]): Undo {

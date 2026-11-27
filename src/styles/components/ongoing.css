@@ -1,0 +1,155 @@
+/* ============================================================ Ongoing: what's being done now
+ * A task swiped right comes in here and leaves the list below. A white card: how many are still
+ * to do, a bar that fills as they're ticked, the ones in it as real rows (tick them here; swipe
+ * one left: not now), the ticked ones as chips you can tap back out, and Clear to file those away.
+ */
+
+.ongoing {
+  margin: 4px 0 var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) 14px;
+  border-radius: var(--r-m);
+  background: var(--card);
+  box-shadow: var(--lift-1), var(--edge);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'head clear'
+    'rows rows'
+    'done done';
+  align-items: center;
+  gap: 10px 12px;
+  animation: row-in var(--dur-move) var(--ease) both;
+}
+
+.ongoing__head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.ongoing__mark {
+  position: relative;
+  flex: none;
+  width: var(--ctl-m);
+  height: var(--ctl-m);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tile);
+  /* Each new thing in: a small bounce */
+  animation: ongoing-bump 360ms var(--spring) both;
+}
+
+@keyframes ongoing-bump {
+  30% {
+    transform: translateY(2px) scale(1.08, 0.94);
+  }
+}
+
+.ongoing__n {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--cta);
+  color: var(--cta-text);
+  font-size: var(--type-micro);
+  font-weight: 600;
+}
+
+.ongoing__bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--tile);
+  overflow: hidden;
+}
+
+.ongoing__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--me-light, var(--lemon));
+  box-shadow: inset 0 0 0 1px rgb(10 10 4 / 0.08);
+  transition: width 420ms var(--spring);
+}
+
+/* Everything in it is done: the bar is full, and Clear is the thing to do */
+.ongoing.is-full .ongoing__bar > span {
+  background: var(--mint);
+}
+
+.ongoing__of {
+  font-size: var(--type-meta);
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.ongoing__clear {
+  grid-area: clear;
+}
+
+.ongoing__rows {
+  grid-area: rows;
+  margin: 0 -2px;
+}
+
+.ongoing__done {
+  grid-area: done;
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 calc(-1 * var(--space-2)) 0 -14px;
+  padding: 2px var(--space-2) 2px 14px;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+
+.ongoing__done::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ticked in Ongoing: a chip; tap it and it's back to doing */
+.donechip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--ctl-s);
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--tile);
+  font-size: var(--type-label);
+  color: var(--text-2);
+  transition: scale var(--dur-quick) var(--ease);
+  /* Dropped in: falls a little and lands */
+  animation: ongoing-drop 380ms var(--spring) both;
+}
+
+.donechip:active {
+  scale: var(--press-pill);
+}
+
+@keyframes ongoing-drop {
+  from {
+    transform: translateY(-16px) scale(0.86);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ongoing,
+  .ongoing__mark,
+  .donechip {
+    animation: none;
+  }
+}

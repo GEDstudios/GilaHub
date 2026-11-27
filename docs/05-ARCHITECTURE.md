@@ -49,7 +49,7 @@
 |---|---|
 | `member` | Name and line color per person. |
 | `list` | A folder (the UI's word; the table keeps its first name): name, color, icon, owner, visibility, order, the folder it sits in, how it's looked at (list, cards, by tag), its task template. Older data may carry a kind or flavor; they're read once and converted (`hub/migrations.ts`). |
-| `item` | Everything on a list. Nests via `parentId` without limit. Holds dates, repeat rule, owner, privacy, urgent flag, aisle, and a stock count for things kept stocked. |
+| `item` | Everything on a list. Nests via `parentId` without limit. Holds dates, repeat rule, owner, privacy, urgent flag, aisle, a stock count for things kept stocked, and Ongoing (`ongoingAt`, `ongoingBy`: swiped in, since when, by whom). |
 | `log` | Completions of repeating items and purchases (for history, ♡ thanks and buy-again). |
 | `memory` | Learned aisle corrections per item name, shared by both partners. |
 | `tag` | Our tags (aisles among them), in the order we walk them. |

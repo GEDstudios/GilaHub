@@ -179,6 +179,9 @@ export interface Item {
   paused?: boolean;
   /** A request: who asked (the assignee is who was asked). */
   requestedBy?: string | null;
+  /** In Ongoing (swiped right): being done now, since then, by whom. Stays on once ticked, until cleared. */
+  ongoingAt?: number | null;
+  ongoingBy?: string | null;
   /** The asker wants to OK it before it counts as done. */
   needsOk?: boolean;
   /** "I did it" — waiting for the asker's OK. */

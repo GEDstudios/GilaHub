@@ -13,6 +13,94 @@
   transition: background var(--dur-quick) var(--ease);
 }
 
+/*
+ * What letting go will do, in the space the row uncovers: a start mark on my colour (Ongoing),
+ * or an × on a quiet band (not now). It grows in as the row moves (--swipe-p) and pops once
+ * letting go would do it.
+ */
+.row__swipe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.row__swipe--right {
+  left: calc(-1 * var(--swipe, 0px));
+  width: var(--swipe, 0px);
+  background: var(--me-light, var(--lemon));
+}
+
+.row__swipe--left {
+  left: 100%;
+  width: calc(-1 * var(--swipe, 0px));
+  background: var(--tile-2);
+}
+
+.row.is-swiping .row__swipe {
+  display: flex;
+}
+
+.row__swipe .row__swipeicon {
+  --s: 30;
+  --light: rgb(255 255 255 / 0.6);
+  flex: none;
+  color: var(--ink);
+  transform: scale(calc(0.55 + var(--swipe-p, 0) * 0.45));
+  transition: transform var(--dur-move) var(--spring);
+}
+
+.row.is-swiping .row__swipe .row__swipeicon {
+  transition: none;
+}
+
+.row.is-armed .row__swipe .row__swipeicon {
+  transform: scale(1.18);
+  transition: transform var(--dur-slow) var(--spring);
+}
+
+/* With a mouse: Ongoing from a small button that shows on hover (touch swipes instead). */
+.row__ongo {
+  display: none;
+  width: var(--ctl-s);
+  height: var(--ctl-s);
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-2);
+  transition:
+    color var(--dur-quick) var(--ease),
+    scale var(--dur-quick) var(--ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover > .row__trail > .row__ongo {
+    display: grid;
+  }
+
+  .row__ongo:hover {
+    --light: var(--me-light, var(--lemon));
+    color: var(--ink);
+  }
+}
+
+.row__ongo:active {
+  scale: var(--press-disc);
+}
+
+/* On a row in its list: it's being done now (and by whom, when that's my person) */
+.meta--ongoing {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.meta--ongoing .icon {
+  --s: 13;
+}
+
 /* A task's photo, small, at the row's end. */
 .row__thumb {
   width: 34px;

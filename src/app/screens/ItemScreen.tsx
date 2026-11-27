@@ -31,6 +31,7 @@ import { AutoTitle } from '../ui/AutoTitle';
 import type { Draft } from '../draft';
 import { G, G_TEXT } from '../ui/glyphs';
 import { myName } from '../labels';
+import { haptic } from '../ui/haptics';
 
 /** A task's "…": where it lives (move it, or have it somewhere else too), then duplicate and delete. */
 function ItemMenu({ id, onClose, onGone, onMove, also }: { id: string; onClose: () => void; onGone: () => void; onMove: () => void; also: { label: string; open: () => void } }) {
@@ -586,6 +587,20 @@ export function ItemScreen({ id }: { id: string }) {
                       label: 'Done…',
                       icon: G.done,
                       panel: (close: () => void) => <DonePanel id={id} close={close} />,
+                    },
+                  ]
+                : []),
+              ...(!item.parentId && item.stock == null && (!item.done || item.ongoingAt)
+                ? [
+                    {
+                      key: 'ongoing',
+                      label: 'Ongoing',
+                      icon: G.ongoing,
+                      set: !!item.ongoingAt,
+                      toggle: () => {
+                        haptic('select');
+                        hub.setOngoing(id, !item.ongoingAt);
+                      },
                     },
                   ]
                 : []),

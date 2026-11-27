@@ -19,7 +19,7 @@ import { doerOf, requestState, visTagFor } from '../privacy';
 import { Avatar, Check, ListBullet } from '../ui/primitives';
 import { ReqTag, UrgentTag, VisTag } from './RowTags';
 import { useFresh } from '../ui/fresh';
-import { useSettleHold } from '../ui/useSettle';
+import { SettleContext, useSettle, useSettleHold } from '../ui/useSettle';
 import { useSortableItem } from '../ui/Sortable';
 import { useSwipe } from '../ui/swipe';
 import { TagPills } from './Tags';
@@ -63,6 +63,8 @@ export interface ItemRowProps {
   nested?: boolean;
   /** Its folder's name goes to the folder (off where a tap anywhere should open the task: Today). */
   listLink?: boolean;
+  /** In the Ongoing card: swipe it left to take it out (no "Ongoing" mark: it's where it says). */
+  inTray?: boolean;
 }
 
 export const ItemRow = memo(function ItemRow({
@@ -80,6 +82,7 @@ export const ItemRow = memo(function ItemRow({
   dragProps,
   nested,
   listLink = true,
+  inTray,
 }: ItemRowProps) {
   const hub = useHub();
   const prefs = usePrefs();
@@ -112,7 +115,25 @@ export const ItemRow = memo(function ItemRow({
   const twin = hub.linked(item);
   const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
 
-  const swipeRef = useSwipe<HTMLLIElement>({});
+  // Swipe right: it's ongoing (I'm doing it now). In the Ongoing card, swipe left: not now.
+  const canGo = !nested && !item.parentId && !item.done && !settling && item.stock == null && hub.canEdit(item);
+  const intoOngoing =
+    canGo && !item.ongoingAt
+      ? () => {
+          const undo = hub.setOngoing(item.id, true);
+          toast(`Ongoing: ${item.title}`, { ms: 2200, undo });
+        }
+      : undefined;
+  const outOfOngoing =
+    inTray && !nested && item.ongoingAt && !item.done
+      ? () => {
+          const undo = hub.setOngoing(item.id, false);
+          toast(`Not now: ${item.title}`, { ms: 2200, undo });
+        }
+      : undefined;
+  const swipeRef = useSwipe<HTMLLIElement>({ right: intoOngoing, left: outOfOngoing });
+  const ongoing = !!item.ongoingAt && !item.done && !inTray;
+  const onBy = ongoing && item.ongoingBy && item.ongoingBy !== hub.meId ? hub.member(item.ongoingBy) : undefined;
   // A subtask unfolded here can be dragged anywhere in the list, outliner style (outline.ts says
   // where it lands; the rows part and a gap opens there, and the copy in the hand settles into it).
   // Onto a group or a step of the path, it's its own task there. Escape puts it back.
@@ -189,7 +210,10 @@ export const ItemRow = memo(function ItemRow({
     const now = getPrefs().unfolded;
     setPrefs({ unfolded: now.includes(item.id) ? now.filter((x) => x !== item.id) : [...now, item.id].slice(-200) });
   };
-  const kids = unfolded ? hub.childrenOf(item.id) : [];
+  // Only the open ones: the n/m on the chip already says how many are done. A ticked one settles
+  // in place for a moment, then folds away (its own settle, so it doesn't hold the list's rows).
+  const subSettle = useSettle<Item>();
+  const kids = subSettle.view('kids', unfolded ? hub.childrenOf(item.id).filter((k) => !k.done) : []);
   const photo = hub.photosOf(`item:${item.id}`)[0];
   const thumb = photo ? hub.shotOf('photo', photo.id) : null;
 
@@ -203,12 +227,23 @@ export const ItemRow = memo(function ItemRow({
       className={`row row--tap ${item.done ? 'is-done' : ''} ${item.submittedAt && !item.done ? 'is-pending' : ''} ${readonly ? 'row--readonly' : ''} ${fresh ? 'row--fresh row--flash' : flash ? 'row--flash' : ''} ${settling ? 'is-settling' : ''} ${unfolded ? 'row--unfolded' : ''} ${nested ? 'row--nested' : ''} ${liClass ?? ''}`}
       onClick={() => navigate({ name: 'item', id: item.id })}
     >
+      {/* What letting go of a swipe will do, in the space the row uncovers. */}
+      {intoOngoing ? (
+        <span className="row__swipe row__swipe--right" aria-hidden="true">
+          <Icon name={G.ongoing} className="row__swipeicon" />
+        </span>
+      ) : null}
+      {outOfOngoing ? (
+        <span className="row__swipe row__swipe--left" aria-hidden="true">
+          <Icon name={G.close} className="row__swipeicon" />
+        </span>
+      ) : null}
       {item.stock != null ? <StockCount item={item} readonly={readonly} /> : <Check on={item.done || !!settling} color={list?.color} onToggle={onToggle} label={item.title} />}
       <div className="row__body">
         <span className="row__title" dir="auto">
           {item.title || 'Untitled'}
         </span>
-        {(showList && list) || req || vis || due || item.repeat || steps.total || twin || tags.length ? (
+        {(showList && list) || req || vis || due || item.repeat || steps.total || twin || tags.length || ongoing ? (
           <span className="row__meta">
             {twin ? <TwinTag twin={twin} /> : null}
             {showList && list && !listLink ? (
@@ -258,23 +293,46 @@ export const ItemRow = memo(function ItemRow({
               )
             ) : null}
             <TagPills ids={tags} />
+            {ongoing ? (
+              <span className="meta meta--ongoing">
+                <Icon name={G.ongoing} />
+                {onBy ? `${onBy.name}’s on it` : 'Ongoing'}
+              </span>
+            ) : null}
           </span>
         ) : null}
         {below}
       </div>
-      {(item.urgent && !inUrgent && !item.done) || avatar || thumb ? (
+      {(item.urgent && !inUrgent && !item.done) || avatar || thumb || intoOngoing ? (
         <span className="row__trail">
+          {intoOngoing ? (
+            // With a mouse (no swipe): the same, from a button that shows on hover.
+            <button
+              type="button"
+              className="row__ongo"
+              aria-label={`Put ${item.title} in Ongoing`}
+              title="Ongoing"
+              onClick={(e) => {
+                e.stopPropagation();
+                intoOngoing();
+              }}
+            >
+              <Icon name={G.ongoing} />
+            </button>
+          ) : null}
           {item.urgent && !inUrgent && !item.done ? <UrgentTag /> : null}
           {avatar ? <Avatar member={avatar} size="xs" /> : null}
           {thumb ? <img className="row__thumb" src={thumb} alt="" /> : null}
         </span>
       ) : null}
       {unfolded && kids.length ? (
-        <ul className="rows rows--sub" onClick={(e) => e.stopPropagation()}>
-          {kids.map((k) => (
-            <ItemRow key={k.id} item={k} nested dateMode={dateMode} />
-          ))}
-        </ul>
+        <SettleContext.Provider value={subSettle}>
+          <ul className="rows rows--sub" onClick={(e) => e.stopPropagation()}>
+            {kids.map(({ row: k, settling: s }) => (
+              <ItemRow key={k.id} item={k} nested dateMode={dateMode} settling={s} />
+            ))}
+          </ul>
+        </SettleContext.Provider>
       ) : null}
     </li>
   );
