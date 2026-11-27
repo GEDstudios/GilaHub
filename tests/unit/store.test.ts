@@ -57,6 +57,29 @@ describe('Store convergence', () => {
     expect(b.get('item', id)).toMatchObject({ title: 'Two', done: true });
   });
 
+  it('a repair dated by a clock in the data is the same write everywhere, and anything newer wins', async () => {
+    const guy = await replica('dev-guy', 'guy');
+    const hila = await replica('dev-hila', 'hila');
+    const id = guy.create('item', { title: 'Eggs', parentId: 'P' });
+    guy.mutate('item', id, { title: 'Eggs (12)' });
+    deliver(guy, hila);
+    const h = guy.record('item', id)!.c.title;
+    // Each works it out alone: the same value under the same clock, before a word is exchanged.
+    expect(guy.amend('item', id, { parentId: null }, h)).toBe(true);
+    expect(hila.amend('item', id, { parentId: null }, h)).toBe(true);
+    expect(hila.record('item', id)).toEqual(guy.record('item', id));
+    // Again changes nothing; a field already written at or after that clock is left alone.
+    expect(guy.amend('item', id, { parentId: null, title: 'Eggs?' }, h)).toBe(false);
+    expect(guy.get('item', id)?.title).toBe('Eggs (12)');
+    // It travels like any write, and hearing it back changes nothing.
+    hila.mutate('item', id, { parentId: 'Q' });
+    deliver(guy, hila);
+    deliver(hila, guy);
+    expect(guy.get('item', id)?.parentId).toBe('Q');
+    expect(hila.record('item', id)).toEqual(guy.record('item', id));
+    expect(guy.amend('item', 'nobody', { parentId: null }, h)).toBe(false);
+  });
+
   it('hides deleted entities but keeps the tombstone', async () => {
     const a = await replica('a', 'guy');
     const id = a.create('item', { title: 'Temp' });

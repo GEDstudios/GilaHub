@@ -39,6 +39,11 @@ export async function startRuntime(persistence: Persistence, session: Session): 
   hub.uniformProjects();
   hub.endAwayMode();
   hub.stockInPlace();
+  // Two devices nested two tasks under each other at once: opened up the same way on each of
+  // them, as soon as it shows (what arrives, an undo, a restore). Upkeep, never an undo step.
+  const mend = () => void quietly(store, () => hub.mendTree());
+  mend();
+  store.subscribe(mend);
   const relayListeners = new Set<() => void>();
 
   /**

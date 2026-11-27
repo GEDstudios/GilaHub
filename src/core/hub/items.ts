@@ -29,6 +29,20 @@ addItem(listId: string, input: NewItem): string;
     delete(id: string): Undo;
 
     duplicate(id: string): string | null;
+
+    /**
+     * Open up tasks that sit under each other in a loop. `move` never makes one, but two devices
+     * can each make a fair move at the same moment (X under Y here, Y under X there); each
+     * `parentId` merges on its own, and then neither is at the top of anything: both are gone
+     * from every list.
+     *
+     * The newest move stands. The task whose move is the oldest in the loop comes out to the top
+     * of its folder, with everything under it. Every device picks the same task from the same
+     * merged data and writes the very same thing, dated by that newest move (Store.amend): they
+     * agree before they've heard from each other, and a move made since is never overwritten.
+     * Run whenever the data changes; it writes only when there's a loop. Returns how many it opened.
+     */
+    mendTree(): number;
   }
 }
 
@@ -184,4 +198,43 @@ Hub.prototype.duplicate = function (this: Hub, id: string): string | null {
     return nid;
   };
   return this.store.batch(() => copy(item, item.parentId ?? null));
+};
+
+Hub.prototype.mendTree = function (this: Hub): number {
+  /** When its place was last set: the clock of its `parentId`. */
+  const moved = (id: string) => this.store.record('item', id)?.c.parentId ?? '';
+  const oldestFirst = (a: string, b: string) => (moved(a) < moved(b) ? -1 : moved(a) > moved(b) ? 1 : a < b ? -1 : 1);
+  // Walked already: the way up from these ends, or its loop is on the list.
+  const clear = new Set<string>();
+  const loops: string[][] = [];
+  for (const { id } of this.store.all('item')) {
+    // The way up from here. Meeting a task of this same walk again is a loop.
+    const path = new Map<string, number>();
+    let cur = this.item(id);
+    while (cur?.parentId && !clear.has(cur.id) && !path.has(cur.id)) {
+      path.set(cur.id, path.size);
+      cur = this.item(cur.parentId);
+    }
+    const at = cur ? path.get(cur.id) : undefined;
+    if (at !== undefined) loops.push([...path.keys()].slice(at).sort(oldestFirst));
+    for (const p of path.keys()) clear.add(p);
+  }
+  // Nothing wrong (nearly always): no write, so nobody is told the data changed.
+  if (!loops.length) return 0;
+  this.store.batch(() => {
+    for (const loop of loops) {
+      const out = loop[0];
+      const newest = moved(loop.at(-1)!);
+      const fields: Partial<Item> = { parentId: null };
+      // It was Only me through what it sat under, and is still sealed that way. On its own at
+      // the top it says so itself: coming out of a loop never shows my person anything.
+      const scope = this.store.scopeOf('item', out);
+      if (scope !== 'h' && this.scopeForItem({ ...this.item(out)!, parentId: null }) === 'h') Object.assign(fields, { private: true, owner: scope.slice(2) });
+      if (moved(out) < newest) this.store.amend('item', out, fields, newest);
+      // A task under itself, or moves no clock tells apart: nothing to date it by, so it's a
+      // write like any other (the same one from every device).
+      else this.store.mutate('item', out, fields);
+    }
+  });
+  return loops.length;
 };
