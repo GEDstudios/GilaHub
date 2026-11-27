@@ -81,7 +81,7 @@
 }
 
 @media (hover: hover) {
-  .rows--sub .row--tap:hover {
+  html:not(.is-dragging) .rows--sub .row--tap:hover {
     background: rgb(10 10 4 / 0.06);
   }
 }

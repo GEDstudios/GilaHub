@@ -34,6 +34,7 @@ import { notifyMembers } from '../runtime';
 import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
 import { haptic } from '../ui/haptics';
+import { dropMarks } from '../ui/dropMark';
 import { cadenceLabel } from '../../smart/suggest';
 import { dayIn, hasTemplate } from '../template';
 import { humanTime } from '../../core/dates';
@@ -693,17 +694,11 @@ function crumbAt(p: Point): { el: HTMLElement; to: string | null } | null {
 function useCrumbDrop(from: string): { target: Outside; over: { current: string | null | undefined } } {
   const hub = useHub();
   const { toast } = useOverlays();
-  const lit = useRef<HTMLElement | null>(null);
   // Where it would land while over a step (undefined: not over one), for the lifted chip.
   const over = useRef<string | null | undefined>(undefined);
   return useMemo(() => {
-    const light = (el: HTMLElement | null) => {
-      if (lit.current === el) return;
-      lit.current?.classList.remove('is-droptarget');
-      el?.classList.add('is-droptarget');
-      if (el) haptic('select');
-      lit.current = el;
-    };
+    const mark = dropMarks();
+    const light = (el: HTMLElement | null) => mark({ into: el });
     const target: Outside = {
       hit: (p) => {
         const t = crumbAt(p);

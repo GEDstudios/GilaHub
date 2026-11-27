@@ -43,8 +43,9 @@
 }
 
 @media (hover: hover) {
-  /* (Not while the hand is on one of its unfolded subtasks: then only that line lights.) */
-  .row--tap:hover:not(:has(.row--nested:hover)) {
+  /* (Not while the hand is on one of its unfolded subtasks: then only that line lights. Nor
+     while dragging: then only where it lands darkens.) */
+  html:not(.is-dragging) .row--tap:hover:not(:has(.row--nested:hover)) {
     background: #ebebe7;
   }
 }
@@ -171,13 +172,4 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
-}
-
-/* A subtask dragged among its sisters: a line where it will land */
-li.row.is-dropbefore {
-  box-shadow: inset 0 2px 0 var(--ink);
-}
-
-li.row.is-dropafter {
-  box-shadow: inset 0 -2px 0 var(--ink);
 }

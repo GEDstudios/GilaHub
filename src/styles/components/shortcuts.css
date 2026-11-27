@@ -140,17 +140,6 @@
   display: flow-root;
 }
 
-/* A subtask being dragged out: its chip follows the hand; the row stays, faded */
-
-.row.is-lifted-out {
-  opacity: 0.35;
-}
-
-/* Where a dragged-out subtask would land */
-.aisle.is-droptarget > .rows,
-.aisle.is-droptarget > ul {
-  box-shadow: 0 0 0 2px var(--ink);
-}
 
 /* By tag: a group's heading carries it up or down */
 .aisle__head--drag {
@@ -251,11 +240,4 @@ section.aisle.is-settling-in > .rows {
   z-index: var(--z-drag);
   pointer-events: none;
   will-change: transform;
-}
-
-/* A task a dragged one would go under */
-.aisle li.row.is-droptarget {
-  background: var(--me-light, var(--tile-2));
-  box-shadow: inset 0 0 0 2px var(--ink);
-  border-radius: 14px;
 }

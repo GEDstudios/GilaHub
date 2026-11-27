@@ -9,6 +9,8 @@ import { useOnce } from '../ui/useOnce';
 import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { DIST } from '../ui/tokens';
+import type { ChipKind } from '../ui/dragOut';
+import { dropMarks, lineBy, restRect, type Landing } from '../ui/dropMark';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 import { Disclosure } from '../ui/primitives';
@@ -46,38 +48,34 @@ function stepAt(p: Point): { el: HTMLElement; list?: string; item?: string } | n
   return null;
 }
 
+type Lift = Landing & { kind: ChipKind; listId?: string; parentId: string | null; before?: string | null };
+
 /**
- * A subtask dragged up onto the path (Folders › Home › Paint the hall): let go on a folder and
- * it's a task of its own there; on a task further up, it's that task's subtask instead. Onto a
- * sister subtask's middle (or pulled right, under the one above), it's a subtask of that one.
+ * A subtask on its task's page, held: besides reordering among its sisters (the list's own drag),
+ *   onto a sister's middle, or pulled right under the one above   under that one (a deeper subtask)
+ *   pulled left                                                   out: a task of its own, right
+ *                                                                 after this one (its step of the
+ *                                                                 path darkens: that's where)
+ *   onto a step of the path                                       a task of its own in that folder,
+ *                                                                 or under that task further up
+ * The chip in the hand says which (`kind`).
  */
-function useLiftOut(parentId: string | null): Outside | undefined {
+function useLiftOut(parentId: string | null, onKind: (k: ChipKind) => void): Outside | undefined {
   const hub = useHub();
   const overlays = useOverlays();
-  const lit = useRef<HTMLElement | null>(null);
   return useMemo(() => {
     if (!parentId) return undefined;
-    const light = (el: HTMLElement | null) => {
-      if (lit.current === el) return;
-      lit.current?.classList.remove('is-droptarget');
-      el?.classList.add('is-droptarget');
-      if (el) haptic('select');
-      lit.current = el;
-    };
-    // Where the hand was when the drag began (the first aim after a lift), for "pulled right".
+    const mark = dropMarks();
+    // Where the hand was when the drag began (the first aim after a lift), for "pulled right / left".
     let liftX: number | null = null;
     let lifted: string | null = null;
+    let kind: ChipKind | null = null;
     /** Onto a sister subtask's middle, or pulled right under the one above: a subtask of it. */
     const nestAt = (p: Point): { el: HTMLElement; id: string } | null => {
       if (!lifted) return null;
       const rows = [...document.querySelectorAll<HTMLElement>('li.row[data-id]')]
         .filter((li) => li.dataset.id !== lifted && !li.closest('.dragwrap') && hub.item(li.dataset.id)?.parentId === parentId)
-        .map((li) => {
-          const r = li.getBoundingClientRect();
-          const t = getComputedStyle(li).transform;
-          const top = r.top - (t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42);
-          return { li, id: li.dataset.id!, top, height: r.height, left: r.left, right: r.right };
-        });
+        .map((li) => ({ li, id: li.dataset.id!, ...restRect(li) }));
       const ok = (id: string) => !hub.item(id)?.done;
       for (const r of rows) {
         const band = (p.y - r.top) / r.height;
@@ -90,11 +88,23 @@ function useLiftOut(parentId: string | null): Outside | undefined {
       }
       return null;
     };
-    const targetAt = (p: Point): { el: HTMLElement; list?: string; item?: string } | null => {
+    const targetAt = (p: Point): Lift | null => {
       const step = stepAt(p);
-      if (step) return step;
+      if (step) return { into: step.el, kind: step.item ? 'subtask' : 'move', listId: step.list, parentId: step.item ?? null };
+      const task = hub.item(parentId);
+      if (task && liftX !== null && liftX - p.x > DIST.nest) {
+        const sis = hub.siblings(task.listId, task.parentId ?? null);
+        const where = task.parentId ? `.crumbs [data-drop-item="${task.parentId}"]` : `.crumbs [data-drop-list="${task.listId}"]`;
+        return {
+          into: document.querySelector<HTMLElement>(where),
+          kind: 'move',
+          listId: task.listId,
+          parentId: task.parentId ?? null,
+          before: sis[sis.findIndex((x) => x.id === task.id) + 1]?.id ?? null,
+        };
+      }
       const n = nestAt(p);
-      return n ? { el: n.el, item: n.id } : null;
+      return n ? { into: n.el, line: lineBy(n.el, 'bottom', true), kind: 'subtask', parentId: n.id } : null;
     };
     return {
       lift: (id) => {
@@ -105,26 +115,32 @@ function useLiftOut(parentId: string | null): Outside | undefined {
         if (liftX === null) liftX = p.x;
         return !!targetAt(p);
       },
-      aim: (p) => light(p ? (targetAt(p)?.el ?? null) : null),
+      aim: (p) => {
+        const t = p ? targetAt(p) : null;
+        mark(t);
+        // (Here, in the frame loop, not in hit: that runs while the list renders.)
+        if (t && t.kind !== kind) onKind((kind = t.kind));
+      },
       drop: (id, p) => {
         const t = targetAt(p);
-        light(null);
+        mark(null);
         const item = hub.item(id);
         if (!t || !item) return;
         const was = { listId: item.listId, parentId: item.parentId ?? null };
-        const to = t.item ? { listId: hub.item(t.item)?.listId ?? item.listId, parentId: t.item } : { listId: t.list ?? item.listId, parentId: null };
+        const to = { listId: t.parentId ? (hub.item(t.parentId)?.listId ?? item.listId) : (t.listId ?? item.listId), parentId: t.parentId, before: t.before ?? undefined };
         hub.move(id, to);
         haptic('success');
         const where = to.parentId ? `under “${hub.item(to.parentId)?.title ?? 'it'}”` : `its own task in ${hub.list(to.listId)?.name ?? 'there'}`;
         movedTo(hub, overlays, id, was.listId, to.parentId ? was.listId : to.listId, `${item.title}: ${where}`, () => hub.move(id, was));
       },
       end: () => {
-        light(null);
+        mark(null);
         lifted = null;
         liftX = null;
+        kind = null;
       },
     };
-  }, [hub, overlays, parentId]);
+  }, [hub, overlays, parentId, onKind]);
 }
 
 /**
@@ -153,7 +169,8 @@ export function Children({
   const rows = settle.view('open', open);
   const doneRows = settle.view('done', done);
   const [coach, coached] = useOnce('reorder', !readonly && open.length >= 3);
-  const liftOut = useLiftOut(readonly ? null : parentId);
+  const [chip, setChip] = useState<ChipKind>('move');
+  const liftOut = useLiftOut(readonly ? null : parentId, setChip);
 
   const onMove = (next: string[], id: string) => {
     const at = next.indexOf(id);
@@ -180,11 +197,11 @@ export function Children({
           label={(id) => hub.item(id)?.title ?? ''}
           renderOverlay={(id, { outside }) => {
             const item = hub.item(id);
-            // Over a step of the path: a small chip, going out.
+            // Over where it goes in: a small chip saying how (under a task, or out on its own).
             if (item && outside)
               return (
                 <span className="dropchip">
-                  <Icon name={G.move} className="icon--sm" />
+                  <Icon name={chip === 'subtask' ? G.subtask : G.move} className="icon--sm" />
                   <span dir="auto">{item.title}</span>
                 </span>
               );

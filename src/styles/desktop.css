@@ -428,8 +428,8 @@
     border-radius: 10px;
   }
 
-  .main .rows .row:hover:not(:has(.row--nested:hover)),
-  .row--tap:hover:not(:has(.row--nested:hover)) {
+  html:not(.is-dragging) .main .rows .row:hover:not(:has(.row--nested:hover)),
+  html:not(.is-dragging) .row--tap:hover:not(:has(.row--nested:hover)) {
     background: var(--press);
   }
 

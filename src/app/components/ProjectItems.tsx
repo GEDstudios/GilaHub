@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { Item, List } from '../../core/model';
 import { useHub } from '../context';
 import { navigate } from '../router';
@@ -17,6 +17,8 @@ import { useGroupDrag } from '../ui/groupDrag';
 import { TagMark } from './Tags';
 import { listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
+import { dropMarks, lineBy, restRect } from '../ui/dropMark';
+import { DIST } from '../ui/tokens';
 
 const idOf = (i: Item) => i.id;
 
@@ -113,18 +115,12 @@ export function ProjectItems({
 
   // Drop a task on a project (a folder here, a step of the path, a project in the bar): it moves there.
   const lifted = useRef<string | null>(null);
-  const lit = useRef<HTMLElement | null>(null);
-  const light = (el: HTMLElement | null) => {
-    if (lit.current === el) return;
-    lit.current?.classList.remove('is-droptarget');
-    el?.classList.add('is-droptarget');
-    if (el) haptic('select');
-    lit.current = el;
-  };
+  const mark = useMemo(dropMarks, []);
   // Or onto the middle of another task: it goes under it, as a subtask. (The rows' resting places
   // decide, not where they've slid to make room, so the target holds still.)
   // Or, as in most to-do apps, drag it to the right: it goes under the task above it.
-  const nestRef = useRef<string | null>(null);
+  // How the chip in the hand says it goes in (set as it aims, so the chip follows along).
+  const [nesting, setNesting] = useState(false);
   const liftX = useRef<number | null>(null);
   const nestAt = (p: Point): { el: HTMLElement; id: string } | null => {
     const from = lifted.current;
@@ -136,12 +132,7 @@ export function ProjectItems({
     };
     const rows = [...document.querySelectorAll<HTMLElement>('.aisle li.row:not(.row--nested)[data-id]')]
       .filter((li) => li.dataset.id !== from && !li.closest('.dragwrap'))
-      .map((li) => {
-        const r = li.getBoundingClientRect();
-        const t = getComputedStyle(li).transform;
-        const top = r.top - (t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42);
-        return { li, id: li.dataset.id!, top, height: r.height, left: r.left, right: r.right };
-      });
+      .map((li) => ({ li, id: li.dataset.id!, ...restRect(li) }));
     // Right on a task (its middle): under that one.
     for (const r of rows) {
       const band = (p.y - r.top) / r.height;
@@ -149,7 +140,7 @@ export function ProjectItems({
       return ok(r.id) ? { el: r.li, id: r.id } : null;
     }
     // Pulled to the right of where it was picked up: under the task just above.
-    if (liftX.current !== null && p.x - liftX.current > 56) {
+    if (liftX.current !== null && p.x - liftX.current > DIST.nest) {
       const above = rows.filter((r) => r.top + r.height / 2 < p.y).sort((a, b) => b.top - a.top)[0];
       return above && ok(above.id) ? { el: above.li, id: above.id } : null;
     }
@@ -157,17 +148,20 @@ export function ProjectItems({
   };
   const into = {
     hit: (p: Point) => {
-      const n = nestAt(p);
-      nestRef.current = n?.id ?? null;
-      if (n) return true;
+      if (nestAt(p)) return true;
       const t = dropListAt(p);
       return !!t && t.listId !== hub.item(lifted.current)?.listId;
     },
-    aim: (p: Point | null) => light(p ? (nestAt(p)?.el ?? dropListAt(p)?.el ?? null) : null),
+    // Under a task: it darkens, with a line one step in at its foot; into a folder: it darkens.
+    aim: (p: Point | null) => {
+      const n = p ? nestAt(p) : null;
+      mark(n ? { into: n.el, line: lineBy(n.el, 'bottom', true) } : { into: (p && dropListAt(p)?.el) || null });
+      if (p && !!n !== nesting) setNesting(!!n);
+    },
     drop: (id: string, p: Point) => {
       const n = nestAt(p);
       if (n) {
-        light(null);
+        mark(null);
         const item = hub.item(id);
         const under = hub.item(n.id);
         if (!item || !under) return;
@@ -183,7 +177,7 @@ export function ProjectItems({
       const t = dropListAt(p);
       const item = hub.item(id);
       const to = hub.list(t?.listId);
-      light(null);
+      mark(null);
       if (!t || !item || !to) return;
       const was = { listId: item.listId, parentId: item.parentId ?? null };
       hub.move(id, { listId: to.id, parentId: null });
@@ -197,8 +191,8 @@ export function ProjectItems({
     end: () => {
       lifted.current = null;
       liftX.current = null;
-      nestRef.current = null;
-      light(null);
+      mark(null);
+      setNesting(false);
     },
   };
 
@@ -366,7 +360,7 @@ export function ProjectItems({
             if (item && outside)
               return (
                 <span className="dropchip">
-                  <Icon name={nestRef.current ? G.subtask : G.move} className="icon--sm" />
+                  <Icon name={nesting ? G.subtask : G.move} className="icon--sm" />
                   <span dir="auto">{item.title}</span>
                 </span>
               );

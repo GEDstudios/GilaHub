@@ -1,6 +1,7 @@
-import { useDragOut } from '../ui/dragOut';
+import { useDragOut, type ChipKind } from '../ui/dragOut';
+import { dropMarks, headOf, lineBy, type Landing } from '../ui/dropMark';
 import { movedTo } from './TemplateAsk';
-import { memo, useCallback, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { memo, useCallback, useMemo, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
@@ -114,77 +115,78 @@ export const ItemRow = memo(function ItemRow({
   const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
 
   const swipeRef = useSwipe<HTMLLIElement>({});
-  // A subtask unfolded here can be dragged out from under its task: onto the page (its own task),
-  // onto another group or a step of the path (its own task there), or onto another task (under that one).
+  // A subtask unfolded here can be dragged anywhere in the list, outliner style: what the hand is
+  // over says where it lands (dropMark.ts says how that shows).
+  //   a subtask's upper or lower half   a line above or below it, among those subtasks
+  //   …pulled right                     under that subtask (it darkens)
+  //   …its sister, pulled left          out: its own task, right after the one it was under
+  //   its own task's upper half         out, just above that task; the lower half: its first subtask
+  //   another task's top or bottom edge a line between tasks: its own task there
+  //   another task's middle             under that task
+  //   a group, a step of the path       its own task there
+  // Anywhere else, or its own slot, nothing changes; Escape puts it back.
   const overlays = useOverlays();
-  const lit = useRef<{ el: HTMLElement; cls: string } | null>(null);
-  // What the hand is over says how: a whole row lit (it goes under that one), or a line above or
-  // below a subtask (it goes there, among its sisters).
-  const light = (el: HTMLElement | null, cls = 'is-droptarget') => {
-    if (lit.current?.el === el && lit.current?.cls === cls) return;
-    lit.current?.el.classList.remove(lit.current.cls);
-    el?.classList.add(cls);
-    if (el) haptic('select');
-    lit.current = el ? { el, cls } : null;
-  };
-  type Target = { el: HTMLElement | null; cls?: string; listId: string; parentId: string | null; before?: string | null };
-  /** Over one of its sisters: pulled right, under it; else above or below it, by which half. */
-  const amongSisters = (p: { x: number; y: number }, from: { x: number; y: number }): Target | null | undefined => {
-    const sister = document
-      .elementsFromPoint(p.x, p.y)
-      .map((e) => e.closest<HTMLElement>('li.row--nested[data-id]'))
-      .find((e) => !!e && e.dataset.id !== item.id && !e.closest('.dragout'));
-    const under = sister ? hub.item(sister.dataset.id) : undefined;
-    if (!sister || !under || under.parentId !== item.parentId) return undefined;
-    if (p.x - from.x > DIST.nest) return under.done ? null : { el: sister, listId: under.listId, parentId: under.id };
-    const sisters = hub.siblings(item.listId, item.parentId ?? null).filter((x) => x.id !== item.id);
-    const r = sister.getBoundingClientRect();
-    const below = p.y > r.top + r.height / 2;
-    const before = below ? (sisters[sisters.findIndex((x) => x.id === under.id) + 1]?.id ?? null) : under.id;
-    return { el: sister, cls: below ? 'is-dropafter' : 'is-dropbefore', listId: item.listId, parentId: item.parentId ?? null, before };
-  };
+  const mark = useMemo(dropMarks, []);
+  type Target = Landing & { chip?: ChipKind; listId: string; parentId: string | null; before?: string | null };
   const outTarget = (p: { x: number; y: number }, from: { x: number; y: number }): Target | null => {
-    const near = amongSisters(p, from);
-    if (near !== undefined) return near;
-    // Beside its own task: pulled out to either edge of the list (or past it) takes it out, right
-    // after that task; the middle is a slip of the hand, and nothing changes. The edge is generous:
-    // on a phone the list nearly fills the screen.
-    const own = item.parentId ? document.querySelector<HTMLElement>(`li.row:not(.row--nested)[data-id="${item.parentId}"]`) : null;
-    const box = own?.getBoundingClientRect();
-    if (box && p.y >= box.top && p.y <= box.bottom) {
-      const edge = Math.min(48, box.width * 0.14);
-      if ((p.x > box.left + edge && p.x < box.right - edge) || Math.abs(p.x - from.x) < 40) return null;
-      const parent = hub.item(item.parentId);
-      if (!parent) return null;
-      const sisters = hub.siblings(parent.listId, parent.parentId ?? null);
-      const after = sisters[sisters.findIndex((x) => x.id === parent.id) + 1]?.id ?? null;
-      return { el: own, listId: parent.listId, parentId: parent.parentId ?? null, before: after };
-    }
-    const els = document.elementsFromPoint(p.x, p.y);
-    for (const e of els) {
+    const dx = p.x - from.x;
+    /** The one after `x` among its sisters (not counting this one): to land right after `x`. */
+    const after = (x: Item) => {
+      const sis = hub.siblings(x.listId, x.parentId ?? null).filter((s) => s.id !== item.id);
+      return sis[sis.findIndex((s) => s.id === x.id) + 1]?.id ?? null;
+    };
+    const under = (x: Item, el: HTMLElement): Target | null =>
+      x.done || hub.isUnder(x.id, item.id) || !hub.canEdit(x) ? null : { into: el, line: lineBy(el, 'bottom', true), chip: 'subtask', listId: x.listId, parentId: x.id };
+    const parent = hub.item(item.parentId);
+    /** Out from under its task: its own task, right after it. */
+    const out = (): Target | null => {
+      const own = parent && document.querySelector<HTMLElement>(`li.row:not(.row--nested)[data-id="${parent.id}"]`);
+      return parent && own ? { line: lineBy(own, 'bottom'), listId: parent.listId, parentId: parent.parentId ?? null, before: after(parent) } : null;
+    };
+    for (const e of document.elementsFromPoint(p.x, p.y)) {
       const crumb = e.closest<HTMLElement>('.crumbs [data-drop-list]');
-      if (crumb) return { el: crumb, listId: crumb.dataset.dropList!, parentId: null };
-      const row = e.closest<HTMLElement>('li.row:not(.row--nested)[data-id]');
+      if (crumb) return { into: crumb, chip: 'move', listId: crumb.dataset.dropList!, parentId: null };
+      const row = e.closest<HTMLElement>('li.row[data-id]');
       if (row) {
-        // Still over its own task: nothing changes.
-        if (row.dataset.id === item.parentId) return null;
-        const under = hub.item(row.dataset.id);
-        return under && !under.parentId ? { el: row, listId: under.listId, parentId: under.id } : null;
+        const at = hub.item(row.dataset.id);
+        if (!at || at.id === item.id || row.closest('.dragout')) return null;
+        if (row.classList.contains('row--nested')) {
+          if (dx > DIST.nest) return under(at, row);
+          if (dx < -DIST.nest && at.parentId === item.parentId) return out();
+          const r = row.getBoundingClientRect();
+          const below = p.y > r.top + r.height / 2;
+          return { line: lineBy(row, below ? 'bottom' : 'top'), listId: at.listId, parentId: at.parentId ?? null, before: below ? after(at) : at.id };
+        }
+        const head = headOf(row);
+        // Between its line and its subtasks: nothing changes.
+        if (p.y > head.bottom) return null;
+        const band = (p.y - head.top) / (head.bottom - head.top);
+        const first = (x: Item): Target | null => {
+          const kids = hub.siblings(x.listId, x.id).filter((s) => s.id !== item.id);
+          const el = kids[0] && row.querySelector<HTMLElement>(`:scope > .rows--sub > li.row[data-id="${kids[0].id}"]`);
+          if (x.done || hub.isUnder(x.id, item.id)) return null;
+          return { line: el ? lineBy(el, 'top') : { ...lineBy(row, 'bottom', true), y: head.bottom }, listId: x.listId, parentId: x.id, before: kids[0]?.id ?? null };
+        };
+        if (at.id === item.parentId) return band < 0.5 ? { line: lineBy(row, 'top'), listId: at.listId, parentId: at.parentId ?? null, before: at.id } : first(at);
+        if (band < 0.25) return { line: lineBy(row, 'top'), listId: at.listId, parentId: at.parentId ?? null, before: at.id };
+        if (band > 0.75) return row.querySelector(':scope > .rows--sub') ? first(at) : { line: lineBy(row, 'bottom'), listId: at.listId, parentId: at.parentId ?? null, before: after(at) };
+        return under(at, row);
       }
       const group = e.closest<HTMLElement>('.aisle[data-list]');
-      if (group) return { el: group, listId: group.dataset.list!, parentId: null };
+      if (group) return { into: group, chip: 'move', listId: group.dataset.list!, parentId: null };
     }
-    return { el: null, listId: item.listId, parentId: null };
+    return null;
   };
   const outRef = useDragOut<HTMLLIElement>({
     label: item.title,
     enabled: !!nested && !!item.parentId && !readonly && !item.done,
     aim: (p, from) => {
       const t = p ? outTarget(p, from) : null;
-      light(t?.el ?? null, t?.cls);
+      mark(t);
+      return t?.chip ?? t?.line;
     },
     drop: (p, from) => {
-      light(null);
+      mark(null);
       const t = outTarget(p, from);
       if (!t) return;
       const was = { listId: item.listId, parentId: item.parentId ?? null };
@@ -195,6 +197,9 @@ export const ItemRow = memo(function ItemRow({
         return;
       }
       hub.move(item.id, { listId: t.listId, parentId: t.parentId, before: t.before ?? undefined });
+      // Show it where it went: a task it went under opens its subtasks.
+      const unf = getPrefs().unfolded;
+      if (t.parentId && !unf.includes(t.parentId)) setPrefs({ unfolded: [...unf, t.parentId].slice(-200) });
       haptic('success');
       const where = t.parentId ? `under “${hub.item(t.parentId)?.title ?? 'it'}”` : `its own task${t.listId !== was.listId ? ` in ${hub.list(t.listId)?.name ?? 'there'}` : ''}`;
       movedTo(hub, overlays, item.id, was.listId, t.parentId ? was.listId : t.listId, `${item.title}: ${where}`, () => hub.move(item.id, was));

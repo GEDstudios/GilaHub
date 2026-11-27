@@ -43,6 +43,10 @@
   --cta-text: #fafaf8;
   --scrim: rgb(10 10 4 / 0.28);
   --press: rgb(10 10 4 / 0.05);
+  /* Where a dragged thing lands (drag.css, "Landing"): a darkened gray, never a color.
+     --drop-fill darkens what it goes into; --drop-mark is the line where it lands. */
+  --drop-fill: rgb(10 10 4 / 0.1);
+  --drop-mark: rgb(10 10 4 / 0.38);
   /* Deleting and removing (the last row of a "…" menu), and errors */
   --danger: #b4232c;
 
