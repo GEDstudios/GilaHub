@@ -161,6 +161,9 @@ describe('toasts', () => {
     expect(toastSwipedAway(-20, -0.8)).toBe(true);
     // A tap (no movement) never dismisses, whatever the timing.
     expect(toastSwipedAway(0, 3)).toBe(false);
+    // A thumb landing on a toast's button slides a few pixels, fast: still a tap.
+    expect(toastSwipedAway(10, 1.2)).toBe(false);
+    expect(toastSwipedAway(-12, -2)).toBe(false);
   });
 
   it('fold into one per group: the count goes up and Undo undoes all, newest first', () => {

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { currentPath, sheetOpened } from '../router';
-import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, toastSwipedAway, type ToastAction } from './motion';
+import { clamp, flickSpeed, foldToast, sheetCloses, sheetPull, TOAST_SLOP, toastSwipedAway, type ToastAction } from './motion';
 import { calm, EASE, TOAST } from './tokens';
 import { isMouse } from './pointer';
 import { G } from './glyphs';
@@ -211,11 +211,11 @@ export function OverlayProvider({ children }: { children: ReactNode }) {
 /** One toast: swipe it sideways to send it away; a finger on it keeps it. */
 function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: (acted: boolean) => void; onHold: (held: boolean) => void }) {
   const el = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x: number; dx: number; id: number; samples: Array<[number, number]> } | null>(null);
+  const drag = useRef<{ x: number; dx: number; id: number; samples: Array<[number, number]>; swiping: boolean } | null>(null);
   const [gone, setGone] = useState<number>(0);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    drag.current = { x: e.clientX, dx: 0, id: e.pointerId, samples: [[e.timeStamp, e.clientX]] };
+    drag.current = { x: e.clientX, dx: 0, id: e.pointerId, samples: [[e.timeStamp, e.clientX]], swiping: false };
     onHold(true);
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -223,7 +223,13 @@ function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: 
     if (!d || d.id !== e.pointerId || !el.current) return;
     d.dx = e.clientX - d.x;
     d.samples.push([e.timeStamp, e.clientX]);
-    if (Math.abs(d.dx) > 6 && !el.current.hasPointerCapture(e.pointerId)) el.current.setPointerCapture(e.pointerId);
+    // Still a tap (a thumb on its button wanders a little): the toast stays put and the button
+    // keeps the press. Past that it's a swipe, and the toast takes the pointer.
+    if (!d.swiping) {
+      if (Math.abs(d.dx) <= TOAST_SLOP) return;
+      d.swiping = true;
+      el.current.setPointerCapture(e.pointerId);
+    }
     el.current.style.transition = 'none';
     el.current.style.transform = `translateX(${d.dx}px)`;
     el.current.style.opacity = String(clamp(1 - Math.abs(d.dx) / 220, 0.2, 1));
@@ -233,7 +239,7 @@ function Toast({ entry: t, onDismiss, onHold }: { entry: ToastEntry; onDismiss: 
     drag.current = null;
     onHold(false);
     const node = el.current;
-    if (!d || !node) return;
+    if (!d || !node || !d.swiping) return;
     if (toastSwipedAway(d.dx, flickSpeed(d.samples))) {
       setGone(Math.sign(d.dx) || 1);
       node.style.transition = calm() ? 'none' : 'transform 200ms var(--ease), opacity 200ms var(--ease)';

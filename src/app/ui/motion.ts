@@ -111,9 +111,15 @@ export function sheetCloses(dy: number, height: number, speed: number): boolean 
   return dy > Math.min(140, height * 0.28) || (speed > 0.55 && dy > 0);
 }
 
-/** Let go of a swiped toast: gone past 64px, or on a flick either way. */
+/**
+ * How far a finger may wander on a toast and still be a tap. A thumb landing on "Refresh" or
+ * "Undo" slides a few pixels, fast: under this it's never a swipe, so the button gets its tap.
+ */
+export const TOAST_SLOP = 12;
+
+/** Let go of a swiped toast: gone past 64px, or on a flick either way (once it's past a tap's wander). */
 export function toastSwipedAway(dx: number, speed: number): boolean {
-  return Math.abs(dx) > 64 || (Math.abs(speed) > 0.5 && Math.abs(dx) > 8);
+  return Math.abs(dx) > 64 || (Math.abs(speed) > 0.5 && Math.abs(dx) > TOAST_SLOP);
 }
 
 /** A button on a toast. */
