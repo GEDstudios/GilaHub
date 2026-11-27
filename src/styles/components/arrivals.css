@@ -215,7 +215,7 @@
   font-weight: 600;
 }
 
-/* Where you are: Projects › Home › Kitchen › Fix the tap. Each step a quiet link back up; on a
+/* Where you are: Folders › Home › Kitchen › Fix the tap. Each step a quiet link back up; on a
    task, a small round ⌄ beside a step moves the task there. Long paths wrap, never cut. */
 .crumbs--path {
   gap: 2px 4px;
@@ -292,7 +292,7 @@
   color: var(--ink);
 }
 
-/* New project: the card is already a folder, its tab on top */
+/* New folder: the card is already a folder, its tab on top */
 .ccard--folder {
   margin-top: 16px;
   border-top-left-radius: 8px;
@@ -310,13 +310,13 @@
   clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
 }
 
-/* New project: the icon on the card is where you pick it */
+/* New folder: the icon on the card is where you pick it */
 
 .ccard__pick {
   margin: -4px 0 14px;
 }
 
-/* A project's page: its card is a folder too, the tab on top (as on Projects, as in New project) */
+/* A folder's page: its card is a folder too, the tab on top (as on Folders, as in New folder) */
 .hero--folder {
   position: relative;
   margin-top: 16px;

@@ -54,13 +54,13 @@ declare module './base' {
     tagsOf(item: Item): string[];
 
     /**
-     * Tags for these words: `auto` goes on by itself (what we taught it; in a project that goes by
+     * Tags for these words: `auto` goes on by itself (what we taught it; in a folder that goes by
      * aisle also the catalog's aisle), `more` is offered (the catalog elsewhere, tags named in the words).
      */
     suggestTags(title: string, listId?: string | null): { auto: string[]; more: string[] };
 
     /**
-     * Does this project go by aisle? Looked at by tag (it or a project it's in), or already
+     * Does this folder go by aisle? Looked at by tag (it or a folder it's in), or already
      * holding things that wear an aisle: then the catalog's aisle goes on by itself.
      */
     byAisle(listId: string): boolean;

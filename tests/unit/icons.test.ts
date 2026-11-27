@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { GLYPHS, type IconName } from '../../src/app/ui/icons.gen';
-import { parseGlyph, PROJECT_ICONS } from '../../src/app/ui/ProjectMark';
+import { parseGlyph, FOLDER_ICONS } from '../../src/app/ui/FolderMark';
 import { lightVar } from '../../src/app/ui/primitives';
 import { Hub } from '../../src/core/hub';
-import { pickColor, pickColors, PROJECT_TEMPLATES } from '../../src/core/seed';
+import { pickColor, pickColors, FOLDER_TEMPLATES } from '../../src/core/seed';
 import { MemoryPersistence } from '../../src/core/db';
 import { LINE_COLORS } from '../../src/core/model';
-import { suggestIcon } from '../../src/core/projectIcons';
+import { suggestIcon } from '../../src/core/folderIcons';
 import { Store } from '../../src/core/store';
 import { person } from './_helpers';
 
@@ -36,9 +36,9 @@ describe('Gila Duo glyphs', () => {
 
 describe('project icons', () => {
   it('offers distinct icons that all exist (the last, the folder, is "No icon")', () => {
-    expect(new Set(PROJECT_ICONS).size).toBe(PROJECT_ICONS.length);
-    expect(PROJECT_ICONS.at(-1)).toBe('folder');
-    for (const n of PROJECT_ICONS) expect(GLYPHS[n as keyof typeof GLYPHS], n).toBeDefined();
+    expect(new Set(FOLDER_ICONS).size).toBe(FOLDER_ICONS.length);
+    expect(FOLDER_ICONS.at(-1)).toBe('folder');
+    for (const n of FOLDER_ICONS) expect(GLYPHS[n as keyof typeof GLYPHS], n).toBeDefined();
   });
 
   it('still reads every icon stored before', () => {
@@ -80,7 +80,7 @@ describe('new project icons', () => {
       const g = parseGlyph(suggestIcon(n, 'tasks'));
       expect(g?.kind, n).toBe('icon');
     }
-    for (const t of PROJECT_TEMPLATES) expect(parseGlyph(t.icon)?.kind, t.name).toBe('icon');
+    for (const t of FOLDER_TEMPLATES) expect(parseGlyph(t.icon)?.kind, t.name).toBe('icon');
   });
 
   it('a new project gets one, and a color its neighbours don’t have once all are taken', async () => {

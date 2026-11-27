@@ -8,7 +8,7 @@ import { useOverlays } from '../ui/overlays';
 import { FoldButton, ListBullet, DropChip } from '../ui/primitives';
 import { Sortable, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
-import type { ProjectGroup } from '../views';
+import type { FolderGroup } from '../views';
 import { ItemRow, SortableItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
 import { movedTo } from './TemplateAsk';
@@ -21,7 +21,7 @@ import { G } from '../ui/glyphs';
 import { dropMarks } from '../ui/dropMark';
 import { dweller, placer, unfoldTo, type Placement } from '../outline';
 
-/** The project under the hand, if any: one marked [data-drop-list], or a project's tab in the bar. */
+/** The folder under the hand, if any: one marked [data-drop-list], or a folder's tab in the bar. */
 function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
   for (const e of document.elementsFromPoint(p.x, p.y)) {
     const t = e.closest<HTMLElement>('[data-drop-list], .tabbar [data-key^="l:"]');
@@ -33,12 +33,12 @@ function dropListAt(p: Point): { el: HTMLElement; listId: string } | null {
 }
 
 /**
- * A project's open things, the same for every project: the Urgent card on top, then one group
- * (a plain list), a group per tag (the aisles, in our order), or one per project inside. Hold a
- * row to move it; drop it in another group and it takes that tag, or moves to that project.
+ * A folder's open things, the same for every folder: the Urgent card on top, then one group
+ * (a plain list), a group per tag (the aisles, in our order), or one per folder inside. Hold a
+ * row to move it; drop it in another group and it takes that tag, or moves to that folder.
  * Ticked rows strike and fold before they leave for the tray.
  */
-export function ProjectItems({
+export function FolderItems({
   groups: live,
   urgent,
   cards,
@@ -49,11 +49,11 @@ export function ProjectItems({
 }: {
   /** The folder this page is (its inner folders' headings show the way down from it). */
   pageId?: string;
-  groups: ProjectGroup[];
+  groups: FolderGroup[];
   urgent: Item[];
   cards: boolean;
   draggable: boolean;
-  /** Rows say which project they're in (a tag's group mixes projects). */
+  /** Rows say which folder they're in (a tag's group mixes folders). */
   showList: boolean;
   flash: Set<string>;
 }) {
@@ -65,13 +65,13 @@ export function ProjectItems({
   // As lists, the groups go in my order for this page (a group I never moved keeps its place
   // after the ones I did); the folders' own order isn't touched. The folder's own tasks lead.
   const mine = pageId ? (prefs.groupOrder[pageId] ?? []) : [];
-  const rank = (g: ProjectGroup, at: number) => (!g.label ? -1 : g.tag !== undefined || !mine.includes(g.key) ? mine.length + at : mine.indexOf(g.key));
+  const rank = (g: FolderGroup, at: number) => (!g.label ? -1 : g.tag !== undefined || !mine.includes(g.key) ? mine.length + at : mine.indexOf(g.key));
   const ordered = live
     .map((g, at) => ({ g, r: rank(g, at), at }))
     .sort((a, b) => a.r - b.r || a.at - b.at)
     .map((x) => x.g);
   // A group whose last thing was just ticked stays until that row has settled.
-  const last = useRef<ProjectGroup[]>([]);
+  const last = useRef<FolderGroup[]>([]);
   const groups = [...ordered];
   last.current.forEach((g, at) => {
     if (!groups.some((x) => x.key === g.key) && g.items.some((i) => settle.held.has(i.id))) groups.splice(Math.min(at, groups.length), 0, { ...g, items: [] });
@@ -86,9 +86,9 @@ export function ProjectItems({
     return at < 0 ? [l] : [...up.slice(at + 1), l];
   };
   // A group can be folded to its heading (mine, remembered on my devices).
-  const foldKey = (g: ProjectGroup) => `${pageId ?? ''}|${g.key}`;
-  const isFolded = (g: ProjectGroup) => !!g.label && prefs.foldedGroups.includes(foldKey(g));
-  const flipFold = (g: ProjectGroup) => {
+  const foldKey = (g: FolderGroup) => `${pageId ?? ''}|${g.key}`;
+  const isFolded = (g: FolderGroup) => !!g.label && prefs.foldedGroups.includes(foldKey(g));
+  const flipFold = (g: FolderGroup) => {
     haptic('select');
     const k = foldKey(g);
     const now = getPrefs().foldedGroups;
@@ -105,7 +105,7 @@ export function ProjectItems({
     return () => window.removeEventListener('pointermove', track, { capture: true });
   }, []);
 
-  // Drop a task on a project (a folder here, a step of the path, a project in the bar): it moves there.
+  // Drop a task on a folder (a folder here, a step of the path, a folder in the bar): it moves there.
   const lifted = useRef<string | null>(null);
   const mark = useMemo(dropMarks, []);
   // Or among another task's subtasks, or onto its middle (under it, at the end; a folded one
@@ -203,7 +203,7 @@ export function ProjectItems({
   // By tag: a tag's heading drags its whole group up or down. That's our tag order (it's the
   // same everywhere: the walk through the store), so both of us see it.
   // As lists: any folder's group moves among the others, in my order for this page only.
-  const sortScope = (g: ProjectGroup): string | null => {
+  const sortScope = (g: FolderGroup): string | null => {
     if (g.tag) return 'tags';
     return g.listId && g.label && pageId ? 'lists' : null;
   };
@@ -243,7 +243,7 @@ export function ProjectItems({
         // An empty group says nothing (the folder's own, too, while its folders inside have tasks).
         if (!shown.length && (g.label || groups.length > 1)) return null;
         const list = g.listId ? hub.list(g.listId) : undefined;
-        // Rows name their project only where the group mixes projects.
+        // Rows name their folder only where the group mixes folders.
         const mixed = showList && new Set(g.items.map((i) => i.listId)).size > 1;
         return (
           <section key={g.key} className={`aisle ${g.label ? '' : 'aisle--plain'} ${isFolded(g) ? 'is-folded' : ''}`} aria-label={g.label ?? undefined} data-group={g.key} data-list={g.listId ?? undefined} data-tag={g.tag ?? undefined} data-sort={sortable && sortScope(g) ? g.key : undefined} data-sort-scope={sortScope(g) ?? undefined}>
@@ -324,7 +324,7 @@ export function ProjectItems({
           label={(id) => hub.item(id)?.title ?? ''}
           renderOverlay={(id, { outside }) => {
             const item = hub.item(id);
-            // Over a project: the task as a small chip, going in.
+            // Over a folder: the task as a small chip, going in.
             if (item && outside)
               return <DropChip label={item.title} nesting={nesting} />;
             return item ? (

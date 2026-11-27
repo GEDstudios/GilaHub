@@ -19,7 +19,7 @@ import { useAddAction } from '../addAction';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { useHub, useRt } from '../context';
 import { back, navigate } from '../router';
-import { isQuick, setQuick } from '../quick';
+import { isHighlight, setHighlight } from '../highlights';
 import { movedTo } from '../components/TemplateAsk';
 import { usePrefs } from '../usePrefs';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
@@ -78,7 +78,7 @@ function ItemMenu({ id, onClose, onGone }: { id: string; onClose: () => void; on
 }
 
 /**
- * Where it lives, open from its path: the projects (and their tasks and subtasks, opened down
+ * Where it lives, open from its path: the folders (and their tasks and subtasks, opened down
  * to where it is now). Tap a new place, then say yes to "Move to …?". Undo is on the toast.
  */
 function MoveSheet({ id, from, onClose }: { id: string; from: string | null; onClose: () => void }) {
@@ -263,7 +263,7 @@ export function ItemScreen({ id }: { id: string }) {
   const { openSheet, toast } = useOverlays();
   const summarize = useSummary();
   const item = hub.item(id);
-  const inQuick = isQuick(id, usePrefs().quick);
+  const inQuick = isHighlight(id, usePrefs().quick);
   const [notes, setNotes] = useState(item?.notes ?? '');
   useEffect(() => setNotes(item?.notes ?? ''), [item?.notes]);
   // The + adds a step of this item (a chip in the sheet makes it its own task instead).
@@ -506,7 +506,7 @@ export function ItemScreen({ id }: { id: string }) {
                 onLabel="In your Highlights"
                 offLabel="Add to your Highlights"
                 onChange={(on) => {
-                  const undo = setQuick(id, on);
+                  const undo = setHighlight(id, on);
                   toast(on ? 'In your Highlights, on Today' : 'Out of your Highlights', { undo });
                 }}
               />

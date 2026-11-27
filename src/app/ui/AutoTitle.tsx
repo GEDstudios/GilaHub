@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useLayoutEffect, type RefObject } from 're
 
 /**
  * A title edited in place: a borderless textarea that grows with its text. Enter saves,
- * an empty title goes back to what it was. Used on the item's and the project's color card.
+ * an empty title goes back to what it was. Used on the item's and the folder's color card.
  */
 export function AutoTitle({
   value,
@@ -69,7 +69,7 @@ export function AutoTitle({
 }
 
 /**
- * A name being written (a new project's): the same growing, wrapping field, one paragraph long.
+ * A name being written (a new folder's): the same growing, wrapping field, one paragraph long.
  * Enter is "done" (it submits the form it's in), not a new line.
  */
 export function GrowField({

@@ -1,7 +1,7 @@
 import { GrowField } from '../ui/AutoTitle';
 import { useState } from 'react';
-import { suggestIcon } from '../../core/projectIcons';
-import { ProjectFields, type ProjectLook } from './ProjectFields';
+import { suggestIcon } from '../../core/folderIcons';
+import { FolderFields, type FolderLook } from './FolderFields';
 import { CardIcon, IconPicker } from './IconPicker';
 import { useHub } from '../context';
 import { navigate } from '../router';
@@ -26,7 +26,7 @@ export function NewFolderSheet({
   const hub = useHub();
   const parent = hub.list(parentId);
   const [name, setName] = useState(startName);
-  const [look, setLook] = useState<ProjectLook>(() => ({
+  const [look, setLook] = useState<FolderLook>(() => ({
     color: hub.freshColor(),
     // Unset until picked: the name suggests one as it's typed.
     icon: undefined,
@@ -40,7 +40,7 @@ export function NewFolderSheet({
 
   const create = () => {
     if (!name.trim()) return;
-    // A project made inside another is looked at the way that one is (by tag, inside Shopping).
+    // A folder made inside another is looked at the way that one is (by tag, inside Shopping).
     const id = hub.createList({ name, color: look.color, icon, visibility: look.visibility, owner: look.owner, parentId: parent?.id, view: parent?.view });
     if (look.pinned) togglePin(hub, listKey(id));
     onClose();
@@ -58,12 +58,12 @@ export function NewFolderSheet({
           create();
         }}
       >
-        {/* A folder from the start: the same tab on top as on Projects. */}
+        {/* A folder from the start: the same tab on top as on Folders. */}
         <div className="ccard ccard--lg ccard--edit ccard--folder" style={lineVars(look.color)}>
           <span className="ccard__top">
             <GrowField className="ccard__input" placeholder={parent ? `Name a folder in ${parent.name}` : 'Name your new folder'} value={name} onChange={setName} label="Folder name" />
           </span>
-          <span className="ccard__sub projcard__foot">
+          <span className="ccard__sub foldercard__foot">
             <span>
               {parent ? `In ${parent.name}` : 'Folder'} · {listVisLabel(hub, { visibility: look.visibility, owner: look.owner ?? (look.visibility === 'shared' ? null : hub.meId) })}
             </span>
@@ -86,7 +86,7 @@ export function NewFolderSheet({
         ) : null}
 
 
-        <ProjectFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} />
+        <FolderFields value={{ ...look, icon }} onChange={(p) => setLook((l) => ({ ...l, ...p }))} />
 
         <Button block type="submit" style={{ marginTop: 26 }} disabled={!name.trim()}>
           Create folder

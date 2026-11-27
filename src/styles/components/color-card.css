@@ -49,7 +49,7 @@ button.ccard:active {
 }
 
 /* Two to a row on a phone: long names fit without breaking a word */
-.projgrid .ccard__title {
+.foldergrid .ccard__title {
   font-size: clamp(21px, 6vw, 25px);
 }
 
@@ -111,7 +111,7 @@ button.ccard:active {
   font-size: 26px;
 }
 
-/* A name that wraps as it grows (a new project's) */
+/* A name that wraps as it grows (a new folder's) */
 textarea.ccard__input {
   display: block;
   resize: none;
@@ -179,13 +179,13 @@ textarea.ccard__input {
   letter-spacing: -0.02em;
 }
 
-/* A project's name, renamed in place, at the hero's full size */
-.hero--project .hero__title {
+/* A folder's name, renamed in place, at the hero's full size */
+.hero--folder .hero__title {
   flex: 1;
   min-width: 0;
 }
 
-.hero--project .hero__titleinput {
+.hero--folder .hero__titleinput {
   display: block;
   font-size: 38px;
   line-height: 1.02;

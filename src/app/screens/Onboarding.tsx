@@ -1,6 +1,6 @@
 import { Swatches } from '../components/pickers';
 import { useState } from 'react';
-import { pickColors, PROJECT_TEMPLATES } from '../../core/seed';
+import { pickColors, FOLDER_TEMPLATES } from '../../core/seed';
 import { formatInviteCode, formatRecoveryCode, normalizeInviteCode } from '../../core/ids';
 import type { LineColor } from '../../core/model';
 import { claimInvite, claimRecovery, InviteError, type InvitePayload } from '../../core/session';
@@ -13,7 +13,7 @@ import type { OnboardResult } from '../boot';
 
 type Step = 'welcome' | 'name' | 'projects' | 'code' | 'recover';
 
-const STARTERS = PROJECT_TEMPLATES.filter((t) => ['groceries', 'home', 'chores', 'todo'].includes(t.key));
+const STARTERS = FOLDER_TEMPLATES.filter((t) => ['groceries', 'home', 'chores', 'todo'].includes(t.key));
 
 const SHAPES: Array<{ c: LineColor; style: React.CSSProperties }> = [
   { c: 'lilac', style: { left: -34, top: '9%', width: 92, height: 92, borderRadius: 26, transform: 'rotate(-8deg)' } },

@@ -48,7 +48,7 @@ function MenuGlyph({ kind }: { kind: 'task' | 'project' | 'note' }) {
 
 /**
  * The +: what to make. A tap opens three choices over it (the + turns into an x): a task (or a
- * subtask, as the screen says), a project (inside this one, on a project's
+ * subtask, as the screen says), a folder (inside this one, on a folder's
  * page), or a sticky note for my person on this screen. N still makes a task straight away.
  */
 export function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {

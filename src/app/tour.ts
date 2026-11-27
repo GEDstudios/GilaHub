@@ -4,10 +4,10 @@ import { today as todayStr } from '../core/dates';
 import type { Item, List } from '../core/model';
 
 /**
- * "Start here": the way in is a small project of your own (Only me, so your person never sees
+ * "Start here": the way in is a small folder of your own (Only me, so your person never sees
  * it) whose things say what to do with them. You learn by doing each one: the circle ticks,
  * the task opens, the row moves, + adds. Most tick themselves off the moment you've done it.
- * When all are done the project bows out. Settings > About > "Show me around" brings it back.
+ * When all are done the folder bows out. Settings > About > "Show me around" brings it back.
  */
 const TOUR_NAME = 'Start here';
 
@@ -60,7 +60,7 @@ export function tourItem(hub: Hub, key: TourKey): Item | undefined {
   return hub.children(list.id, null).find((i) => i.title === t);
 }
 
-/** Make (or remake) the Start here project. Returns its id. */
+/** Make (or remake) the Start here folder. Returns its id. */
 export function startTour(hub: Hub): string {
   const old = tourList(hub);
   if (old) {

@@ -4,9 +4,9 @@
  * Content sits in white panels: a panel is a titled block (its title, then its content);
  * lists inside are hairline rows with a hover. Hierarchy comes from width and order:
  *   - Today: the greeting with the day's line under it; then the day itself (what needs doing,
- *     asks, pinned projects) as the wide primary column, and the glances (the week, coming up,
+ *     asks, pinned folders) as the wide primary column, and the glances (the week, coming up,
  *     my person's, shopping, the invite) as a narrower side column.
- *   - A project: its folder (and its settings) on the left, its tasks on the right.
+ *   - A folder: its folder (and its settings) on the left, its tasks on the right.
  *   - Shopping, Settings, a task: one reading column of panels.
  * The two things you do from anywhere float bottom right: the black + and a note for my person.
  * Loaded last, so it only says what differs from the phone.
@@ -250,7 +250,7 @@
   }
 
   .main:has(.home--wide),
-  .main:has(.projgrid) {
+  .main:has(.foldergrid) {
     --column: var(--page);
   }
 
@@ -475,22 +475,22 @@
     background: rgb(255 255 255 / 0.5);
   }
 
-  /* ---------------------------------------------------------- Projects: as many folders as fit */
-  .projgrid {
+  /* ---------------------------------------------------------- Folders: as many folders as fit */
+  .foldergrid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 32px 20px;
   }
 
-  .projcard {
+  .foldercard {
     transition: transform var(--dur-base) var(--spring);
   }
 
-  .projcard:hover {
+  .foldercard:hover {
     transform: translateY(-3px);
   }
 
-  /* ---------------------------------------------------------- A project: folder left, tasks right */
-  .projpage {
+  /* ---------------------------------------------------------- A folder: folder left, tasks right */
+  .folderpage {
     display: grid;
     grid-template-columns: 320px minmax(0, 1fr);
     align-items: start;
@@ -500,7 +500,7 @@
     padding: 0 var(--gutter);
   }
 
-  .projpage > .band {
+  .folderpage > .band {
     grid-column: 1;
     grid-row: 1 / span 40;
     position: sticky;
@@ -510,62 +510,62 @@
     padding: 36px 0 24px;
   }
 
-  .projpage > .column {
+  .folderpage > .column {
     grid-column: 2;
     max-width: none;
     margin: 0;
     padding: 36px 0 0;
   }
 
-  .projpage > .column > :first-child {
+  .folderpage > .column > :first-child {
     margin-top: 0;
   }
 
-  /* The folder is the header: no Back above it (the top bar has Projects); its search and menu
+  /* The folder is the header: no Back above it (the top bar has Folders); its search and menu
      sit inside its top corner */
-  .projpage .band__top > .iconbtn:first-child {
+  .folderpage .band__top > .iconbtn:first-child {
     display: none;
   }
 
   /* Inside the folder's top corner (below the path above it) */
-  .projpage .band__actions {
+  .folderpage .band__actions {
     position: absolute;
     z-index: 2;
     top: 110px;
     right: 14px;
   }
 
-  .projpage .band__actions .iconbtn {
+  .folderpage .band__actions .iconbtn {
     background: var(--card-btn);
     box-shadow: none;
     color: var(--ink);
   }
 
-  .projpage .band__actions .iconbtn:hover {
+  .folderpage .band__actions .iconbtn:hover {
     background: var(--card-btn-hover);
   }
 
-  .projpage .band > .hero {
+  .folderpage .band > .hero {
     margin-top: 28px;
   }
 
-  .projpage .hero {
+  .folderpage .hero {
     min-height: 158px;
     padding: 20px 20px 20px;
   }
 
-  .projpage .hero__title {
+  .folderpage .hero__title {
     max-width: calc(100% - 90px);
     font-size: 32px;
   }
 
   /* Its settings under it, without the phone's prompt */
-  .projpage .inline__prompt {
+  .folderpage .inline__prompt {
     display: none;
   }
 
-  .projpage .band .projfields,
-  .projpage .band .inline {
+  .folderpage .band .folderfields,
+  .folderpage .band .inline {
     margin-top: 14px;
   }
 
@@ -621,17 +621,17 @@
   }
 
   /* The folder's top corner holds search, Start and its menu: its settings line up along the bottom. */
-  .projpage .hero__rail {
+  .folderpage .hero__rail {
     top: auto;
     flex-direction: row;
     align-items: center;
   }
 
-  .projpage .hero--project .hero__top {
+  .folderpage .hero--folder .hero__top {
     padding-right: 0;
   }
 
-  .projpage .hero--project .hero__foot {
+  .folderpage .hero--folder .hero__foot {
     padding-right: 140px;
   }
 }

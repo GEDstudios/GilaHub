@@ -18,7 +18,7 @@ import { howMany } from '../labels';
 import type { Hub } from '../../core/hub';
 
 /**
- * Ideas: our wish list for Gila Hub itself (ask 10). A small paper tag sits in the page
+ * Ideas: our wish list for Gila Hub itself. A small paper tag sits in the page
  * header on every screen (IdeaTag, drawn once by the App shell; it scrolls with the page); it opens the Ideas sheet, where
  * either of us writes, edits, reorders and resolves. Settings has a switch for the tag and a
  * row that opens the same sheet.
@@ -80,11 +80,6 @@ export function useOpenIdeas(): () => void {
 
 // ---------------------------------------------------------------- the tag
 
-/**
- * The tag: a paper label in the header, by the avatar, with a punched hole, a light bulb and
- * the open count. A dot in my partner's color says they added or changed something since I
- * last looked. It steps aside for sheets and the keyboard (CSS).
- */
 /** How many ideas are open, and whether my person has done something new with them (for a badge). */
 export function useIdeasBadge(): { n: number; fresh: boolean; partner: ReturnType<Hub['partner']> } {
   const hub = useHub();
@@ -93,6 +88,11 @@ export function useIdeasBadge(): { n: number; fresh: boolean; partner: ReturnTyp
   return { n: ideasView(hub).open.length, fresh: !!partner && !!ideasUnseen(hub, seen), partner };
 }
 
+/**
+ * The tag: a paper label in the header, by the avatar, with a punched hole, a light bulb and
+ * the open count. A dot in my partner's color says they added or changed something since I
+ * last looked. It steps aside for sheets and the keyboard (CSS).
+ */
 export function IdeaTag() {
   const hub = useHub();
   const prefs = usePrefs();

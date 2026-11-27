@@ -26,7 +26,7 @@ moments(): Moment[];
     /** Move or turn a note on its screen (both of us see it there). */
     placeNote(id: string, at: { x: number; y: number; rot: number; scale?: number }): void;
 
-    /** The notes we've read and ticked off, kept together (Projects), newest first. */
+    /** The notes we've read and ticked off, kept together (Folders), newest first. */
     collectedNotes(): Note[];
 
     /** Throw a note away for good (from the collection). */
@@ -60,7 +60,7 @@ Hub.prototype.deleteMoment = function (this: Hub, id: string): Undo {
 };
 
 Hub.prototype.notesOn = function (this: Hub, place: string): Note[] {
-  // The old Shopping screen ("shop") is the Shopping project's page.
+  // The old Shopping screen ("shop") is the Shopping folder's page.
   const root = this.shopRoot();
   const same = (p: string) => (p === 'shop' && root ? `list:${root.id}` : p);
   return this.store

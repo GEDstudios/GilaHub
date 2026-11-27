@@ -1,7 +1,7 @@
 /* ============================================================ Icons — Gila Duo
  * An ink line and a solid light (docs/03-DESIGN-SYSTEM.md, Icons). Size is --s (px);
  * state rides on --light, --shift and color, which inherit, so a state class on a parent
- * lights the icons inside it. Order matters: lit, project, on color, on ink, lifted, scrub.
+ * lights the icons inside it. Order matters: lit, folder, on color, on ink, lifted, scrub.
  */
 
 .icon {
@@ -49,21 +49,21 @@
   --shift: 1;
 }
 
-/* PROJECT: the light is the project's color (lineVars sets --c) */
-.icon--project {
+/* PROJECT: the light is the folder's color (lineVars sets --c) */
+.icon--folder {
   --light: var(--c);
   color: var(--ink);
 }
 
-.tab .icon--project,
-.topnav__tab .icon--project {
+.tab .icon--folder,
+.topnav__tab .icon--folder {
   --light: color-mix(in srgb, var(--c) 45%, transparent);
   color: inherit;
 }
 
-.tab.is-on .icon--project,
-.tab.is-scrub .icon--project,
-.topnav__tab.is-on .icon--project,
+.tab.is-on .icon--folder,
+.tab.is-scrub .icon--folder,
+.topnav__tab.is-on .icon--folder,
 .iconpick__btn.is-on {
   --light: var(--c);
 }
@@ -97,7 +97,7 @@
   font-weight: 500;
 }
 
-.tabbar.is-scrubbing .tab.is-on:not(.is-scrub) .icon--project {
+.tabbar.is-scrubbing .tab.is-on:not(.is-scrub) .icon--folder {
   --light: color-mix(in srgb, var(--c) 45%, transparent);
 }
 

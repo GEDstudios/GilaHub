@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seedHousehold } from '../../src/core/seed';
-import { projectView } from '../../src/app/views';
+import { folderView } from '../../src/app/views';
 import { person, sync } from './_helpers';
 
 /** A household from before: two shopping lists of their own kind, aisles renamed, one taken away, one of ours. */
@@ -113,10 +113,10 @@ describe('Tags', () => {
     const milk = guy.addItem(groceries.id, { title: 'milk' });
     guy.addItem(groceries.id, { title: 'tomatoes' });
     guy.addItem(root.id, { title: 'zzzz' });
-    const v = projectView(guy, root.id, true, 'tags', {});
+    const v = folderView(guy, root.id, true, 'tags', {});
     expect(v.groups.map((g) => g.label)).toEqual(['Fruit & Veg', 'Dairy & Eggs', 'No tag']);
     guy.moveToTag(milk, 'g:dairy', 'g:produce');
-    expect(projectView(guy, root.id, true, 'tags', {}).groups.map((g) => g.label)).toEqual(['Fruit & Veg', 'No tag']);
+    expect(folderView(guy, root.id, true, 'tags', {}).groups.map((g) => g.label)).toEqual(['Fruit & Veg', 'No tag']);
     // Learned: milk goes to Produce next time.
     guy.toggle(milk);
     guy.clearDone([groceries.id]);
@@ -125,7 +125,7 @@ describe('Tags', () => {
     // Arranging the tags is arranging the walk.
     guy.arrangeTags(['g:dairy', ...guy.tags().map((t) => t.id).filter((id) => id !== 'g:dairy')]);
     guy.setTags(again, ['g:dairy']);
-    expect(projectView(guy, root.id, true, 'tags', {}).groups[0].label).toBe('Dairy & Eggs');
+    expect(folderView(guy, root.id, true, 'tags', {}).groups[0].label).toBe('Dairy & Eggs');
   });
 });
 
@@ -139,9 +139,9 @@ describe('One kind of project', () => {
     guy.toggle(a.id);
     // Logged, like any tick (Again? reads it).
     expect(guy.store.all('log').some((l) => l.key && l.itemId === a.id)).toBe(true);
-    expect(projectView(guy, todo, false, 'list', {}).tray.map((i) => i.id)).toEqual([a.id]);
+    expect(folderView(guy, todo, false, 'list', {}).tray.map((i) => i.id)).toEqual([a.id]);
     guy.clearDone([todo]);
-    const v = projectView(guy, todo, false, 'list', {});
+    const v = folderView(guy, todo, false, 'list', {});
     expect(v.tray).toEqual([]);
     expect(v.cleared.map((i) => i.id)).toEqual([a.id]);
     expect(guy.add(todo, { title: 'Call the bank', due: '2030-01-01' })).toMatchObject({ kind: 'revived', id: a.id });

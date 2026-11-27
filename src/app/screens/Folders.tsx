@@ -33,11 +33,11 @@ function useFloatHeight(el: HTMLElement | null) {
 }
 
 /**
- * Projects (BAR §4): folders you open, drag to reorder, or drag down onto the bottom bar to pin
+ * Folders: folders you open, drag to reorder, or drag down onto the bottom bar to pin
  * there. "Arrange the bar" (phone) makes the bar itself editable: folders get pins, the real
  * bar takes × and drags, and Shopping, Chores and Search float above it while they're out.
  */
-export function Lists() {
+export function Folders() {
   const hub = useHub();
   const { openSheet } = useOverlays();
   const { arranging } = useBarEdit();
@@ -91,13 +91,13 @@ export function Lists() {
             return t ? <TabChip t={t} /> : l ? <FolderCard list={l} /> : null;
           }}
         >
-          <div className="projgrid">
+          <div className="foldergrid">
             {lists.map((l, i) => (
               <SortableFolder key={l.id} list={l} arranging={arranging} pins={pins} index={i} />
             ))}
             {arranging ? null : (
-              <button type="button" className="projcard projcard--new" onClick={newProject}>
-                <span className="projcard__plus">
+              <button type="button" className="foldercard foldercard--new" onClick={newProject}>
+                <span className="foldercard__plus">
                   <Icon name={G.add} />
                 </span>
                 <span>New folder</span>

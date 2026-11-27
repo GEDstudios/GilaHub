@@ -1,13 +1,13 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { today as todayStr } from '../../core/dates';
 import { useHub } from '../context';
-import { hiddenWidgets, hideHome, homePreview, isDefaultHome, isWidget, MAX_HOME_PROJECTS, pinnedProjects, reorderHome, resetHome, showHome, slotTitle, visibleHome, WIDGETS } from '../home';
+import { hiddenWidgets, hideHome, homePreview, isDefaultHome, isWidget, MAX_HOME_FOLDERS, pinnedFolders, reorderHome, resetHome, showHome, slotTitle, visibleHome, WIDGETS } from '../home';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { PlaceTree } from './PlaceTree';
 import { SavedListSheet } from './SavedList';
-import { ProjectMark } from '../ui/ProjectMark';
+import { FolderMark } from '../ui/FolderMark';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { todayView } from '../views';
 import { listKey, listIdOf } from '../../core/keys';
@@ -17,7 +17,7 @@ import { TextButton } from '../ui/primitives';
 /**
  * Edit Today, on Today itself: every block shows as itself (a short, still peek of what it
  * holds) on a white card you can pick up and move, with an × to hide it. Hidden blocks wait
- * as hatched cards at the end; tap one to bring it back. Up to 3 projects can join. Each
+ * as hatched cards at the end; tap one to bring it back. Up to 3 folders can join. Each
  * change saves at once; Done leaves.
  */
 export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
@@ -28,9 +28,9 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
   const v = todayView(hub, ref);
   const keys = visibleHome(hub).map((s) => s.key);
   const hidden = hiddenWidgets(hub);
-  const pins = pinnedProjects(hub);
+  const pins = pinnedFolders(hub);
   const free = hub.lists().filter((l) => !pins.includes(l.id));
-  const full = pins.length >= MAX_HOME_PROJECTS;
+  const full = pins.length >= MAX_HOME_FOLDERS;
 
   const reset = () => {
     const undo = resetHome(hub);
@@ -72,14 +72,14 @@ export function TodayArrange({ peek }: { peek: (key: string) => ReactNode }) {
             disabled={full}
             aria-expanded={picking}
             onClick={() => setPicking(!picking)}
-            title={full ? `Up to ${MAX_HOME_PROJECTS} folders` : undefined}
+            title={full ? `Up to ${MAX_HOME_FOLDERS} folders` : undefined}
           >
             <span className="homeghost__add">
               <Icon name={G.folder} className="icon--sm" />
             </span>
             <span className="homeghost__text">
               <span className="homeghost__title">Pin a folder</span>
-              <span className="homeghost__sub">{full ? `Up to ${MAX_HOME_PROJECTS}` : 'Its open things, right here'}</span>
+              <span className="homeghost__sub">{full ? `Up to ${MAX_HOME_FOLDERS}` : 'Its open things, right here'}</span>
             </span>
           </button>
           {picking && !full ? (
@@ -161,7 +161,7 @@ function CardHead({ k, title, children }: { k: string; title: string; children: 
   return (
     <header className="homecard__head">
       <span className="homecard__mark">
-        {list ? <ProjectMark color={list.color} icon={list.icon} size="sm" /> : isWidget(k) ? <Icon name={WIDGETS[k].icon} /> : k.startsWith('q:') ? <Icon name={G.filter} /> : null}
+        {list ? <FolderMark color={list.color} icon={list.icon} size="sm" /> : isWidget(k) ? <Icon name={WIDGETS[k].icon} /> : k.startsWith('q:') ? <Icon name={G.filter} /> : null}
       </span>
       <span className="homecard__title" dir="auto">
         {title}

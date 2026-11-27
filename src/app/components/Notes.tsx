@@ -42,7 +42,7 @@ function routeOf(place: string): Route {
 /** Where a note's screen is, as a link. */
 export const placeUrl = (place: string): string => href(routeOf(place));
 
-/** "Shopping", "Projects", a project's name, a task's title. */
+/** "Shopping", "Projects", a folder's name, a task's title. */
 function placeName(hub: Hub, place: string): string {
   const [kind, id] = place.split(':');
   if (kind === 'list') return hub.list(id)?.name ?? 'a folder';
@@ -104,7 +104,6 @@ function lookOf(hub: Hub, n: Note, by: string): NoteLook {
 
 // ---------------------------------------------------------------- leaving one
 
-/** The little paper by the Ideas tag: leave a note on this screen for my person. */
 /** Leaving a note on this screen for my person: who it's for and how to start one (none where notes can't go). */
 export function useNoteHere(): { to: string; open: () => void } | null {
   const hub = useHub();
@@ -163,7 +162,7 @@ function NewNoteSheet({ place, onClose }: { place: string; onClose: () => void }
 /**
  * The notes stuck on this screen. Each sits where it was left (both of us see the same spot),
  * new ones up by the top corner, a little fanned. A tap reads it; either of us ticks it off (it
- * goes to the collected notes, on Projects). Hold one to pick it up (see StuckNote).
+ * goes to the collected notes, on Folders). Hold one to pick it up (see StuckNote).
  */
 export function NotesLayer() {
   const hub = useHub();
@@ -661,7 +660,7 @@ export function NotesElsewhere() {
 // ---------------------------------------------------------------- the collected ones
 
 /**
- * Every note we've read and ticked off, kept together on Projects like a corkboard: a little
+ * Every note we've read and ticked off, kept together on Folders like a corkboard: a little
  * of us to look back on. A tap shows it big, with where it was and when; it can be thrown away.
  */
 export function CollectedNotes() {

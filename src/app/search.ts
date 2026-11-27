@@ -6,7 +6,7 @@ import { useSyncExternalStore } from 'react';
  * an old link) opens it here instead.
  */
 let open = false;
-/** Search within one project (its page's search button); null = everything. */
+/** Search within one folder (its page's search button); null = everything. */
 let scope: string | null = null;
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());

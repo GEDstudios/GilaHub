@@ -11,8 +11,8 @@ import { RuntimeProvider, useHub } from './context';
 import { usePrefs } from './usePrefs';
 import { currentPath, navigate, useRoute } from './router';
 import { ItemScreen } from './screens/ItemScreen';
-import { ListScreen } from './screens/ListScreen';
-import { Lists } from './screens/Lists';
+import { FolderScreen } from './screens/FolderScreen';
+import { Folders } from './screens/Folders';
 import { Onboarding } from './screens/Onboarding';
 import { Settings } from './screens/Settings';
 import { Today } from './screens/Today';
@@ -31,17 +31,17 @@ function Screen() {
     case 'today':
       return <Today />;
     case 'shop': {
-      // An old link to the Shopping tab: the Shopping project, like any other.
+      // An old link to the Shopping tab: the Shopping folder, like any other.
       const root = hub.shopRoot();
-      return root ? <ListScreen key={root.id} id={root.id} /> : <Lists />;
+      return root ? <FolderScreen key={root.id} id={root.id} /> : <Folders />;
     }
     case 'chores':
-      // Chores are ordinary projects now: an old link lands on Projects.
-      return <Lists />;
+      // Chores are ordinary folders now: an old link lands on Folders.
+      return <Folders />;
     case 'lists':
-      return <Lists />;
+      return <Folders />;
     case 'list':
-      return <ListScreen key={route.id} id={route.id} />;
+      return <FolderScreen key={route.id} id={route.id} />;
     case 'item':
       return <ItemScreen key={route.id} id={route.id} />;
     case 'settings':

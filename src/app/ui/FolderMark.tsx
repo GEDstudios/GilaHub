@@ -3,8 +3,8 @@ import type { LineColor } from '../../core/model';
 import { Icon, type IconName } from './Icon';
 import { lineVars } from './primitives';
 
-/** Icons offered for projects (stored as "i:<name>"); any emoji works too. Only ever add to this list. */
-export const PROJECT_ICONS: IconName[] = [
+/** Icons offered for folders (stored as "i:<name>"); any emoji works too. Only ever add to this list. */
+export const FOLDER_ICONS: IconName[] = [
   'cart',
   'basket',
   'bag',
@@ -54,7 +54,7 @@ export function parseGlyph(icon: string | undefined | null): Glyph {
   if (!v) return null;
   if (v.startsWith('i:')) {
     const name = v.slice(2) as IconName;
-    return PROJECT_ICONS.includes(name) ? { kind: 'icon', name } : null;
+    return FOLDER_ICONS.includes(name) ? { kind: 'icon', name } : null;
   }
   // From the library: the Icon draws it as "x:<name>".
   if (v.startsWith('x:')) return v.length > 2 ? { kind: 'icon', name: v as IconName } : null;
@@ -69,10 +69,10 @@ export function Glyph({ icon, className }: { icon: string | undefined | null; cl
 }
 
 /**
- * A project's mark: its icon (or a folder) with the light in the project's color. An emoji
- * keeps the small tilted tile in the project's color.
+ * A folder's mark: its icon (or a folder) with the light in the folder's color. An emoji
+ * keeps the small tilted tile in the folder's color.
  */
-export function ProjectMark({ color, icon, size = 'md', style }: { color: LineColor | undefined; icon?: string | null; size?: 'sm' | 'md'; style?: CSSProperties }) {
+export function FolderMark({ color, icon, size = 'md', style }: { color: LineColor | undefined; icon?: string | null; size?: 'sm' | 'md'; style?: CSSProperties }) {
   const g = parseGlyph(icon);
   if (g?.kind === 'emoji')
     return (
@@ -80,5 +80,5 @@ export function ProjectMark({ color, icon, size = 'md', style }: { color: LineCo
         <span className="glyph-emoji">{g.text}</span>
       </span>
     );
-  return <Icon name={g?.name ?? 'folder'} className={`icon--project${size === 'sm' ? ' icon--sm' : ''}`} style={{ ...lineVars(color), ...style }} />;
+  return <Icon name={g?.name ?? 'folder'} className={`icon--folder${size === 'sm' ? ' icon--sm' : ''}`} style={{ ...lineVars(color), ...style }} />;
 }

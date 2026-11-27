@@ -49,7 +49,7 @@ export function clampBubble(x: number, width: number, left: number, right: numbe
  * end, 0 to stay. Only past the center of the outermost tab in view (`first`/`last` are the
  * centers of the first and last tabs whose centers are in view), or in the outer EDGE_ZONE, so
  * the tab at the edge can always be picked. Never once that way is fully scrolled, and never
- * with the finger past the scroller (over a fixed tab: Today or Projects is picked instead).
+ * with the finger past the scroller (over a fixed tab: Today or Folders is picked instead).
  */
 export function edgeDir(x: number, left: number, right: number, scrollLeft: number, maxScroll: number, first: number, last: number): -1 | 0 | 1 {
   if (x < left || x > right) return 0;

@@ -232,7 +232,7 @@ li.row:has(> .dropgap) {
 }
 
 /* ============================================================ Edit mode (ui/edit.tsx)
- * One language for editing the bar, Today and Projects (round 7, DECISIONS §2). Enter by a quiet
+ * One language for editing the bar, Today and Folders. Enter by a quiet
  * text link at the end of the page; the thing being edited becomes a white object you pick up
  * (the whole object is the grip); × takes it out, + puts it here; dashed means "not real yet";
  * Done leaves, and everything is saved as it happens.
@@ -332,7 +332,7 @@ li.row:has(> .dropgap) {
 /* Where it will land (or where it came from) */
 .row.is-ghost::after,
 .row.is-lifted-out::after,
-.projslot.is-ghost::after,
+.folderslot.is-ghost::after,
 .tabbar .is-gap::after,
 .tabslot.is-ghost::after,
 .token.is-ghost::after {

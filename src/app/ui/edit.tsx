@@ -4,8 +4,8 @@ import { G } from './glyphs';
 import { Button } from './primitives';
 
 /**
- * One edit-mode language for the bar, Today and Projects (round 7, DECISIONS §2). Styles live in
- * components.css, "Edit mode". Enter by a quiet text button at the end of the page (.editlink);
+ * One edit-mode language for the bar, Today and Folders. Styles live in
+ * styles/components/drag.css, "Edit mode". Enter by a quiet text button at the end of the page (.editlink);
  * the thing being edited turns into a white object you pick up; Done leaves.
  */
 

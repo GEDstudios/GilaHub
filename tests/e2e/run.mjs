@@ -166,12 +166,12 @@ try {
   await check('Hila receives the shared projects', async () => {
     await hila.goto(`${url}/lists`);
     for (const name of ['Shopping', 'Chores', 'To do']) {
-      await waitFor(async () => (await hila.locator('.projcard__name', { hasText: name }).count()) > 0, 20000, `${name} on hila`);
+      await waitFor(async () => (await hila.locator('.foldercard__name', { hasText: name }).count()) > 0, 20000, `${name} on hila`);
     }
     await shot(hila, '05-lists-hila');
     // The shopping lists are projects inside Shopping, a project like any other.
-    await hila.locator('.projcard__name', { hasText: /^Shopping$/ }).click();
-    for (const name of [/^Groceries$/, /^Home shopping$/]) await hila.locator('.projcard__name', { hasText: name }).waitFor({ timeout: 10000 });
+    await hila.locator('.foldercard__name', { hasText: /^Shopping$/ }).click();
+    for (const name of [/^Groceries$/, /^Home shopping$/]) await hila.locator('.foldercard__name', { hasText: name }).waitFor({ timeout: 10000 });
   });
 
   // ---------- Shopping sync, both ways
@@ -185,7 +185,7 @@ try {
   });
 
   await check('Smart routing: light bulbs go to Home shopping', async () => {
-    await hila.locator('.projcard__name', { hasText: /^Home shopping$/ }).click();
+    await hila.locator('.foldercard__name', { hasText: /^Home shopping$/ }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'light bulbs' }).count()) > 0, 10000, 'bulbs in home');
     if (await hila.locator('.row__title', { hasText: 'milk' }).count()) throw new Error('milk went to Home shopping');
     await hila.goto(`${url}/shop`);
@@ -215,7 +215,7 @@ try {
   // ---------- Privacy
   await check('An "Only me" item never reaches the partner', async () => {
     await guy.goto(`${url}/lists`);
-    await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await guy.locator('.foldercard__name', { hasText: /^To do$/ }).click();
     await addVia(guy, ['Ring for Hila 💍', 'Book dinner friday']);
     await guy.locator('.row__title', { hasText: 'Ring for Hila' }).click();
     await guy.locator('.echip', { hasText: 'Ours' }).click();
@@ -223,7 +223,7 @@ try {
     await shot(guy, '08-private-item');
     await guy.goBack();
     await hila.goto(`${url}/lists`);
-    await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await hila.locator('.foldercard__name', { hasText: /^To do$/ }).click();
     await waitFor(async () => (await hila.locator('.row__title', { hasText: 'Book dinner' }).count()) > 0, 15000, 'dinner on hila');
     await new Promise((r) => setTimeout(r, 1500));
     const leaked = await hila.locator('.row__title', { hasText: 'Ring for Hila' }).count();
@@ -246,7 +246,7 @@ try {
   // ---------- Requests
   await check('Requests: Hila asks Guy with no date; it waits on Guy’s Today, tagged "Hila asked"', async () => {
     await hila.goto(`${url}/lists`);
-    await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await hila.locator('.foldercard__name', { hasText: /^To do$/ }).click();
     await addVia(hila, ['Fix the kettle @guy']);
     await hila.locator('li.row', { hasText: 'Fix the kettle' }).getByText('Asked Guy').waitFor({ timeout: 5000 });
     await guy.goto(`${url}/`);
@@ -272,7 +272,7 @@ try {
 
   await check('Requests: Guy asks Hila; it shows under "You asked Hila…" on his Today', async () => {
     await guy.goto(`${url}/lists`);
-    await guy.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await guy.locator('.foldercard__name', { hasText: /^To do$/ }).click();
     await plus(guy);
     await guy.locator('.composer__input').fill('Water the balcony plants @hila today');
     await guy.locator('.sheet .echip', { hasText: 'Ask Hila' }).click();
@@ -312,7 +312,7 @@ try {
     await shot(guy, '09b-waiting-ok');
     await waiting.getByRole('button', { name: 'OK', exact: true }).click();
     await hila.goto(`${url}/lists`);
-    await hila.locator('.projcard__name', { hasText: /^To do$/ }).click();
+    await hila.locator('.foldercard__name', { hasText: /^To do$/ }).click();
     await waitFor(async () => (await hila.locator('li.row:not(.is-done)', { hasText: 'Water the balcony plants' }).count()) === 0, 15000, 'confirmed on hila');
   });
 
@@ -321,7 +321,7 @@ try {
     // An old /chores link lands on Projects; Chores is a folder like any other.
     await guy.goto(`${url}/chores`);
     await guy.getByRole('heading', { name: 'Folders', level: 1 }).waitFor();
-    await guy.locator('.projcard', { hasText: /^Chores/ }).first().click();
+    await guy.locator('.foldercard', { hasText: /^Chores/ }).first().click();
     await guy.getByRole('heading', { name: 'Chores', exact: true, level: 1 }).waitFor();
     await addVia(guy, ['Water the plants every week']);
     await shot(guy, '10-chores');
@@ -332,12 +332,12 @@ try {
 
   await check('Projects: create a new one; the phone’s Back closes the sheet', async () => {
     await guy.goto(`${url}/lists`);
-    await guy.locator('.projcard--new').first().click();
+    await guy.locator('.foldercard--new').first().click();
     // The phone's Back closes the sheet, and you're still on Projects.
     await guy.goBack();
     await guy.locator('.sheet').waitFor({ state: 'detached', timeout: 3000 });
     if (new URL(guy.url()).pathname !== '/lists') throw new Error(`Back left Projects: ${guy.url()}`);
-    await guy.locator('.projcard--new').first().click();
+    await guy.locator('.foldercard--new').first().click();
     await guy.locator('.sheet .ccard__input').fill('Next trip');
     await guy.getByRole('button', { name: /create folder/i }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
@@ -358,7 +358,7 @@ try {
     // Add puts it there and closes.
     await guy.locator('.composer').waitFor({ state: 'detached', timeout: 5000 });
     await guy.goto(`${url}/lists`);
-    await guy.locator('.projcard__name', { hasText: new RegExp(`^${where}$`) }).click();
+    await guy.locator('.foldercard__name', { hasText: new RegExp(`^${where}$`) }).click();
     await guy.locator('li.row', { hasText: 'Return the library books' }).getByText('Asked Hila · needs OK').waitFor({ timeout: 5000 });
   });
 
@@ -466,7 +466,7 @@ try {
     await guy.getByRole('heading', { name: 'Folders', level: 1 }).waitFor();
     const cdp = await guyCtx.newCDPSession(guy);
     const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
-    const folder = guy.locator('.projslot', { has: guy.locator('.projcard__name', { hasText: /^To do$/ }) });
+    const folder = guy.locator('.folderslot', { has: guy.locator('.foldercard__name', { hasText: /^To do$/ }) });
     await folder.evaluate((e) => e.scrollIntoView({ block: 'center' }));
     await guy.waitForTimeout(300);
     const f = await folder.boundingBox();
@@ -808,7 +808,7 @@ try {
 
   await check('The path: a task deep inside nested projects shows every step, and each step goes there', async () => {
     await guy.goto(`${url}/lists`);
-    await guy.locator('.projcard__name', { hasText: /^Next trip$/ }).click();
+    await guy.locator('.foldercard__name', { hasText: /^Next trip$/ }).click();
     await guy.getByRole('heading', { name: 'Next trip', level: 1 }).waitFor({ timeout: 5000 });
     // The + makes a project inside this one.
     await guy.locator('.fab').first().click();
@@ -864,7 +864,7 @@ try {
       await fresh.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor({ timeout: 20000 });
       // His Private task (sealed with his own key) is here: the key came back.
       await fresh.goto(`${url}/lists`);
-      await fresh.locator('.projcard__name', { hasText: /^To do$/ }).click();
+      await fresh.locator('.foldercard__name', { hasText: /^To do$/ }).click();
       await fresh.locator('.row__title', { hasText: 'Ring for Hila' }).waitFor({ timeout: 20000 });
       await shot(fresh, '42-recovered');
       // A wrong code says so.

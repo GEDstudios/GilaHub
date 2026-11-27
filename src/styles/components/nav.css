@@ -1,10 +1,10 @@
 /* ============================================================ Navigation */
 
 /*
- * The bottom bar (TabBarView). Its density follows the tab count, Today and Projects included:
+ * The bottom bar (TabBarView). Its density follows the tab count, Today and Folders included:
  *   comfy  up to 5: icon and label
  *   snug   6–7: icons only; the active tab rises and shows its label
- *   dock   8 or more: Today and Projects stay put around a scrolling middle with edge fades
+ *   dock   8 or more: Today and Folders stay put around a scrolling middle with edge fades
  * A soft pill marks the active tab. Hold and slide to
  * scrub (TabBar.tsx): .is-held on the bar for the whole gesture, .is-scrubbing while a tab is
  * picked, .is-scrub on the tab under the finger, and --d, each tab's distance from the finger
@@ -356,8 +356,8 @@
 }
 
 /*
- * The bar being edited (BarEdit; DECISIONS §3): every tab keeps its name, nothing is current,
- * Today and Projects are quiet anchors, each tab between is a .tabslot (the whole slot is the
+ * The bar being edited (BarEdit): every tab keeps its name, nothing is current,
+ * Today and Folders are quiet anchors, each tab between is a .tabslot (the whole slot is the
  * grip) with its × on the mark's shoulder. A gap (is-gap) is where a drag would land: the faint
  * mark of what's in the hand under a dashed slot, or a + when nothing is there yet.
  */
@@ -385,7 +385,7 @@
   --light: var(--light-rest);
 }
 
-.tabbar--edit .tab .icon--project {
+.tabbar--edit .tab .icon--folder {
   --light: var(--c);
 }
 

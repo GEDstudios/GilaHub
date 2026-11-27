@@ -37,7 +37,7 @@ Hub.prototype.visibilityOf = function (this: Hub, item: Item): ItemVisibility {
   const list = this.list(item.listId);
   if (list?.visibility === 'private') return 'private';
   if (item.private || this.ancestors(item).some((a) => a.private)) return 'private';
-  // In someone's "Mine" project, a thing can still be for both of us: no owner.
+  // In someone's "Mine" folder, a thing can still be for both of us: no owner.
   if (list?.visibility === 'visible') return item.owner === null ? 'ours' : 'mine';
   return item.owner ? 'mine' : 'ours';
 };

@@ -9,7 +9,7 @@ interface Crumb {
   key: string;
   label: string;
   go: () => void;
-  /** A project: a dragged task can be dropped on it. */
+  /** A folder: a dragged task can be dropped on it. */
   drop?: string;
   /** A task: a dragged subtask can be dropped on it (it goes under that task instead). */
   dropItem?: string;
@@ -69,7 +69,7 @@ export function PathCrumbs({
 }
 
 /** A folder's way here from the top: Folders, then each folder it sits in. */
-export function projectPath(hub: Hub, id: string): Crumb[] {
+export function folderPath(hub: Hub, id: string): Crumb[] {
   return [
     { key: 'projects', label: 'Folders', go: () => navigate({ name: 'lists' }), root: true },
     ...hub.listPath(id).map((l) => ({ key: l.id, label: l.name, go: () => navigate({ name: 'list', id: l.id }), drop: l.id })),

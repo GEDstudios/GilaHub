@@ -11,8 +11,8 @@ import {
   homeOf,
   homePreview,
   isDefaultHome,
-  MAX_HOME_PROJECTS,
-  pinnedProjects,
+  MAX_HOME_FOLDERS,
+  pinnedFolders,
   reorderHome,
   resetHome,
   setHome,
@@ -73,29 +73,29 @@ describe('home layout', () => {
     hub.upsertMember('guy', {
       home: [...DEFAULT_HOME, ...[a, b, c, d].map((l) => ({ key: `l:${l.id}`, on: true }))],
     });
-    expect(pinnedProjects(hub)).toEqual([a.id, b.id, c.id]);
-    expect(pinnedProjects(hub)).toHaveLength(MAX_HOME_PROJECTS);
+    expect(pinnedFolders(hub)).toEqual([a.id, b.id, c.id]);
+    expect(pinnedFolders(hub)).toHaveLength(MAX_HOME_FOLDERS);
     hub.deleteList(a.id);
     hub.updateList(b.id, { archived: true });
-    expect(pinnedProjects(hub)).toEqual([c.id, d.id]);
+    expect(pinnedFolders(hub)).toEqual([c.id, d.id]);
   });
 
   it('keeps a pin to an archived project through edits, so restoring brings it back', async () => {
     const hub = await solo();
     const [a, b, c] = hub.lists();
     for (const l of [a, b, c]) showHome(hub, `l:${l.id}`);
-    expect(pinnedProjects(hub)).toEqual([a.id, b.id, c.id]);
+    expect(pinnedFolders(hub)).toEqual([a.id, b.id, c.id]);
     hub.updateList(a.id, { archived: true });
-    expect(pinnedProjects(hub)).toEqual([b.id, c.id]);
+    expect(pinnedFolders(hub)).toEqual([b.id, c.id]);
     // Editing Today meanwhile must not drop it.
     hideHome(hub, 'upcoming');
     reorderHome(hub, [...visibleHome(hub).map((s) => s.key)].reverse());
     hub.updateList(a.id, { archived: false });
-    expect(pinnedProjects(hub)).toContain(a.id);
-    expect(pinnedProjects(hub)).toHaveLength(3);
+    expect(pinnedFolders(hub)).toContain(a.id);
+    expect(pinnedFolders(hub)).toHaveLength(3);
     // Unpinning a live project still removes it; a deleted one is let go on the next write.
     hideHome(hub, `l:${b.id}`);
-    expect(pinnedProjects(hub)).not.toContain(b.id);
+    expect(pinnedFolders(hub)).not.toContain(b.id);
     hub.deleteList(c.id);
     hideHome(hub, 'upcoming');
     expect((hub.me()?.home ?? []).some((s) => s.key === `l:${c.id}`)).toBe(false);
@@ -109,7 +109,7 @@ describe('home layout', () => {
     hub.updateList(c.id, { archived: true });
     expect(showHome(hub, `l:${home}`)).toBe(true);
     hub.updateList(c.id, { archived: false });
-    expect(pinnedProjects(hub)).toEqual([a.id, b.id, home]);
+    expect(pinnedFolders(hub)).toEqual([a.id, b.id, home]);
   });
 
   it('"Back to the default" lets archived pins go too; Undo brings back what was stored', async () => {
@@ -121,11 +121,11 @@ describe('home layout', () => {
     const undo = resetHome(hub);
     hub.updateList(a.id, { archived: false });
     expect(isDefaultHome(hub)).toBe(true);
-    expect(pinnedProjects(hub)).toEqual([]);
+    expect(pinnedFolders(hub)).toEqual([]);
     hub.updateList(a.id, { archived: true });
     undo();
     hub.updateList(a.id, { archived: false });
-    expect(pinnedProjects(hub)).toEqual([a.id]);
+    expect(pinnedFolders(hub)).toEqual([a.id]);
   });
 
   it("merges a widget I've never seen in after its predecessor, at its default", async () => {
@@ -179,7 +179,7 @@ describe('home layout', () => {
     const lists = hub.lists();
     for (const l of lists.slice(0, 3)) expect(showHome(hub, `l:${l.id}`)).toBe(true);
     expect(showHome(hub, `l:${lists[3].id}`)).toBe(false);
-    expect(pinnedProjects(hub)).toHaveLength(3);
+    expect(pinnedFolders(hub)).toHaveLength(3);
     hideHome(hub, `l:${lists[0].id}`);
     expect(homeOf(hub).some((s) => s.key === `l:${lists[0].id}`)).toBe(false);
     expect(slotTitle(hub, `l:${lists[1].id}`)).toBe(lists[1].name);
@@ -310,7 +310,7 @@ describe('Start here', () => {
 
 describe('My Highlights on Today', () => {
   it('holds the tasks I put there, open ones only; Undo takes it out again', async () => {
-    const { setQuick, quickItems, isQuick } = await import('../../src/app/quick');
+    const { setHighlight: setQuick, highlights: quickItems, isHighlight: isQuick } = await import('../../src/app/highlights');
     const guy = await person('guy');
     const l = guy.createList({ name: 'Home' });
     const a = guy.addItem(l, { title: 'Book the dentist' });

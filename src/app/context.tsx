@@ -44,7 +44,7 @@ export function useSync(): { status: SyncStatus; others: Presence[]; relay: bool
 }
 
 /**
- * Is my partner on a project right now (they pressed Start there)? Which one. An older app says
+ * Is my partner on a folder right now (they pressed Start there)? Which one. An older app says
  * "shopping": that's Shopping.
  */
 export function usePartnerHere(): { member: string; listId: string | null } | null {

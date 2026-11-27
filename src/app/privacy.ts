@@ -13,24 +13,24 @@ export type VisChoice = 'ours' | 'mine' | 'theirs' | 'private';
 
 export const VIS_ICON: Record<VisChoice, IconName> = { ours: G.ours, mine: G.mine, theirs: G.theirs, private: G.private };
 
-/** What a new thing in this project is, unless someone says otherwise. */
+/** What a new thing in this folder is, unless someone says otherwise. */
 export function listDefaultVis(hub: Hub, list: Pick<List, 'visibility' | 'owner'> | undefined): VisChoice {
   if (!list || list.visibility === 'shared') return 'ours';
   if (list.visibility === 'private') return 'private';
   return !list.owner || list.owner === hub.meId ? 'mine' : 'theirs';
 }
 
-/** "Ours", "Mine", "Hila’s" or "Private", for a project. */
+/** "Ours", "Mine", "Hila’s" or "Private", for a folder. */
 export function listVisLabel(hub: Hub, list: Pick<List, 'visibility' | 'owner'>): string {
   return visLabel(listDefaultVis(hub, list), hub.member(list.owner)?.name);
 }
 
-/** The choices an item in this project (under this parent) can take, the project's default first. */
+/** The choices an item in this folder (under this parent) can take, the folder's default first. */
 export function allowedVis(hub: Hub, list: Pick<List, 'visibility' | 'owner'> | undefined, parent?: Item | null): VisChoice[] {
   if (list?.visibility === 'private' || (parent && hub.visibilityOf(parent) === 'private')) return ['private'];
   const paired = !!hub.partner();
   const def = listDefaultVis(hub, list);
-  // In my partner's "Mine" project: theirs, ours or mine, but hiding things there isn't mine to do.
+  // In my partner's "Mine" folder: theirs, ours or mine, but hiding things there isn't mine to do.
   if (def === 'theirs') return ['theirs', 'ours', 'mine'];
   const all: VisChoice[] = def === 'mine' ? ['mine', 'ours', 'theirs', 'private'] : ['ours', 'mine', 'theirs', 'private'];
   return paired ? all : all.filter((v) => v !== 'theirs');
@@ -50,7 +50,7 @@ export function isMineSide(hub: Hub, item: Item): boolean {
   return c === 'mine' || c === 'private';
 }
 
-/** What a row's privacy tag says, or null when it matches its project (or its parent, for steps). */
+/** What a row's privacy tag says, or null when it matches its folder (or its parent, for steps). */
 export function visTagFor(hub: Hub, item: Item): VisChoice | null {
   const v = itemVisChoice(hub, item);
   const parent = hub.item(item.parentId);

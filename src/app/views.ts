@@ -157,14 +157,14 @@ function doneOn(hub: Hub, day: string): number {
   return n;
 }
 
-// ---------------------------------------------------------------- a project
+// ---------------------------------------------------------------- a folder
 
-/** A part of a project's page: one tag's things (an aisle), one inner project's, or all of them. */
-export interface ProjectGroup {
+/** A part of a folder's page: one tag's things (an aisle), one inner folder's, or all of them. */
+export interface FolderGroup {
   key: string;
   /** Grouped by tag: the tag (null: the untagged). */
   tag?: string | null;
-  /** Grouped by project: which one. */
+  /** Grouped by folder: which one. */
   listId?: string;
   label: string | null;
   /** The tag's icon ("i:…", "x:…" or an emoji). */
@@ -172,15 +172,15 @@ export interface ProjectGroup {
   items: Item[];
 }
 
-interface ProjectView {
-  /** The project, and the projects inside it when they're shown too. */
+interface FolderView {
+  /** The folder, and the folders inside it when they're shown too. */
   lists: List[];
   open: Item[];
   /** Kept-stocked things with enough in: not tasks, in their own section at the foot. */
   stocked: Item[];
   /** Urgent ones, in the page's order (by tag: the walk through the store). */
   urgent: Item[];
-  groups: ProjectGroup[];
+  groups: FolderGroup[];
   /** Just done: ticked, not cleared yet. Newest first. */
   tray: Item[];
   /** Done and cleared, newest first. */
@@ -189,28 +189,28 @@ interface ProjectView {
   again: BuyAgainSuggestion[];
 }
 
-/** A project and everything inside it. */
+/** A folder and everything inside it. */
 function shopTree(hub: Hub, id: string): List[] {
   const l = hub.list(id);
   return l ? [l, ...hub.nestedLists(id)] : [];
 }
 
 /**
- * One project's page, whatever's in it: its top-level things (and those of the projects inside,
- * with `inside`), grouped by tag (in our order, the untagged last), by project, or not at all;
+ * One folder's page, whatever's in it: its top-level things (and those of the folders inside,
+ * with `inside`), grouped by tag (in our order, the untagged last), by folder, or not at all;
  * the tray of things just done; Again?.
  */
-export const projectView = memo((hub: Hub, listId: string, inside: boolean, view: string, dismissed: Record<string, number>): ProjectView => {
+export const folderView = memo((hub: Hub, listId: string, inside: boolean, view: string, dismissed: Record<string, number>): FolderView => {
   const own = inside ? shopTree(hub, listId) : shopTree(hub, listId).slice(0, 1);
   // Folders it shows too (one way): their tasks are here, each in its own group.
   const lists = [...own, ...hub.shownIn(listId).filter((l) => !own.some((o) => o.id === l.id))];
   const ids = new Set(lists.map((l) => l.id));
   const items = hub.store.all('item').filter((i) => ids.has(i.listId) && !i.parentId);
   const open = items.filter(isTodo);
-  const groups: ProjectGroup[] = [];
+  const groups: FolderGroup[] = [];
   if (view === 'tags') {
     const rank = new Map(hub.tags().map((t, n) => [t.id, n]));
-    const byKey = new Map<string, ProjectGroup>();
+    const byKey = new Map<string, FolderGroup>();
     for (const i of open) {
       const tag = hub.tagsOf(i).sort((a, b) => (rank.get(a) ?? 1e9) - (rank.get(b) ?? 1e9))[0] ?? null;
       const key = tag ?? 'none';
@@ -222,7 +222,7 @@ export const projectView = memo((hub: Hub, listId: string, inside: boolean, view
       }
       g.items.push(i);
     }
-    const at = (g: ProjectGroup) => (g.tag ? (rank.get(g.tag) ?? 1e9) : 2e9);
+    const at = (g: FolderGroup) => (g.tag ? (rank.get(g.tag) ?? 1e9) : 2e9);
     groups.push(...[...byKey.values()].sort((a, b) => at(a) - at(b)));
   } else if (lists.length > 1) {
     for (const l of lists) groups.push({ key: listKey(l.id), listId: l.id, label: l.id === listId ? null : l.name, items: open.filter((i) => i.listId === l.id) });
@@ -301,9 +301,9 @@ export function openCount(hub: Hub, listId: string): number {
 }
 
 /**
- * A folder's count and its words: what's open in it and in the projects inside it ("4 open").
+ * A folder's count and its words: what's open in it and in the folders inside it ("4 open").
  */
-export function projectCount(hub: Hub, list: List): { n: number; text: string } {
+export function folderCount(hub: Hub, list: List): { n: number; text: string } {
   const n = [list, ...hub.nestedLists(list.id)].reduce((sum, l) => sum + openCount(hub, l.id), 0);
   if (n) return { n, text: `${n} open` };
   // Nothing open: all clear when things were done here, empty when nothing ever was.

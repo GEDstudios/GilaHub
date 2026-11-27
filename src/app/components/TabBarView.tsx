@@ -2,7 +2,7 @@ import { Fragment, type CSSProperties, type HTMLAttributes, type MouseEvent, typ
 import type { BarGap } from '../barEdit';
 import { barDensity, type TabDef } from '../tabs';
 import { Icon } from '../ui/Icon';
-import { ProjectMark } from '../ui/ProjectMark';
+import { FolderMark } from '../ui/FolderMark';
 import { G } from '../ui/glyphs';
 
 /** Keep the dock's edge fades only on the sides that have more to scroll to. */
@@ -11,9 +11,9 @@ export function markEdges(sc: HTMLElement): void {
   sc.classList.toggle('has-after', sc.scrollLeft < sc.scrollWidth - sc.clientWidth - 1);
 }
 
-/** A tab's mark: a built-in icon, or the project's glyph in its color. */
+/** A tab's mark: a built-in icon, or the folder's glyph in its color. */
 export function TabMark({ t }: { t: TabDef }) {
-  return t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} />;
+  return t.icon ? <Icon name={t.icon} /> : <FolderMark color={t.color} icon={t.glyph} />;
 }
 
 /**
@@ -22,7 +22,7 @@ export function TabMark({ t }: { t: TabDef }) {
  *
  *   comfy  up to 5 tabs: icon and label, a pill slides to the active tab
  *   snug   6–7: icons only; the active tab rises and shows its label
- *   dock   8 or more: Today and Projects stay put around a scrolling middle (`scrollRef`)
+ *   dock   8 or more: Today and Folders stay put around a scrolling middle (`scrollRef`)
  *
  * Editing (`editing`): every tab keeps its label, nothing is current, the ends are quiet
  * anchors, and `gap` opens a dashed slot where a drag would land (an equal grid up to 6 slots,

@@ -8,13 +8,13 @@ import { Hub, type AddResult, type ItemVisibility, type NewItem } from './base';
 
 declare module './base' {
   interface Hub {
-    /** The Shopping project (from the move from before, or a shopping template): where "Buy a doorknob" also goes. */
+    /** The Shopping folder (from the move from before, or a shopping template): where "Buy a doorknob" also goes. */
     shopRoot(): List | undefined;
 
-    /** Is this project Shopping or inside it? (Only for "Buy …" twins, and never-tagged things from older apps.) (internal) */
+    /** Is this folder Shopping or inside it? (Only for "Buy …" twins, and never-tagged things from older apps.) (internal) */
     inShopTree(listId: string | null | undefined): boolean;
 
-    /** The Shopping project, made if there's none yet (at the top of Projects, looked at by tag). */
+    /** The Shopping folder, made if there's none yet (at the top of Folders, looked at by tag). */
     ensureShopRoot(): string;
 
     /**
@@ -32,14 +32,14 @@ declare module './base' {
     findOnList(listIds: string[], name: string): Item | undefined;
 
     /**
-     * Where a new thing goes, among a project and the projects inside it: where the same thing
+     * Where a new thing goes, among a folder and the folders inside it: where the same thing
      * already is; else where things wearing its tag (or one of its kind: groceries, home) live;
-     * else the project itself.
+     * else the folder itself.
      */
     placeFor(title: string, listId: string): string;
 
     /**
-     * Add a thing the one way, to any project: never twice. Already open there → said so (urgency
+     * Add a thing the one way, to any folder: never twice. Already open there → said so (urgency
      * goes onto it; a kept-stocked thing that's stocked up comes down to its buy-at count, so it's
      * one to buy now); done before → brought back as it's asked for now; else new. A subtask is
      * just added.

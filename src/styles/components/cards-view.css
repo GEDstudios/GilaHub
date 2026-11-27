@@ -1,5 +1,5 @@
 /* ============================================================ Tasks as cards */
-/* List or cards: a small two-way switch over a project's tasks */
+/* List or cards: a small two-way switch over a folder's tasks */
 .viewtoggle {
   display: flex;
   gap: 2px;

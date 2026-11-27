@@ -9,7 +9,7 @@ import { Swatches } from './pickers';
 import { G } from '../ui/glyphs';
 import type { Hub } from '../../core/hub';
 
-/** What a choice means for a project: who sees it, and whose it is. */
+/** What a choice means for a folder: who sees it, and whose it is. */
 function listVisOf(hub: Hub, v: VisChoice): { visibility: Visibility; owner: string | null } {
   if (v === 'ours') return { visibility: 'shared', owner: null };
   if (v === 'theirs') return { visibility: 'visible', owner: hub.partner()?.id ?? hub.meId };
@@ -17,7 +17,7 @@ function listVisOf(hub: Hub, v: VisChoice): { visibility: Visibility; owner: str
 }
 
 /**
- * Who sees a project and whose it is: Ours, Mine, my person's, or Only me, with one line on
+ * Who sees a folder and whose it is: Ours, Mine, my person's, or Only me, with one line on
  * what that means. Giving it to my person keeps it in sight for both; only hiding needs it mine.
  */
 export function ListVisOptions({ value, owner, onPick }: { value: Visibility; owner?: string | null; onPick: (v: { visibility: Visibility; owner: string | null }) => void }) {
@@ -39,7 +39,7 @@ export function ListVisOptions({ value, owner, onPick }: { value: Visibility; ow
 }
 
 /** How a new folder looks and where it shows. */
-export interface ProjectLook {
+export interface FolderLook {
   color: LineColor;
   icon?: string;
   visibility: Visibility;
@@ -54,13 +54,13 @@ type Field = 'color' | 'vis';
  * New folder's chips: Color, who sees it, Pin to bar (its icon is picked on the card itself).
  * Each opens its panel right below the row; nothing stacks.
  */
-export function ProjectFields({ value, onChange }: { value: ProjectLook; onChange: (patch: Partial<ProjectLook>) => void }) {
+export function FolderFields({ value, onChange }: { value: FolderLook; onChange: (patch: Partial<FolderLook>) => void }) {
   const [open, setOpen] = useState<Field | null>(null);
   const toggle = (k: Field) => setOpen(open === k ? null : k);
   const hub = useHub();
   const vis = listDefaultVis(hub, { visibility: value.visibility, owner: value.owner ?? (value.visibility === 'shared' ? null : hub.meId) });
   return (
-    <div className="inline projfields">
+    <div className="inline folderfields">
       <div className="inline__chips">
         <EChip label="Color" lead={<span className="echip__dot" style={lineVars(value.color)} />} set open={open === 'color'} onToggle={() => toggle('color')} />
         {open === 'color' ? (

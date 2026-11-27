@@ -62,7 +62,7 @@ div[dir='auto'] {
   height: 38px;
 }
 
-/* ============================================================ Project marks & icons */
+/* ============================================================ Folder marks & icons */
 
 .pmark {
   --size: 24px;
@@ -156,7 +156,7 @@ div[dir='auto'] {
   --s: 20;
 }
 
-/* The chosen cell previews the bar: ink line, the project's color as the light. */
+/* The chosen cell previews the bar: ink line, the folder's color as the light. */
 .iconpick__btn.is-on {
   background: var(--card);
   color: var(--ink);

@@ -1,6 +1,6 @@
 /**
  * Sortable: the one drag-to-reorder in Gila Hub. Task rows and steps (Children), a shopping
- * aisle (Shopping), project folders (Lists), and the bottom bar's editors (BarEditor, BarEdit) and Edit Today (TodayArrange)
+ * aisle (Shopping), folder folders (Lists), and the bottom bar's editors (BarEditor, BarEdit) and Edit Today (TodayArrange)
  * all use it, so they feel the same.
  *
  * API
@@ -53,7 +53,7 @@
  *   Buttons, links, inputs, switches and the check never start one. A button marked
  *   [data-drag] (a folder card) can be dragged by its body.
  *
- * Feel (DECISIONS #3)
+ * Feel (docs/03-DESIGN-SYSTEM.md, Motion)
  *   The lifted copy renders in a portaled DragOverlay, so no card clips it: scale 1.035, a
  *   resting lean plus a velocity tilt (±3deg), shadow --lift-3, and the `is-lifted` class. The
  *   tilt is written to --lean on the overlay in rAF, never through React state. The source

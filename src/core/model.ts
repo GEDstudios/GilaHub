@@ -25,7 +25,7 @@ export interface Member {
   shopAlerts?: boolean;
   /** Wants a push when the partner asks for something, or does what I asked (default on). The sender reads it. */
   requestAlerts?: boolean;
-  /** My bottom bar, between Today and Projects, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
+  /** My bottom bar, between Today and Folders, in order, no practical limit: 'shop', 'chores', 'search' or 'l:<listId>'. */
   tabs?: string[];
   /** My recovery code's id on the relay (from the code; it can't give the code back), and when it was made. */
   recoveryId?: string | null;
@@ -42,7 +42,7 @@ export interface Member {
 
 /**
  * One block on my Today page. Widgets: 'asks' | 'today' | 'week' | 'upcoming' | 'partner' |
- * 'shop' | 'chores' (kept with on:false when hidden); pinned projects: 'l:<listId>' (removed when unpinned).
+ * 'shop' | 'chores' (kept with on:false when hidden); pinned folders: 'l:<listId>' (removed when unpinned).
  */
 export interface HomeSlot {
   key: string;
@@ -50,7 +50,7 @@ export interface HomeSlot {
 }
 
 /**
- * Every project is 'tasks': there is one kind of project. Chores and then shopping lists used to
+ * Every folder is 'tasks': there is one kind of folder. Chores and then shopping lists used to
  * be kinds of their own; 'shopping' is only read from older data (Hub.uniformProjects moves it).
  */
 export type ListKind = 'tasks' | 'shopping';
@@ -64,7 +64,7 @@ export type Visibility = 'shared' | 'visible' | 'private';
 
 export type ShoppingFlavor = 'grocery' | 'home';
 
-/** A project's look: rows, cards, or rows grouped by their first tag (the aisles). */
+/** A folder's look: rows, cards, or rows grouped by their first tag (the aisles). */
 export type ListView = 'list' | 'cards' | 'tags';
 
 export interface List {
@@ -73,7 +73,7 @@ export interface List {
   kind: ListKind;
   /** Older data: a shopping list's leaning (groceries or things for the home). Read only. */
   flavor?: ShoppingFlavor;
-  /** The Shopping project: "Buy a doorknob" under a task also lands here. (It's a project like any other.) */
+  /** The Shopping folder: "Buy a doorknob" under a task also lands here. (It's a folder like any other.) */
   shopRoot?: boolean;
   /** Where each of us starts looking at it (list, cards, by tag); each keeps their own (Member.views). */
   view?: ListView;
@@ -91,7 +91,7 @@ export interface List {
   shows?: string[] | null;
   /** My own private To-Do (one per person, made for them; Hub.ensurePersonalFolder). */
   personal?: boolean;
-  /** The project it sits inside (a folder in a folder). Unset, or one I can't see: top level. */
+  /** The folder it sits inside (a folder in a folder). Unset, or one I can't see: top level. */
   parentId?: string | null;
   archived?: boolean;
   createdAt: number;
@@ -172,7 +172,7 @@ export interface Item {
   tags?: string[] | null;
   /** Older data: a thing to buy's aisle category id. Read only, as a tag (Hub.tagsOf). */
   category?: string | null;
-  /** Done and cleared from its project's tray ("Clear"; by itself after 12h). */
+  /** Done and cleared from its folder's tray ("Clear"; by itself after 12h). */
   archived?: boolean;
   /** Recurring: last completion. */
   lastDoneAt?: number | null;
@@ -234,7 +234,7 @@ export interface AisleConf {
   id: string;
   name?: string;
   emoji?: string;
-  /** Our pick of icon: "i:<glyph>" or an emoji (as projects have). */
+  /** Our pick of icon: "i:<glyph>" or an emoji (as folders have). */
   icon?: string;
   /** A built-in one we took away: out of the walk; what it held goes to Other. */
   hidden?: boolean;

@@ -78,7 +78,7 @@ type FilterState = ReturnType<typeof useFilter>;
  * in another. All (and how many), then the people, Urgent, and the tags that are actually here,
  * each with its count, in our order. Tap to keep only those; tap again to let go. Several tags
  * show what wears any of them; one person at a time. Nothing to narrow: no row at all. `children`
- * end the row (a project's view switch).
+ * end the row (a folder's view switch).
  */
 export function Lens({ filter, items, lists, children }: { filter: FilterState; items: Item[]; lists?: List[]; children?: ReactNode }) {
   const hub = useHub();
@@ -96,7 +96,7 @@ export function Lens({ filter, items, lists, children }: { filter: FilterState; 
   const tagN = new Map<string, number>();
   for (const i of items) for (const t of hub.tagsOf(i)) tagN.set(t, (tagN.get(t) ?? 0) + 1);
   const tags = hub.tags().filter((t) => tagN.has(t.id) || f.tags.includes(t.id));
-  // A folder showing what's inside it: a chip for each project that has something (itself first).
+  // A folder showing what's inside it: a chip for each folder that has something (itself first).
   const listN = new Map<string, number>();
   for (const i of items) listN.set(i.listId, (listN.get(i.listId) ?? 0) + 1);
   const picked = f.lists ?? [];

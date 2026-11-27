@@ -25,7 +25,7 @@ declare module './base' {
      *
      * A restore never adds people: pairing does. The backup's own person (`opts.me`, or
      * backupOwner) becomes me in every person field, so my private things land under my key.
-     * Other people the household doesn't know are left out. A project this household already
+     * Other people the household doesn't know are left out. A folder this household already
      * has (same kind and name) takes the backup's items instead of coming in a second time.
      * Things an earlier restore sealed under that old person's key (unreadable here) are
      * sealed again under mine, so restoring again repairs them.
@@ -58,7 +58,7 @@ Hub.prototype.importBackup = function (this: Hub, data: BackupData, opts: { me?:
   const who = (v: unknown) => (from && v === from ? this.meId : v);
   const lists = new Map<string, string>();
   for (const l of data.list ?? []) {
-    // By name: every project is the same kind now (an older backup's shopping lists find ours).
+    // By name: every folder is the same kind now (an older backup's shopping lists find ours).
     const twin = this.store.all('list').find((x) => x.id !== l.id && !x.deleted && fold(x.name) === fold(String(l.name ?? '')));
     if (twin && !this.store.record('list', l.id)) lists.set(l.id, twin.id);
   }

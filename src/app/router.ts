@@ -142,13 +142,13 @@ if (typeof window !== 'undefined') {
  */
 let memory: string[] | null = null;
 
-/** The path on screen now (also in a sandboxed frame, where history is kept in memory). */
 /** Run once any sheet that just closed has taken its step back out of the history. */
 export function afterSheets(fn: () => void): void {
   if (unwinding > 0) waiting.push(fn);
   else fn();
 }
 
+/** The path on screen now (also in a sandboxed frame, where history is kept in memory). */
 export function currentPath(): string {
   return memory ? memory[memory.length - 1] : location.pathname;
 }

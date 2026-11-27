@@ -1,11 +1,11 @@
 import { PlaceTree } from '../components/PlaceTree';
-import { PathCrumbs, projectPath } from '../components/PathCrumbs';
+import { PathCrumbs, folderPath } from '../components/PathCrumbs';
 import { openSearch } from '../search';
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import type { Item, List, TaskTemplate } from '../../core/model';
 import { Lens, useFilter } from '../components/Filter';
 import { useAddAction } from '../addAction';
-import { ListVisOptions } from '../components/ProjectFields';
+import { ListVisOptions } from '../components/FolderFields';
 import { ActionSheet, Swatches } from '../components/pickers';
 import { allowedVis, listDefaultVis, visLabel, VIS_ICON } from '../privacy';
 import { InlineEditor } from '../components/InlineEditor';
@@ -15,7 +15,7 @@ import { TimeField } from '../components/TimeEntry';
 import { TagMark, TagPicker, tagsLabel } from '../components/Tags';
 import { CardIcon, IconPicker } from '../components/IconPicker';
 import { QuickAddSheet } from '../components/QuickAddSheet';
-import { ProjectItems } from '../components/ProjectItems';
+import { FolderItems } from '../components/FolderItems';
 import { Photos, useAddPhoto } from '../components/Photos';
 import { ItemRow } from '../components/ItemRow';
 import { useHub, usePartnerHere, useRt } from '../context';
@@ -32,8 +32,8 @@ import { barTabOf, FolderCard, folderLean, SortableFolder, useBarDrop } from '..
 import { TabChip } from '../components/BarEdit';
 import { pinsOf, setPins, togglePin } from '../tabs';
 import { listVisLabel } from '../privacy';
-import { projectView } from '../views';
-import { hideHome, MAX_HOME_PROJECTS, pinnedProjects, showHome, visibleHome } from '../home';
+import { folderView } from '../views';
+import { hideHome, MAX_HOME_FOLDERS, pinnedFolders, showHome, visibleHome } from '../home';
 import { notifyMembers } from '../runtime';
 import { markFresh } from '../ui/fresh';
 import { playSound } from '../ui/sounds';
@@ -49,9 +49,10 @@ import { ruleShort, myName } from '../labels';
 import { G } from '../ui/glyphs';
 import type { Hub } from '../../core/hub';
 
-/** The folder's own settings, in place under its card: a photo, on Today, its task template, the tasks it shows from elsewhere, where it sits. Each says what it's set to. */
+/** FolderTools draws chips only: it has no draft to edit. */
 const NO_DRAFT: Draft = { due: null, dueTime: null, repeat: null, remind: null, assignee: null, urgent: false, visibility: 'ours' };
 
+/** The folder's own settings, in place under its card: a photo, its task template, the tasks it shows from elsewhere. Each says what it's set to. */
 function FolderTools({ list }: { list: List }) {
   const hub = useHub();
   const { openSheet } = useOverlays();
@@ -85,8 +86,8 @@ function FolderTools({ list }: { list: List }) {
   );
 }
 
-/** The project's "…": the rare things only (archive, delete). Everything else is edited in place on its page. */
-function ListMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
+/** The folder's "…": the rare things only (archive, delete). Everything else is edited in place on its page. */
+function FolderMenu({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const list = hub.list(listId);
@@ -312,8 +313,8 @@ function ShowsSheet({ listId, onClose }: { listId: string; onClose: () => void }
   );
 }
 
-/** Where a project sits: the top of Projects, or inside another (never inside its own insides). */
-function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
+/** Where a folder sits: the top of Folders, or inside another (never inside its own insides). */
+function MoveFolderSheet({ listId, onClose }: { listId: string; onClose: () => void }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const list = hub.list(listId);
@@ -341,18 +342,18 @@ function MoveProjectSheet({ listId, onClose }: { listId: string; onClose: () => 
   );
 }
 
-/** The project's settings button. */
-function ProjectMenuButton({ listId }: { listId: string }) {
+/** The folder's settings button. */
+function FolderMenuButton({ listId }: { listId: string }) {
   const { openSheet } = useOverlays();
-  return <IconButton icon={G.more} label="Folder settings" onClick={() => openSheet((close) => <ListMenu listId={listId} onClose={close} />)} />;
+  return <IconButton icon={G.more} label="Folder settings" onClick={() => openSheet((close) => <FolderMenu listId={listId} onClose={close} />)} />;
 }
 
 /**
- * A project's card, the folder, holding its own settings, nothing under it: its name (edit in
+ * A folder's card, the folder, holding its own settings, nothing under it: its name (edit in
  * place), what's open, and down its right edge the pin to the bar, who sees it, and its icon.
  * A tap on the card itself changes its colour. Each opens its picker right under the card.
  */
-function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
+function FolderHero({ list, sub }: { list: List; sub: ReactNode }) {
   const hub = useHub();
   const { toast } = useOverlays();
   const [open, setOpen] = useState<'icon' | 'color' | 'vis' | null>(null);
@@ -380,7 +381,7 @@ function ProjectHero({ list, sub }: { list: List; sub: ReactNode }) {
   };
   return (
     <>
-      <div className={`hero hero--project hero--folder ${open === 'color' ? 'is-picking' : ''}`} style={lineVars(list.color)} onClick={onCard}>
+      <div className={`hero hero--folder ${open === 'color' ? 'is-picking' : ''}`} style={lineVars(list.color)} onClick={onCard}>
         <div className="hero__top">
           <h1 className="hero__title">
             <AutoTitle value={list.name} onSave={(name) => hub.updateList(list.id, { name })} label="Folder name" />
@@ -453,7 +454,7 @@ const canSetListVis = (hub: Hub, list: List) => !list.owner || list.owner === hu
 function TodayStar({ listId }: { listId: string }) {
   const hub = useHub();
   const { toast } = useOverlays();
-  const onHome = pinnedProjects(hub).includes(listId) && visibleHome(hub).some((x) => x.key === listKey(listId));
+  const onHome = pinnedFolders(hub).includes(listId) && visibleHome(hub).some((x) => x.key === listKey(listId));
   return (
     <StarButton
       on={onHome}
@@ -464,19 +465,19 @@ function TodayStar({ listId }: { listId: string }) {
           hideHome(hub, listKey(listId));
           toast('Off your Today', { undo: () => showHome(hub, listKey(listId)) });
         } else if (showHome(hub, listKey(listId))) toast('On your Today', { undo: () => hideHome(hub, listKey(listId)) });
-        else toast(`Today shows up to ${MAX_HOME_PROJECTS} folders. Take one off it first (Edit Today).`);
+        else toast(`Today shows up to ${MAX_HOME_FOLDERS} folders. Take one off it first (Edit Today).`);
       }}
     />
   );
 }
 
 /** The folder's header buttons: its star, search it, its "…". */
-function ProjectActions({ listId }: { listId: string }) {
+function FolderActions({ listId }: { listId: string }) {
   return (
     <>
       <TodayStar listId={listId} />
       <IconButton icon={G.search} label="Search this folder" onClick={() => openSearch(listId)} />
-      <ProjectMenuButton listId={listId} />
+      <FolderMenuButton listId={listId} />
     </>
   );
 }
@@ -547,22 +548,22 @@ function usePartnerNews(open: Item[], saying: boolean): Set<string> {
 }
 
 /**
- * Any project, the one way: its folder up top, then a lens over what's in it (who, urgent, its
+ * Any folder, the one way: its folder up top, then a lens over what's in it (who, urgent, its
  * tags) beside how it's looked at (list, cards, by tag); Again? (things done here before, due
- * again); the tray of things just done; the Urgent card; the things themselves; the projects
+ * again); the tray of things just done; the Urgent card; the things themselves; the folders
  * inside; and what was cleared. Start (in the header) is for being on it: the store, a cleaning
- * spree. Shopping is just a project looked at by tag.
+ * spree. Shopping is just a folder looked at by tag.
  */
-export function ListScreen({ id }: { id: string }) {
+export function FolderScreen({ id }: { id: string }) {
   const hub = useHub();
   const prefs = usePrefs();
   const { openSheet } = useOverlays();
   const list = hub.list(id);
   const nested = hub.nestedLists(id);
-  // A folder shows everything inside it; the lens narrows it to one project.
+  // A folder shows everything inside it; the lens narrows it to one folder.
   const inside = nested.length > 0;
   const view = hub.viewOf(list);
-  const v = projectView(hub, id, inside, view, prefs.dismissed);
+  const v = folderView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(listKey(id));
   const focus = false;
   useOnIt(focus, id, list?.name ?? '');
@@ -599,19 +600,19 @@ export function ListScreen({ id }: { id: string }) {
   };
 
   return (
-    <div className={`projpage ${focus ? 'is-onit' : ''}`}>
+    <div className={`folderpage ${focus ? 'is-onit' : ''}`}>
       <Band
         onBack={() => back(parent ? { name: 'list', id: parent.id } : { name: 'lists' })}
-        actions={<ProjectActions listId={id} />}
+        actions={<FolderActions listId={id} />}
         mini={list.name}
-        crumbs={<PathCrumbs steps={projectPath(hub, id)} onMove={() => openSheet((close) => <MoveProjectSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
+        crumbs={<PathCrumbs steps={folderPath(hub, id)} onMove={() => openSheet((close) => <MoveFolderSheet listId={id} onClose={close} />)} moveLabel="Move this folder" />}
       >
-        <ProjectHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length ? 'All done' : 'Empty'}`} />
+        <FolderHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length ? 'All done' : 'Empty'}`} />
         <FolderTools list={list} />
       </Band>
       <div className="column">
         {/* Its folders first, then its tasks */}
-        <SubProjects list={list} />
+        <SubFolders list={list} />
         {n ? (
           <Lens filter={filter} items={v.open} lists={v.lists.length > 1 ? v.lists : undefined}>
             <ViewToggle listId={id} />
@@ -650,7 +651,7 @@ export function ListScreen({ id }: { id: string }) {
 
         <Photos on={`list:${id}`} />
 
-        <ProjectItems
+        <FolderItems
           pageId={id}
           groups={groups}
           urgent={urgent}
@@ -778,8 +779,8 @@ function either(a: Outside, b: Outside): Outside {
   };
 }
 
-/** The folders inside a project: open one, drag to reorder. (The + makes another: "Folder inside …".) */
-function SubProjects({ list }: { list: List }) {
+/** The folders inside a folder: open one, drag to reorder. (The + makes another: "Folder inside …".) */
+function SubFolders({ list }: { list: List }) {
   const hub = useHub();
   const subs = hub.subLists(list.id);
   const pins = pinsOf(hub);
@@ -790,7 +791,7 @@ function SubProjects({ list }: { list: List }) {
   const outside = useMemo(() => either(toBar.folders, crumbs.target), [toBar, crumbs]);
   if (!subs.length) return null;
   return (
-    <section className="subprojects" aria-label={`Inside ${list.name}`}>
+    <section className="subfolders" aria-label={`Inside ${list.name}`}>
       <Sortable
         ids={subs.map((l) => l.id)}
         onMove={(next, id) => hub.moveList(id, next[next.indexOf(id) + 1] ?? null)}
@@ -807,7 +808,7 @@ function SubProjects({ list }: { list: List }) {
           return t ? <TabChip t={t} /> : l ? <FolderCard list={l} /> : null;
         }}
       >
-        <div className="projgrid">
+        <div className="foldergrid">
           {subs.map((l, i) => (
             <SortableFolder key={l.id} list={l} arranging={false} pins={pins} index={i} />
           ))}

@@ -2,7 +2,7 @@ import { fold } from '../smart/normalize';
 import type { ListKind, ShoppingFlavor } from './model';
 
 /**
- * A new project's icon, from its name, so a bar full of projects isn't a row of identical
+ * A new folder's icon, from its name, so a bar full of folders isn't a row of identical
  * folders. Stored like a picked one ("i:<name>", a PROJECT_ICONS name), so the person can change
  * it. Each idea lists alternatives: a second trip next to the first gets the other one.
  */
@@ -40,7 +40,7 @@ const BY_KIND: Partial<Record<ListKind | 'home', string[]>> = {
   home: ['bag', 'basket'],
 };
 
-/** Neither says anything: plain marks, so a bar of such projects isn't a row of folders. */
+/** Neither says anything: plain marks, so a bar of such folders isn't a row of folders. */
 const PLAIN = ['sparkle', 'leaf', 'bell', 'music', 'book', 'coffee', 'heart', 'calendar', 'plant', 'film'];
 
 const hash = (s: string): number => {
@@ -50,8 +50,8 @@ const hash = (s: string): number => {
 };
 
 /**
- * "i:<name>" for a project called `name`: from its words, else its kind, else a plain mark
- * that no project in `taken` has, starting from one picked by the name (so every phone picks
+ * "i:<name>" for a folder called `name`: from its words, else its kind, else a plain mark
+ * that no folder in `taken` has, starting from one picked by the name (so every phone picks
  * the same one). Avoids the icon its neighbour has.
  */
 export function suggestIcon(name: string, kind: ListKind, flavor?: ShoppingFlavor, neighbour?: string, taken: ReadonlySet<string> = new Set()): string {

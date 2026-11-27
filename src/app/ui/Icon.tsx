@@ -15,7 +15,7 @@ const FIXED_LIGHT: Partial<Record<GlyphName, string>> = {
 /**
  * Gila Duo: an ink line and a solid light layer (docs/03-DESIGN-SYSTEM.md, "Icons — Gila Duo").
  * The light rests at ink 7%, lights up in my color when the thing is on (`lit`, or a lit
- * parent such as `.tab.is-on`), takes a project's color for projects, and turns to ink 12%
+ * parent such as `.tab.is-on`), takes a folder's color for folders, and turns to ink 12%
  * on color. Controls (plus, x, chevrons…) are line only. Glyphs come from icons.gen.ts.
  */
 export function Icon({ name, className, style, title, lit }: { name: IconName; className?: string; style?: CSSProperties; title?: string; lit?: boolean }) {

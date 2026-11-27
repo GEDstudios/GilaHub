@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { isStocked, isTodo } from '../../src/core/model';
-import { openCount, projectView } from '../../src/app/views';
+import { openCount, folderView } from '../../src/app/views';
 import { person } from './_helpers';
 
-const page = (hub: Awaited<ReturnType<typeof person>>, listId: string) => projectView(hub, listId, false, 'list', {});
+const page = (hub: Awaited<ReturnType<typeof person>>, listId: string) => folderView(hub, listId, false, 'list', {});
 
 describe('Kept stocked: one item, in its own folder', () => {
   it('waits in "In stock" while there are enough, and is one of the tasks at its buy-at count', async () => {

@@ -5,7 +5,7 @@ import { fromDateStr, today as todayStr } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { useAddAction } from '../addAction';
 import { SavedListWidget } from '../components/SavedList';
-import { HomeNotices, InviteCard, ProjectWidget, QuickView } from '../components/HomeWidgets';
+import { HomeNotices, InviteCard, FolderWidget, HighlightsView } from '../components/HomeWidgets';
 import { DayCard, TodayList, UsTile, WeekStrip } from '../components/Home';
 import { QuickAddSheet } from '../components/QuickAddSheet';
 import { SyncBadge } from '../components/SyncBadge';
@@ -125,13 +125,13 @@ export function Today() {
     const savedId = queryIdOf(key);
     if (savedId) return <SavedListWidget key={key} id={savedId} settle={settle} />;
     const listId = listIdOf(key);
-    if (listId) return <ProjectWidget key={key} listId={listId} settle={settle} />;
+    if (listId) return <FolderWidget key={key} listId={listId} settle={settle} />;
     switch (key) {
       case 'today':
         // What my person asked waits in Us's cards; with Us hidden, folded under the list.
         return <TodayList key={key} v={v} day={ref} settle={settle} asksHere={!slots.some((x) => x.key === 'week')} />;
       case 'quick':
-        return <QuickView key={key} settle={settle} />;
+        return <HighlightsView key={key} settle={settle} />;
       case 'upcoming':
         return <WeekStrip key={key} v={v} day={ref} />;
       case 'week':
@@ -182,7 +182,7 @@ export function Today() {
         mini={date}
       />
       {wide ? (
-        // A computer: the doing on the left (add, asks, today, the next days, pinned projects),
+        // A computer: the doing on the left (add, asks, today, the next days, pinned folders),
         // and beside it, staying in sight, the day at a glance and the week, us.
         <div className={`column home home--wide ${entering ? 'is-entering' : ''}`}>
           <div className="home__cols">

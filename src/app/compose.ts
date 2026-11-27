@@ -29,7 +29,7 @@ export function withNotification(value: Pick<Draft, 'remind'>, due: string | nul
   return due && value.remind == null ? { remind: 0 } : {};
 }
 
-/** Chips win over words. A privacy the project doesn't allow falls back to its default. */
+/** Chips win over words. A privacy the folder doesn't allow falls back to its default. */
 export function composeDraft(base: Draft, over: Partial<Draft>, allowed: VisChoice[]): Draft {
   const d = { ...base, ...over };
   if (!allowed.includes(d.visibility)) d.visibility = base.visibility;

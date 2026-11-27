@@ -113,8 +113,8 @@
   margin-bottom: var(--space-4);
 }
 
-/* A project's chips, between its hero and its list */
-.column > .projfields {
+/* A folder's chips, between its hero and its list */
+.column > .folderfields {
   margin-bottom: 32px;
 }
 
@@ -229,7 +229,7 @@
   color: var(--ink);
 }
 
-/* A color chip (my color, a project's) shows the color itself */
+/* A color chip (my color, a folder's) shows the color itself */
 .echip__dot {
   width: 14px;
   height: 14px;

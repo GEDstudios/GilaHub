@@ -70,7 +70,6 @@ function nextWeekday(from: DateStr, days: number[], inclusive: boolean): DateStr
   return d;
 }
 
-/** The first due date for a newly created repeating item. */
 /**
  * When a new repeating thing first comes due, if you didn't give a date:
  * set days → the next of those days (today counts); "every N" → one period from now.

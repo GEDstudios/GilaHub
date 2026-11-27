@@ -3,7 +3,7 @@ import { newId } from '../ids';
 import type { Item, LineColor, List, ListKind, ListView, Member, Scope, ShoppingFlavor, TaskTemplate, Visibility } from '../model';
 import { byOrder, keyBetween } from '../order';
 import type { Store } from '../store';
-import { suggestIcon } from '../projectIcons';
+import { suggestIcon } from '../folderIcons';
 import { listIdOf } from '../keys';
 import { pickColor } from '../seed';
 
@@ -26,7 +26,7 @@ export interface NewItem {
   assignee?: Item['assignee'];
   urgent?: boolean;
   visibility?: ItemVisibility;
-  /** For "Mine": whose it is (default: me, or the project's owner). Lets me make something my partner's. */
+  /** For "Mine": whose it is (default: me, or the folder's owner). Lets me make something my partner's. */
   owner?: string | null;
   /** For a request to the partner: they tick it, I OK it. */
   needsOk?: boolean;
@@ -89,7 +89,7 @@ export class Hub {
   }
 
   /**
-   * A project that's out of sight for now but may come back: archived, or made "Only me" by my
+   * A folder that's out of sight for now but may come back: archived, or made "Only me" by my
    * partner. Pins to it (bar, Today) are kept, not shown, so a restore brings them back.
    */
   listDormant(id: string): boolean {
@@ -114,16 +114,16 @@ export class Hub {
 
   createList(input: {
     name: string;
-    /** Every project is 'tasks' (older data had other kinds). */
+    /** Every folder is 'tasks' (older data had other kinds). */
     kind?: ListKind;
-    /** Leave it out and the project gets a random color nobody is using yet. */
+    /** Leave it out and the folder gets a random color nobody is using yet. */
     color?: LineColor;
     icon?: string;
     flavor?: ShoppingFlavor;
     visibility?: Visibility;
-    /** Make it inside this project. */
+    /** Make it inside this folder. */
     parentId?: string | null;
-    /** Whose a "Mine" project is (mine unless said). */
+    /** Whose a "Mine" folder is (mine unless said). */
     owner?: string | null;
     /** How it's looked at: a list (unset), cards, or by tag. */
     view?: ListView;
@@ -208,8 +208,8 @@ export class Hub {
   }
 
   /**
-   * A color for a new project: one no project uses yet; once all are taken, one its neighbours
-   * don't have (the last projects, and the last pins, where a new pin lands in the bar).
+   * A color for a new folder: one no folder uses yet; once all are taken, one its neighbours
+   * don't have (the last folders, and the last pins, where a new pin lands in the bar).
    */
   freshColor(rand: () => number = Math.random): LineColor {
     const lists = this.lists();
@@ -222,30 +222,30 @@ export class Hub {
     );
   }
 
-  /** The icons projects have, for a new one to differ from. */
+  /** The icons folders have, for a new one to differ from. */
   iconsInUse(): Set<string> {
     return new Set(this.lists().flatMap((l) => (l.icon ? [l.icon] : [])));
   }
 
-  // ---------- projects inside projects ----------
+  // ---------- folders inside folders ----------
 
-  /** Where a project sits: its parent if I can see it (archived or private ones let it surface). */
+  /** Where a folder sits: its parent if I can see it (archived or private ones let it surface). */
   parentOf(id: string): List | undefined {
     const p = this.list(id)?.parentId;
     return p ? this.lists().find((l) => l.id === p) : undefined;
   }
 
-  /** The projects at the top of Projects. */
+  /** The folders at the top of Folders. */
   topLists(): List[] {
     return this.lists().filter((l) => !this.parentOf(l.id));
   }
 
-  /** The projects right inside this one. */
+  /** The folders right inside this one. */
   subLists(id: string): List[] {
     return this.lists().filter((l) => l.parentId === id && this.parentOf(l.id)?.id === id);
   }
 
-  /** Everything inside, all the way down, in reading order (a project, then what's inside it). */
+  /** Everything inside, all the way down, in reading order (a folder, then what's inside it). */
   nestedLists(id: string): List[] {
     const out: List[] = [];
     const walk = (pid: string, seen: Set<string>) => {
@@ -281,7 +281,7 @@ export class Hub {
     return out;
   }
 
-  /** Put a project inside another (null: back to the top). Never inside itself or its own insides. */
+  /** Put a folder inside another (null: back to the top). Never inside itself or its own insides. */
   setListParent(id: string, parentId: string | null): boolean {
     if (parentId && (parentId === id || this.nestedLists(id).some((l) => l.id === parentId) || !this.list(parentId))) return false;
     const last = this.lists().filter((l) => l.id !== id).at(-1);
@@ -309,7 +309,7 @@ export class Hub {
     });
   }
 
-  /** Reorder among its neighbours (the projects in the same place). */
+  /** Reorder among its neighbours (the folders in the same place). */
   moveList(id: string, beforeId: string | null): void {
     const p = this.parentOf(id)?.id;
     const lists = (p ? this.subLists(p) : this.topLists()).filter((l) => l.id !== id);

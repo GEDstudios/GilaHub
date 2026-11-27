@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 
 /**
  * The icon library: ~1,300 more Phosphor glyphs (iconLibrary.gen.ts), in a chunk of its own
- * so the app doesn't carry them until they're wanted: when the picker opens, or a project or
+ * so the app doesn't carry them until they're wanted: when the picker opens, or a folder or
  * category shows one ("x:<name>"). Until it lands, the spot stays an empty icon-sized box.
  */
 type Lib = typeof import('./iconLibrary.gen');

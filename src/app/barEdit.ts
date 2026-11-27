@@ -6,9 +6,9 @@ import { EDGE_DWELL, EDGE_STEP_MS, edgeDir } from './ui/scrub';
 import type { Outside } from './ui/Sortable';
 
 /**
- * Editing the bottom bar where it is (round 7, BAR): the live bar lives in App and the Projects
+ * Editing the bottom bar where it is: the live bar lives in App and the Folders
  * page in a route, so they share this tiny store.
- *   arranging  Projects > "Arrange the bar" is on: the live bar becomes editable (BarEdit live)
+ *   arranging  Folders > "Arrange the bar" is on: the live bar becomes editable (BarEdit live)
  *   aim        a folder or a token is being dragged; `at` is where it would land in the bar
  *              (an index among the pins, without its own key), null while it's elsewhere
  * And the pure maths of aiming at a bar: which slot is under the finger.
@@ -82,7 +82,7 @@ export function withGap(tabs: TabDef[], aim: Aim | null): { tabs: TabDef[]; gap:
 /**
  * The insertion index for a finger at x (pure, for tests): how many of the movable tabs'
  * centers are left of it. In the dock, over Today (left of its scrolling middle) is first and
- * over Projects is last.
+ * over Folders is last.
  */
 export function slotFromRects(x: number, centers: readonly number[], view?: { left: number; right: number }): number {
   if (view && x <= view.left) return 0;
@@ -139,7 +139,7 @@ export function stepDock(nav: Element | null, x: number, now: number, st: DockSt
 
 
 /**
- * Drop onto a bar from a list (Sortable's `outside`): folders on Projects, tokens in a tray.
+ * Drop onto a bar from a list (Sortable's `outside`): folders on Folders, tokens in a tray.
  * The bar opens a gap under the finger as it moves (`set`, read back with `get`), and letting
  * go there calls `place(key, at)`. A full bar shakes once and takes nothing.
  */

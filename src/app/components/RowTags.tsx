@@ -21,8 +21,8 @@ export function UrgentTag() {
 }
 
 /**
- * Whose it is, when that differs from its project (so Ours projects stay quiet):
- * an ink "Private", "Mine" in my color, "{P}'s" in theirs, or "Ours" inside a Mine project.
+ * Whose it is, when that differs from its folder (so Ours folders stay quiet):
+ * an ink "Private", "Mine" in my color, "{P}'s" in theirs, or "Ours" inside a Mine folder.
  */
 export function VisTag({ item }: { item: Item }) {
   const hub = useHub();

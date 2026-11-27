@@ -26,7 +26,7 @@ export async function completeOnboarding(persistence: Persistence, r: OnboardRes
       rt.hub.upsertMember(session.memberId, { name: r.name!, color: r.color as LineColor, createdAt: Date.now(), shopAlerts: true });
       if (r.kind === 'new') seedHousehold(rt.hub, r.projects ?? [], r.colors);
     });
-    // The way in: a small Start here project of your own whose things say what to do.
+    // The way in: a small Start here folder of your own whose things say what to do.
     startTour(rt.hub);
   }
   return rt;

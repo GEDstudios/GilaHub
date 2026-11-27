@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Hub } from '../../src/core/hub';
 import { seedHousehold } from '../../src/core/seed';
-import { isForMe, projectView } from '../../src/app/views';
+import { isForMe, folderView } from '../../src/app/views';
 import { addDays, today } from '../../src/core/dates';
 import { MemoryPersistence } from '../../src/core/db';
 import { Store } from '../../src/core/store';
@@ -333,12 +333,12 @@ describe('Shopping: urgent', () => {
     const cream = guy.addShopping(g, 'sour cream', { urgent: true }).id;
     const apples = guy.addShopping(g, 'apples', { urgent: true }).id;
     const root = guy.shopRoot()!.id;
-    const urgent = () => projectView(guy, root, true, 'tags', {}).urgent.map((i) => i.id);
+    const urgent = () => folderView(guy, root, true, 'tags', {}).urgent.map((i) => i.id);
     // Fruit & Veg, Dairy, Personal care, then the home departments.
     expect(urgent()).toEqual([apples, milk, cream, shampoo, batteries]);
     // Arranging Dairy is the one way to change where sour cream sits in the walk.
     guy.reorder(cream, null, milk);
-    const dairy = projectView(guy, root, true, 'tags', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
+    const dairy = folderView(guy, root, true, 'tags', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
     expect(dairy).toEqual([cream, milk]);
     expect(urgent()).toEqual([apples, cream, milk, shampoo, batteries]);
   });
@@ -352,7 +352,7 @@ describe('Shopping: urgent', () => {
     // Each list numbers its own keys from the start, so the two lists tie row for row.
     for (const t of ['milk', 'yogurt', 'cottage']) guy.addShopping(g, t);
     for (const t of ['butter', 'cream cheese', 'kefir']) guy.addShopping(m, t);
-    const dairy = () => projectView(guy, root, true, 'tags', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
+    const dairy = () => folderView(guy, root, true, 'tags', {}).groups.find((x) => x.tag === 'g:dairy')!.items.map((i) => i.id);
     const before = dairy();
     expect(new Set(before.map((id) => guy.item(id)!.order)).size).toBe(3);
     // Every row into every slot reads back as dropped, one drop after another.

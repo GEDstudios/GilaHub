@@ -3,7 +3,7 @@
 /*
  * One quiet row over a screen's things: All, the people, Urgent, the tags that are here, each
  * with its count. Unpicked chips are just text on the page; a picked one is ink. The row scrolls
- * sideways under a soft fade; a project's view switch ends it.
+ * sideways under a soft fade; a folder's view switch ends it.
  */
 .lens {
   display: flex;
@@ -103,22 +103,22 @@
   margin: 0;
 }
 
-/* A group's project, as a link (Everything inside). */
+/* A group's folder, as a link (Everything inside). */
 .aisle__go {
   display: inline-grid;
   place-items: center;
 }
 
-/* A project a dragged task would land in: it lifts and rings in gray, so where it goes is plain. */
-.projgrid .projcard.is-droptarget,
-.projcard.is-droptarget {
+/* A folder a dragged task would land in: it lifts and rings in gray, so where it goes is plain. */
+.foldergrid .foldercard.is-droptarget,
+.foldercard.is-droptarget {
   transform: rotate(0deg) scale(1.05);
   outline: 3px solid var(--drop-mark);
   outline-offset: 4px;
   transition: transform var(--dur-base) var(--spring);
 }
 
-/* The task being dropped into a project: a small ink chip under the hand. */
+/* The task being dropped into a folder: a small ink chip under the hand. */
 .dropchip {
   display: inline-flex;
   align-items: center;

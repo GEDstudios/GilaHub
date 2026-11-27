@@ -1,32 +1,28 @@
-/* ---------------------------------------------------------------- a project's card holds its settings */
+/* ---------------------------------------------------------------- a folder's card holds its settings */
 
-/* A tap on the card itself picks its colour. */
-.hero--project {
+/* The title, its description right under it, the count at the foot (no dead middle). A tap on the
+   card itself picks its colour. */
+.hero--folder {
+  gap: 0;
+  min-height: 158px;
   cursor: pointer;
 }
 
-.hero--project .hero__title {
+.hero--folder .hero__title {
   cursor: text;
 }
 
-.hero--project .hero__top,
-.hero--project .hero__foot {
+.hero--folder .hero__top {
   padding-right: 48px;
 }
 
-/* A folder's card: the title, its description right under it, the count at the foot (no dead middle) */
-.hero--project {
-  gap: 0;
-  min-height: 158px;
-}
-
-.hero--project .hero__desc {
+.hero--folder .hero__desc {
   margin-top: var(--space-1);
 }
 
-.hero--project .hero__foot {
+.hero--folder .hero__foot {
   margin-top: auto;
-  padding-top: 20px;
+  padding: 20px 48px 0 0;
 }
 
 /* Down its right edge: in the bar, who sees it, its icon. */
@@ -84,7 +80,7 @@
 }
 
 /* Picking its colour: the card says so with a soft ring. */
-.hero--project.is-picking {
+.hero--folder.is-picking {
   box-shadow: 0 0 0 3px rgb(10 10 4 / 0.85);
 }
 

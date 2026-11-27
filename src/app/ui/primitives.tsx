@@ -33,7 +33,7 @@ export function Avatar({ member, size = 'sm' }: { member?: Member; size?: Size }
   );
 }
 
-/** A project: a small soft square of its color. */
+/** A folder: a small soft square of its color. */
 export function ListBullet({ list, size = 'sm' }: { list: Pick<List, 'name' | 'color' | 'icon'> | undefined; size?: Size }) {
   return <span className={`dot dot--${size}`} style={lineVars(list?.color)} title={list?.name} aria-hidden="true" />;
 }

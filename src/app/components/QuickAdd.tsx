@@ -17,7 +17,7 @@ import { ListBullet } from '../ui/primitives';
 
 import { TagMark, TagPicker, tagsLabel } from './Tags';
 import type { Hub } from '../../core/hub';
-import { usePingUrgent } from './add';
+import { usePingUrgent } from './usePingUrgent';
 import { TOAST } from '../ui/tokens';
 import type { Draft } from '../draft';
 import { G, G_TEXT } from '../ui/glyphs';
@@ -51,7 +51,7 @@ function useParseContext(): ParseContext {
 
 /**
  * The state behind every add, in place or in the New sheet: the words, what they parse
- * to, the chips that override them, and where it goes. Mode follows the project's kind.
+ * to, the chips that override them, and where it goes. Mode follows the folder's kind.
  */
 export function useCompose({
   listId,
@@ -67,7 +67,7 @@ export function useCompose({
   text: string;
   /** Picked before (a draft brought back after a reload): chips, place, tags, words kept as text. */
   seed?: ComposeSeed;
-  /** On a project showing what's inside it too: each thing goes where it belongs ("bulbs" → Home shopping), until a project is picked. */
+  /** On a folder showing what's inside it too: each thing goes where it belongs ("bulbs" → Home shopping), until a folder is picked. */
   route?: boolean;
 }) {
   const hub = useHub();
@@ -76,14 +76,12 @@ export function useCompose({
   const pingUrgent = usePingUrgent();
   const [ignore, setIgnore] = useState<Set<string>>(() => new Set(seed?.ignore ?? []));
   const [over, setOver] = useState<Partial<Draft>>(seed?.over ?? {});
-  // Where it goes, once picked: a project, or a task in one (then it's a subtask of that task).
+  // Where it goes, once picked: a folder, or a task in one (then it's a subtask of that task).
   const [place, setPlace] = useState<{ listId: string; parentId: string | null } | null>(seed?.place ?? null);
   // Its tags, once picked; until then, what the words suggest by themselves (Hub.suggestTags).
   const [picked, setTags] = useState<string[] | null>(seed?.tags ?? null);
   const target = place?.listId ?? null;
   const home = (target ? hub.list(target) : undefined) ?? hub.list(listId);
-  // Asking my person can't live in a Private folder: unless I picked one, it goes to a shared one
-  // (the last I added to, else To do).
   const ctx = useParseContext();
   const parse = (raw: string) => parseQuickAdd(raw, { ...ctx, ignore });
   const parsed = useMemo(() => parseQuickAdd(text, { ...ctx, ignore }), [text, ctx, ignore]);
@@ -146,7 +144,7 @@ export function useCompose({
   /** Tap a parsed token: keep those words as text. */
   const keepAsText = (key: string) => setIgnore((s) => new Set([...s, key]));
 
-  /** After an add: a clean slate, but the project and who-sees-it stay as chosen. */
+  /** After an add: a clean slate, but the folder and who-sees-it stay as chosen. */
   const reset = () => {
     setIgnore(new Set());
     setTags(null);
@@ -202,7 +200,7 @@ export function useCompose({
     if (made && asking && made.requestedBy === hub.meId) {
       notifyAbout(rt, hub, made, d.assignee as string, `${G_TEXT.ask} ${myName(hub)} asked you`, made.title);
     }
-    // New (from Today, Search…) opens on the last project used.
+    // New (from Today, Search…) opens on the last folder used.
     if (!parent) setPrefs({ lastList: to.id });
     markFresh(id);
     if (!opts.quiet) playSound('add');
@@ -237,8 +235,8 @@ export function tagChip(c: Compose, hub: Hub) {
 }
 
 /**
- * Where it goes: the project's bullet and name (or the task it goes under, with the subtask mark). Its panel is the
- * tree of projects, nested ones folded away; a task project unfolds to its open tasks, and
+ * Where it goes: the folder's bullet and name (or the task it goes under, with the subtask mark). Its panel is the
+ * tree of folders, nested ones folded away; a task folder unfolds to its open tasks, and
  * picking a task makes the new one its subtask.
  */
 export function listChip(c: Compose, lists: List[]) {

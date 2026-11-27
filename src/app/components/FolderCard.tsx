@@ -10,11 +10,11 @@ import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { lineVars } from '../ui/primitives';
-import { Glyph, showsGlyph } from '../ui/ProjectMark';
+import { Glyph, showsGlyph } from '../ui/FolderMark';
 import { useSortableItem } from '../ui/Sortable';
 import { listVisLabel, VIS_ICON } from '../privacy';
 import { MAX_PINS, pinAt, pinOptions, pinsOf, setPins, togglePin } from '../tabs';
-import { projectCount } from '../views';
+import { folderCount } from '../views';
 import { hashOf } from '../../core/ids';
 import { listKey } from '../../core/keys';
 import { G } from '../ui/glyphs';
@@ -31,8 +31,8 @@ const liveBar = () => {
 const tabOf = (hub: Hub, key: string) => pinOptions(hub).find((o) => o.key === key);
 
 /**
- * Arranging the bar, a folder tap is its pin: in goes just before Projects, out comes out. A
- * project the Shopping or Chores tab already shows flashes that tab instead; a full bar shakes.
+ * Arranging the bar, a folder tap is its pin: in goes just before Folders, out comes out. A
+ * folder the Shopping or Chores tab already shows flashes that tab instead; a full bar shakes.
  */
 function tapPin(hub: Hub, list: List) {
   const pins = pinsOf(hub);
@@ -80,7 +80,7 @@ function FolderPin({ list, pins, index }: { list: List; pins: string[]; index: n
   return (
     <button
       type="button"
-      className={`projpin${on ? ' is-in' : ''}`}
+      className={`folderpin${on ? ' is-in' : ''}`}
       style={{ '--i': index } as CSSProperties}
       aria-pressed={on}
       aria-disabled={!on && pins.length >= MAX_PINS ? true : undefined}
@@ -89,7 +89,7 @@ function FolderPin({ list, pins, index }: { list: List; pins: string[]; index: n
       onClick={() => tapPin(hub, list)}
     >
       {on ? (
-        <span className="projpin__in">
+        <span className="folderpin__in">
           <Icon name={G.pinToBar} />
         </span>
       ) : (
@@ -107,7 +107,7 @@ export function SortableFolder({ list, arranging, pins, index }: { list: List; a
     <div
       ref={s.ref}
       data-id={list.id}
-      className={`projslot ${s.className}`}
+      className={`folderslot ${s.className}`}
       style={{ ...s.style, '--tilt': `${tilt(list.id)}deg` } as CSSProperties}
       {...s.props}
     >
@@ -123,13 +123,13 @@ export const folderLean = (id: string) => ({ rest: tilt(id) + 3, land: tilt(id) 
 /** A folder as a card: its name, what's open in it, whose it is, its glyph. A tap opens it. */
 export function FolderCard({ list, onClick }: { list: List; onClick?: () => void }) {
   const hub = useHub();
-  const count = projectCount(hub, list);
+  const count = folderCount(hub, list);
   // A folder with folders in it looks it: more sheets peek out behind.
   const inside = hub.subLists(list.id).length;
   return (
     <button
       type="button"
-      className={`ccard ccard--md projcard${inside ? ' projcard--stack' : ''}`}
+      className={`ccard ccard--md foldercard${inside ? ' foldercard--stack' : ''}`}
       data-inside={inside || undefined}
       style={{ ...lineVars(list.color), ['--tilt' as string]: `${tilt(list.id)}deg` }}
       onClick={onClick ?? (() => navigate({ name: 'list', id: list.id }))}
@@ -138,11 +138,11 @@ export function FolderCard({ list, onClick }: { list: List; onClick?: () => void
     >
       {/* The name gets the card's whole width; the glyph sits low, by the count. */}
       <span className="ccard__top">
-        <span className="ccard__title projcard__name" dir="auto">
+        <span className="ccard__title foldercard__name" dir="auto">
           {list.name}
         </span>
       </span>
-      <span className="ccard__sub projcard__foot">
+      <span className="ccard__sub foldercard__foot">
         <span>
           {list.visibility === 'private' ? <Icon name={VIS_ICON.private} className="ccard__lock" /> : null}
           {count.text}

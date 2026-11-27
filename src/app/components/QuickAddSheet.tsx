@@ -8,7 +8,7 @@ import { composerPlaceholder, splitSteps } from '../compose';
 import { useHub } from '../context';
 import { getPrefs } from '../prefs';
 import { usePrefs } from '../usePrefs';
-import { projectView } from '../views';
+import { folderView } from '../views';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { useBackGuard } from '../ui/backGuard';
@@ -22,15 +22,8 @@ import { G } from '../ui/glyphs';
 import type { Hub } from '../../core/hub';
 
 /**
- * New: the one way to add, from the black + on every screen. You write straight onto the
- * colour card, with every option right under it: the project, subtasks (typed in a list, or in
- * the words: "Pack: towels, hats"), date, repeat, notification, who, who sees it, urgent. It opens pointed at where you
- * are: `listId` (any kind of project), `parentId` (a step of this item), `defaultDue` (a
- * day), else the last folder you added to, else To do. Add puts it there and closes.
- */
-/**
  * A thing half-written in New is kept on this device while the sheet is open, so a reload (an
- * update, a pull, the phone's own) brings it back as it was: the words, the project, the chips,
+ * update, a pull, the phone's own) brings it back as it was: the words, the folder, the chips,
  * the subtasks. Closing the sheet, or adding, lets it go.
  */
 const DRAFT_KEY = 'gila-hub:composer';
@@ -71,6 +64,13 @@ export function pendingDraft(hub: Hub): ComposerDraft | null {
 /** What tapping outside New does: set by the composer (save what's written), else just close. */
 type Outside = { current: (() => void) | null };
 
+/**
+ * New: the one way to add, from the black + on every screen. You write straight onto the
+ * colour card, with every option right under it: the folder, subtasks (typed in a list, or in
+ * the words: "Pack: towels, hats"), date, repeat, notification, who, who sees it, urgent. It opens pointed at where you
+ * are: `listId` (any kind of folder), `parentId` (a step of this item), `defaultDue` (a
+ * day), else the last folder you added to, else To do. Add puts it there and closes.
+ */
 export function QuickAddSheet({
   onClose,
   defaultDue,
@@ -135,7 +135,7 @@ export function QuickAddSheet({
   );
 }
 
-/** Every option, right there: the same for every project. */
+/** Every option, right there: the same for every folder. */
 const FIELDS: Field[] = ['when', 'repeat', 'remind', 'who', 'vis', 'urgent'];
 
 function Composer({
@@ -298,11 +298,11 @@ function Composer({
       ? suggestFromCatalog(title, undefined, 4)
           .map((s) => s.label)
           .filter((s) => s.toLowerCase() !== title.toLowerCase())
-      : projectView(hub, dest?.id ?? listId, !!route, 'list', prefs.dismissed)
+      : folderView(hub, dest?.id ?? listId, !!route, 'list', prefs.dismissed)
           .again.slice(0, 5)
           .map((s) => s.name);
 
-  // Where it goes (a project, or a task in one): not when it's already a subtask being added in place.
+  // Where it goes (a folder, or a task in one): not when it's already a subtask being added in place.
   const extras = [
     ...(c.fixedParent ? [] : [listChip(c, hub.lists())]),
     // Its tags: what the words suggest, or picked here.

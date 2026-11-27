@@ -6,12 +6,12 @@ import { listKey, listIdOf } from '../core/keys';
 import { G } from './ui/glyphs';
 
 /**
- * Between Today and Projects you pin as many as you like: Search or any project. Past 5 tabs the
+ * Between Today and Folders you pin as many as you like: Search or any folder. Past 5 tabs the
  * bar goes icons-only, past 7 it docks and scrolls (barDensity), and holding it lets you slide to
  * pick. 24 is a sanity cap, not a design limit.
  */
 export const MAX_PINS = 24;
-/** As stored: 'shop' is the Shopping project (from when it was a tab of its own). */
+/** As stored: 'shop' is the Shopping folder (from when it was a tab of its own). */
 const DEFAULT_PINS = ['shop'];
 /** Tabs that still fit with their labels. */
 const COMFY_TABS = 5;
@@ -22,15 +22,15 @@ export interface TabDef {
   path: string;
   icon?: IconName;
   color?: LineColor;
-  /** A project's own icon ("i:<name>" or an emoji). */
+  /** A folder's own icon ("i:<name>" or an emoji). */
   glyph?: string;
 }
 
 /**
- * How the bar lays out n tabs (Today and Projects included):
+ * How the bar lays out n tabs (Today and Folders included):
  *   comfy  up to 5: icon and label
  *   snug   6–7: icons only, the active tab shows its label
- *   dock   8 or more: Today and Projects stay put around a scrolling middle
+ *   dock   8 or more: Today and Folders stay put around a scrolling middle
  * While it is being arranged every tab keeps its label, so it is an equal grid up to 6 slots
  * and a dock from 7 (`n` counts the gap a drag would land in).
  */
@@ -63,7 +63,7 @@ export function cleanPins(raw: readonly string[], valid: ReadonlySet<string>): s
 
 const validKeys = (hub: Hub) => new Set(pinOptions(hub).map((t) => t.key));
 
-/** A stored 'shop' (the old Shopping tab) is the Shopping project's pin. */
+/** A stored 'shop' (the old Shopping tab) is the Shopping folder's pin. */
 const resolved = (hub: Hub, raw: readonly string[]): string[] => {
   const root = hub.shopRoot();
   return raw.map((k) => (k === 'shop' ? (root ? listKey(root.id) : '') : k));
@@ -76,7 +76,7 @@ export function pinsOf(hub: Hub): string[] {
 /**
  * `next` with the stored entries it can't show back in their places: each goes right after the
  * nearest entry before it that is still there (pure, for tests). Writes keep pins to dormant
- * projects (Hub.listDormant), so archiving and restoring one doesn't lose them.
+ * folders (Hub.listDormant), so archiving and restoring one doesn't lose them.
  */
 export function keepDormant<T>(raw: readonly T[], next: readonly T[], key: (t: T) => string, keep: (t: T) => boolean): T[] {
   const out = [...next];
@@ -122,7 +122,7 @@ export function pinAt(hub: Hub, key: string, at: number): string[] {
   return before;
 }
 
-/** Pin or unpin; returns whether it is pinned now. New pins go last, just before Projects. */
+/** Pin or unpin; returns whether it is pinned now. New pins go last, just before Folders. */
 export function togglePin(hub: Hub, key: string): boolean {
   const pins = pinsOf(hub);
   if (pins.includes(key)) {
@@ -133,7 +133,7 @@ export function togglePin(hub: Hub, key: string): boolean {
   return pinsOf(hub).includes(key);
 }
 
-/** The whole bar: Today, your pins, Projects. */
+/** The whole bar: Today, your pins, Folders. */
 export function tabsOf(hub: Hub): TabDef[] {
   const opts = new Map(pinOptions(hub).map((t) => [t.key, t]));
   return [
@@ -148,7 +148,7 @@ export function activeTabKey(hub: Hub, r: Route): string | null {
   const pins = pinsOf(hub);
   const forList = (listId: string | undefined): string => {
     if (!listId) return 'projects';
-    // Itself, or the nearest project it's inside that's in the bar.
+    // Itself, or the nearest folder it's inside that's in the bar.
     for (const l of [hub.list(listId), ...[...hub.listPath(listId)].reverse()]) if (l && pins.includes(listKey(l.id))) return listKey(l.id);
     return 'projects';
   };

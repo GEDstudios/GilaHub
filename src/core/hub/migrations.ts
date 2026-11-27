@@ -2,9 +2,9 @@ import { diffDays, today as todayStr } from '../dates';
 import type { AisleConf } from '../model';
 import { byOrder, keyBetween } from '../order';
 import { aisleGlyph, categorize, categoryMeta, categoryOrder, type Flavor } from '../../smart/categorize';
-import { suggestIcon } from '../projectIcons';
+import { suggestIcon } from '../folderIcons';
 import { shiftForAway } from '../../smart/recurrence';
-import { PROJECT_TEMPLATES } from '../seed';
+import { FOLDER_TEMPLATES } from '../seed';
 import { Hub } from './base';
 
 /** Bringing older data up to date (run once at start). */
@@ -12,28 +12,28 @@ import { Hub } from './base';
 declare module './base' {
   interface Hub {
     /**
-     * Projects from before they came with icons get one (once per device): a template's, else
-     * one from the name. Every phone works it out the same way, over the projects both of us
+     * Folders from before they came with icons get one (once per device): a template's, else
+     * one from the name. Every phone works it out the same way, over the folders both of us
      * see, so both write the same icon.
      */
     fillIcons(): void;
 
     /**
-     * Old defaults, brought up to date: "Housework" was renamed "Chores", and chores projects are
-     * now ordinary projects (each chore keeps its repeat, "from when it's done" included).
+     * Old defaults, brought up to date: "Housework" was renamed "Chores", and chores folders are
+     * now ordinary folders (each chore keeps its repeat, "from when it's done" included).
      */
     renameOldDefaults(): void;
 
     /**
-     * Shopping lists become ordinary projects inside one Shopping project, and their aisles
+     * Shopping lists become ordinary folders inside one Shopping folder, and their aisles
      * become tags (named, ordered and drawn as we had them). Once, on any device: everything it
      * writes is the same wherever it runs, so two phones doing it at once agree.
      */
     uniformProjects(): void;
 
     /**
-     * Shopping is a project like any other, looked at by tag (the aisles). One step after
-     * uniformProjects, for phones that moved before projects had views. Once; the same everywhere.
+     * Shopping is a folder like any other, looked at by tag (the aisles). One step after
+     * uniformProjects, for phones that moved before folders had views. Once; the same everywhere.
      */
     viewsFromKinds(): void;
 
@@ -53,7 +53,7 @@ Hub.prototype.fillIcons = function (this: Hub): void {
     for (const l of this.lists()) {
       let icon = l.icon;
       if (!icon) {
-        icon = PROJECT_TEMPLATES.find((x) => x.name === l.name)?.icon ?? suggestIcon(l.name, l.flavor ? 'shopping' : l.kind, l.flavor, undefined, taken);
+        icon = FOLDER_TEMPLATES.find((x) => x.name === l.name)?.icon ?? suggestIcon(l.name, l.flavor ? 'shopping' : l.kind, l.flavor, undefined, taken);
         this.store.mutate('list', l.id, { icon });
       }
       // My To-Do started with a star; a star now means "keep it on Today", so it's a tick.
@@ -110,7 +110,7 @@ Hub.prototype.uniformProjects = function (this: Hub): void {
       const tag = cat && cat !== 'other' ? this.tagIdFor(flavor, cat) : null;
       this.store.mutate('item', i.id, { tags: tag && this.tag(tag) ? [tag] : [] });
     }
-    // One Shopping project (the same id on both phones), with the lists inside it.
+    // One Shopping folder (the same id on both phones), with the lists inside it.
     let root = this.store.all('list').find((l) => l.shopRoot);
     if (!root && !this.store.record('list', 'shopping')?.v.deleted) {
       const first = [...legacy].sort(byOrder)[0];

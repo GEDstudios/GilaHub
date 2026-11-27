@@ -4,7 +4,7 @@ import { Icon, type IconName } from '../ui/Icon';
 import { G } from '../ui/glyphs';
 import { LIB_GROUPS, searchLibrary, useLibrary } from '../ui/library';
 import { FindField, firstGrapheme, lineVars, TextButton } from '../ui/primitives';
-import { Glyph, parseGlyph, PLAIN_FOLDER, PROJECT_ICONS, showsGlyph } from '../ui/ProjectMark';
+import { Glyph, parseGlyph, PLAIN_FOLDER, FOLDER_ICONS, showsGlyph } from '../ui/FolderMark';
 
 /** How many library icons show before "More". */
 const PAGE = 96;
@@ -25,7 +25,7 @@ export function IconPicker({ value, color, onChange }: { value: string | undefin
   const found = browsing && lib ? searchLibrary(lib, q, group) : [];
   // A library icon picked before stays in sight among the favourites.
   const picked = g?.kind === 'icon' && g.name.startsWith('x:') ? g.name : null;
-  const favourites: IconName[] = [...(picked ? [picked] : []), ...PROJECT_ICONS.filter((name) => `i:${name}` !== PLAIN_FOLDER)];
+  const favourites: IconName[] = [...(picked ? [picked] : []), ...FOLDER_ICONS.filter((name) => `i:${name}` !== PLAIN_FOLDER)];
 
   const cell = (name: IconName, stored: string, label: string) => {
     const on = value === stored;

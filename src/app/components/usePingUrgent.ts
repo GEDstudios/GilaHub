@@ -4,7 +4,7 @@ import { notifyMembers } from '../runtime';
 import { myName } from '../labels';
 
 /**
- * Tell my partner, while they're on that project right now (they pressed Start there), that
+ * Tell my partner, while they're on that folder right now (they pressed Start there), that
  * something is urgent: "Guy added milk" for a new thing, "Guy marked milk urgent" for one already
  * there. Used by New and the Urgent chip.
  */

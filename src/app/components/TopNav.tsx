@@ -7,15 +7,15 @@ import { SyncDot } from './SyncBadge';
 import { Icon } from '../ui/Icon';
 import { useBarEdit } from '../barEdit';
 import { Avatar, lineVars, Logo } from '../ui/primitives';
-import { ProjectMark } from '../ui/ProjectMark';
+import { FolderMark } from '../ui/FolderMark';
 import { activeTabKey, pinsOf, tabsOf } from '../tabs';
-import { projectCount, todayRef, todayView } from '../views';
+import { folderCount, todayRef, todayView } from '../views';
 import { listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
 
 /**
  * A computer's top bar: the phone's tab bar, moved up and laid out flat. The brand; the tabs
- * (Today, your pins, Projects) in the middle; search, ideas and the two of us on the right.
+ * (Today, your pins, Folders) in the middle; search, ideas and the two of us on the right.
  * Adding (the black +) and a note for my person float bottom right, as they do on the phone.
  */
 export function TopNav() {
@@ -26,11 +26,11 @@ export function TopNav() {
   const prefs = usePrefs();
   const on = activeTabKey(hub, route);
   const v = todayView(hub, todayRef());
-  // Today's due, and each pinned project's open things (with what's inside it).
+  // Today's due, and each pinned folder's open things (with what's inside it).
   const counts: Record<string, number> = { today: v.dueCount };
   for (const k of pinsOf(hub)) {
     const l = hub.list(listIdOf(k));
-    if (l) counts[k] = projectCount(hub, l).n;
+    if (l) counts[k] = folderCount(hub, l).n;
   }
   const tabs = tabsOf(hub).filter((t) => t.key !== 'search');
   // A folder held over this bar: where it would land.
@@ -59,7 +59,7 @@ export function TopNav() {
               data-tab={t.key}
               data-key={t.key}
             >
-              {t.icon ? <Icon name={t.icon} /> : <ProjectMark color={t.color} icon={t.glyph} size="sm" />}
+              {t.icon ? <Icon name={t.icon} /> : <FolderMark color={t.color} icon={t.glyph} size="sm" />}
               <span dir="auto">{t.label}</span>
               {counts[t.key] ? <span className="topnav__count num">{counts[t.key]}</span> : null}
             </button>

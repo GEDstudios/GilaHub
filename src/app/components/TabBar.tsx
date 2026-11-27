@@ -38,7 +38,7 @@ const onPhone = () => typeof matchMedia === 'function' && matchMedia('(max-width
  * Hold-and-scrub on the live bar (TabBarView): hold still for a moment and slide; the tab under
  * the finger lights up and swells, a bubble names it, and letting go goes there (lift above the
  * bar to cancel). In the dock the middle steps one tab at a time once the finger rests past the
- * outermost tab in view. DECISIONS #8. An edited bar (BarEdit) never scrubs: holding it drags.
+ * outermost tab in view. An edited bar (BarEdit) never scrubs: holding it drags.
  */
 function useBarScrub({
   tabs,
@@ -204,7 +204,7 @@ function useBarScrub({
   };
 
   // While scrubbing, a touch must not scroll the dock or the page (React's touch handlers are
-  // passive). Every render, since the bar's element is swapped while Projects arranges it.
+  // passive). Every render, since the bar's element is swapped while Folders arranges it.
   useEffect(() => {
     const nav = navRef.current;
     if (!nav) return;
@@ -254,11 +254,11 @@ function useBarScrub({
   };
 }
 
-/** Arranging from Projects: tapping a project's tab finds its folder; Shopping and Chores just stay. */
+/** Arranging from Folders: tapping a folder's tab finds its folder; Shopping and Chores just stay. */
 function findFolder(t: TabDef) {
   const listId = listIdOf(t.key);
   if (!listId) return;
-  const el = document.querySelector<HTMLElement>(`.projslot[data-id="${CSS.escape(listId)}"]`);
+  const el = document.querySelector<HTMLElement>(`.folderslot[data-id="${CSS.escape(listId)}"]`);
   if (!el) return;
   el.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
   replay(el, 'is-flash');
@@ -266,8 +266,8 @@ function findFolder(t: TabDef) {
 
 /**
  * The live bottom bar. A tap goes straight to a tab; hold and slide to pick one (useBarScrub).
- * In dock mode the middle scrolls and keeps the active tab centered. DECISIONS #8.
- * While Projects arranges it, it is a BarEdit; while a folder or token is dragged toward it, it
+ * In dock mode the middle scrolls and keeps the active tab centered.
+ * While Folders arranges it, it is a BarEdit; while a folder or token is dragged toward it, it
  * rises with its labels on and opens a gap under the finger (barEdit's aim).
  */
 export function TabBar() {
@@ -358,7 +358,7 @@ export function TabBar() {
       receiving={receiving}
       gap={gap}
       slotClass={(k) => (k === fresh ? 'is-new' : undefined)}
-      // My partner is on a project now: its tab (or the pinned one it's inside) glows.
+      // My partner is on a folder now: its tab (or the pinned one it's inside) glows.
       live={here?.listId ? new Set([listKey(here.listId), ...hub.listPath(here.listId).map((l) => listKey(l.id))]) : undefined}
       navRef={navRef}
       scrollRef={scrollRef}

@@ -3,7 +3,7 @@ import { addDays, today as todayStr } from '../core/dates';
 import { onThisDay } from './moments';
 import type { HomeSlot, Item, LineColor, List } from '../core/model';
 import { keepDormant } from './tabs';
-import { quickItems } from './quick';
+import { highlights } from './highlights';
 import { getPrefs } from './prefs';
 import { runQuery } from './query';
 import type { IconName } from './ui/Icon';
@@ -14,11 +14,11 @@ import { howMany } from './labels';
 
 /**
  * My Today page: a fixed summary, then widgets in my order. Only order and on/off are mine
- * to choose, plus up to 3 pinned projects (DECISIONS #6, HOME §5). Stored on my member record
+ * to choose, plus up to 3 pinned folders (docs/07-HOME.md). Stored on my member record
  * as `home`, so my devices follow. Hidden widgets stay as on:false entries, so a widget shipped
  * later can slot in at its default place without bringing back one I hid.
  */
-export const MAX_HOME_PROJECTS = 3;
+export const MAX_HOME_FOLDERS = 3;
 
 type WidgetKey = 'today' | 'quick' | 'upcoming' | 'week';
 
@@ -52,7 +52,7 @@ const savedList = (key: string) => {
   return id ? (getPrefs().savedLists[id] ?? null) : null;
 };
 
-/** A slot's title: the widget's name, or the pinned project's. */
+/** A slot's title: the widget's name, or the pinned folder's. */
 export function slotTitle(hub: Hub, key: string): string {
   const id = listIdOf(key);
   if (id) return hub.list(id)?.name ?? 'A folder';
@@ -60,7 +60,7 @@ export function slotTitle(hub: Hub, key: string): string {
   return isWidget(key) ? WIDGETS[key].title(hub) : key;
 }
 
-/** What I stored, cleaned: known widgets and live projects (at most 3), each once, plus any widget I've never seen. */
+/** What I stored, cleaned: known widgets and live folders (at most 3), each once, plus any widget I've never seen. */
 export function homeOf(hub: Hub): HomeSlot[] {
   const raw = hub.me()?.home;
   if (!Array.isArray(raw) || !raw.length) return DEFAULT_HOME.map((s) => ({ ...s }));
@@ -69,14 +69,14 @@ export function homeOf(hub: Hub): HomeSlot[] {
   const out: HomeSlot[] = [];
   let pins = 0;
   for (const r of raw) {
-    // "To buy" was a widget of its own: now it's the Shopping project, pinned like any other.
+    // "To buy" was a widget of its own: now it's the Shopping folder, pinned like any other.
     const root = hub.shopRoot();
     const s = r?.key === 'shop' ? (root && r.on !== false ? { key: listKey(root.id), on: true } : null) : r;
     if (!s || typeof s.key !== 'string' || seen.has(s.key)) continue;
     const id = listIdOf(s.key);
     if (id) {
       // Deleted, archived, or now out of my sight (made Only me by the partner).
-      if (!lists.has(id) || pins >= MAX_HOME_PROJECTS) continue;
+      if (!lists.has(id) || pins >= MAX_HOME_FOLDERS) continue;
       pins++;
     } else if (queryIdOf(s.key)) {
       if (!savedList(s.key)) continue; // deleted (or not here yet from my other device)
@@ -108,15 +108,15 @@ export function hiddenWidgets(hub: Hub): WidgetKey[] {
     .map((s) => s.key as WidgetKey);
 }
 
-export function pinnedProjects(hub: Hub): string[] {
+export function pinnedFolders(hub: Hub): string[] {
   return homeOf(hub)
     .map((s) => listIdOf(s.key))
     .filter((id): id is string => !!id);
 }
 
 /**
- * Write my Today page. Pins to projects that are only out of sight for now (archived) stay
- * stored, while there's room for them: a project pinned into a freed slot takes it for good,
+ * Write my Today page. Pins to folders that are only out of sight for now (archived) stay
+ * stored, while there's room for them: a folder pinned into a freed slot takes it for good,
  * so a restore never pushes a newer pin off.
  */
 export function setHome(hub: Hub, slots: readonly HomeSlot[]): void {
@@ -126,7 +126,7 @@ export function setHome(hub: Hub, slots: readonly HomeSlot[]): void {
     return !!id && hub.listDormant(id);
   });
   const chosen = new Set(slots.map((s) => s.key));
-  let over = kept.filter((s) => listIdOf(s.key)).length - MAX_HOME_PROJECTS;
+  let over = kept.filter((s) => listIdOf(s.key)).length - MAX_HOME_FOLDERS;
   const next = kept.filter((s) => chosen.has(s.key) || !listIdOf(s.key) || over-- <= 0);
   hub.upsertMember(hub.meId, { home: next.map((s) => ({ key: s.key, on: s.on !== false })) });
 }
@@ -156,19 +156,19 @@ export function reorderHome(hub: Hub, visibleKeys: readonly string[]): void {
   );
 }
 
-/** Hide a widget (it stays, off) or unpin a project (it goes). */
+/** Hide a widget (it stays, off) or unpin a folder (it goes). */
 export function hideHome(hub: Hub, key: string): void {
   const all = homeOf(hub);
   setHome(hub, listIdOf(key) || queryIdOf(key) ? all.filter((s) => s.key !== key) : all.map((s) => (s.key === key ? { ...s, on: false } : s)));
 }
 
-/** Bring a widget back, or pin a project: it goes right after the last visible block. Returns whether it's shown now. */
+/** Bring a widget back, or pin a folder: it goes right after the last visible block. Returns whether it's shown now. */
 export function showHome(hub: Hub, key: string): boolean {
   const all = homeOf(hub);
   const id = listIdOf(key);
   if (id) {
     if (!hub.isLive(id)) return false;
-    if (!all.some((s) => s.key === key) && pinnedProjects(hub).length >= MAX_HOME_PROJECTS) return false;
+    if (!all.some((s) => s.key === key) && pinnedFolders(hub).length >= MAX_HOME_FOLDERS) return false;
   } else if (queryIdOf(key)) {
     if (!savedList(key)) return false;
   } else if (!isWidget(key)) return false;
@@ -185,7 +185,7 @@ export function showHome(hub: Hub, key: string): boolean {
 
 // ---------------------------------------------------------------- what the blocks show
 
-/** The summary: how many things today, and which projects (and person) they're in. */
+/** The summary: how many things today, and which folders (and person) they're in. */
 export function summaryOf(hub: Hub, v: TodayView): { n: number; mood: 'busy' | 'done' | 'free'; lists: List[]; person: boolean } {
   // An ask counts when it's undated or due by today; a later one waits for its day.
   const ref = todayStr();
@@ -315,7 +315,7 @@ export function homePreview(key: string, hub: Hub, v: TodayView): { text: string
       return join([week > 0 && `${week} done`, v.recent.length > 0 && `${p} did ${v.recent.length} since yesterday`], 'How the week went, and your moments');
     }
     case 'quick': {
-      const n = quickItems(hub).length;
+      const n = highlights(hub).length;
       return join([n > 0 && `${n} highlighted`], 'Tasks you keep in sight here (Highlights, on a task)');
     }
     case 'upcoming': {

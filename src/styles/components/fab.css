@@ -43,15 +43,15 @@ html:has(.iconlib) .fab {
   transform: scale(0.8);
 }
 
-/* ============================================================ Projects inside projects */
+/* ============================================================ Folders inside folders */
 /* A folder holding folders: another sheet peeks out behind it, top right. */
-.projcard--stack {
+.foldercard--stack {
   box-shadow:
     7px -7px 0 -1px color-mix(in srgb, var(--c) 72%, var(--ink)),
     var(--fold-shadow);
 }
 
-.subprojects {
+.subfolders {
   margin-top: var(--space-5);
 }
 
@@ -60,7 +60,7 @@ html:has(.iconlib) .fab {
   margin-top: 0;
 }
 
-.subprojects + .lens {
+.subfolders + .lens {
   margin-top: var(--space-5);
 }
 

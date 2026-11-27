@@ -6,7 +6,7 @@ import { LINE_COLORS, type LineColor, type ShoppingFlavor, type Visibility } fro
  * made unless it's picked.
  */
 
-interface ProjectTemplate {
+interface FolderTemplate {
   key: string;
   name: string;
   icon: string;
@@ -17,7 +17,7 @@ interface ProjectTemplate {
 }
 
 /** Starting points offered at onboarding and in "New project". Nothing is created unless picked. */
-export const PROJECT_TEMPLATES: ProjectTemplate[] = [
+export const FOLDER_TEMPLATES: FolderTemplate[] = [
   { key: 'groceries', name: 'Groceries', icon: 'i:cart', flavor: 'grocery', blurb: 'Sorted by aisle, for both of you' },
   { key: 'home', name: 'Home shopping', icon: 'i:bag', flavor: 'home', blurb: 'Bulbs, towels, a new pan' },
   { key: 'chores', name: 'Chores', icon: 'i:broom', blurb: 'Things that repeat, shared fairly' },
@@ -26,8 +26,8 @@ export const PROJECT_TEMPLATES: ProjectTemplate[] = [
   { key: 'gifts', name: 'Gift ideas', icon: 'i:gift', visibility: 'private', blurb: 'Only you can see it' },
 ];
 
-/** A starting project; a shopping one goes inside Shopping (made if needed), with its aisles as tags. */
-function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineColor): string {
+/** A starting folder; a shopping one goes inside Shopping (made if needed), with its aisles as tags. */
+function createFromTemplate(hub: Hub, t: FolderTemplate, color?: LineColor): string {
   return hub.store.batch(() => {
     const parentId = t.flavor ? hub.ensureShopRoot() : null;
     if (t.flavor) hub.ensureBuiltinTags(t.flavor);
@@ -35,7 +35,7 @@ function createFromTemplate(hub: Hub, t: ProjectTemplate, color?: LineColor): st
   });
 }
 
-/** A random color from the palette, preferring ones no project uses yet, then ones not in `avoid`. */
+/** A random color from the palette, preferring ones no folder uses yet, then ones not in `avoid`. */
 export function pickColor(used: LineColor[], rand: () => number = Math.random, avoid: LineColor[] = []): LineColor {
   const free = LINE_COLORS.filter((c) => !used.includes(c));
   const apart = LINE_COLORS.filter((c) => !avoid.includes(c));
@@ -43,7 +43,7 @@ export function pickColor(used: LineColor[], rand: () => number = Math.random, a
   return pool[Math.floor(rand() * pool.length)];
 }
 
-/** Distinct random colors for several new projects at once. */
+/** Distinct random colors for several new folders at once. */
 export function pickColors(keys: string[], used: LineColor[] = [], rand: () => number = Math.random): Record<string, LineColor> {
   const out: Record<string, LineColor> = {};
   const taken = [...used];
@@ -54,11 +54,11 @@ export function pickColors(keys: string[], used: LineColor[] = [], rand: () => n
   return out;
 }
 
-/** A brand-new household: only the projects the person picked. */
+/** A brand-new household: only the folders the person picked. */
 export function seedHousehold(hub: Hub, templateKeys: string[], colors: Record<string, LineColor> = {}): void {
   hub.store.batch(() => {
     for (const key of templateKeys) {
-      const t = PROJECT_TEMPLATES.find((x) => x.key === key);
+      const t = FOLDER_TEMPLATES.find((x) => x.key === key);
       if (t) createFromTemplate(hub, t, colors[key]);
     }
   });

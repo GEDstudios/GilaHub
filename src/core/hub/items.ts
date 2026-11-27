@@ -64,7 +64,7 @@ Hub.prototype.addItem = function (this: Hub, listId: string, input: NewItem): st
     urgent: input.urgent ?? false,
     urgentBy: input.urgent ? this.meId : null,
     tags: [...new Set(input.tags ?? this.suggestTags(input.title, listId).auto)].filter((t) => this.ensureTag(t)),
-    // Added to someone's "Mine" project: it's still theirs — unless I say whose it is.
+    // Added to someone's "Mine" folder: it's still theirs — unless I say whose it is.
     owner:
       vis === 'ours'
         ? null
@@ -92,7 +92,7 @@ Hub.prototype.addItem = function (this: Hub, listId: string, input: NewItem): st
 Hub.prototype.updateItem = function (this: Hub, id: string, fields: Partial<Item>): Undo {
   const before = this.item(id);
   if (fields.urgent && !before?.urgent) fields = { ...fields, urgentBy: this.meId };
-  // Renamed: its twin in a task project follows (a shopping twin keeps its shopping name).
+  // Renamed: its twin in a task folder follows (a shopping twin keeps its shopping name).
   const twin = this.linked(before);
   // Renamed: its twin follows when it reads the same ("doorknob" stays, under "Buy a doorknob").
   const twinFollows = !!twin && !!fields.title && twin.title === before!.title;

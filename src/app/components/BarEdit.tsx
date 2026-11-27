@@ -52,7 +52,7 @@ export function TabChip({ t, out = false }: { t: TabDef; out?: boolean }) {
 }
 
 /**
- * Something that can go in the bar, as a token beside it: a tap puts it just before Projects; a
+ * Something that can go in the bar, as a token beside it: a tap puts it just before Folders; a
  * long-press (or a mouse drag) lifts it, to drop where you let go (in a <Sortable still>).
  */
 export function BarToken({ t, full, onAdd }: { t: TabDef; full?: boolean; onAdd: () => void }) {
@@ -150,7 +150,7 @@ export function BarEdit({
   onPins,
   onTab,
 }: {
-  /** The whole bar, Today and Projects included (without a key that is being aimed in). */
+  /** The whole bar, Today and Folders included (without a key that is being aimed in). */
   tabs: TabDef[];
   gap?: BarGap | null;
   navRef: RefObject<HTMLElement | null>;
@@ -166,7 +166,7 @@ export function BarEdit({
   const latest = useRef({ ids, onPins });
   latest.current = { ids, onPins };
 
-  // Nothing between Today and Projects: one dashed + shows where things go.
+  // Nothing between Today and Folders: one dashed + shows where things go.
   const slot = gap ?? (ids.length ? null : { at: 0 });
   const density = barDensity(tabs.length + (slot ? 1 : 0), { editing: true });
   const order = ids.filter((k) => k !== out && k !== leaving);

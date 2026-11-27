@@ -6,12 +6,11 @@ import { Hub, type Undo } from './base';
 
 declare module './base' {
   interface Hub {
-    /** Tick / untick, as tickKind says. */
     /** The other place this thing lives, if it's linked (and that one still points back). */
     linked(item: Item | undefined): Item | undefined;
 
     /**
-     * Put this thing in another project as well. On a shopping list it goes in as the thing to
+     * Put this thing in another folder as well. On a shopping list it goes in as the thing to
      * buy ("Buy a doorknob" → "doorknob"); elsewhere as itself. Returns the new (or found) id.
      */
     alsoIn(id: string, listId: string, parentId?: string | null): string | null;
