@@ -55,6 +55,13 @@
   color: var(--text-3);
 }
 
+/* A quiet link that belongs to the row above it: right under it, in its text column */
+.optrow__after {
+  margin: -6px 0 0;
+  /* Past the row's edge, its icon and the gap after it */
+  padding: 0 16px 10px calc(16px + 20px + 14px);
+}
+
 .optrow__value {
   font-size: var(--type-label);
   color: var(--text-2);

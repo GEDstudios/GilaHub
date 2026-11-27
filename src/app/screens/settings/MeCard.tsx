@@ -11,12 +11,13 @@ import { Icon } from '../../ui/Icon';
 import { useOverlays } from '../../ui/overlays';
 import { CursorMark, initialOf, lightVar, lineVars } from '../../ui/primitives';
 import { G } from '../../ui/glyphs';
+import { EChip } from '../../components/chips';
 
 const wide = () => typeof matchMedia === 'function' && matchMedia('(min-width: 960px)').matches;
 
 /**
  * My card: my name in the serif (edit in place), a sync pill, one line about us, and my
- * person's tag on its edge (or an invitation). Under it: Color, Name, Add a device.
+ * person's tag on its edge (or an invitation). The name is changed right on the card. Under it: Color, Add a device.
  */
 export function MeCard({ me, partner }: { me: Member; partner: Member | undefined }) {
   const hub = useHub();
@@ -27,23 +28,12 @@ export function MeCard({ me, partner }: { me: Member; partner: Member | undefine
   const [colors, setColors] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const card = useRef<HTMLDivElement>(null);
-  const chips = useRef<HTMLDivElement>(null);
   const cancel = useRef(false);
 
   // Someone renamed me on another device: follow, unless I'm typing.
   useEffect(() => {
     if (document.activeElement !== input.current) setName(me.name);
   }, [me.name]);
-
-  // The color panel stays open to try colors; a tap anywhere else closes it.
-  useEffect(() => {
-    if (!colors) return;
-    const away = (e: PointerEvent) => {
-      if (!chips.current?.contains(e.target as Node)) setColors(false);
-    };
-    document.addEventListener('pointerdown', away);
-    return () => document.removeEventListener('pointerdown', away);
-  }, [colors]);
 
   const commit = () => {
     if (cancel.current) {
@@ -158,34 +148,17 @@ export function MeCard({ me, partner }: { me: Member; partner: Member | undefine
         )}
       </div>
 
-      <div className="inline__chips" ref={chips}>
-        <button type="button" className={`echip is-set ${colors ? 'is-open' : ''}`} aria-expanded={colors} onClick={() => setColors(!colors)}>
-          <span className="echip__dot" style={lineVars(me.color)} />
-          Color
-        </button>
-        <button
-          type="button"
-          className="echip is-set"
-          onClick={() => {
-            setColors(false);
-            input.current?.focus();
-            input.current?.select();
-          }}
-        >
-          <Icon name={G.edit} />
-          Name
-        </button>
-        <button
-          type="button"
-          className="echip"
-          onClick={() => {
+      <div className="inline__chips">
+        <EChip label="Color" lead={<span className="echip__dot" style={lineVars(me.color)} />} set open={colors} onToggle={() => setColors(!colors)} />
+        <EChip
+          label="Add a device"
+          icon={G.device}
+          set={false}
+          onToggle={() => {
             setColors(false);
             openSheet((close) => <PairSheet kind="device" onClose={close} />);
           }}
-        >
-          <Icon name={G.device} />
-          Add a device
-        </button>
+        />
         {colors ? (
           <div className="panel">
             <Swatches value={me.color} onChange={pick} taken={partner ? [{ color: partner.color, name: partner.name, initial: initialOf(partner.name) }] : []} />

@@ -74,9 +74,9 @@ export function FolderFields({ value, onChange }: { value: FolderLook; onChange:
             <ListVisOptions value={value.visibility} owner={value.owner} onPick={(v) => onChange(v)} />
           </Panel>
         ) : null}
-        {/* Off: a dashed "Pin to the bar". On: "Pinned to the bar", filled with my colour, so it reads at a glance. */}
+        {/* Off: a dashed "Pin to the bar". On: "Pinned", filled with my colour: shorter, so turning it on never pushes the row onto a second line. */}
         <EChip
-          label={value.pinned ? 'Pinned to the bar' : 'Pin to the bar'}
+          label={value.pinned ? 'Pinned' : 'Pin to the bar'}
           icon={G.pinToBar}
           set={false}
           pressed={value.pinned}

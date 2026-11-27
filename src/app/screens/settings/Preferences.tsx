@@ -109,10 +109,8 @@ export function Preferences() {
           }}
         />
         {prefs.sounds ? (
-          <p className="editlink">
-            <TextButton onClick={hearThem}>
-              Hear them
-            </TextButton>
+          <p className="optrow__after">
+            <TextButton onClick={hearThem}>Hear them</TextButton>
           </p>
         ) : null}
       </div>

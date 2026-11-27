@@ -208,11 +208,17 @@
   border-top: 1px solid var(--line);
 }
 
+/* A label over a group of choices, close to what it names */
 .panel__head {
   margin: 0 2px 10px;
   color: var(--text-2);
   font-size: var(--type-meta);
   font-weight: 600;
+}
+
+/* After another group of choices: a step under it */
+.options + .panel__head {
+  margin-top: var(--space-4);
 }
 
 /* Where you are: Folders › Home › Kitchen › Fix the tap. Each step a quiet link back up. Long
