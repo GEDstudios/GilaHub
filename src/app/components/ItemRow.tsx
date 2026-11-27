@@ -1,7 +1,8 @@
 import { useDragOut, type ChipKind } from '../ui/dragOut';
-import { dropMarks, headOf, lineBy, type Landing } from '../ui/dropMark';
+import { dropMarks, openGap } from '../ui/dropMark';
+import { dweller, placer, unfoldTo, type Placement } from '../outline';
 import { movedTo } from './TemplateAsk';
-import { memo, useCallback, useMemo, type CSSProperties, type ReactNode, type Ref } from 'react';
+import { memo, useCallback, useMemo, useRef, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { humanTime, sinceDate, weekdayName } from '../../core/dates';
 import type { Item } from '../../core/model';
 import { describeRule } from '../../smart/recurrence';
@@ -23,7 +24,6 @@ import { TagPills } from './Tags';
 import { stepProgress, todayRef } from '../views';
 import { whenText } from '../labels';
 import { G } from '../ui/glyphs';
-import { DIST } from '../ui/tokens';
 
 export function dueLabel(item: Item, ref: string, h24: boolean): { text: string; soft: boolean } | null {
   if (!item.due) return null;
@@ -111,79 +111,48 @@ export const ItemRow = memo(function ItemRow({
   const tags = hub.tagsOf(item).filter((t) => t !== skipTag);
 
   const swipeRef = useSwipe<HTMLLIElement>({});
-  // A subtask unfolded here can be dragged anywhere in the list, outliner style: what the hand is
-  // over says where it lands (dropMark.ts says how that shows).
-  //   a subtask's upper or lower half   a line above or below it, among those subtasks
-  //   …pulled right                     under that subtask (it darkens)
-  //   …its sister, pulled left          out: its own task, right after the one it was under
-  //   its own task's upper half         out, just above that task; the lower half: its first subtask
-  //   another task's top or bottom edge a line between tasks: its own task there
-  //   another task's middle             under that task
-  //   a group, a step of the path       its own task there
-  // Anywhere else, or its own slot, nothing changes; Escape puts it back.
+  // A subtask unfolded here can be dragged anywhere in the list, outliner style (outline.ts says
+  // where it lands; the rows part and a gap opens there, and the copy in the hand settles into it).
+  // Onto a group or a step of the path, it's its own task there. Escape puts it back.
   const overlays = useOverlays();
   const mark = useMemo(dropMarks, []);
-  type Target = Landing & { chip?: ChipKind; listId: string; parentId: string | null; before?: string | null };
-  const outTarget = (p: { x: number; y: number }, from: { x: number; y: number }): Target | null => {
-    const dx = p.x - from.x;
-    /** The one after `x` among its sisters (not counting this one): to land right after `x`. */
-    const after = (x: Item) => {
-      const sis = hub.siblings(x.listId, x.parentId ?? null).filter((s) => s.id !== item.id);
-      return sis[sis.findIndex((s) => s.id === x.id) + 1]?.id ?? null;
-    };
-    const under = (x: Item, el: HTMLElement): Target | null =>
-      x.done || hub.isUnder(x.id, item.id) || !hub.canEdit(x) ? null : { into: el, line: lineBy(el, 'bottom', true), chip: 'subtask', listId: x.listId, parentId: x.id };
-    const parent = hub.item(item.parentId);
-    /** Out from under its task: its own task, right after it. */
-    const out = (): Target | null => {
-      const own = parent && document.querySelector<HTMLElement>(`li.row:not(.row--nested)[data-id="${parent.id}"]`);
-      return parent && own ? { line: lineBy(own, 'bottom'), listId: parent.listId, parentId: parent.parentId ?? null, before: after(parent) } : null;
-    };
+  const dwell = useMemo(() => dweller(), []);
+  const place = useMemo(() => placer(hub, { among: true }), [hub]);
+  type Target = { into?: HTMLElement; chip?: ChipKind; listId: string; parentId: string | null; before?: string | null; placed?: Placement };
+  // Where it lands now (the drop goes there: under the hand there may be only the gap).
+  const aimed = useRef<Target | null>(null);
+  const outTarget = (p: { x: number; y: number }, from: { x: number; y: number }): Target | 'keep' | null => {
     for (const e of document.elementsFromPoint(p.x, p.y)) {
+      if (e.closest('.dragout')) continue;
       const crumb = e.closest<HTMLElement>('.crumbs [data-drop-list]');
       if (crumb) return { into: crumb, chip: 'move', listId: crumb.dataset.dropList!, parentId: null };
-      const row = e.closest<HTMLElement>('li.row[data-id]');
-      if (row) {
-        const at = hub.item(row.dataset.id);
-        if (!at || at.id === item.id || row.closest('.dragout')) return null;
-        if (row.classList.contains('row--nested')) {
-          if (dx > DIST.nest) return under(at, row);
-          if (dx < -DIST.nest && at.parentId === item.parentId) return out();
-          const r = row.getBoundingClientRect();
-          const below = p.y > r.top + r.height / 2;
-          return { line: lineBy(row, below ? 'bottom' : 'top'), listId: at.listId, parentId: at.parentId ?? null, before: below ? after(at) : at.id };
-        }
-        const head = headOf(row);
-        // Between its line and its subtasks: nothing changes.
-        if (p.y > head.bottom) return null;
-        const band = (p.y - head.top) / (head.bottom - head.top);
-        const first = (x: Item): Target | null => {
-          const kids = hub.siblings(x.listId, x.id).filter((s) => s.id !== item.id);
-          const el = kids[0] && row.querySelector<HTMLElement>(`:scope > .rows--sub > li.row[data-id="${kids[0].id}"]`);
-          if (x.done || hub.isUnder(x.id, item.id)) return null;
-          return { line: el ? lineBy(el, 'top') : { ...lineBy(row, 'bottom', true), y: head.bottom }, listId: x.listId, parentId: x.id, before: kids[0]?.id ?? null };
-        };
-        if (at.id === item.parentId) return band < 0.5 ? { line: lineBy(row, 'top'), listId: at.listId, parentId: at.parentId ?? null, before: at.id } : first(at);
-        if (band < 0.25) return { line: lineBy(row, 'top'), listId: at.listId, parentId: at.parentId ?? null, before: at.id };
-        if (band > 0.75) return row.querySelector(':scope > .rows--sub') ? first(at) : { line: lineBy(row, 'bottom'), listId: at.listId, parentId: at.parentId ?? null, before: after(at) };
-        return under(at, row);
-      }
+      if (e.closest('li.row[data-id], .dropgap')) break;
       const group = e.closest<HTMLElement>('.aisle[data-list]');
       if (group) return { into: group, chip: 'move', listId: group.dataset.list!, parentId: null };
     }
-    return null;
+    const pl = place(item, p, from.x);
+    if (pl === 'keep' || !pl) return pl;
+    return { into: pl.into, listId: pl.listId, parentId: pl.parentId, before: pl.before, placed: pl };
   };
   const outRef = useDragOut<HTMLLIElement>({
     label: item.title,
     enabled: !!nested && !!item.parentId && !readonly && !item.done,
     aim: (p, from) => {
       const t = p ? outTarget(p, from) : null;
-      mark(t);
-      return t?.chip ?? t?.line;
+      if (t !== 'keep') {
+        aimed.current = t;
+        mark(t ? { into: t.into, gap: t.placed?.gap } : null);
+        dwell.at(t?.placed?.unfold);
+      }
+      if (!p) dwell.stop();
+      const now = aimed.current;
+      return now?.chip ?? (now?.placed ? openGap()?.getBoundingClientRect() : null);
     },
-    drop: (p, from) => {
+    drop: () => {
+      const t = aimed.current;
       mark(null);
-      const t = outTarget(p, from);
+      dwell.stop();
+      aimed.current = null;
       if (!t) return;
       const was = { listId: item.listId, parentId: item.parentId ?? null };
       // Among its sisters: just its place changes.
@@ -193,9 +162,7 @@ export const ItemRow = memo(function ItemRow({
         return;
       }
       hub.move(item.id, { listId: t.listId, parentId: t.parentId, before: t.before ?? undefined });
-      // Show it where it went: a task it went under opens its subtasks.
-      const unf = getPrefs().unfolded;
-      if (t.parentId && !unf.includes(t.parentId)) setPrefs({ unfolded: [...unf, t.parentId].slice(-200) });
+      unfoldTo(t.parentId);
       haptic('success');
       const where = t.parentId ? `under “${hub.item(t.parentId)?.title ?? 'it'}”` : `its own task${t.listId !== was.listId ? ` in ${hub.list(t.listId)?.name ?? 'there'}` : ''}`;
       movedTo(hub, overlays, item.id, was.listId, t.parentId ? was.listId : t.listId, `${item.title}: ${where}`, () => hub.move(item.id, was));

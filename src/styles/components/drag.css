@@ -78,6 +78,14 @@ html.is-dragging * {
   visibility: hidden;
 }
 
+/* (Not gray from the press that lifted it: gray is where it lands.) */
+.row.is-ghost,
+.row.is-lifted-out,
+.row--tap.is-ghost:active:not(:has(.row--nested:active)),
+.row--tap.is-lifted-out:active:not(:has(.row--nested:active)) {
+  background: transparent;
+}
+
 .row.is-ghost::after,
 .row.is-lifted-out::after {
   content: '';
@@ -87,9 +95,9 @@ html.is-dragging * {
 }
 
 /* ============================================================ Landing (ui/dropMark.ts)
- * Every drag says where it lands the same way, in gray only: what it goes into darkens, and a
- * line marks where it lands among others. The line starts where that level's rows start, so a
- * line one step in means "as a subtask"; it is drawn above everything, even the copy in the hand.
+ * Every drag says where it lands the same way, in gray only: what it goes into darkens, and among
+ * rows they part, opening a gray gap where it lands, at that level's indent (one step in: as a
+ * subtask). Where it came from stays a dashed slot.
  */
 
 /* A task it goes under (it becomes a subtask), with any subtasks unfolded under it; a group it
@@ -118,35 +126,45 @@ li.row.is-droptarget + li.row::before {
   opacity: 0;
 }
 
-.dropline {
-  position: fixed;
-  top: -2px;
-  left: 0;
-  z-index: calc(var(--z-drag) + 1);
-  height: 4px;
-  border-radius: 2px;
-  background: var(--drop-mark);
-  pointer-events: none;
-  transition:
-    transform 90ms var(--ease),
-    width 90ms var(--ease);
+/* Where it lands among rows: they part, and a gray gap opens at that level (in a task's subtasks
+   a subtask's height; inside a task that shows none, one step in, at its foot) */
+.dropgap {
+  position: relative;
+  height: 52px;
+  list-style: none;
+  animation: gap-open 160ms var(--ease) both;
 }
 
-/* Where the line starts: a ring, so it reads as "here" even when it is short */
-.dropline::before {
+.dropgap--sub {
+  height: 44px;
+}
+
+.dropgap--in {
+  flex-basis: 100%;
+  margin: 4px 0 -4px 24px;
+}
+
+li.row:has(> .dropgap) {
+  flex-wrap: wrap;
+}
+
+.dropgap::before {
   content: '';
   position: absolute;
-  top: -4px;
-  left: -6px;
-  width: 12px;
-  height: 12px;
-  border: 3px solid var(--drop-mark);
-  border-radius: 50%;
-  background: var(--bg);
+  inset: 3px 4px;
+  border-radius: 12px;
+  background: var(--drop-fill);
 }
 
-/* A subtask dragged out: the row, under the line where it lands (snapped there, a preview), or
-   over what it goes into, a chip just above the hand */
+@keyframes gap-open {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* A subtask dragged out: the row, settled into the gap where it lands (a preview), or over a
+   folder or a step of the path, a chip just above the hand */
 .dragout.is-snapped {
   transition:
     transform 90ms var(--ease),
@@ -169,9 +187,10 @@ li.row.is-droptarget + li.row::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dropline,
+  .dropgap,
   .dragout.is-snapped {
     transition: none;
+    animation: none;
   }
 }
 

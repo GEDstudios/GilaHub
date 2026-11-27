@@ -17,8 +17,8 @@ import { useGroupDrag } from '../ui/groupDrag';
 import { TagMark } from './Tags';
 import { listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
-import { dropMarks, lineBy, restRect } from '../ui/dropMark';
-import { DIST } from '../ui/tokens';
+import { dropMarks } from '../ui/dropMark';
+import { dweller, placer, unfoldTo, type Placement } from '../outline';
 
 const idOf = (i: Item) => i.id;
 
@@ -116,68 +116,50 @@ export function ProjectItems({
   // Drop a task on a project (a folder here, a step of the path, a project in the bar): it moves there.
   const lifted = useRef<string | null>(null);
   const mark = useMemo(dropMarks, []);
-  // Or onto the middle of another task: it goes under it, as a subtask. (The rows' resting places
-  // decide, not where they've slid to make room, so the target holds still.)
-  // Or, as in most to-do apps, drag it to the right: it goes under the task above it.
+  // Or among another task's subtasks, or onto its middle (under it, at the end; a folded one
+  // unfolds after a moment so it can go among them), or pulled right: it becomes a subtask, right
+  // where the gap opens (outline.ts). The list's own drag does the reordering between tasks.
   // How the chip in the hand says it goes in (set as it aims, so the chip follows along).
   const [nesting, setNesting] = useState(false);
   const liftX = useRef<number | null>(null);
-  const nestAt = (p: Point): { el: HTMLElement; id: string } | null => {
-    const from = lifted.current;
-    if (!from) return null;
-    const ok = (id: string) => {
-      const it = hub.item(id);
-      // Never under itself or one of its own subtasks.
-      return !!it && !it.parentId && !it.done && hub.canEdit(it) && !hub.isUnder(id, from);
-    };
-    const rows = [...document.querySelectorAll<HTMLElement>('.aisle li.row:not(.row--nested)[data-id]')]
-      .filter((li) => li.dataset.id !== from && !li.closest('.dragwrap'))
-      .map((li) => ({ li, id: li.dataset.id!, ...restRect(li) }));
-    // Right on a task (its middle): under that one.
-    for (const r of rows) {
-      const band = (p.y - r.top) / r.height;
-      if (p.x < r.left || p.x > r.right || band < 0.3 || band > 0.7) continue;
-      return ok(r.id) ? { el: r.li, id: r.id } : null;
-    }
-    // Pulled to the right of where it was picked up: under the task just above.
-    if (liftX.current !== null && p.x - liftX.current > DIST.nest) {
-      const above = rows.filter((r) => r.top + r.height / 2 < p.y).sort((a, b) => b.top - a.top)[0];
-      return above && ok(above.id) ? { el: above.li, id: above.id } : null;
-    }
-    return null;
+  const placed = useRef<Placement | null>(null);
+  const dwell = useMemo(() => dweller(), []);
+  const place = useMemo(() => placer(hub, { among: false }), [hub]);
+  const placeHere = (p: Point): Placement | null => {
+    const item = hub.item(lifted.current);
+    if (!item) return null;
+    const pl = place(item, p, liftX.current ?? p.x);
+    if (pl !== 'keep') placed.current = pl;
+    return placed.current;
   };
   const into = {
     hit: (p: Point) => {
-      if (nestAt(p)) return true;
+      if (placeHere(p)) return true;
       const t = dropListAt(p);
       return !!t && t.listId !== hub.item(lifted.current)?.listId;
     },
-    // Under a task: it darkens, with a line one step in at its foot; into a folder: it darkens.
+    // Under a task: it darkens and a gap opens where it goes; into a folder: it darkens.
     aim: (p: Point | null) => {
-      const n = p ? nestAt(p) : null;
-      mark(n ? { into: n.el, line: lineBy(n.el, 'bottom', true) } : { into: (p && dropListAt(p)?.el) || null });
-      if (p && !!n !== nesting) setNesting(!!n);
+      const pl = p ? placed.current : null;
+      mark(pl ? { into: pl.into, gap: pl.gap } : { into: (p && dropListAt(p)?.el) || null });
+      dwell.at(pl?.unfold);
+      if (p && !!pl !== nesting) setNesting(!!pl);
     },
     drop: (id: string, p: Point) => {
-      const n = nestAt(p);
-      if (n) {
-        mark(null);
-        const item = hub.item(id);
-        const under = hub.item(n.id);
-        if (!item || !under) return;
+      const pl = placed.current;
+      mark(null);
+      dwell.stop();
+      const item = hub.item(id);
+      if (pl && item) {
         const was = { listId: item.listId, parentId: item.parentId ?? null };
-        hub.move(id, { listId: under.listId, parentId: under.id });
-        // Show it where it went: its new task opens its subtasks.
-        const unf = getPrefs().unfolded;
-        if (!unf.includes(under.id)) setPrefs({ unfolded: [...unf, under.id].slice(-200) });
+        hub.move(id, { listId: pl.listId, parentId: pl.parentId, before: pl.before ?? undefined });
+        unfoldTo(pl.parentId);
         haptic('success');
-        movedTo(hub, overlays, id, was.listId, was.listId, `${item.title}: under “${under.title}”`, () => hub.move(id, was));
+        movedTo(hub, overlays, id, was.listId, was.listId, `${item.title}: under “${hub.item(pl.parentId)?.title ?? 'it'}”`, () => hub.move(id, was));
         return;
       }
       const t = dropListAt(p);
-      const item = hub.item(id);
       const to = hub.list(t?.listId);
-      mark(null);
       if (!t || !item || !to) return;
       const was = { listId: item.listId, parentId: item.parentId ?? null };
       hub.move(id, { listId: to.id, parentId: null });
@@ -187,11 +169,14 @@ export function ProjectItems({
     lift: (id: string) => {
       lifted.current = id;
       liftX.current = lastPt.current?.[0] ?? null;
+      placed.current = null;
     },
     end: () => {
       lifted.current = null;
       liftX.current = null;
+      placed.current = null;
       mark(null);
+      dwell.stop();
       setNesting(false);
     },
   };

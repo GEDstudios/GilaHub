@@ -234,13 +234,14 @@ class GripKeyboardSensor extends KeyboardSensor {
 
 // ---------------------------------------------------------------- measuring and drop
 
-/** Measure the overlay by its untilted wrapper, so tilt and scale don't skew where it lands. */
+/**
+ * The overlay is measured by its untilted wrapper, so tilt and scale don't skew where it lands.
+ * Items are re-measured as they move: the bar's dock scrolls under the hand, a task held over unfolds.
+ */
 const MEASURING: MeasuringConfiguration = {
   dragOverlay: { measure: (node) => getClientRect(node.classList.contains('lift') && node.parentElement ? node.parentElement : node) },
+  droppable: { strategy: MeasuringStrategy.Always },
 };
-
-/** The bar's tabs: re-measured as they move, since its dock scrolls under the hand. */
-const BAR_MEASURING: MeasuringConfiguration = { ...MEASURING, droppable: { strategy: MeasuringStrategy.Always } };
 
 /** Let go over an outside target: the copy fades and shrinks on the spot (reduced motion: fades). */
 const fadeOut: DropAnimationFunction = ({ dragOverlay }) => {
@@ -389,6 +390,9 @@ interface Drag {
   /** Where the pointer went down, and where it is now (viewport px; null for the keyboard). */
   origin: Point | null;
   p: Point | null;
+  /** `p` is the pointer itself (from its own events), not worked out from the drag's offset,
+   *  which shifts when rows open or close around the one in the hand. */
+  felt: boolean;
   /** Over the outside target. */
   out: boolean;
   /** The bar's dock, stepping at its edges. */
@@ -447,8 +451,8 @@ export function Sortable({
     const probe: Modifier = ({ transform }) => {
       const d = drag.current;
       if (d?.origin) {
-        d.p = { x: d.origin.x + transform.x, y: d.origin.y + transform.y };
-        d.out = !!latest.current.outside?.hit(d.p);
+        if (!d.felt) d.p = { x: d.origin.x + transform.x, y: d.origin.y + transform.y };
+        d.out = !!latest.current.outside?.hit(d.p!);
       }
       return transform;
     };
@@ -494,6 +498,8 @@ export function Sortable({
       lx = p.clientX;
       ly = p.clientY;
       lt = e.timeStamp;
+      d.p = { x: p.clientX, y: p.clientY };
+      d.felt = true;
     };
     if (follow) window.addEventListener(follow, onPoint, { passive: true });
     const frame = (now: number) => {
@@ -547,6 +553,7 @@ export function Sortable({
       stop: () => undefined,
       origin,
       p: origin,
+      felt: false,
       out: false,
       edge: { dir: 0, next: 0 },
     };
@@ -618,7 +625,7 @@ export function Sortable({
       sensors={sensors}
       collisionDetection={collisions}
       modifiers={modifiers}
-      measuring={bar ? BAR_MEASURING : MEASURING}
+      measuring={MEASURING}
       // The bar's dock steps by itself (stepDock); elsewhere the page scrolls, but never while
       // the hand is at the outside target.
       autoScroll={bar ? false : { threshold: { x: 0, y: scrollEdge() }, acceleration: 8, canScroll: () => !drag.current?.out }}

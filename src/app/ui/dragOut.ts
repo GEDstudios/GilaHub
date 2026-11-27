@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import type { LineAt } from './dropMark';
 import { G } from './glyphs';
 import { haptic } from './haptics';
 import { GLYPHS } from './icons.gen';
@@ -35,8 +34,8 @@ function glyph(kind: ChipKind): SVGSVGElement {
  * Drag one thing out of where it sits (a subtask out from under its task, on a folder page):
  * a mouse drags it after a few pixels, a finger after holding it still a moment. Lifted, it
  * looks like any task (a full row) and follows the hand; where it came from is a dashed slot.
- * `aim` marks where it would land and says how the copy shows it: a line where it lands among
- * others (the row snaps in under that line, as wide as that level: a preview of where it goes),
+ * `aim` marks where it would land and says how the copy shows it: the gap where it lands among
+ * others (the row settles into it, as wide as that level: a preview of where it goes),
  * or a chip (over something it goes into, the row turns into a small chip just above the hand,
  * as Sortable's does, so the target stays in sight);
  * letting go calls `drop`, Escape puts it back. The press never reaches what holds it (the task
@@ -45,7 +44,7 @@ function glyph(kind: ChipKind): SVGSVGElement {
 export function useDragOut<T extends HTMLElement>(opts: {
   label: string;
   enabled: boolean;
-  aim: (p: Point | null, from: Point) => ChipKind | LineAt | null | undefined | void;
+  aim: (p: Point | null, from: Point) => ChipKind | DOMRect | null | undefined | void;
   drop: (p: Point, from: Point) => void;
 }) {
   const ref = useRef<T | null>(null);
@@ -100,11 +99,11 @@ export function useDragOut<T extends HTMLElement>(opts: {
     };
     const move = (p: Point) => {
       const how = latest.current.aim(p, origin) || null;
-      const line = how && typeof how === 'object' ? how : null;
+      const slot = how && typeof how === 'object' ? how : null;
       if (chip) {
-        chip.classList.toggle('is-snapped', !!line);
-        chip.style.transform = line ? `translate(${Math.round(line.x)}px, ${Math.round(line.y) + 4}px)` : `translate(${p.x - grab.x}px, ${p.y - grab.y}px)`;
-        chip.style.width = `${line ? line.right - line.x : width}px`;
+        chip.classList.toggle('is-snapped', !!slot);
+        chip.style.transform = slot ? `translate(${Math.round(slot.left)}px, ${Math.round(slot.top)}px)` : `translate(${p.x - grab.x}px, ${p.y - grab.y}px)`;
+        chip.style.width = `${slot ? slot.width : width}px`;
       }
       shape(typeof how === 'string' ? how : null);
     };

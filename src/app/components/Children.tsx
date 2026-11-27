@@ -10,7 +10,8 @@ import { Icon } from '../ui/Icon';
 import { Sortable, useSortableItem } from '../ui/Sortable';
 import { DIST } from '../ui/tokens';
 import type { ChipKind } from '../ui/dragOut';
-import { dropMarks, lineBy, restRect, type Landing } from '../ui/dropMark';
+import { dropMarks, type Landing } from '../ui/dropMark';
+import { dweller, placer, unfoldTo } from '../outline';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 import { Disclosure } from '../ui/primitives';
@@ -48,11 +49,12 @@ function stepAt(p: Point): { el: HTMLElement; list?: string; item?: string } | n
   return null;
 }
 
-type Lift = Landing & { kind: ChipKind; listId?: string; parentId: string | null; before?: string | null };
+type Lift = Landing & { kind: ChipKind; listId?: string; parentId: string | null; before?: string | null; unfold?: string };
 
 /**
  * A subtask on its task's page, held: besides reordering among its sisters (the list's own drag),
- *   onto a sister's middle, or pulled right under the one above   under that one (a deeper subtask)
+ *   among a sister's unfolded subtasks, onto a sister's middle,   under that one, right where the
+ *   or pulled right                                               gap opens (outline.ts)
  *   pulled left                                                   out: a task of its own, right
  *                                                                 after this one (its step of the
  *                                                                 path darkens: that's where)
@@ -66,28 +68,13 @@ function useLiftOut(parentId: string | null, onKind: (k: ChipKind) => void): Out
   return useMemo(() => {
     if (!parentId) return undefined;
     const mark = dropMarks();
+    const dwell = dweller();
+    const place = placer(hub, { among: false });
     // Where the hand was when the drag began (the first aim after a lift), for "pulled right / left".
     let liftX: number | null = null;
     let lifted: string | null = null;
     let kind: ChipKind | null = null;
-    /** Onto a sister subtask's middle, or pulled right under the one above: a subtask of it. */
-    const nestAt = (p: Point): { el: HTMLElement; id: string } | null => {
-      if (!lifted) return null;
-      const rows = [...document.querySelectorAll<HTMLElement>('li.row[data-id]')]
-        .filter((li) => li.dataset.id !== lifted && !li.closest('.dragwrap') && hub.item(li.dataset.id)?.parentId === parentId)
-        .map((li) => ({ li, id: li.dataset.id!, ...restRect(li) }));
-      const ok = (id: string) => !hub.item(id)?.done;
-      for (const r of rows) {
-        const band = (p.y - r.top) / r.height;
-        if (p.x < r.left || p.x > r.right || band < 0.3 || band > 0.7) continue;
-        return ok(r.id) ? { el: r.li, id: r.id } : null;
-      }
-      if (liftX !== null && p.x - liftX > DIST.nest) {
-        const above = rows.filter((r) => r.top + r.height / 2 < p.y).sort((a, b) => b.top - a.top)[0];
-        return above && ok(above.id) ? { el: above.li, id: above.id } : null;
-      }
-      return null;
-    };
+    let aimed: Lift | null = null;
     const targetAt = (p: Point): Lift | null => {
       const step = stepAt(p);
       if (step) return { into: step.el, kind: step.item ? 'subtask' : 'move', listId: step.list, parentId: step.item ?? null };
@@ -103,41 +90,51 @@ function useLiftOut(parentId: string | null, onKind: (k: ChipKind) => void): Out
           before: sis[sis.findIndex((x) => x.id === task.id) + 1]?.id ?? null,
         };
       }
-      const n = nestAt(p);
-      return n ? { into: n.el, line: lineBy(n.el, 'bottom', true), kind: 'subtask', parentId: n.id } : null;
+      const item = hub.item(lifted);
+      if (!item) return null;
+      const pl = place(item, p, liftX ?? p.x);
+      if (pl === 'keep') return aimed;
+      return pl ? { into: pl.into, gap: pl.gap, kind: 'subtask', listId: pl.listId, parentId: pl.parentId, before: pl.before, unfold: pl.unfold } : null;
     };
     return {
       lift: (id) => {
         lifted = id;
         liftX = null;
+        aimed = null;
       },
       hit: (p) => {
         if (liftX === null) liftX = p.x;
-        return !!targetAt(p);
+        aimed = targetAt(p);
+        return !!aimed;
       },
       aim: (p) => {
-        const t = p ? targetAt(p) : null;
+        const t = p ? aimed : null;
         mark(t);
+        dwell.at(t?.unfold);
         // (Here, in the frame loop, not in hit: that runs while the list renders.)
         if (t && t.kind !== kind) onKind((kind = t.kind));
       },
-      drop: (id, p) => {
-        const t = targetAt(p);
+      drop: (id) => {
+        const t = aimed;
         mark(null);
+        dwell.stop();
         const item = hub.item(id);
         if (!t || !item) return;
         const was = { listId: item.listId, parentId: item.parentId ?? null };
         const to = { listId: t.parentId ? (hub.item(t.parentId)?.listId ?? item.listId) : (t.listId ?? item.listId), parentId: t.parentId, before: t.before ?? undefined };
         hub.move(id, to);
+        unfoldTo(t.gap ? t.parentId : null);
         haptic('success');
         const where = to.parentId ? `under “${hub.item(to.parentId)?.title ?? 'it'}”` : `its own task in ${hub.list(to.listId)?.name ?? 'there'}`;
         movedTo(hub, overlays, id, was.listId, to.parentId ? was.listId : to.listId, `${item.title}: ${where}`, () => hub.move(id, was));
       },
       end: () => {
         mark(null);
+        dwell.stop();
         lifted = null;
         liftX = null;
         kind = null;
+        aimed = null;
       },
     };
   }, [hub, overlays, parentId, onKind]);

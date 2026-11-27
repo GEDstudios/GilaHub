@@ -4,74 +4,69 @@ import { haptic } from './haptics';
  * Where a dragged thing lands, said the same way by every drag, in gray only (drag.css, "Landing"):
  *   into  what it goes into darkens: a task (it becomes a subtask), a group, a folder, a step of
  *         the path, a tab in the bar;
- *   line  a line where it lands among others, drawn above everything (even the copy in the hand).
- *         It starts where that level's rows start, so how far in it starts says how deep it goes.
- * A task taking one under it gets both: it darkens, and a line, one step in, at its foot.
+ *   gap   among rows, they part: a gray gap opens right where it lands, at that level's indent
+ *         (in a task's subtasks, or inside a task that has none showing). Where it came from stays
+ *         a dashed slot, so "from" and "to" never look alike.
+ * A task taking one under it gets both: it darkens, and the gap opens inside it.
  */
-export interface LineAt {
-  x: number;
-  right: number;
-  y: number;
+export interface GapAt {
+  /** The list it opens in (a `ul.rows`, a task's `ul.rows--sub`), or a task's row (inside it, at its foot). */
+  host: HTMLElement;
+  /** The row it opens before (null: at the end). */
+  before: Element | null;
 }
 
 export interface Landing {
   into?: HTMLElement | null;
-  line?: LineAt | null;
+  gap?: GapAt | null;
 }
 
-/** One level deeper, in px, when a row has no title to line up with. */
-const INDENT = 24;
-
-/** A row's box where it rests, not where it slid to make room (a drag's neighbours move). */
-export function restRect(el: HTMLElement): { top: number; bottom: number; left: number; right: number; height: number } {
-  const r = el.getBoundingClientRect();
-  const t = getComputedStyle(el).transform;
-  const dy = t === 'none' ? 0 : new DOMMatrixReadOnly(t).m42;
-  return { top: r.top - dy, bottom: r.bottom - dy, left: r.left, right: r.right, height: r.height };
-}
-
-/** A row's own line, without the subtasks unfolded under it. */
+/** A row's own line, without the subtasks unfolded under it (or a gap opened inside it). */
 export function headOf(row: HTMLElement): { top: number; bottom: number } {
   const r = row.getBoundingClientRect();
-  const sub = row.querySelector<HTMLElement>(':scope > .rows--sub');
-  return { top: r.top, bottom: sub ? sub.getBoundingClientRect().top : r.bottom };
+  const under = row.querySelector<HTMLElement>(':scope > .rows--sub, :scope > .dropgap');
+  return { top: r.top, bottom: under ? under.getBoundingClientRect().top : r.bottom };
 }
 
-/** The line above or below a row, from where its level starts (`deeper`: one level in, under its title). */
-export function lineBy(row: HTMLElement, edge: 'top' | 'bottom', deeper = false): LineAt {
-  const r = row.getBoundingClientRect();
-  const body = deeper ? row.querySelector<HTMLElement>(':scope > .row__body') : null;
-  const x = deeper ? (body?.getBoundingClientRect().left ?? r.left + INDENT) : r.left;
-  return { x, right: r.right, y: edge === 'top' ? r.top : r.bottom };
+/** The row after this one in its list, passing over an open gap. */
+export function nextRow(el: Element): Element | null {
+  let n = el.nextElementSibling;
+  while (n?.classList.contains('dropgap')) n = n.nextElementSibling;
+  return n;
 }
 
 /** Marks a drag's landing; call it on every aim, and with null when the drag ends. */
 export function dropMarks(): (t: Landing | null) => void {
   let lit: HTMLElement | null = null;
-  let bar: HTMLDivElement | null = null;
-  let at = '';
+  let gap: HTMLElement | null = null;
+  let at: GapAt | null = null;
   return (t) => {
     const into = t?.into ?? null;
-    const line = t?.line ?? null;
-    const key = line ? `${Math.round(line.x)},${Math.round(line.y)}` : '';
-    if ((into && into !== lit) || (line && key !== at)) haptic('select');
-    if (into !== lit) {
-      lit?.classList.remove('is-droptarget');
-      into?.classList.add('is-droptarget');
-      lit = into;
-    }
-    at = key;
-    if (!line) {
-      bar?.remove();
-      bar = null;
+    const next = t?.gap ?? null;
+    const moved = !!next && (!at || at.host !== next.host || at.before !== next.before);
+    if ((into && into !== lit) || moved) haptic('select');
+    if (into !== lit) lit?.classList.remove('is-droptarget');
+    // (Again each time: a row that re-renders, unfolding say, sets its classes afresh.)
+    into?.classList.add('is-droptarget');
+    lit = into;
+    if (!next) {
+      gap?.remove();
+      gap = null;
+      at = null;
       return;
     }
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.className = 'dropline';
-      document.body.appendChild(bar);
-    }
-    bar.style.transform = `translate(${Math.round(line.x)}px, ${Math.round(line.y)}px)`;
-    bar.style.width = `${Math.max(24, Math.round(line.right - line.x))}px`;
+    if (!moved && gap?.isConnected) return;
+    gap?.remove();
+    const inList = next.host.tagName === 'UL';
+    gap = document.createElement(inList ? 'li' : 'div');
+    gap.className = `dropgap${next.host.matches('.rows--sub') || !inList ? ' dropgap--sub' : ''}${inList ? '' : ' dropgap--in'}`;
+    gap.setAttribute('aria-hidden', 'true');
+    next.host.insertBefore(gap, next.before && next.before.parentElement === next.host ? next.before : null);
+    at = next;
   };
+}
+
+/** The gap that's open now (to set the copy in the hand into it). */
+export function openGap(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('.dropgap');
 }
