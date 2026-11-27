@@ -17,7 +17,7 @@ export const G = {
   tag: 'tag',
   template: 'layout',
   stock: 'package',
-  /** Ongoing: being done now (a task swiped right). */
+  /** Ongoing: being done now (a task swiped right; "on it" and its alerts). */
   ongoing: 'play-circle',
   idea: 'lightbulb',
   device: 'device',

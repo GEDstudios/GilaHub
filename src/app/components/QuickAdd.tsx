@@ -6,6 +6,7 @@ import { parseQuickAdd, type ParseContext, type ParseResult } from '../../smart/
 import { composeDraft, overriddenTokens, parsedDraft } from '../compose';
 import { useHub, useRt } from '../context';
 import { notifyAbout, setUpReminders } from '../notify';
+import { usePingUrgent } from './usePingUrgent';
 import { dayFirst, getPrefs, setPrefs, use24h, weekStart, workdays } from '../prefs';
 import { usePrefs } from '../usePrefs';
 import { allowedVis, itemVisChoice, visFields, type VisChoice } from '../privacy';
@@ -71,6 +72,7 @@ export function useCompose({
 }) {
   const hub = useHub();
   const rt = useRt();
+  const pingUrgent = usePingUrgent();
   const { toast } = useOverlays();
   const [ignore, setIgnore] = useState<Set<string>>(() => new Set(seed?.ignore ?? []));
   const [over, setOver] = useState<Partial<Draft>>(seed?.over ?? {});
@@ -191,6 +193,7 @@ export function useCompose({
     // The template's note and subtasks (a new task only).
     const tplOf = useTpl && hasTemplate(to) ? to.template : null;
     if (tplOf && res.kind === 'added') startFromTemplate(hub, id, tplOf);
+    if (d.urgent && res.kind !== 'exists' && hub.item(id)) pingUrgent(hub.item(id)!, true);
     if (res.kind === 'exists') {
       markFresh(id);
       if (!opts.quiet) toast(`${hub.item(id)?.title} is already in ${to.name}`);

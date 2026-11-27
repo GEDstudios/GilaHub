@@ -18,11 +18,12 @@ import { QuickAddSheet } from '../components/QuickAddSheet';
 import { FolderItems, OngoingTray } from '../components/FolderItems';
 import { Photos, useAddPhoto } from '../components/Photos';
 import { ItemRow } from '../components/ItemRow';
-import { useHub } from '../context';
+import { useHub, usePartnerHere, useRt } from '../context';
+import { notifyMembers } from '../runtime';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton, GlyphButton } from '../ui/primitives';
+import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton, GlyphButton } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
 import { getPrefs, setPrefs, use24h } from '../prefs';
 import { usePrefs } from '../usePrefs';
@@ -44,7 +45,7 @@ import { humanTime } from '../../core/dates';
 import { DUR } from '../ui/tokens';
 import { listKey } from '../../core/keys';
 import type { Draft } from '../draft';
-import { ruleShort, howMany } from '../labels';
+import { ruleShort, howMany, myName } from '../labels';
 import { G } from '../ui/glyphs';
 import type { Hub } from '../../core/hub';
 
@@ -462,9 +463,46 @@ function FolderActions({ listId }: { listId: string }) {
   );
 }
 
-/** What my partner just added (or brought back, or marked urgent) here: it glows for a moment. */
-function usePartnerNews(open: Item[]): Set<string> {
+/**
+ * On it: something of mine here is ongoing and I'm looking at it (in the store, cleaning the
+ * flat). My partner's phone knows (and once in a while hears: "Guy is on Shopping. Need
+ * anything?"), and what they add or mark urgent here shows up as it happens.
+ */
+function useOnIt(on: boolean, listId: string, name: string) {
   const hub = useHub();
+  const rt = useRt();
+  const partner = hub.partner();
+  useEffect(() => {
+    if (!on) return;
+    rt.sync?.setPresence(`on:${listId}`);
+    const key = `gila-hub:onIt:${listId}`;
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem(key) ?? 0);
+    } catch {
+      /* storage blocked */
+    }
+    if (partner && partner.shopAlerts !== false && Date.now() - last > 30 * 60_000) {
+      try {
+        localStorage.setItem(key, String(Date.now()));
+      } catch {
+        /* storage blocked */
+      }
+      void notifyMembers(rt, [partner.id], {
+        title: `${myName(hub)} is on ${name}`,
+        body: 'Need anything? Add it now and it shows up for them.',
+        url: `/l/${listId}`,
+        tag: 'onit',
+      });
+    }
+    return () => rt.sync?.setPresence(null);
+  }, [on, rt, partner, hub, listId, name]);
+}
+
+/** What my partner just added (or brought back, or marked urgent) here: it glows, and while I'm on it, it's said. */
+function usePartnerNews(open: Item[], saying: boolean): Set<string> {
+  const hub = useHub();
+  const { toast } = useOverlays();
   const [flash, setFlash] = useState<Set<string>>(new Set());
   const seen = useRef<{ added: Map<string, number>; urgent: Set<string> } | null>(null);
   const sig = open.map((i) => `${i.id}:${i.addedAt ?? i.createdAt}:${i.urgent ? 1 : 0}`).join();
@@ -479,6 +517,10 @@ function usePartnerNews(open: Item[]): Set<string> {
     const urged = open.filter((i) => i.urgent && !prev.urgent.has(i.id) && prev.added.has(i.id) && i.urgentBy && i.urgentBy !== hub.meId);
     if (!fresh.length && !urged.length) return;
     setFlash(new Set([...fresh, ...urged].map((i) => i.id)));
+    const first = fresh[0] ?? urged[0];
+    const who = hub.member(fresh.length ? (first.addedBy ?? first.createdBy) : first.urgentBy);
+    const more = fresh.length + urged.length - 1;
+    if (saying && who) toast(`${who.name} ${fresh.length ? 'added' : 'marked urgent'} ${first.title}${more > 0 ? ` +${more}` : ''}`);
     const t = setTimeout(() => setFlash(new Set()), DUR.flash);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -503,7 +545,11 @@ export function FolderScreen({ id }: { id: string }) {
   const view = hub.viewOf(list);
   const v = folderView(hub, id, inside, view, prefs.dismissed);
   const filter = useFilter(listKey(id));
-  const flash = usePartnerNews(v.open);
+  // On it: something I put in Ongoing here is still open, and I'm looking at it.
+  const focus = v.open.some((i) => i.ongoingAt && i.ongoingBy === hub.meId);
+  useOnIt(focus, id, list?.name ?? '');
+  const flash = usePartnerNews(v.open, focus);
+  const partnerHere = usePartnerHere();
   const label = `Add to ${list?.name ?? 'folder'}`;
   const openNew = () => openSheet((close) => <QuickAddSheet onClose={close} listId={id} route={inside} />);
   useAddAction(openNew, label);
@@ -540,6 +586,8 @@ export function FolderScreen({ id }: { id: string }) {
     toast(`Cleared ${k}`, { undo });
   };
 
+  const shopper = partnerHere && partnerHere.listId === id ? hub.member(partnerHere.member) : undefined;
+
   const again = (name: string) => {
     const res = hub.add(inside ? hub.placeFor(name, id) : id, { title: name });
     markFresh(res.id);
@@ -554,7 +602,7 @@ export function FolderScreen({ id }: { id: string }) {
         mini={list.name}
         crumbs={<PathCrumbs steps={folderPath(hub, id)} />}
       >
-        <FolderHero list={list} sub={n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length ? 'All done' : 'Empty'} />
+        <FolderHero list={list} sub={`${focus ? 'On it now · ' : ''}${n ? `${n} open` : v.stocked.length ? `${v.stocked.length} in stock` : done.length ? 'All done' : 'Empty'}`} />
       </Band>
       <div className="column">
         {/* Its folders first, then its tasks */}
@@ -565,6 +613,15 @@ export function FolderScreen({ id }: { id: string }) {
           </Lens>
         ) : !done.length && !v.stocked.length && !hub.subLists(id).length ? (
           <p className="hint">Nothing here yet. The + adds the first thing.</p>
+        ) : null}
+
+        {shopper && !focus ? (
+          <div className="notice">
+            <Avatar member={shopper} size="sm" />
+            <span className="notice__text">
+              <strong>{shopper.name} is on it now.</strong> What you add shows up for them.
+            </span>
+          </div>
         ) : null}
 
         {!filter.active && v.again.length ? (

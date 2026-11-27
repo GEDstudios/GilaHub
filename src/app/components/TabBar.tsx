@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { useBarEdit, withGap } from '../barEdit';
-import { useHub } from '../context';
+import { useHub, usePartnerHere } from '../context';
 import { navigate, useRoute } from '../router';
 import { activeTabKey, barDensity, pinsOf, setPins, tabsOf, type TabDef } from '../tabs';
 import { replay } from '../ui/flip';
@@ -11,7 +11,7 @@ import { useOnce } from '../ui/useOnce';
 import { BarEdit, useFresh } from './BarEdit';
 import { markEdges, TabBarView, TabMark } from './TabBarView';
 import { calm, CLICK_SWALLOW_MS } from '../ui/tokens';
-import { listIdOf } from '../../core/keys';
+import { listKey, listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
 
 /** One finger on the bar: waiting for the hold, then scrubbing (`live`). */
@@ -273,6 +273,7 @@ function findFolder(t: TabDef) {
 export function TabBar() {
   const route = useRoute();
   const hub = useHub();
+  const here = usePartnerHere();
   const { arranging, aim } = useBarEdit();
   const all = tabsOf(hub);
   const { tabs, gap } = withGap(all, aim);
@@ -358,6 +359,7 @@ export function TabBar() {
       gap={gap}
       slotClass={(k) => (k === fresh ? 'is-new' : undefined)}
       // My partner is on a folder now: its tab (or the pinned one it's inside) glows.
+      live={here?.listId ? new Set([listKey(here.listId), ...hub.listPath(here.listId).map((l) => listKey(l.id))]) : undefined}
       navRef={navRef}
       scrollRef={scrollRef}
       onTab={(t, e) => {

@@ -233,8 +233,15 @@ try {
     const tomato = (p) => p.locator('li.row', { has: p.locator('.row__title', { hasText: 'עגבניות' }) }).first();
     // Nothing swiped in yet: milk was ticked off plainly, so no card.
     if (await hila.locator('.ongoing').count()) throw new Error('an Ongoing card before anything went in');
+    // Being on it tells her person: a push goes out, and his Today says where she is.
+    const pushed = hila.waitForRequest((r) => /\/api\/h\/[^/]+\/notify$/.test(r.url()), { timeout: 8000 });
     await swipeRow(hila, hilaCtx, tomato(hila), 150);
     await hila.locator('.ongoing li.row', { hasText: 'עגבניות' }).waitFor({ timeout: 3000 });
+    await pushed;
+    await hila.getByText(/On it now/).first().waitFor({ timeout: 3000 });
+    await guy.goto(url);
+    await guy.locator('.notice', { hasText: /Hila is on Shopping now/ }).waitFor({ timeout: 10000 });
+    await shot(guy, '07d-today-partner-on-it');
     // In the card, not also in the list under it.
     const n = await hila.locator('.row__title', { hasText: 'עגבניות' }).count();
     if (n !== 1) throw new Error(`expected the tomatoes once, found ${n}`);
@@ -243,6 +250,9 @@ try {
     await hila.locator('.ongoing .donechip', { hasText: 'עגבניות' }).waitFor({ timeout: 3000 });
     await guy.goto(`${url}/shop`);
     await waitFor(async () => (await guy.locator('li.row:not(.is-done)', { hasText: 'עגבניות' }).count()) === 0, 15000, 'tomatoes done on guy');
+    // Nothing of hers is open in Ongoing any more: she's no longer "on it".
+    await guy.goto(url);
+    await waitFor(async () => (await guy.locator('.notice', { hasText: /Hila is on/ }).count()) === 0, 10000, 'the on-it notice to go');
     // Clear files it away; the card goes.
     await hila.locator('.ongoing').getByRole('button', { name: 'Clear', exact: true }).click();
     await hila.locator('.ongoing').waitFor({ state: 'detached', timeout: 3000 });

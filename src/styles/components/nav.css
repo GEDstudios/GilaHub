@@ -112,6 +112,12 @@
   font-weight: 600;
 }
 
+.tab__live {
+  position: absolute;
+  top: -1px;
+  right: -6px;
+}
+
 /* The pill under the active tab (or the tab under the finger), sliding between slots */
 .tabbar__pill {
   position: absolute;

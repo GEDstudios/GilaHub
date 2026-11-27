@@ -133,6 +133,12 @@
   }
 }
 
+.mecard__tag .live {
+  width: 7px;
+  height: 7px;
+  flex-basis: 7px;
+}
+
 .mecard__tag--empty {
   gap: 6px;
   background: var(--card);

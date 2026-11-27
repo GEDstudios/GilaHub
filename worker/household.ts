@@ -11,6 +11,8 @@ interface Attachment {
   dev: string;
   member: string;
   ready: boolean;
+  presence: string | null;
+  presenceAt: number;
 }
 
 const PAGE = 250;
@@ -102,7 +104,7 @@ export class Household extends DurableObject<Env> {
       const pair = new WebSocketPair();
       const [client, server] = [pair[0], pair[1]];
       this.ctx.acceptWebSocket(server);
-      server.serializeAttachment({ dev: '', member: '', ready: false } satisfies Attachment);
+      server.serializeAttachment({ dev: '', member: '', ready: false, presence: null, presenceAt: 0 } satisfies Attachment);
       return new Response(null, { status: 101, webSocket: client, headers: { 'Sec-WebSocket-Protocol': 'gila' } });
     }
 
@@ -215,6 +217,20 @@ export class Household extends DurableObject<Env> {
     this.send(ws, { type: 'ops', ops: rows, cursor: next, more });
   }
 
+  private presenceList() {
+    return this.ctx
+      .getWebSockets()
+      .filter((s) => s.readyState === 1)
+      .map((s) => this.att(s))
+      .filter((a) => a.dev)
+      .map((a) => ({ dev: a.dev, member: a.member, state: a.presence, at: a.presenceAt }));
+  }
+
+  private broadcastPresence(): void {
+    const list = this.presenceList();
+    for (const s of this.ctx.getWebSockets()) this.send(s, { type: 'presence', list });
+  }
+
   async webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer): Promise<void> {
     if (typeof raw !== 'string' || raw.length > 2_000_000) return;
     let msg: { type: string; [k: string]: unknown };
@@ -231,6 +247,7 @@ export class Household extends DurableObject<Env> {
         const member = String(msg.member ?? '').slice(0, 64);
         ws.serializeAttachment({ ...a, dev, member, ready: false });
         this.page(ws, Number(msg.cursor) || 0);
+        this.broadcastPresence();
         break;
       }
       case 'pull':
@@ -269,6 +286,12 @@ export class Household extends DurableObject<Env> {
         }
         break;
       }
+      case 'presence': {
+        const state = typeof msg.state === 'string' ? msg.state.slice(0, 32) : null;
+        ws.serializeAttachment({ ...a, presence: state, presenceAt: Date.now() });
+        this.broadcastPresence();
+        break;
+      }
       case 'ping':
         this.send(ws, { type: 'pong' });
         break;
@@ -281,6 +304,7 @@ export class Household extends DurableObject<Env> {
     } catch {
       /* already closed */
     }
+    this.broadcastPresence();
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {

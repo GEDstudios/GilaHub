@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import type { Hub } from '../core/hub';
-import type { SyncStatus } from '../core/sync';
+import type { Presence, SyncStatus } from '../core/sync';
 import type { Runtime } from './runtime';
 
 const RtCtx = createContext<Runtime | null>(null);
@@ -22,7 +22,7 @@ export function useHub(): Hub {
   return rt.hub;
 }
 
-export function useSync(): { status: SyncStatus; relay: boolean; lastSyncedAt: number } {
+export function useSync(): { status: SyncStatus; others: Presence[]; relay: boolean; lastSyncedAt: number } {
   const rt = useRt();
   const [, force] = useState(0);
   useEffect(() => {
@@ -37,7 +37,21 @@ export function useSync(): { status: SyncStatus; relay: boolean; lastSyncedAt: n
   const s = rt.sync;
   return {
     status: s ? s.status : 'local',
+    others: s ? s.others() : [],
     relay: rt.relay,
     lastSyncedAt: s?.lastSyncedAt ?? 0,
   };
+}
+
+/**
+ * Is my partner on a folder right now (they pressed Start there)? Which one. An older app says
+ * "shopping": that's Shopping.
+ */
+export function usePartnerHere(): { member: string; listId: string | null } | null {
+  const { others } = useSync();
+  const rt = useRt();
+  const hub = useHub();
+  const p = others.find((o) => (o.state === 'shopping' || o.state?.startsWith('on:')) && o.member !== rt.session.memberId);
+  if (!p) return null;
+  return { member: p.member, listId: p.state === 'shopping' ? (hub.shopRoot()?.id ?? null) : p.state!.slice(3) };
 }

@@ -39,6 +39,7 @@ export function TabBarView({
   out = null,
   slotClass,
   renderTab,
+  live,
   navRef,
   scrollRef,
   onTab,
@@ -60,6 +61,8 @@ export function TabBarView({
   /** Extra classes per tab (one popping in). */
   slotClass?: (key: string) => string | undefined;
   renderTab?: (t: TabDef, parts: { className: string; inner: ReactNode }) => ReactElement;
+  /** Tabs that carry a live dot (my partner is shopping). */
+  live?: ReadonlySet<string>;
   navRef?: Ref<HTMLElement>;
   scrollRef?: Ref<HTMLDivElement>;
   onTab?: (t: TabDef, e: MouseEvent<HTMLElement>) => void;
@@ -86,6 +89,7 @@ export function TabBarView({
     <>
       <span className="tab__mark">
         <TabMark t={t} />
+        {live?.has(t.key) ? <span className="tab__live live" /> : null}
       </span>
       <span className="tab__label" dir="auto">
         {t.label}

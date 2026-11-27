@@ -1,7 +1,8 @@
+import { NotesElsewhere } from './Notes';
 import { useState } from 'react';
 import type { Item } from '../../core/model';
 import { byOrder } from '../../core/order';
-import { useHub } from '../context';
+import { useHub, usePartnerHere } from '../context';
 import { setPrefs } from '../prefs';
 import { usePrefs } from '../usePrefs';
 import { navigate } from '../router';
@@ -22,6 +23,31 @@ import { G } from '../ui/glyphs';
  * these in my order (home.ts). A block with nothing to show draws nothing at all, header
  * included; Today and pinned folders keep their add row.
  */
+
+/** Live notices under the summary: the partner is in the store. */
+export function HomeNotices() {
+  const hub = useHub();
+  const here = usePartnerHere();
+  const shopper = here ? hub.member(here.member) : undefined;
+  const on = here?.listId ? hub.list(here.listId) : undefined;
+  return (
+    <>
+      <NotesElsewhere />
+      {shopper && on ? (
+        <button type="button" className="notice" onClick={() => navigate({ name: 'list', id: on.id })}>
+          <Avatar member={shopper} size="sm" />
+          <span className="notice__text">
+            <strong>
+              {shopper.name} is on {on.name} now.
+            </strong>{' '}
+            Need anything?
+          </span>
+          <Icon name={G.go} />
+        </button>
+      ) : null}
+    </>
+  );
+}
 
 // ---------------------------------------------------------------- my quick view
 
