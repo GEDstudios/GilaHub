@@ -98,7 +98,7 @@ span.aislearr__name {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 2px 8px;
+  margin: 0 2px 10px;
   font-size: var(--type-label);
   font-weight: 500;
   color: var(--text-2);

@@ -162,7 +162,7 @@
 }
 
 .collected {
-  margin-top: 32px;
+  margin-top: var(--space-5);
 }
 
 .pinboard.is-empty {

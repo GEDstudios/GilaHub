@@ -8,7 +8,7 @@
 .lens {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-1);
   margin: 0 -16px var(--space-2);
   padding: 0 16px;
 }
