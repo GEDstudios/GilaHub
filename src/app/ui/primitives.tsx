@@ -129,6 +129,32 @@ export function IconButton({
 }
 
 /**
+ * A small round glyph beside a thing in a row: × clears a field, takes a row out or stops a count;
+ * › opens it. Quiet until touched; `filled` is the gray disc that sits on a card.
+ */
+export function GlyphButton({
+  icon,
+  label,
+  onClick,
+  filled,
+  disabled,
+  className,
+}: {
+  icon: IconName;
+  label: string;
+  onClick: () => void;
+  filled?: boolean;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button type="button" className={`glyphbtn${filled ? ' glyphbtn--filled' : ''}${className ? ` ${className}` : ''}`} aria-label={label} title={label} disabled={disabled} onClick={onClick}>
+      <Icon name={icon} />
+    </button>
+  );
+}
+
+/**
  * Type to find, inside a sheet or panel: the one search field (a place, a tag, an icon). A × clears
  * it once there's something in it. Enter runs `onEnter` (e.g. make the tag).
  */
@@ -152,9 +178,7 @@ export function FindField({ value, onChange, placeholder, onEnter, enterKeyHint 
         autoComplete="off"
       />
       {value ? (
-        <button type="button" className="findfield__clear" aria-label="Clear" onClick={() => onChange('')}>
-          <Icon name={G.close} className="icon--xs" />
-        </button>
+        <GlyphButton icon={G.close} label="Clear" onClick={() => onChange('')} />
       ) : null}
     </label>
   );
@@ -162,8 +186,7 @@ export function FindField({ value, onChange, placeholder, onEnter, enterKeyHint 
 
 /**
  * − n +: one stepper for every count (a repeat's "every", stock levels, urgent-at). `nullable`:
- * below its lowest it's off ("off"), and + from off starts at the lowest. `size` sm is the 30px
- * one that sits in a chip or a row; `look` card sits on a tile (white, a hairline).
+ * below its lowest it's off ("off"), and + from off starts at the lowest.
  */
 export function Stepper({
   value,
@@ -172,11 +195,8 @@ export function Stepper({
   min = 0,
   max,
   nullable,
-  size = 'md',
-  look = 'tile',
   tone,
   format,
-  className,
 }: {
   value: number | null;
   onChange: (v: number | null) => void;
@@ -185,16 +205,13 @@ export function Stepper({
   min?: number;
   max?: number;
   nullable?: boolean;
-  size?: 'sm' | 'md';
-  look?: 'tile' | 'card' | 'bare';
   tone?: 'low' | 'out' | '';
   format?: (v: number | null) => ReactNode;
-  className?: string;
 }) {
   const off = value == null;
   const n = value ?? min;
   return (
-    <span className={`stepper stepper--${size} stepper--${look}${tone ? ` is-${tone}` : ''}${off ? ' is-off' : ''}${className ? ` ${className}` : ''}`} onClick={(e) => e.stopPropagation()}>
+    <span className={`stepper${tone ? ` is-${tone}` : ''}${off ? ' is-off' : ''}`} onClick={(e) => e.stopPropagation()}>
       <button type="button" aria-label={`${label}: one less`} disabled={off || (!nullable && n <= min)} onClick={() => onChange(nullable && n <= min ? null : n - 1)}>
         <Icon name={G.less} />
       </button>

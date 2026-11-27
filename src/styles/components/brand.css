@@ -52,8 +52,7 @@ div[dir='auto'] {
 .hero__titleinput:focus-visible,
 .notes:focus-visible,
 .bigfield:focus-visible,
-.option--input input:focus-visible,
-.stepper input:focus-visible {
+.option--input input:focus-visible {
   outline: none;
 }
 

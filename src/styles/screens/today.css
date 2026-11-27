@@ -37,20 +37,9 @@
 }
 
 .quietline__end {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  --s: 17;
   margin-inline-start: auto;
   color: var(--text-3);
-}
-
-.quietline__end .icon {
-  --s: 17;
-  transition: transform var(--dur-base) var(--ease);
-}
-
-.quietline[aria-expanded='true'] .quietline__end .icon {
-  transform: rotate(180deg);
 }
 
 .quietline__rows {
@@ -259,22 +248,7 @@
 }
 
 .invite__x {
-  width: 36px;
-  height: 44px;
-  margin-right: 6px;
-  flex: 0 0 36px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  color: var(--text-3);
-}
-
-.invite__x .icon {
-  --s: 16;
-}
-
-.invite__x:active {
-  transform: scale(var(--press-disc));
+  margin-right: 8px;
 }
 
 .invite__people {

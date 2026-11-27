@@ -38,6 +38,16 @@
   --s: 15;
 }
 
+/* The arrow on what opens in place: down while closed, up while open. Its button says which. */
+.chev {
+  flex: none;
+  transition: transform var(--dur-base) var(--ease);
+}
+
+[aria-expanded='true'] .chev {
+  transform: rotate(180deg);
+}
+
 /* LIT: the one thing that is on, in my color, slipped off-register */
 .is-lit,
 .tab.is-on,

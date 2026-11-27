@@ -281,8 +281,8 @@ function Row({
           {on ? <Icon name={G.done} className="place__on" /> : null}
         </button>
         {expandable ? (
-          <button type="button" className={`place__open ${expanded ? 'is-open' : ''}`} aria-label={expanded ? 'Fold' : 'Unfold'} aria-expanded={expanded} onClick={onExpand}>
-            <Icon name={G.fold} className="icon--sm" />
+          <button type="button" className="place__open" aria-label={expanded ? 'Fold' : 'Unfold'} aria-expanded={expanded} onClick={onExpand}>
+            <Icon name={G.fold} className="chev icon--sm" />
           </button>
         ) : null}
       </div>

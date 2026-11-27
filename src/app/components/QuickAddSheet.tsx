@@ -12,7 +12,7 @@ import { folderView } from '../views';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
 import { useBackGuard } from '../ui/backGuard';
-import { lineVars, Button } from '../ui/primitives';
+import { lineVars, Button, GlyphButton } from '../ui/primitives';
 import { UrgentTag } from './RowTags';
 import { EChip } from './chips';
 import { InlineEditor, useSummary } from './InlineEditor';
@@ -424,19 +424,8 @@ function Composer({
                     onBlur={() => !t.trim() && editSteps(steps.filter((_, j) => j !== i))}
                     aria-label={`Subtask ${i + 1}`}
                   />
-                  <button type="button" className="composer__stepx" aria-label={`Open ${t}`} disabled={!title} onClick={() => openSub(i)}>
-                    <Icon name={G.go} className="icon--sm" />
-                  </button>
-                  <button
-                    type="button"
-                    className="composer__stepx"
-                    aria-label={`Remove ${t}`}
-                    onClick={() => {
-                      editSteps(steps.filter((_, j) => j !== i));
-                    }}
-                  >
-                    <Icon name={G.close} className="icon--xs" />
-                  </button>
+                  <GlyphButton icon={G.go} label={`Open ${t}`} disabled={!title} onClick={() => openSub(i)} />
+                  <GlyphButton icon={G.close} label={`Remove ${t}`} onClick={() => editSteps(steps.filter((_, j) => j !== i))} />
                 </li>
               ))}
             </ul>

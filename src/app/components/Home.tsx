@@ -178,9 +178,7 @@ export function TodayList({ v, day, settle, asksHere = false }: { v: TodayView; 
             <span dir="auto">
               {who} asked you for {things(folded.length || quiet.length)}
             </span>
-            <span className="quietline__end">
-              <Icon name={G.fold} />
-            </span>
+            <Icon name={G.fold} className="chev quietline__end" />
           </button>
           {open ? (
             <ul className="rows quietline__rows">
@@ -379,7 +377,7 @@ export function UsTile({ v, settle }: { v: TodayView; settle: Settle<Item> }) {
                     </span>
                   ) : null}
                 </span>
-                <Icon name={G.fold} className="wcard__chev" />
+                <Icon name={G.fold} className="chev wcard__chev" />
               </button>
               {on ? <div className="wcard__more">{c.more}</div> : null}
             </div>

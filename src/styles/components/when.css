@@ -66,13 +66,7 @@
 }
 
 .whenrow__chev {
-  flex: none;
   color: var(--text-3);
-  transition: transform var(--dur-base) var(--ease);
-}
-
-.whenrow.is-open .whenrow__chev {
-  transform: rotate(180deg);
 }
 
 .whenrow__body {
@@ -122,11 +116,6 @@
 .month__today {
   margin-right: 6px;
   font-size: var(--type-label);
-}
-
-.iconbtn--sm {
-  width: 36px;
-  height: 36px;
 }
 
 .month__grid {
@@ -198,20 +187,4 @@
   height: 100%;
   opacity: 0;
   cursor: var(--cur-point, pointer);
-}
-
-.whenrow__clear {
-  flex: none;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--tile);
-  color: var(--text-2);
-  transition: scale var(--dur-quick) var(--ease);
-}
-
-.whenrow__clear:active {
-  scale: var(--press-disc);
 }

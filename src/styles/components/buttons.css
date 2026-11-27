@@ -64,6 +64,52 @@
   transform: scale(var(--press-disc));
 }
 
+/* The 36px one inside a panel (a month's arrows). */
+.iconbtn--sm {
+  width: 36px;
+  height: 36px;
+}
+
+/* A small round glyph beside a thing in a row (× clears or removes it, › opens it): quiet until
+   touched. Filled, it's the gray disc that sits on a card. */
+.glyphbtn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--text-3);
+  transition:
+    background var(--dur-quick) var(--ease),
+    color var(--dur-quick) var(--ease),
+    scale var(--dur-quick) var(--ease);
+}
+
+.glyphbtn .icon {
+  --s: 15;
+}
+
+.glyphbtn--filled {
+  background: var(--tile);
+  color: var(--text-2);
+}
+
+@media (hover: hover) {
+  .glyphbtn:hover {
+    background: var(--tile);
+    color: var(--text);
+  }
+
+  .glyphbtn--filled:hover {
+    background: var(--tile-2);
+  }
+}
+
+.glyphbtn:active {
+  scale: var(--press-disc);
+}
+
 .textbtn {
   display: inline-flex;
   align-items: center;

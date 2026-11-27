@@ -67,20 +67,6 @@
   color: var(--text);
 }
 
-.searchlayer__clear {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--text-3);
-  transition: scale var(--dur-quick) var(--ease);
-}
-
-.searchlayer__clear:active {
-  scale: var(--press-disc);
-}
-
 .searchlayer__close {
   flex: 0 0 auto;
   min-height: 44px;

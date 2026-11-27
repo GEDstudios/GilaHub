@@ -288,13 +288,7 @@
 
 .wcard__chev {
   --s: 18;
-  flex: none;
   opacity: 0.55;
-  transition: transform var(--dur-move) var(--spring);
-}
-
-.wcard.is-open .wcard__chev {
-  transform: rotate(180deg);
 }
 
 .wcard__more {

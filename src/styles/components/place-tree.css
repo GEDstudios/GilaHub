@@ -36,20 +36,6 @@
   outline: none;
 }
 
-.findfield__clear {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--text-3);
-  transition: scale var(--dur-quick) var(--ease);
-}
-
-.findfield__clear:active {
-  scale: var(--press-disc);
-}
-
 .place,
 .place__kids {
   margin: 0;
@@ -158,15 +144,11 @@
   place-items: center;
   border-radius: 50%;
   color: var(--text-3);
-  transition: transform var(--dur-base) var(--spring), scale var(--dur-quick) var(--ease);
+  transition: scale var(--dur-quick) var(--ease);
 }
 
 .place__open:active {
   scale: var(--press-disc);
-}
-
-.place__open.is-open {
-  transform: rotate(180deg);
 }
 
 .place__none {

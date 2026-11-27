@@ -3,7 +3,7 @@ import type { Tag } from '../../core/model';
 import { fold } from '../../smart/normalize';
 import { useHub } from '../context';
 import { haptic } from '../ui/haptics';
-import { FindField, TextButton, Button } from '../ui/primitives';
+import { FindField, TextButton, Button, GlyphButton } from '../ui/primitives';
 import { Icon, type IconName } from '../ui/Icon';
 import { GLYPHS } from '../ui/icons.gen';
 import { Sheet, useOverlays } from '../ui/overlays';
@@ -259,9 +259,7 @@ function TagRow({ id, n, onRemove }: { id: string; n: number; onRemove: () => vo
         aria-label={`Rename ${tag.name}`}
       />
       {n ? <span className="aislearr__n num">{n}</span> : null}
-      <button type="button" className="homecard__x" aria-label={`Remove ${tag.name}`} onClick={onRemove}>
-        <Icon name={G.close} className="icon--sm" />
-      </button>
+      <GlyphButton icon={G.close} filled label={`Remove ${tag.name}`} onClick={onRemove} />
       <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="homecard__grip" aria-label={`Move ${tag.name}`}>
         <Icon name={G.grip} />
       </button>

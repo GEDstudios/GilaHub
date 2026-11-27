@@ -207,26 +207,10 @@
   color: var(--text-3);
 }
 
+/* At the end of its line, without making the line taller */
 .stockfoot__stop {
+  margin-block: -1px;
   margin-inline-start: auto;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--text-3);
-  transition: scale var(--dur-quick) var(--ease);
-}
-
-.stockfoot__stop:active {
-  scale: var(--press-disc);
-}
-
-@media (hover: hover) {
-  .stockfoot__stop:hover {
-    background: var(--tile);
-    color: var(--text);
-  }
 }
 
 /* ============================================================ The count, where a tick would be

@@ -416,7 +416,7 @@
   scroll-snap-align: center;
 }
 
-.tabslot > .editx--badge {
+.tabslot > .editx {
   position: absolute;
   z-index: 2;
   top: calc(50% - 30px);

@@ -22,7 +22,7 @@ import { useHub, usePartnerHere, useRt } from '../context';
 import { back, navigate } from '../router';
 import { AutoTitle } from '../ui/AutoTitle';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton } from '../ui/primitives';
+import { Avatar, Band, Disclosure, Empty, IconButton, lineVars, StarButton, Switch, DropChip, TextButton, GlyphButton } from '../ui/primitives';
 import { Icon } from '../ui/Icon';
 import { getPrefs, setPrefs, use24h } from '../prefs';
 import { usePrefs } from '../usePrefs';
@@ -140,9 +140,7 @@ function TemplateDayPanel({ listId }: { listId: string }) {
         <span>Time</span>
         <TimeField value={t.dueTime ?? null} onChange={(v) => hub.setListTemplate(listId, { dueTime: v })} />
         {t.dueTime ? (
-          <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => hub.setListTemplate(listId, { dueTime: null })}>
-            <Icon name={G.close} className="icon--xs" />
-          </button>
+          <GlyphButton icon={G.close} filled label="Any time" onClick={() => hub.setListTemplate(listId, { dueTime: null })} />
         ) : null}
       </label>
     </>

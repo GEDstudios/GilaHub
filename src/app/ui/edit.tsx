@@ -10,12 +10,12 @@ import { Button } from './primitives';
  */
 
 /**
- * × on an object: take it out, or hide it. `badge` overlaps the shoulder of a small object (a
- * bar tab); `head` ends a card's head (a Today card). It never starts a drag (Sortable NO_DRAG).
+ * × on the shoulder of a small object being arranged (a bar tab): take it out. It never starts a
+ * drag (Sortable NO_DRAG).
  */
-export function EditX({ size, label, onClick, className }: { size: 'badge' | 'head'; label: string; onClick: () => void; className?: string }) {
+export function EditX({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button type="button" className={`editx editx--${size}${className ? ` ${className}` : ''}`} aria-label={label} title={label} onClick={onClick}>
+    <button type="button" className="editx" aria-label={label} title={label} onClick={onClick}>
       <Icon name={G.close} />
     </button>
   );

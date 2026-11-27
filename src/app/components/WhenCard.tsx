@@ -8,7 +8,7 @@ import { use24h, weekStart } from '../prefs';
 import { usePrefs } from '../usePrefs';
 import { withNotification } from '../compose';
 import { Icon, type IconName } from '../ui/Icon';
-import { IconButton, Switch, TextButton } from '../ui/primitives';
+import { IconButton, Switch, TextButton, GlyphButton } from '../ui/primitives';
 import { G } from '../ui/glyphs';
 import { useMouse } from '../ui/pointer';
 import { Options } from './chips';
@@ -82,9 +82,7 @@ export function WhenCard({
                 <input type="time" className="whenrow__native" value={value.dueTime ?? ''} onChange={(e) => setTime(e.target.value || null)} aria-label="Time" />
               </label>
               {value.dueTime ? (
-                <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
-                  <Icon name={G.close} className="icon--xs" />
-                </button>
+                <GlyphButton icon={G.close} filled label="Any time" onClick={() => setTime(null)} />
               ) : null}
             </div>
           </div>
@@ -114,9 +112,7 @@ export function WhenCard({
                 </button>
               )}
               {value.dueTime && !timeEdit ? (
-                <button type="button" className="whenrow__clear" aria-label="Any time" onClick={() => setTime(null)}>
-                  <Icon name={G.close} className="icon--xs" />
-                </button>
+                <GlyphButton icon={G.close} filled label="Any time" onClick={() => setTime(null)} />
               ) : null}
             </div>
           </div>
@@ -236,7 +232,7 @@ function WhenRow({
           <span className="whenrow__value" dir="auto">
             {value}
           </span>
-          {trail ? null : <Icon name={G.fold} className="whenrow__chev icon--xs" />}
+          {trail ? null : <Icon name={G.fold} className="chev whenrow__chev icon--xs" />}
         </button>
         {trail}
       </div>

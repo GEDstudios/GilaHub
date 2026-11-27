@@ -12,7 +12,7 @@ import { Sortable, useSortableItem } from '../ui/Sortable';
 import { todayView } from '../views';
 import { listKey, listIdOf } from '../../core/keys';
 import { G } from '../ui/glyphs';
-import { TextButton } from '../ui/primitives';
+import { TextButton, GlyphButton } from '../ui/primitives';
 
 /**
  * Edit Today, on Today itself: every block shows as itself (a short, still peek of what it
@@ -128,9 +128,7 @@ function HomeCard({ k, peek, sub, onHide }: { k: string; peek: ReactNode; sub: s
   return (
     <section ref={s.ref} style={s.style as CSSProperties} className={`homecard ${s.className}`} {...s.props} data-grip="card">
       <CardHead k={k} title={title}>
-        <button type="button" className="homecard__x" aria-label={`Hide ${title}`} onClick={onHide}>
-          <Icon name={G.close} className="icon--sm" />
-        </button>
+        <GlyphButton icon={G.close} filled label={`Hide ${title}`} onClick={onHide} />
         <button type="button" data-grip ref={s.gripRef} {...s.gripProps} className="homecard__grip" aria-label={`Move ${title}`}>
           <Icon name={G.grip} />
         </button>

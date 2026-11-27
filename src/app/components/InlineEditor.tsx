@@ -356,8 +356,8 @@ export function InlineEditor({
     chips.push(...extraChips);
     if (hiddenChips.length) {
       chips.push(
-        <button key="more" type="button" className={`echip--expand ${moreOpen ? 'is-open' : ''}`} aria-expanded={moreOpen} aria-label={moreOpen ? 'Fewer' : 'More'} title={moreOpen ? 'Fewer' : 'More'} onClick={() => setMoreOpen(!moreOpen)}>
-          <Icon name={G.fold} />
+        <button key="more" type="button" className="echip--expand" aria-expanded={moreOpen} aria-label={moreOpen ? 'Fewer' : 'More'} title={moreOpen ? 'Fewer' : 'More'} onClick={() => setMoreOpen(!moreOpen)}>
+          <Icon name={G.fold} className="chev" />
         </button>,
       );
       if (moreOpen) chips.push(...hiddenChips);

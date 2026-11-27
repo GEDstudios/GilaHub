@@ -253,7 +253,7 @@ export const ItemRow = memo(function ItemRow({
                 >
                   <Icon name={G.subtask} />
                   {steps.done}/{steps.total}
-                  <Icon name={G.fold} className="meta__chev" />
+                  <Icon name={G.fold} className="chev meta__chev" />
                 </button>
               )
             ) : null}

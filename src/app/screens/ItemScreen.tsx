@@ -25,7 +25,7 @@ import { usePrefs } from '../usePrefs';
 import { allowedVis, itemVisChoice, setItemVis } from '../privacy';
 import { Icon } from '../ui/Icon';
 import { Sheet, useOverlays } from '../ui/overlays';
-import { Avatar, Band, Check, Choices, Empty, IconButton, lineVars, ListBullet, Section, StarButton, Stepper, ThanksButton, TextButton, Button } from '../ui/primitives';
+import { Avatar, Band, Check, Choices, Empty, IconButton, lineVars, ListBullet, Section, StarButton, Stepper, ThanksButton, TextButton, Button, GlyphButton } from '../ui/primitives';
 import { RequestActions } from '../components/RowTags';
 import { AutoTitle } from '../ui/AutoTitle';
 import type { Draft } from '../draft';
@@ -191,9 +191,7 @@ function StockPanel({ id }: { id: string }) {
           <Icon name={G.stock} className="icon--xs" />
           {isStocked(item) ? `In stock, in ${folder}` : `Time to buy: one of the tasks in ${folder}`}
         </span>
-        <button type="button" className="stockfoot__stop" onClick={() => set({ stock: null })} aria-label="Stop counting" title="Stop counting">
-          <Icon name={G.close} className="icon--xs" />
-        </button>
+        <GlyphButton icon={G.close} className="stockfoot__stop" label="Stop counting" onClick={() => set({ stock: null })} />
       </div>
     </>
   );

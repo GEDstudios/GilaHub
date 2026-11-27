@@ -10,7 +10,7 @@ import { highlights } from '../highlights';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
 import { FolderMark } from '../ui/FolderMark';
-import { Avatar, Section } from '../ui/primitives';
+import { Avatar, Section, GlyphButton } from '../ui/primitives';
 import type { Settle } from '../ui/useSettle';
 import { ItemRow } from './ItemRow';
 import { PairSheet } from './PairSheet';
@@ -137,18 +137,15 @@ export function InviteCard() {
         </span>
         <Icon name={G.go} />
       </button>
-      <button
-        type="button"
+      <GlyphButton
+        icon={G.close}
         className="invite__x"
-        aria-label="Not now"
-        title="Not now"
+        label="Not now"
         onClick={() => {
           setPrefs({ inviteHiddenUntil: Date.now() + TWO_WEEKS });
           toast('Okay. It’s in Settings when you’re ready.');
         }}
-      >
-        <Icon name={G.close} />
-      </button>
+      />
     </div>
   );
 }

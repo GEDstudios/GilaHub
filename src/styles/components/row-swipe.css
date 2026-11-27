@@ -40,11 +40,6 @@
 
 .meta--fold .meta__chev {
   --s: 13;
-  transition: transform var(--dur-base) var(--ease);
-}
-
-.meta--fold.is-open .meta__chev {
-  transform: rotate(180deg);
 }
 
 .row--unfolded {

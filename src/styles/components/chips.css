@@ -161,11 +161,6 @@
 
 .echip--expand .icon {
   --s: 18;
-  transition: transform var(--dur-base) var(--ease);
-}
-
-.echip--expand.is-open .icon {
-  transform: rotate(180deg);
 }
 
 @media (hover: hover) {
@@ -445,30 +440,6 @@
   white-space: nowrap;
 }
 
-/* The small one, in a chip or a row */
-.stepper--sm {
-  height: 30px;
-  font-size: var(--type-label);
-}
-
-.stepper--sm button {
-  width: 28px;
-}
-
-.stepper--sm button .icon {
-  --s: 14;
-}
-
-/* On a tile already: white, a hairline */
-.stepper--card {
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.stepper--bare {
-  background: none;
-}
-
 .stepper.is-low .stepper__n {
   color: #9a6a00;
 }
@@ -480,16 +451,6 @@
 .stepper.is-off .stepper__n {
   font-weight: 500;
   color: var(--text-3);
-}
-
-.stepper input {
-  width: 52px;
-  height: 34px;
-  border: 0;
-  background: transparent;
-  text-align: center;
-  font-size: var(--type-body);
-  font-weight: 600;
 }
 
 .weekdays {

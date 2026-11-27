@@ -8,7 +8,7 @@ import { Icon } from '../ui/Icon';
 import { lockScroll, useOverlays } from '../ui/overlays';
 import { QuickAddSheet } from './QuickAddSheet';
 import { NewFolderSheet } from './NewFolderSheet';
-import { ListBullet, TextButton } from '../ui/primitives';
+import { ListBullet, TextButton, GlyphButton } from '../ui/primitives';
 import { ItemRow } from './ItemRow';
 import { G } from '../ui/glyphs';
 
@@ -91,9 +91,7 @@ function Layer() {
               autoComplete="off"
             />
             {q ? (
-              <button type="button" className="searchlayer__clear" onClick={() => setQ('')} aria-label="Clear">
-                <Icon name={G.close} className="icon--xs" />
-              </button>
+              <GlyphButton icon={G.close} label="Clear" onClick={() => setQ('')} />
             ) : null}
           </label>
           <TextButton onClick={closeSearch} className="searchlayer__close">

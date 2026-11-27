@@ -8,8 +8,8 @@
 
 | | |
 |---|---|
-| 🛒 **Shopping** | One bar adds and searches. It never creates duplicates, sorts items into a card per aisle automatically (Hebrew and English), keeps urgent things in their own lemon card too, parses quantities like `2 milk` and `1 ק"ג עגבניות`, and suggests what to buy again. Groceries and Home shopping can be shown together or apart. **Shopping mode** keeps the screen awake, and your partner sees "Guy is shopping. Need anything?" |
-| ✨ **Chores** | Two repeat types, in plain words: *every N days after it's done* and *on set days*. Tick a chore any time; it never piles up. Also: Away mode, taking turns, and ♡ thanks instead of scores. |
+| 🛒 **Shopping** | One bar adds and searches. It never creates duplicates, sorts items into a card per aisle automatically (Hebrew and English), keeps urgent things in their own lemon card too, parses quantities like `2 milk` and `1 ק"ג עגבניות`, and suggests what to buy again. Groceries and Home shopping can be shown together or apart. |
+| ✨ **Chores** | Two repeat types, in plain words: *every N days after it's done* and *on set days*. Tick a chore any time; it never piles up. Also: taking turns, and ♡ thanks instead of scores. |
 | 📋 **Folders** | Make as many as you like (or start from templates), one inside another; each gets its own color page. Tasks can hold subtasks, as deep as you need. Drag to reorder. Adding understands `call mom tomorrow 6pm`, `every sun`, `@hila`, `!` and `מחר`. |
 | 🔒 **Privacy** | **Ours · Mine · Only me** on every list *and* every item. "Only me" is encrypted with your personal key, so your partner's phone can't read it. |
 | ⏰ **Reminders** | Notifications go through your own relay, end-to-end encrypted. |

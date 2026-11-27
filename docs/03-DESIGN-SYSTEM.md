@@ -54,6 +54,7 @@ Every recurring piece of UI is one component, and every screen uses it rather th
 | Commit something | `Button` ([`ui/primitives.tsx`](../src/app/ui/primitives.tsx)) | `quiet`, `small`, `block`, `danger`, `icon`. `Choices` stacks a sheet's answers; `DoneButton` leaves an edit mode. |
 | A low-emphasis link | `TextButton` | `icon` before the words, `iconAfter` when it leads somewhere, `danger`. |
 | A round glyph button | `IconButton` | `pressed`, `disabled`, `small`. `StarButton` (keep it on Today) and `ThanksButton` (♡) are the two with a meaning of their own. |
+| A small glyph beside a thing in a row | `GlyphButton` | × clears a field, takes a row out, stops a count; › opens it. 32px, quiet until touched; `filled` is the gray disc on a card. |
 | A property of the thing | `EChip` ([`components/chips.tsx`](../src/app/components/chips.tsx)) | `open`: its panel opens under the row. `pressed`: an on/off chip (Urgent, Pin to bar). `ghost`: a dashed invitation. `Panel` and `Options` are what opens. |
 | The chip row of a task | `InlineEditor` ([`components/InlineEditor.tsx`](../src/app/components/InlineEditor.tsx)) | With `WhenCard`, `RepeatPanel`, `TimeEntry` beside it, one file each. |
 | On/off with a label | `SwitchRow` ([`components/pickers.tsx`](../src/app/components/pickers.tsx)) | The whole row flips the `Switch`. `OptRow` is the quiet row of a group; `ActionSheet` a "…" menu. |
@@ -82,7 +83,7 @@ One job per family (sizes on a phone).
 | `.urgent` `.vtag` `.rtag` | Read-only status in a row | 22 | Urgent, Mine, Hila asked |
 
 - Nothing but the + is a big black circle. Dashed borders mean "not there yet": create or bring in, where a drag came from, a chip that is off.
-- **Folding** has one component, `FoldButton`: a quiet chevron on the right of a heading.
+- **Folding** has one component, `FoldButton`: a quiet chevron on the right of a heading. What opens in place (a card, a row's subtasks, the hidden chips) carries a `.chev` instead: it turns with its button's `aria-expanded`, so nothing else has to say it's open.
 - **"…" menus** hold only rare or destructive things. Whatever deletes goes last and is red.
 - **Same words for the same thing** (`app/labels.ts`): a date and time read "Fri 4 Dec · 17:00" in a row, a chip and a notification, and "Fri 4 Dec at 17:00" in a sentence.
 

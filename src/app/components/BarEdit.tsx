@@ -133,7 +133,7 @@ function MovableTab({
       >
         {inner}
       </span>
-      <EditX size="badge" label={`Take ${t.label} out of the bar`} onClick={onTake} />
+      <EditX label={`Take ${t.label} out of the bar`} onClick={onTake} />
     </span>
   );
 }
