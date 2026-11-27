@@ -355,8 +355,20 @@ export function Section({
 }
 
 /**
- * A Section that folds: title and count on the left, a quiet Show / Hide on the right.
- * Done, In the cart, Paused and Archived all fold this way. `after` shows either way.
+ * The one fold arrow: pointing at the title while folded, down while open. Everything that folds
+ * under a heading folds with it (a Disclosure, a folder's groups).
+ */
+export function FoldButton({ open, label, onToggle }: { open: boolean; label: string; onToggle: () => void }) {
+  return (
+    <button type="button" className={`foldbtn ${open ? 'is-open' : ''}`} aria-expanded={open} aria-label={`${open ? 'Fold' : 'Show'} ${label}`} title={open ? 'Fold' : 'Show'} onClick={onToggle}>
+      <Icon name={G.fold} />
+    </button>
+  );
+}
+
+/**
+ * A Section that folds: title and count on the left, the fold arrow on the right (FoldButton).
+ * Done, In stock and the rest all fold this way. `after` shows either way.
  */
 export function Disclosure({
   title,
@@ -384,11 +396,7 @@ export function Disclosure({
     <Section
       title={title}
       count={count}
-      action={
-        <button type="button" className="textbtn" onClick={toggle} aria-expanded={open}>
-          {open ? 'Hide' : 'Show'}
-        </button>
-      }
+      action={<FoldButton open={open} label={typeof title === 'string' ? title : 'this'} onToggle={toggle} />}
     >
       {open ? children : null}
       {after}

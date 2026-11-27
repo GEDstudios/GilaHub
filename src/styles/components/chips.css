@@ -579,3 +579,27 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* On a narrow phone they draw in a little, so "Task template" and "Show tasks from…" both show
+   whole on one line (an iPhone mini, a small Android). */
+@media (max-width: 400px) {
+  .foldertools .inline__chips {
+    gap: 4px;
+  }
+
+  .foldertools .echip {
+    padding: 0 10px 0 8px;
+  }
+
+  .foldertools .echip--icon {
+    width: 34px;
+    padding: 0;
+  }
+}
+
+@media (max-width: 370px) {
+  .foldertools .echip {
+    gap: 4px;
+    padding: 0 8px 0 6px;
+  }
+}

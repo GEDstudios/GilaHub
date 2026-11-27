@@ -106,14 +106,15 @@
 
 .herophoto {
   position: absolute;
-  inset-inline-end: 20px;
-  bottom: 16px;
+  inset-inline-end: 24px;
+  bottom: 20px;
   width: 40px;
   height: 40px;
   display: grid;
   place-items: center;
+  border: 1.5px solid rgb(10 10 4 / 0.72);
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.4);
+  background: rgb(255 255 255 / 0.45);
   color: var(--ink);
   transition: background 140ms var(--ease), transform 160ms var(--spring);
 }
@@ -286,6 +287,7 @@ button.stockcount:disabled {
   height: 32px;
   padding: 0;
   background: var(--card);
+  color: var(--ink);
   animation: pop 200ms var(--spring) both;
 }
 
@@ -316,24 +318,28 @@ button.stockcount:disabled {
   text-align: center;
 }
 
-/* On the task's card */
+/* On the task's card: the card's tick, exactly (color-card.css): its 40px ring, its glass, its
+   place. Open, − n + stays that height and grows to the left. How low it runs shows in the
+   lists; here the card's own color would clash, so it's always ink. */
 .hero .stockcount {
-  min-width: 48px;
-  height: 48px;
-  margin: -6px -6px 0 0;
+  min-width: 40px;
+  height: 40px;
+  margin: 0;
 }
 
-.hero .stockcount__ring {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 8px;
-  border-color: var(--ink);
+.hero .stockcount__ring,
+.hero .stockcount.is-low .stockcount__ring,
+.hero .stockcount.is-out .stockcount__ring {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border-color: rgb(10 10 4 / 0.72);
   background: rgb(255 255 255 / 0.45);
-  font-size: 16px;
+  color: var(--ink);
+  font-size: 17px;
 }
 
 .hero .stockcount.is-open .stockcount__ring {
-  height: 40px;
   padding: 0 2px;
   background: rgb(255 255 255 / 0.65);
 }
@@ -349,5 +355,11 @@ button.stockcount:disabled {
 
 .hero .stockcount.is-open .stockcount__n {
   min-width: 24px;
-  font-size: 18px;
+  font-size: 17px;
+}
+
+@media (hover: hover) {
+  .hero button.stockcount:hover .stockcount__ring {
+    background: rgb(255 255 255 / 0.65);
+  }
 }

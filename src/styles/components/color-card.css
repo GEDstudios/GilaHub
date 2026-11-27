@@ -192,23 +192,32 @@ textarea.ccard__input {
   letter-spacing: -0.025em;
 }
 
+/* The task card's buttons, its tick, its photo and its count, are one look and one size on one
+   line down the card's right edge (the padding's edge): a 40px ring of ink on white glass.
+   (The photo: stock.css .herophoto; the count: stock.css .hero .stockcount.) */
 .hero .check {
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
-  margin: -6px -6px 0 0;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  margin: 0;
 }
 
 .hero .check::before {
-  width: 34px;
-  height: 34px;
-  border-color: var(--ink);
+  width: 40px;
+  height: 40px;
+  border-color: rgb(10 10 4 / 0.72);
   background: rgb(255 255 255 / 0.45);
 }
 
 .hero .check__tick {
   width: 19px;
   height: 19px;
+}
+
+@media (hover: hover) {
+  .hero .check:hover:not(.is-on)::before {
+    background: rgb(255 255 255 / 0.65);
+  }
 }
 
 .hero .check.is-on::before {

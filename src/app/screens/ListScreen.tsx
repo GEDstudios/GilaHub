@@ -65,7 +65,7 @@ function FolderTools({ list }: { list: List }) {
       extras={[
         // A photo is just its glyph (and how many there are), so the three fit on one line.
         { key: 'photo', label: photoN ? String(photoN) : '', name: photoN ? `Photos: ${photoN}. Add another` : 'Add a photo', icon: G.photo, set: photoN > 0, toggle: () => void addPhoto() },
-        { key: 'tpl', label: 'Template', name: 'How new tasks here start', icon: G.template, set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
+        { key: 'tpl', label: 'Task template', name: 'How new tasks here start', icon: G.template, set: tpl, toggle: () => openSheet((close) => <TemplateSheet listId={listId} onClose={close} />) },
         {
           key: 'shows',
           // Other folders' tasks, shown here too: "Showing tasks from Chores" says which once there are some.

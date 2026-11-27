@@ -5,7 +5,7 @@ import { navigate } from '../router';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { ListBullet } from '../ui/primitives';
+import { FoldButton, ListBullet } from '../ui/primitives';
 import { Sortable, useSortableItem, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import type { ProjectGroup } from '../views';
@@ -280,16 +280,7 @@ export function ProjectItems({
                   g.label
                 )}
                 <span className="num">{g.items.length}</span>
-                <button
-                  type="button"
-                  className={`aisle__fold ${isFolded(g) ? '' : 'is-open'}`}
-                  aria-expanded={!isFolded(g)}
-                  aria-label={`${isFolded(g) ? 'Show' : 'Fold'} ${g.label}`}
-                  title={isFolded(g) ? 'Show its tasks' : 'Fold it'}
-                  onClick={() => flipFold(g)}
-                >
-                  <Icon name={G.fold} />
-                </button>
+                <FoldButton open={!isFolded(g)} label={typeof g.label === 'string' ? g.label : 'this group'} onToggle={() => flipFold(g)} />
               </h2>
             ) : null}
             {isFolded(g) ? null : (

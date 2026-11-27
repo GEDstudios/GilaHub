@@ -199,7 +199,8 @@ section.aisle.is-settling-in > .rows {
 }
 
 /* A group folded to its heading: its tasks are a tap away */
-.aisle__fold {
+/* The one fold arrow (FoldButton): a folder's groups, Done, In stock… */
+.foldbtn {
   flex: none;
   width: 28px;
   height: 28px;
@@ -211,18 +212,18 @@ section.aisle.is-settling-in > .rows {
   transition: background 140ms var(--ease), color 140ms var(--ease);
 }
 
-.aisle__fold .icon {
+.foldbtn .icon {
   --s: 16;
   transform: rotate(-90deg);
   transition: transform 180ms var(--ease);
 }
 
-.aisle__fold.is-open .icon {
+.foldbtn.is-open .icon {
   transform: none;
 }
 
 @media (hover: hover) {
-  .aisle__fold:hover {
+  .foldbtn:hover {
     background: var(--press);
     color: var(--text);
   }
