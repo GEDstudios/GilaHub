@@ -19,8 +19,8 @@
   z-index: var(--z-fab);
   inset: 0;
   background: rgb(250 250 248 / 0.72);
-  backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   animation: fade-in 160ms var(--ease) both;
 }
 

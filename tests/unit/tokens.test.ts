@@ -45,6 +45,14 @@ describe('every stylesheet stays on the scales (tokens.css)', () => {
     expect(off.map((d) => `${d.f}: ${d.prop}: ${d.value}`)).toEqual([]);
   });
 
+  it('a blur is written -webkit- first, then the standard one (the build keeps only the last of a pair, and Chrome reads only the standard)', () => {
+    const off = files(dir).flatMap((f) => {
+      const css = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+      return [...css.matchAll(/\{([^{}]*backdrop-filter[^{}]*)\}/g)].filter((m) => !/-webkit-backdrop-filter:[^;]+;\s*backdrop-filter:[^;]+;/.test(m[1])).map(() => f.slice(dir.length + 1));
+    });
+    expect(off).toEqual([]);
+  });
+
   it('type sizes are whole pixels', () => {
     const off = decls.filter((d) => d.prop === 'font-size' && px(d.value).some((n) => n % 1 !== 0));
     expect(off.map((d) => `${d.f}: ${d.value}`)).toEqual([]);

@@ -53,8 +53,8 @@
   height: calc(var(--safe-top) + 50px);
   padding: var(--safe-top) 64px 0;
   background: rgb(250 250 248 / 0.86);
-  backdrop-filter: saturate(1.6) blur(20px);
   -webkit-backdrop-filter: saturate(1.6) blur(20px);
+  backdrop-filter: saturate(1.6) blur(20px);
   box-shadow: 0 1px 0 var(--line);
   display: flex;
   align-items: center;

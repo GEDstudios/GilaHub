@@ -40,8 +40,8 @@
     z-index: var(--z-bar);
     top: 0;
     background: rgb(255 255 255 / 0.92);
-    backdrop-filter: saturate(1.5) blur(18px);
     -webkit-backdrop-filter: saturate(1.5) blur(18px);
+    backdrop-filter: saturate(1.5) blur(18px);
     box-shadow: 0 1px 0 var(--panel-line);
   }
 

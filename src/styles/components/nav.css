@@ -24,8 +24,8 @@
   padding: 0 6px;
   border-radius: var(--r-bar);
   background: rgb(255 255 255 / 0.9);
-  backdrop-filter: saturate(1.6) blur(20px);
   -webkit-backdrop-filter: saturate(1.6) blur(20px);
+  backdrop-filter: saturate(1.6) blur(20px);
   box-shadow: var(--lift-2), var(--edge-faint);
   /* A held tab is a gesture, not a link to preview or text to select. */
   -webkit-touch-callout: none;
