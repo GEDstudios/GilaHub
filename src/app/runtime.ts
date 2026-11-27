@@ -2,7 +2,7 @@ import { Hub } from '../core/hub';
 import { sealJSON } from '../core/crypto';
 import { IdbPersistence, MemoryPersistence, type Persistence } from '../core/db';
 import type { Scope } from '../core/model';
-import { api, authToken, keyring, readableScopes, relayAvailable, saveSession, type Session } from '../core/session';
+import { api, authToken, isJoining, joined, keyring, readableScopes, relayAvailable, saveSession, type Session } from '../core/session';
 import { Store } from '../core/store';
 import { SyncClient } from '../core/sync';
 import { pinsOf, setPins, MAX_PINS } from './tabs';
@@ -44,6 +44,11 @@ export async function startRuntime(persistence: Persistence, session: Session): 
   /**
    * Once what I already have has arrived (the first sync, or none to wait for): my preferences
    * follow me from here on, and my private To-Do is made if I've never had one, pinned first.
+   *
+   * Both write a first version of something that is mine everywhere, with this device's clock,
+   * so they must never run on a device that has joined (an invite, a recovery code) and doesn't
+   * hold what's there yet: its defaults would win over what I have, on all my devices.
+   * ensureSync decides when; nothing else calls this.
    */
   let settled = false;
   const settle = () => {
@@ -85,10 +90,14 @@ export async function startRuntime(persistence: Persistence, session: Session): 
         return;
       }
       const everSynced = (await persistence.getMeta<boolean>('everSynced')) ?? false;
+      // Just joined, and what's there hasn't all arrived yet (it may take more than one opening).
+      const joining = await isJoining(persistence);
       const available = await relayAvailable(session.apiBase);
       if (!available && !(everSynced && !navigator.onLine)) {
-        // On this device only (no relay): it's all here already.
-        if (!everSynced) settle();
+        // No relay (it's all on this device), or it can't be reached for now: what's mine is
+        // here already, unless this device has only just joined. That one waits (the app asks
+        // again each minute, and when it's back online).
+        if (!joining) settle();
         return;
       }
       rt.relay = true;
@@ -102,12 +111,18 @@ export async function startRuntime(persistence: Persistence, session: Session): 
         keyring: keyring(session),
       });
       rt.sync = sync;
+      // start() only opens the socket: nothing has arrived when it returns.
       await sync.start();
       hub.renameOldDefaults();
       hub.uniformProjects();
       hub.endAwayMode();
       hub.stockInPlace();
-      settle();
+      if (joining) {
+        void sync.whenReady().then(() => {
+          void joined(persistence);
+          settle();
+        });
+      } else settle();
       for (const fn of relayListeners) fn();
       void registerPush(rt);
     },

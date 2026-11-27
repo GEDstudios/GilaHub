@@ -92,6 +92,7 @@ client ↔ {type:"presence", state:"shopping"|null}           // ephemeral
 - The relay only sends a device the scopes it may read (`h` + its member's personal scope).
 - Pages are small (≤ 250 ops) to stay well inside the free plan's 10 ms CPU per invocation.
 - WebSocket Hibernation keeps the Durable Object asleep between messages, so idle connections cost nothing.
+- A device that joins a household that is already there (an invite, a recovery code) is marked `joining` on its own disk until its first backlog is complete (`SyncClient.whenReady`). Until then it writes none of the things a device makes once per person (my preferences record, my private To-Do): written from an empty store with a fresh clock, its defaults would win, field by field, over what that person already has. A household's first device, and a device with no relay, have nothing to wait for.
 
 ## Reminders & push
 

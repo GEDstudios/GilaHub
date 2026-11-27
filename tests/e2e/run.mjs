@@ -841,6 +841,10 @@ try {
 
   // ---------- Recovery
   await check('Recovery: Guy makes a code; a brand-new phone comes back as Guy, private things and all', async () => {
+    // Something of his that isn't a fresh phone's default: Today shows only his.
+    await guy.goto(`${url}/`);
+    await guy.locator('.scopetag').click();
+    await guy.locator('.scopetag.is-mine').waitFor({ timeout: 5000 });
     await guy.goto(`${url}/settings`);
     await guy.locator('.optrow', { hasText: 'Recovery code' }).click();
     await guy.getByRole('button', { name: 'Make my recovery code' }).click();
@@ -862,11 +866,21 @@ try {
       await shot(fresh, '41-recover');
       await fresh.getByRole('button', { name: 'Recover', exact: true }).click();
       await fresh.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor({ timeout: 20000 });
+      // His preferences came too: the new phone takes them, it doesn't start from its own.
+      await fresh.locator('.scopetag.is-mine').waitFor({ timeout: 20000 });
       // His Private task (sealed with his own key) is here: the key came back.
       await fresh.goto(`${url}/lists`);
       await fresh.locator('.projcard__name', { hasText: /^To do$/ }).click();
       await fresh.locator('.row__title', { hasText: 'Ring for Hila' }).waitFor({ timeout: 20000 });
       await shot(fresh, '42-recovered');
+      // …and on the phone he already had, nothing was put back to a new phone's defaults.
+      await guy.goto(`${url}/`);
+      await guy.getByRole('heading', { name: /Guy!/, level: 1 }).waitFor();
+      await waitFor(() => guy.locator('.syncdot--synced').count(), 20000, 'guy synced');
+      await guy.waitForTimeout(1500);
+      if (!(await guy.locator('.scopetag.is-mine').count())) throw new Error('the new phone reset his Today back to Ours');
+      await guy.locator('.scopetag').click();
+      await guy.locator('.scopetag:not(.is-mine)').waitFor({ timeout: 5000 });
       // A wrong code says so.
       const other = await browser.newContext(phone);
       const o = await other.newPage();

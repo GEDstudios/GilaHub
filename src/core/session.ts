@@ -30,7 +30,19 @@ export function newSession(apiBase = ''): Session {
 }
 
 export const loadSession = (p: Persistence) => p.getMeta<Session>('session');
-export const saveSession = (p: Persistence, s: Session) => p.commit({ meta: { session: s } });
+
+/**
+ * `joining`: this device has just come into a household that is already there (an invite, a
+ * recovery code) and holds none of it yet. Saved with the session, and kept until its first
+ * sync is complete (`isJoining`, `joined`); until then it must write nothing of its own.
+ */
+export const saveSession = (p: Persistence, s: Session, joining = false) => p.commit({ meta: { session: s, ...(joining ? { joining: true } : {}) } });
+
+/** Has this device joined a household whose data hasn't all reached it yet? */
+export const isJoining = async (p: Persistence) => (await p.getMeta<boolean>('joining')) === true;
+
+/** Its first sync is complete: everything that was there is here. */
+export const joined = (p: Persistence) => p.commit({ meta: { joining: undefined } });
 
 export function keyring(s: Session): Partial<Record<Scope, string>> {
   return { h: s.householdKey, [`p:${s.memberId}`]: s.personalKey } as Partial<Record<Scope, string>>;

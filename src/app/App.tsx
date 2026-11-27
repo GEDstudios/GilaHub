@@ -495,7 +495,8 @@ function Shell() {
 
 async function completeOnboarding(persistence: Persistence, r: OnboardResult): Promise<Runtime> {
   const session = r.invite ? sessionFromInvite(r.invite) : newSession('');
-  await saveSession(persistence, session);
+  // An invite or a recovery code brings this device into a household that's already there.
+  await saveSession(persistence, session, !!r.invite);
   const rt = await startRuntime(persistence, session);
   if (r.kind === 'new' || r.kind === 'partner') {
     rt.store.batch(() => {

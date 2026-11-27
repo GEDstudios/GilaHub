@@ -38,6 +38,12 @@ export function wsUrl(apiBase: string, path: string): string {
   return u.toString();
 }
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
 /**
  * Keeps the local store and the relay in step:
  *  - streams the encrypted backlog in small pages, then live ops;
@@ -61,6 +67,8 @@ export class SyncClient {
   private sealing = false;
   /** Messages are handled strictly in arrival order (decryption is async). */
   private inbox: Promise<void> = Promise.resolve();
+  /** The first complete backlog (whenReady). */
+  private readonly firstBacklog = deferred();
 
   constructor(
     private readonly store: Store,
@@ -85,11 +93,24 @@ export class SyncClient {
     }
   }
 
+  /**
+   * Starts syncing and returns at once: the socket is only being opened, nothing has arrived
+   * yet. To wait for what the relay already holds, use `whenReady`.
+   */
   async start(): Promise<void> {
     this.stopped = false;
     this.cursor = (await this.persistence.getMeta<number>('cursor')) ?? 0;
     this.unsubOutbox = this.store.onOutbox(() => void this.flush());
     this.connect();
+  }
+
+  /**
+   * Resolves once the first backlog is complete: everything the relay held for this device has
+   * been merged into the store and saved (however many pages and reconnects that took). It stays
+   * resolved; it never resolves while the relay can't be reached.
+   */
+  whenReady(): Promise<void> {
+    return this.firstBacklog.promise;
   }
 
   stop(): void {
@@ -190,6 +211,7 @@ export class SyncClient {
         } else {
           if (!this.ready) {
             this.ready = true;
+            this.firstBacklog.resolve();
             void this.flush();
           }
           this.markSynced();
