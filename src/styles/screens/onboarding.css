@@ -34,6 +34,11 @@
   letter-spacing: -0.025em;
 }
 
+/* A step with no "1 of 2" over its question (a code to type): the question starts where the others do */
+.onboard__body > :not(.onboard__step) + .onboard__q {
+  margin-top: 64px;
+}
+
 .onboard__label {
   margin-top: 32px;
 }

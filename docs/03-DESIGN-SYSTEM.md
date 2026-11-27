@@ -73,12 +73,12 @@ One job per family (sizes on a phone).
 
 | Family | Only job | Size | Examples |
 |---|---|---|---|
-| `.btn` / `.btn--quiet` | Commit an action / the second choice | 54, 40 with `--sm` | Add, Create folder, Stick it |
-| `.iconbtn` | Header and sheet chrome, always gray | 42, 36 with `--sm` | Search, …, Back, Close, the star |
-| `.echip` | A property of the thing | 38 (34 with `--sm`) | Date, Who, Ours, Urgent |
-| `.option` | A choice inside a panel or sheet | 36 | Ours / Mine / Private, Every week |
-| `.token` | A suggestion or parsed result to tap | 34 | "Sunday ×", Again?, search words |
-| `.mini` | An in-row action on a tile | 30 | OK / Not yet, Restore |
+| `.btn` / `.btn--quiet` | Commit an action / the second choice | 54, 38 with `--sm` | Add, Create folder, Stick it |
+| `.iconbtn` | Header and sheet chrome, always gray | 42, 38 with `--sm` | Search, …, Back, Close, the star |
+| `.echip` | A property of the thing | 38 | Date, Who, Ours, Urgent |
+| `.option` | A choice inside a panel or sheet | 38 | Ours / Mine / Private, Every week |
+| `.token` | A suggestion or parsed result to tap | 32 | "Sunday ×", Again?, search words |
+| `.mini` | An in-row action on a tile | 32 | OK / Not yet, Restore |
 | `.textbtn` | A low-emphasis link | — | Edit Today, Invite your person |
 | `.urgent` `.vtag` `.rtag` | Read-only status in a row | 22 | Urgent, Mine, Hila asked |
 
@@ -118,8 +118,9 @@ Every icon is an **ink line** and a solid **light** behind it, drawn from Phosph
 Every value comes from one scale; [`tests/unit/tokens.test.ts`](../tests/unit/tokens.test.ts) fails when a stylesheet steps off one.
 
 - **Type**: the seven `--type-*` sizes above; only the serif (and the scaled note face) says px. A field you type into is at least 16 px (a phone zooms in on smaller ones).
-- **Space** (padding, margin, gap): 2 4 6 8 10 12 14 16 20 24 28 32 36 40 48 56 64. Stacking blocks use `--space-1…5` (8 12 16 24 36). The page gutter is 24.
-- **Radius**: 2 4 6 8 10 12 14 16 18 20 22 24 28 30 32 36 40, 50% and 999px for round.
+- **Space** (padding, margin, gap): 2 4 6 8 10 12 14 16 20 24 28 32 36 40 48 56 64. Stacking blocks use `--space-1…5` (8 12 16 24 36). The page gutter is 24. The same job takes the same gap everywhere: 8 between chips in a row, 16 inside a panel, 24 inside a large colour card (20 in a small one), 10 from a label to what it names, 36 between sections.
+- **Heights** of what you press: `--ctl-s` 32 (small things inside a row or beside a field: a token, a switch of two, the view switch, × and ›), `--ctl-m` 38 (chips, options, the round buttons on a folder's card), `--ctl-l` 42 (the round buttons in a header; 36 on a computer). The big button (54) and the on/off switch keep their own, as do the task card's 40px discs (below).
+- **Corners**: `--r-s` 14 inside a card (a field, a row, a tile), `--r-m` 20 a card (a list, a group, a panel), `--r-l` 30 the colour cards and sheets; a floating bar is `--r-bar` 24. A computer maps s, m and l to 10, 14 and 20. Tiny marks say their own (10 and under), pills are 999px, and the folder's tab and a sticky note are shapes of their own.
 - **Speed**: transitions run at `--dur-quick` 140 ms (a press, a hover), `--dur-base` 200 (a state changing), `--dur-move` 260 (something travelling) or `--dur-slow` 320 (something landing), on `--ease` or `--spring`. A few pieces of choreography keep a time of their own (a note peeling, the bar's pill).
 - **Press**: `--press-disc` 0.9, `--press-pill` 0.96, `--press-card` 0.98.
 - **Depth**: `--lift-1` (resting on the page), `--lift-2` (floating over it), `--lift-3` (held in the hand), `--lift-sheet`; with `--edge` (a hairline round a white card) or `--edge-faint` (round something floating). `--ring-ink` says "picked".

@@ -35,7 +35,10 @@ describe('every stylesheet stays on the scales (tokens.css)', () => {
     .flatMap((f) => [...readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([\w-]+)\s*:\s*([^;{}]+);/g)].map((m) => ({ f: f.slice(dir.length + 1), prop: m[1], value: m[2] })));
   const px = (v: string) => [...v.matchAll(/(-?\d+(?:\.\d+)?)px/g)].map((m) => Math.abs(parseFloat(m[1])));
   const SPACE = new Set([0, 1, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96, 120, 140, 160]);
-  const RADIUS = new Set([1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 30, 32, 36, 40]);
+  // Corners: tiny marks say their own (10px and under); a surface takes --r-s, --r-m or --r-l.
+  const RADIUS = new Set([1, 2, 4, 6, 8, 10]);
+  // Shapes of their own: the folder's tab, a sticky note's lifted corner.
+  const SHAPES = new Set(['12px 16px 0 0', '10px 14px 0 0', '22px 6px']);
 
   it('spacing', () => {
     const off = decls.filter((d) => /^(padding|margin|gap|row-gap|column-gap)(-|$)/.test(d.prop) && px(d.value).some((n) => n <= 160 && !SPACE.has(n)));
@@ -48,8 +51,24 @@ describe('every stylesheet stays on the scales (tokens.css)', () => {
   });
 
   it('radii', () => {
-    const off = decls.filter((d) => /radius/.test(d.prop) && px(d.value).some((n) => n < 99 && !RADIUS.has(n)));
+    const off = decls.filter((d) => /radius/.test(d.prop) && !SHAPES.has(d.value.replace(/\s+/g, ' ').trim()) && px(d.value).some((n) => n < 99 && !RADIUS.has(n)));
     expect(off.map((d) => `${d.f}: ${d.prop}: ${d.value}`)).toEqual([]);
+  });
+
+  it('what you press is one of the three --ctl heights', () => {
+    // Every pill and disc that had a height of its own between 28 and 42px. A new one joins the list.
+    const CONTROLS = ['.echip', '.token', '.option', '.lens__chip', '.tagtoken', '.scopetag', '.seg__btn', '.viewtoggle__btn', '.stepper', '.btn--sm', '.mini', '.iconbtn', '.iconbtn--sm', '.glyphbtn', '.herobtn', '.foldbtn', '.sheet__close', '.timefield'];
+    const sheets = files(dir).map((f) => readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''));
+    const heightOf = (sel: string) => {
+      const esc = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      for (const css of sheets) {
+        const m = css.match(new RegExp(`(?:^|\\n)${esc} \\{([^}]*)\\}`));
+        const h = m?.[1].match(/(?:^|\s)height:\s*([^;]+);/)?.[1];
+        if (h) return h.trim();
+      }
+      return undefined;
+    };
+    expect(Object.fromEntries(CONTROLS.map((c) => [c, heightOf(c)]).filter(([, h]) => !/^var\(--ctl-[sml]\)$/.test(String(h))))).toEqual({});
   });
 
   it('what you read is one of the seven --type sizes (only the serif, and a note\'s own scale, say px)', () => {
