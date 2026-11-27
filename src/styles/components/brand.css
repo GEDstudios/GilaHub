@@ -16,8 +16,8 @@
   font-weight: 400;
 }
 
-/* Mixed Hebrew/English: each string lines up by its own direction (Hebrew from the right). */
-.row__title,
+/* Mixed Hebrew/English: what you type, and big titles, line up by their own direction (Hebrew
+   from the right). */
 .band__title,
 .hero__title,
 .hero__titleinput,
@@ -36,6 +36,13 @@ h2[dir='auto'],
 h3[dir='auto'],
 div[dir='auto'] {
   text-align: start;
+  unicode-bidi: plaintext;
+}
+
+/* A list reads down one edge: a row's title starts at the list's (left) edge whatever its
+   language (each word still runs its own way), so a mixed Hebrew/English list doesn't zigzag. */
+.row__title {
+  text-align: left;
   unicode-bidi: plaintext;
 }
 
