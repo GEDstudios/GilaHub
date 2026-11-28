@@ -96,6 +96,52 @@
   margin: 0;
 }
 
+/*
+ * Moving a card. Where it came from, which is where it lands as the others make room: one plain
+ * gray slot the card's size (no white card under it, no dashes: the same gray that says "here"
+ * everywhere else, drag.css "Landing").
+ */
+.rows--cards .row.is-ghost,
+.rows--cards .row.is-ghost:hover,
+.rows--cards .row.is-ghost:active,
+.main .rows--cards .row.is-ghost,
+.aisle--urgent .rows--cards .row.is-ghost {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.rows--cards .row.is-ghost::after {
+  inset: 0;
+  border: 0;
+  border-radius: inherit;
+  background: var(--drop-fill);
+}
+
+/* The card in the hand: the very card, the size it has in its grid (short in a group, taller on
+   its own), lifted on a real shadow. */
+.lift.lift--taskcard {
+  --lift-scale: 1.04;
+  height: 100%;
+  border-radius: var(--r-s);
+  background: var(--card);
+  box-shadow: var(--lift-3);
+}
+
+.lift--taskcard > .rows.rows--cards {
+  display: block;
+  height: 100%;
+}
+
+.lift--taskcard .rows--cards .row,
+.lift--taskcard .rows--cards .row:hover {
+  height: 100%;
+  min-height: 0;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+
 @media (hover: hover) {
   .rows--cards .row:hover {
     box-shadow:

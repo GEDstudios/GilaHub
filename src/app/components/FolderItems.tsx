@@ -125,7 +125,8 @@ export function FolderItems({
   const place = useMemo(() => placer(hub, { among: false }), [hub]);
   const placeHere = (p: Point): Placement | null => {
     const item = hub.item(lifted.current);
-    if (!item) return null;
+    // As cards they sit side by side: sideways is just moving, so a drag only orders them there.
+    if (!item || cards) return null;
     const pl = place(item, p, liftX.current ?? p.x);
     if (pl !== 'keep') placed.current = pl;
     return placed.current;
@@ -325,6 +326,7 @@ export function FolderItems({
           ids={ids}
           onMove={onMove}
           layout={cards ? 'grid' : 'rows'}
+          liftClass={cards ? 'lift--taskcard' : undefined}
           bounds="none"
           outside={into}
           // Up and down is its place, right is its level: the one in the hand says so.

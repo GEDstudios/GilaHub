@@ -8,7 +8,8 @@ import { CLICK_SWALLOW_MS } from './tokens';
  * icon pops). Let go past the line and it happens; short of it, the row springs back.
  *
  * Only a sideways move takes it: one that starts more up-and-down than across is the page
- * scrolling, and a still press is left to the long-press that lifts the row (Sortable). A tap
+ * scrolling, and a still press is left to the long-press that lifts the row (Sortable): once the
+ * row is in the hand, moving it sideways is the drag's, never a swipe. A tap
  * after a swipe doesn't open the row. Calm when motion is turned down (it still works).
  *
  * The row gets `--swipe` (px) and `--swipe-p` (0–1, how far to the line) while it moves,
@@ -65,6 +66,11 @@ export function useSwipe<T extends HTMLElement>(opts: { right?: () => void; left
       const x = t.clientX - start.x;
       const y = t.clientY - start.y;
       if (mode === 'idle') {
+        // Held still until it lifted (Sortable, dragOut): it's being dragged now, not swiped.
+        if (el.matches('.is-ghost, .is-lifted-out') || document.documentElement.classList.contains('is-dragging')) {
+          mode = 'scroll';
+          return;
+        }
         if (Math.abs(y) > 8 && Math.abs(y) > Math.abs(x)) {
           mode = 'scroll';
           return;

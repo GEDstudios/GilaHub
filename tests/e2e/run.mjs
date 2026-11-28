@@ -1034,7 +1034,7 @@ try {
     await guy.locator('.addmenu').waitFor({ state: 'detached', timeout: 2000 });
   });
 
-  await check('Dragging: up and down only places a task, a pause on a row included; pulled right it goes under the one above; pulled left it comes out', async () => {
+  await check('Dragging: up and down only places a task, a pause on a row included; pulled right it goes under the one above; pulled left it comes out; cards only change places', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.foldercard--new').first().click();
     await guy.locator('.sheet .ccard__input').fill('Sorting');
@@ -1052,8 +1052,10 @@ try {
     await dragRow(guy, guyCtx, 'one', [[0, h, 1000], [0, h, 1000]]);
     await is('two three one four', 'down two rows with pauses');
     // Pulled right where it is: under the task above it.
-    await dragRow(guy, guyCtx, 'four', [[70, 0, 400]]);
+    // (Well past where a swipe would arm: a row in the hand is dragged, never swiped into Ongoing.)
+    await dragRow(guy, guyCtx, 'four', [[130, 0, 400]]);
     await is('two three one(four)', 'pulled right in place');
+    if (await guy.locator('.ongoing').count()) throw new Error('pulling a held row right also swiped it into Ongoing');
     // Down a row, then right: under the one now above it.
     await dragRow(guy, guyCtx, 'two', [[0, h, 300], [70, 0, 400]]);
     await is('three(two) one(four)', 'down one, then pulled right');
@@ -1064,6 +1066,15 @@ try {
     await dragRow(guy, guyCtx, 'two', [[-70, 0, 400]]);
     await is('three two one(four)', 'a subtask pulled left');
     await shot(guy, '31-dragging');
+    // As cards they sit side by side: sideways only moves one, it never nests it.
+    await guy.locator('[aria-label="Cards"]').first().click();
+    await guy.waitForTimeout(600);
+    const card = async (t) => guy.locator('li.row', { has: guy.locator('.row__title', { hasText: new RegExp(`^${t}$`) }) }).first().boundingBox();
+    const [a, b] = [await card('three'), await card('two')];
+    await dragRow(guy, guyCtx, 'three', [[b.x - a.x, b.y - a.y, 700]]);
+    await is('two three one(four)', 'a card moved onto its neighbour');
+    if (await guy.locator('.ongoing').count()) throw new Error('moving a card sideways swiped it into Ongoing');
+    await guy.locator('[aria-label="List"]').first().click();
   });
 
   await check('Recovery: Guy makes a code; a brand-new phone comes back as Guy, private things and all', async () => {
