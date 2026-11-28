@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { runAdd } from '../addAction';
 import { useNoteHere } from './Notes';
 import { QuickAddSheet } from './QuickAddSheet';
@@ -10,6 +10,7 @@ import { useOverlays } from '../ui/overlays';
 import { primeKeyboard } from '../ui/keyboard';
 import { haptic } from '../ui/haptics';
 import { G } from '../ui/glyphs';
+import { CLICK_SWALLOW_MS, DIST, SLOP } from '../ui/tokens';
 
 /** New: what the current screen registered (addAction.ts), else the plain composer. */
 export function useAdd() {
@@ -47,9 +48,11 @@ function MenuGlyph({ kind }: { kind: 'task' | 'project' | 'note' }) {
 }
 
 /**
- * The +: what to make. A tap opens three choices over it (the + turns into an x): a task (or a
- * subtask, as the screen says), a folder (inside this one, on a folder's
- * page), or a sticky note for my person on this screen. N still makes a task straight away.
+ * The +: what to make. Pressing it opens three choices over it at once (the + turns into an x): a
+ * task (or a subtask, as the screen says), a folder (inside this one, on a folder's page), or a
+ * sticky note for my person on this screen. A tap leaves them open to tap; or keep the finger
+ * down, slide up to one (it lights up) and let go there: one gesture makes it. Let go anywhere
+ * else, or back on the +, and nothing is made. N still makes a task straight away.
  */
 export function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }) {
   const route = useRoute();
@@ -86,18 +89,88 @@ export function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }
     },
     ...(note ? [{ key: 'note', label: `Sticky note for ${note.to}`, face: <MenuGlyph kind="note" />, run: note.open }] : []),
   ];
+  // One finger on the +: did this press open it, and has it slid off to choose?
+  const press = useRef<{ id: number; x: number; y: number; slid: boolean; opened: boolean } | null>(null);
+  // The click a press ends in has been dealt with already (only the keyboard's click toggles).
+  const pressed = useRef(false);
+  const menu = useRef<HTMLDivElement>(null);
+  const [aim, setAim] = useState<string | null>(null);
+  const aimed = useRef<string | null>(null);
+  const aimAt = (key: string | null) => {
+    if (key === aimed.current) return;
+    aimed.current = key;
+    setAim(key);
+    if (key) haptic('select');
+  };
+  /** The choice under the finger, or the nearest within reach; none over the + itself. */
+  const choiceAt = (x: number, y: number, fab: HTMLElement): string | null => {
+    const f = fab.getBoundingClientRect();
+    if (Math.hypot(x - (f.left + f.width / 2), y - (f.top + f.height / 2)) <= f.width / 2) return null;
+    let best: string | null = null;
+    let near: number = DIST.reach;
+    for (const el of menu.current?.querySelectorAll<HTMLElement>('.addmenu__item') ?? []) {
+      const r = el.getBoundingClientRect();
+      const d = Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom));
+      if (d < near) {
+        near = d;
+        best = el.dataset.key ?? null;
+      }
+    }
+    return best;
+  };
+  const onDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return;
+    press.current = { id: e.pointerId, x: e.clientX, y: e.clientY, slid: false, opened: !open };
+    // Moves keep coming to the + wherever the finger goes.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    if (!open) {
+      haptic('select');
+      setOpen(true);
+    }
+  };
+  const onSlide = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const p = press.current;
+    if (!p || p.id !== e.pointerId) return;
+    if (!p.slid && Math.hypot(e.clientX - p.x, e.clientY - p.y) > SLOP.hold) p.slid = true;
+    if (p.slid) aimAt(choiceAt(e.clientX, e.clientY, e.currentTarget));
+  };
+  const onUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const p = press.current;
+    if (!p || p.id !== e.pointerId) return;
+    press.current = null;
+    pressed.current = true;
+    setTimeout(() => (pressed.current = false), CLICK_SWALLOW_MS);
+    const pick = p.slid ? choices.find((c) => c.key === choiceAt(e.clientX, e.clientY, e.currentTarget)) : undefined;
+    aimAt(null);
+    if (pick) {
+      haptic('select');
+      setOpen(false);
+      pick.run();
+    } else if (p.slid || !p.opened) {
+      // Slid and let go on nothing (or back on the +): never mind. A tap on an open + closes it.
+      if (!p.opened) haptic('select');
+      setOpen(false);
+    }
+  };
+  const onCancel = () => {
+    const p = press.current;
+    press.current = null;
+    aimAt(null);
+    if (p?.opened) setOpen(false);
+  };
   return (
     <>
       {open ? <div className="addmenu__veil" onClick={() => setOpen(false)} aria-hidden="true" /> : null}
       {open ? (
-        <div className="addmenu" role="menu" aria-label="New">
+        <div className="addmenu" role="menu" aria-label="New" ref={menu}>
           {choices.map((c, i) => (
             <button
               key={c.key}
               type="button"
               role="menuitem"
-              className={`addmenu__item addmenu__item--${c.key}`}
-              style={{ animationDelay: `${(choices.length - 1 - i) * 35}ms` } as CSSProperties}
+              data-key={c.key}
+              className={`addmenu__item addmenu__item--${c.key} ${aim === c.key ? 'is-aimed' : ''}`}
+              style={{ animationDelay: `${i * 35}ms` } as CSSProperties}
               onClick={() => {
                 haptic('select');
                 setOpen(false);
@@ -120,7 +193,14 @@ export function AddMenu({ add, addLabel }: { add: () => void; addLabel: string }
         aria-haspopup="menu"
         title={open ? 'Close' : 'New: a task, a folder or a note'}
         aria-keyshortcuts="N"
+        onPointerDown={onDown}
+        onPointerMove={onSlide}
+        onPointerUp={onUp}
+        onPointerCancel={onCancel}
+        onContextMenu={(e) => e.preventDefault()}
         onClick={() => {
+          // A press has said what it wanted already; this is the keyboard.
+          if (pressed.current) return;
           haptic('select');
           setOpen(!open);
         }}

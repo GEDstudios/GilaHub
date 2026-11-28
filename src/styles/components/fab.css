@@ -17,6 +17,11 @@
     0 12px 26px -8px rgb(10 10 4 / 0.5),
     0 2px 6px rgb(10 10 4 / 0.2);
   transition: transform var(--dur-base) var(--spring), opacity var(--dur-quick) var(--ease);
+  /* A finger pressed here may slide up to a choice: the page stays put, and nothing is selected. */
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .fab .icon {

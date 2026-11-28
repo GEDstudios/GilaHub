@@ -24,14 +24,14 @@
   animation: fade-in 160ms var(--ease) both;
 }
 
-/* The choices stand on the + : right-aligned, the nearest first */
+/* The choices stand on the + : right-aligned, the first (a task, the usual one) nearest the thumb */
 .addmenu {
   position: fixed;
   z-index: calc(var(--z-fab) + 1);
   right: max(18px, calc((100% - var(--column)) / 2 - var(--gutter) + 18px));
   bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 20px + 76px);
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-items: flex-end;
   gap: 10px;
 }
@@ -80,6 +80,22 @@
 
 .addmenu__item:active .addmenu__face {
   transform: scale(var(--press-disc));
+}
+
+/* The one the finger slid to (press the +, slide up, let go): it steps forward and its name goes ink. */
+.addmenu__label {
+  transition:
+    background var(--dur-quick) var(--ease),
+    color var(--dur-quick) var(--ease);
+}
+
+.addmenu__item.is-aimed .addmenu__face {
+  transform: scale(1.16);
+}
+
+.addmenu__item.is-aimed .addmenu__label {
+  background: var(--cta);
+  color: var(--cta-text);
 }
 
 /* Each choice is the little thing it makes: a task card, a bag, a folder, a sticky note */

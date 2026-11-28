@@ -30,6 +30,8 @@ export const SLOP = {
 export const DIST = {
   /** Pulled this far right while dragging: it goes under the task above where it would land; this far left, a subtask comes out. */
   nest: 48,
+  /** Sliding to a choice (the +'s menu): let go this near one and it's the one. */
+  reach: 28,
 } as const;
 
 /** After a drag or swipe ends, the click it would cause is swallowed for this long (ms). */

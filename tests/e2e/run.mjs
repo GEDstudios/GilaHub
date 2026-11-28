@@ -977,6 +977,63 @@ try {
   });
 
   // ---------- Recovery
+  await check('The +: pressing it opens the choices at once; slide to one and let go makes it; let go elsewhere, or back on the +, and nothing is made; a tap still opens it', async () => {
+    await guy.goto(`${url}/lists`);
+    await guy.locator('.fab').waitFor({ timeout: 5000 });
+    const cdp = await guyCtx.newCDPSession(guy);
+    const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
+    const mid = async (sel) => {
+      const r = await guy.locator(sel).first().boundingBox();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    };
+    const slide = async (from, to) => {
+      for (let i = 1; i <= 8; i++) {
+        await touch('touchMove', [{ x: from.x + ((to.x - from.x) * i) / 8, y: from.y + ((to.y - from.y) * i) / 8, id: 1 }]);
+        await guy.waitForTimeout(20);
+      }
+    };
+    const fab = await mid('.fab');
+    // Finger down: the choices are there before it lifts (no hold to wait out).
+    await touch('touchStart', [{ ...fab, id: 1 }]);
+    await guy.locator('.addmenu').waitFor({ timeout: 300 });
+    // Up to the task: it lights; letting go there opens the composer.
+    const task = await mid('.addmenu__item--task .addmenu__face');
+    await slide(fab, task);
+    await guy.locator('.addmenu__item--task.is-aimed').waitFor({ timeout: 1000 });
+    await shot(guy, '30-plus-slide');
+    await touch('touchEnd', []);
+    await guy.locator('.composer__input').waitFor({ timeout: 3000 });
+    if (await guy.locator('.addmenu').count()) throw new Error('the choices stayed after one was made');
+    await guy.keyboard.press('Escape');
+    await guy.locator('.composer').waitFor({ state: 'detached', timeout: 5000 });
+    await guy.waitForTimeout(400);
+    // Up and back down onto the +: never mind.
+    await touch('touchStart', [{ ...fab, id: 1 }]);
+    await guy.locator('.addmenu').waitFor({ timeout: 300 });
+    await slide(fab, task);
+    await slide(task, fab);
+    await touch('touchEnd', []);
+    await guy.locator('.addmenu').waitFor({ state: 'detached', timeout: 2000 });
+    if (await guy.locator('.sheet').count()) throw new Error('letting go on the + made something');
+    await guy.waitForTimeout(400);
+    // Away from everything: never mind.
+    await touch('touchStart', [{ ...fab, id: 1 }]);
+    await guy.locator('.addmenu').waitFor({ timeout: 300 });
+    const away = { x: 60, y: fab.y - 260 };
+    await slide(fab, away);
+    await touch('touchEnd', []);
+    await guy.locator('.addmenu').waitFor({ state: 'detached', timeout: 2000 });
+    if (await guy.locator('.sheet').count()) throw new Error('letting go far away made something');
+    await cdp.detach();
+    await guy.waitForTimeout(400);
+    // A plain tap opens it and leaves it open; another closes it.
+    await guy.locator('.fab').click();
+    await guy.waitForTimeout(500);
+    if (!(await guy.locator('.addmenu').count())) throw new Error('a tap did not leave the choices open');
+    await guy.locator('.fab').click();
+    await guy.locator('.addmenu').waitFor({ state: 'detached', timeout: 2000 });
+  });
+
   await check('Dragging: up and down only places a task, a pause on a row included; pulled right it goes under the one above; pulled left it comes out', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.foldercard--new').first().click();
