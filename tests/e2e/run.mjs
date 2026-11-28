@@ -1034,7 +1034,7 @@ try {
     await guy.locator('.addmenu').waitFor({ state: 'detached', timeout: 2000 });
   });
 
-  await check('Dragging: up and down only places a task, a pause on a row included; pulled right it goes under the one above; pulled left it comes out; cards only change places', async () => {
+  await check('Dragging: up and down only places a task, a pause on a row included; pulled right it goes under the one above; pulled left it comes out; a card moves sideways, and rested on another goes under it', async () => {
     await guy.goto(`${url}/lists`);
     await guy.locator('.foldercard--new').first().click();
     await guy.locator('.sheet .ccard__input').fill('Sorting');
@@ -1071,9 +1071,14 @@ try {
     await guy.waitForTimeout(600);
     const card = async (t) => guy.locator('li.row', { has: guy.locator('.row__title', { hasText: new RegExp(`^${t}$`) }) }).first().boundingBox();
     const [a, b] = [await card('three'), await card('two')];
-    await dragRow(guy, guyCtx, 'three', [[b.x - a.x, b.y - a.y, 700]]);
+    await dragRow(guy, guyCtx, 'three', [[b.x - a.x, b.y - a.y, 300]]);
     await is('two three one(four)', 'a card moved onto its neighbour');
     if (await guy.locator('.ongoing').count()) throw new Error('moving a card sideways swiped it into Ongoing');
+    // Rested on another card for a moment, it goes under it (toasts from before are gone by now).
+    await guy.locator('.toast').first().waitFor({ state: 'detached', timeout: 8000 }).catch(() => {});
+    const [c, d] = [await card('three'), await card('two')];
+    await dragRow(guy, guyCtx, 'three', [[d.x - c.x, d.y - c.y, 1400]]);
+    await is('two(three) one(four)', 'a card rested on another');
     await guy.locator('[aria-label="List"]').first().click();
   });
 

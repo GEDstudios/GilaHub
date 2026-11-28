@@ -339,13 +339,16 @@ export function DropChip({ label, nesting }: { label: string; /** It goes under 
   );
 }
 
-/** Riding above a task in the hand: pulled right, it becomes a subtask of the one above (outline.ts). */
-export function PullHint() {
+/**
+ * Riding above a task in the hand, how it becomes a subtask (outline.ts): in a list, pulled right
+ * (under the one above); as cards (`rest`), rested on another for a moment.
+ */
+export function PullHint({ rest }: { rest?: boolean }) {
   return (
     <span className="pullhint">
-      <Icon name={G.continue} className="pullhint__go" />
+      {rest ? null : <Icon name={G.continue} className="pullhint__go" />}
       <Icon name={G.subtask} />
-      Subtask
+      {rest ? 'Hold on a card' : 'Subtask'}
     </span>
   );
 }

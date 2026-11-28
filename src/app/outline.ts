@@ -2,7 +2,7 @@ import type { Hub } from '../core/hub';
 import type { Item } from '../core/model';
 import { getPrefs, setPrefs } from './prefs';
 import { headOf, nextRow, type GapAt } from './ui/dropMark';
-import { DIST } from './ui/tokens';
+import { DIST, HOLD, SLOP } from './ui/tokens';
 
 /**
  * Where a dragged task or subtask lands among rows, the way outliners and most to-do apps do it:
@@ -47,7 +47,8 @@ interface Point {
  * One drag's placer. "Pulled" right or left is counted from where the drag began (`x0`): people
  * drag straight down, so going sideways on purpose is the pull.
  */
-export function placer(hub: Hub, opts: { among: boolean }): (item: Item, p: Point, x0: number) => Placement | 'keep' | null {
+export function placer(hub: Hub, opts: { among: boolean; /** As cards, side by side: see `cardPlacer`. */ grid?: boolean }): (item: Item, p: Point, x0: number) => Placement | 'keep' | null {
+  if (opts.grid) return cardPlacer(hub);
   // A pull moves the gap and so the rows under the hand: what it chose holds while the hand stays
   // pulled that way and about level (else the row now under the hand would undo it). Coming half
   // the way back, or moving on up or down, lets go of it.
@@ -105,6 +106,39 @@ export function placer(hub: Hub, opts: { among: boolean }): (item: Item, p: Poin
   };
 }
 
+/**
+ * As cards they sit side by side, so sideways is just moving and there's no pull to read. A card
+ * goes under another by resting on it: held still (SLOP.hold) for HOLD.nest over the card that
+ * was there before the others made room (read at rest: it slid aside for the slot), it goes under
+ * that one, which comes back under the hand and darkens. Moving on takes it back.
+ */
+function cardPlacer(hub: Hub): (item: Item, p: Point) => Placement | null {
+  let still: { id: string; x: number; y: number; t: number } | null = null;
+  let held: { x: number; y: number; pl: Placement } | null = null;
+  return (item, p) => {
+    if (held && Math.hypot(p.x - held.x, p.y - held.y) < 2 * SLOP.hold) return held.pl;
+    held = null;
+    const at = restRowAt(p);
+    const card = at && at !== 'own' ? (at.row.closest<HTMLElement>('li.row[data-id]:not(.row--nested)') ?? at.row) : null;
+    const x = card ? hub.item(card.dataset.id) : undefined;
+    if (!card || !x || x.id === item.id) {
+      still = null;
+      return null;
+    }
+    const now = performance.now();
+    if (!still || still.id !== x.id || Math.hypot(p.x - still.x, p.y - still.y) > SLOP.hold) {
+      still = { id: x.id, x: p.x, y: p.y, t: now };
+      return null;
+    }
+    if (now - still.t < HOLD.nest) return null;
+    const pl = underOf(hub, item, x, card);
+    if (!pl || staysPut(hub, item, pl)) return null;
+    held = { x: p.x, y: p.y, pl };
+    still = null;
+    return pl;
+  };
+}
+
 /** Where the thing in the hand came from: the list's dashed slot (which follows the hand), or the row left behind. */
 function slotOf(item: Item): HTMLElement | null {
   for (const el of document.querySelectorAll<HTMLElement>(`li.row[data-id="${item.id}"]`)) {
@@ -147,14 +181,18 @@ function underOf(hub: Hub, item: Item, x: Item, el: HTMLElement): Placement | nu
   };
 }
 
-/** How far the list's own drag has slid a row (and the rows it's in) up or down, in px. */
-function slid(el: HTMLElement): number {
+/** How far the list's own drag has slid a row (and the rows it's in), in px: down, and as cards across too. */
+function slid(el: HTMLElement): { dx: number; dy: number } {
+  let dx = 0;
   let dy = 0;
   for (let n: HTMLElement | null = el; n && n.matches('li.row'); n = n.parentElement?.closest<HTMLElement>('li.row') ?? null) {
     const t = getComputedStyle(n).transform;
-    if (t !== 'none') dy += new DOMMatrixReadOnly(t).m42;
+    if (t === 'none') continue;
+    const m = new DOMMatrixReadOnly(t);
+    dx += m.m41;
+    dy += m.m42;
   }
-  return dy;
+  return { dx, dy };
 }
 
 /**
@@ -167,13 +205,13 @@ function restRowAt(p: Point): { row: HTMLElement; shift: number } | 'own' | null
   for (const row of document.querySelectorAll<HTMLElement>('li.row[data-id]')) {
     if (row.closest('.dragout, .dragwrap')) continue;
     const r = row.getBoundingClientRect();
-    if (p.x < r.left || p.x > r.right) continue;
-    const shift = slid(row);
-    if (p.y < r.top - shift || p.y >= r.bottom - shift) continue;
+    const { dx, dy } = slid(row);
+    if (p.x < r.left - dx || p.x > r.right - dx) continue;
+    if (p.y < r.top - dy || p.y >= r.bottom - dy) continue;
     // Where it came from: over that, it goes back.
     if (row.matches('.is-ghost, .is-lifted-out')) return 'own';
     const depth = row.classList.contains('row--nested') ? 1 : 0;
-    if (!best || depth > best.depth) best = { row, shift, depth };
+    if (!best || depth > best.depth) best = { row, shift: dy, depth };
   }
   return best && { row: best.row, shift: best.shift };
 }

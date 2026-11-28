@@ -120,7 +120,8 @@
 
 /* The card in the hand: the very card, the size it has in its grid (short in a group, taller on
    its own), lifted on a real shadow. */
-.lift.lift--taskcard {
+/* (Over something it goes into it's a small chip instead: drag.css, is-outside.) */
+.lift.lift--taskcard:not(.is-outside) {
   --lift-scale: 1.04;
   height: 100%;
   border-radius: var(--r-s);

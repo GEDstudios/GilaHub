@@ -16,7 +16,7 @@ Legend: **●** in v1 (this build) · **◐** next (v1.1) · **○** later. Ever
 - **●** **Ongoing**: swipe a task right (or the ▷ on hover, or its Ongoing chip) and it moves into an Ongoing card at the top of its folder: what we're doing now, with a bar for how far along it is. Tick things there; the ticked ones wait as chips (tap one to put it back) until Clear files them away. Swipe left takes one out. My person sees whose it is ("Hila’s on it"), and while I'm on it their Today says so ("Guy is on Shopping now. Need anything?"), their phone hears it once, and what they add as urgent reaches me there and then.
 - **●** A task's unfolded subtasks in a list are the open ones; its n/m says how many are done, and the task's own page shows them all.
 - **●** The + in one gesture: press it, slide up to Task (or Folder, or a note) and let go. Letting go elsewhere, or back on the +, makes nothing.
-- **●** Dragging a task: up and down places it, pulling it right puts it under the task above, pulling a subtask left takes it out. Resting on a row never nests it.
+- **●** Dragging a task: up and down places it, pulling it right puts it under the task above, pulling a subtask left takes it out. Resting on a row never nests it. As cards: drag to reorder, rest one on another for a moment to put it under it.
 - **●** No red, no badge spam, no streaks. Late items say "since Tue".
 - **●** Nothing is imposed: every project, including shopping and chores, can be renamed (tap its name), recolored, archived or deleted.
 

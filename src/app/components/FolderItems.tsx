@@ -122,11 +122,12 @@ export function FolderItems({
   const liftX = useRef<number | null>(null);
   const placed = useRef<Placement | null>(null);
   const dwell = useMemo(() => dweller(), []);
-  const place = useMemo(() => placer(hub, { among: false }), [hub]);
+  // (As cards they sit side by side: sideways is just moving there, and a card goes under another
+  // by resting on it.)
+  const place = useMemo(() => placer(hub, { among: false, grid: cards }), [hub, cards]);
   const placeHere = (p: Point): Placement | null => {
     const item = hub.item(lifted.current);
-    // As cards they sit side by side: sideways is just moving, so a drag only orders them there.
-    if (!item || cards) return null;
+    if (!item) return null;
     const pl = place(item, p, liftX.current ?? p.x);
     if (pl !== 'keep') placed.current = pl;
     return placed.current;
@@ -140,7 +141,8 @@ export function FolderItems({
     // Under a task: it darkens and a gap opens where it goes; into a folder: it darkens.
     aim: (p: Point | null) => {
       const pl = p ? placed.current : null;
-      mark(pl ? { into: pl.into, gap: pl.gap } : { into: (p && dropListAt(p)?.el) || null });
+      // (A card it goes under only darkens: there's no row of subtasks in it to open a gap in.)
+      mark(pl ? { into: pl.into, gap: cards ? null : pl.gap } : { into: (p && dropListAt(p)?.el) || null });
       dwell.at(pl?.unfold);
       if (p && !!pl !== nesting) setNesting(!!pl);
     },
@@ -330,7 +332,7 @@ export function FolderItems({
           bounds="none"
           outside={into}
           // Up and down is its place, right is its level: the one in the hand says so.
-          hint={!cards && ids.length > 1 ? <PullHint /> : undefined}
+          hint={ids.length > 1 ? <PullHint rest={cards} /> : undefined}
           label={(id) => hub.item(id)?.title ?? ''}
           renderOverlay={(id, { outside }) => {
             const item = hub.item(id);

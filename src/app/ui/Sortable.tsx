@@ -476,7 +476,9 @@ export function Sortable({
   }, [rows, bar, bounds]);
 
   /** Nothing is "over" while the hand is at the outside target, or ever for still items. */
-  const collisions = useCallback<CollisionDetection>((args) => (still || drag.current?.out ? [] : closestCenter(args)), [still]);
+  // (Made anew when the hand reaches or leaves the outside target, so the list lets go, or takes
+  // hold again, at once: a hand resting still sends no moves to ask on.)
+  const collisions = useCallback<CollisionDetection>((args) => (still || drag.current?.out ? [] : closestCenter(args)), [still, outNow]);
 
   /** The frame loop: velocity tilt on the overlay, and the refuse shake. */
   const loop = (d: Drag, rest: number, follow: 'touchmove' | 'pointermove' | null, quietNow: boolean) => {
@@ -506,10 +508,17 @@ export function Sortable({
       d.felt = true;
     };
     if (follow) window.addEventListener(follow, onPoint, { passive: true });
+    let asked = 0;
     const frame = (now: number) => {
       if (now - lt > 50) {
         vx *= 0.8;
         vy *= 0.8;
+      }
+      // A hand resting still is asked again now and then: a target may be one it has to rest on
+      // (a card held over another goes under it), and no moves come to ask on.
+      if (follow && d.p && !d.out && now - lt > 120 && now - asked > 120) {
+        asked = now;
+        d.out = !!latest.current.outside?.hit(d.p);
       }
       const out = d.out;
       if (out !== wasOut) {
