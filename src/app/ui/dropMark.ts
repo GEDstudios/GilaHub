@@ -7,7 +7,8 @@ import { haptic } from './haptics';
  *   gap   among rows, they part: a gray gap opens right where it lands, at that level's indent
  *         (in a task's subtasks, or inside a task that has none showing). Where it came from stays
  *         a dashed slot, so "from" and "to" never look alike.
- * A task taking one under it gets both: it darkens, and the gap opens inside it.
+ * One or the other, never both: a task taking one under it shows only the gap, opened inside it
+ * right where the subtask will be (the task itself stays as it is, so the spot is what reads).
  */
 export interface GapAt {
   /** The list it opens in (a `ul.rows`, a task's `ul.rows--sub`), or a task's row (inside it, at its foot). */
@@ -41,8 +42,9 @@ export function dropMarks(): (t: Landing | null) => void {
   let gap: HTMLElement | null = null;
   let at: GapAt | null = null;
   return (t) => {
-    const into = t?.into ?? null;
     const next = t?.gap ?? null;
+    // With a gap to show, that's the whole message: what it's in doesn't darken as well.
+    const into = next ? null : (t?.into ?? null);
     const moved = !!next && (!at || at.host !== next.host || at.before !== next.before);
     if ((into && into !== lit) || moved) haptic('select');
     if (into !== lit) lit?.classList.remove('is-droptarget');
