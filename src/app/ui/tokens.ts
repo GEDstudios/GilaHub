@@ -15,7 +15,7 @@ export const HOLD = {
   /** The tab bar's scrub (hold the bar, slide to a tab). */
   bar: 240,
   /** A card in the hand, rested on another this long: it goes under it (cards have no sideways pull). */
-  nest: 700,
+  nest: 400,
 } as const;
 
 /** How far (px) a pointer may move. */

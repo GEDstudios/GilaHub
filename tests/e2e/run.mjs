@@ -1071,13 +1071,13 @@ try {
     await guy.waitForTimeout(600);
     const card = async (t) => guy.locator('li.row', { has: guy.locator('.row__title', { hasText: new RegExp(`^${t}$`) }) }).first().boundingBox();
     const [a, b] = [await card('three'), await card('two')];
-    await dragRow(guy, guyCtx, 'three', [[b.x - a.x, b.y - a.y, 300]]);
+    await dragRow(guy, guyCtx, 'three', [[b.x - a.x, b.y - a.y, 120]]);
     await is('two three one(four)', 'a card moved onto its neighbour');
     if (await guy.locator('.ongoing').count()) throw new Error('moving a card sideways swiped it into Ongoing');
     // Rested on another card for a moment, it goes under it (toasts from before are gone by now).
     await guy.locator('.toast').first().waitFor({ state: 'detached', timeout: 8000 }).catch(() => {});
     const [c, d] = [await card('three'), await card('two')];
-    await dragRow(guy, guyCtx, 'three', [[d.x - c.x, d.y - c.y, 1400]]);
+    await dragRow(guy, guyCtx, 'three', [[d.x - c.x, d.y - c.y, 900]]);
     await is('two(three) one(four)', 'a card rested on another');
     await guy.locator('[aria-label="List"]').first().click();
   });
