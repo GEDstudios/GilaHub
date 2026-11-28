@@ -5,10 +5,9 @@ import { navigate } from '../router';
 import { haptic } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
 import { useOverlays } from '../ui/overlays';
-import { Button, FoldButton, ListBullet, DropChip } from '../ui/primitives';
+import { Button, FoldButton, ListBullet, DropChip, PullHint } from '../ui/primitives';
 import { Sortable, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
-import { useOnce } from '../ui/useOnce';
 import type { FolderGroup } from '../views';
 import { ItemRow, SortableItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
@@ -120,14 +119,6 @@ export function FolderItems({
   // where the gap opens (outline.ts). The list's own drag does the reordering between tasks.
   // How the chip in the hand says it goes in (set as it aims, so the chip follows along).
   const [nesting, setNesting] = useState(false);
-  // Up and down is its place, right is its level: said once, the first time a task is in the hand.
-  const [lifting, setLifting] = useState(false);
-  const [nestHint, nestHinted] = useOnce('nest-pull', lifting && !cards && ids.length > 1);
-  useEffect(() => {
-    if (!nestHint) return;
-    toast('Pull it right to put it under the task above');
-    nestHinted();
-  }, [nestHint, nestHinted, toast]);
   const liftX = useRef<number | null>(null);
   const placed = useRef<Placement | null>(null);
   const dwell = useMemo(() => dweller(), []);
@@ -174,13 +165,11 @@ export function FolderItems({
       movedTo(hub, overlays, id, was.listId, to.id, `Moved to ${to.name}`, () => hub.move(id, was));
     },
     lift: (id: string) => {
-      setLifting(true);
       lifted.current = id;
       liftX.current = lastPt.current?.[0] ?? null;
       placed.current = null;
     },
     end: () => {
-      setLifting(false);
       lifted.current = null;
       liftX.current = null;
       placed.current = null;
@@ -338,6 +327,8 @@ export function FolderItems({
           layout={cards ? 'grid' : 'rows'}
           bounds="none"
           outside={into}
+          // Up and down is its place, right is its level: the one in the hand says so.
+          hint={!cards && ids.length > 1 ? <PullHint /> : undefined}
           label={(id) => hub.item(id)?.title ?? ''}
           renderOverlay={(id, { outside }) => {
             const item = hub.item(id);

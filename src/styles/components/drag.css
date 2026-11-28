@@ -213,6 +213,52 @@ li.row:has(> .dropgap) {
   animation: fade-in 160ms var(--ease) both;
 }
 
+/*
+ * What a pull does, riding above the one in the hand at its far end: an arrow that leans right,
+ * then what it becomes. It waits a beat (a quick reorder never sees it) and goes once the pull
+ * has taken hold.
+ */
+.lift__hint {
+  position: absolute;
+  right: 10px;
+  bottom: calc(100% + 8px);
+  animation: fade-in var(--dur-base) var(--ease) 320ms both;
+}
+
+.pullhint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px 0 10px;
+  border-radius: 999px;
+  background: var(--cta);
+  color: var(--cta-text);
+  font-size: var(--type-micro);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--lift-1);
+}
+
+.pullhint .icon {
+  --s: 14;
+  --light: transparent;
+}
+
+.pullhint__go {
+  animation: pull-nudge 1.4s var(--ease) 500ms infinite;
+}
+
+@keyframes pull-nudge {
+  30% {
+    transform: translateX(4px);
+  }
+
+  60% {
+    transform: none;
+  }
+}
+
 /* A token in the hand (the bar's tray) */
 .lift.lift--token {
   --lift-scale: 1.06;
@@ -225,6 +271,10 @@ li.row:has(> .dropgap) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pullhint__go {
+    animation: none;
+  }
+
   .lift {
     transform: rotate(var(--land));
     animation: none;

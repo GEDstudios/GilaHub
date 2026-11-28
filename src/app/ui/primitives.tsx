@@ -339,6 +339,17 @@ export function DropChip({ label, nesting }: { label: string; /** It goes under 
   );
 }
 
+/** Riding above a task in the hand: pulled right, it becomes a subtask of the one above (outline.ts). */
+export function PullHint() {
+  return (
+    <span className="pullhint">
+      <Icon name={G.continue} className="pullhint__go" />
+      <Icon name={G.subtask} />
+      Subtask
+    </span>
+  );
+}
+
 /**
  * The star: keep it on Today (a task in my Highlights, a folder's block). One look, one sound,
  * one undo wherever it is.

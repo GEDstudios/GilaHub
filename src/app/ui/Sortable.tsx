@@ -27,6 +27,7 @@
  *                                       hit(p) the list lets go (no "over"), aim(p, id) runs every
  *                                       frame (then aim(null, id) once), and letting go there calls
  *                                       drop(id, p) instead of onMove, with a short fade
+ *     hint={<PullHint />}               a small note above the one in the hand while it's in the list
  *     still                             items lift but never reorder (the bar's tray tokens)
  *     disabled>
  *     …children, whose items call useSortableItem(id)…
@@ -369,6 +370,8 @@ interface SortableProps {
   /** Screen-reader instructions, when the default doesn't say it all. */
   instructions?: string;
   outside?: Outside;
+  /** A small note riding above the one in the hand while it's in the list (what a pull does). */
+  hint?: ReactNode;
   still?: boolean;
   disabled?: boolean;
   children: ReactNode;
@@ -413,6 +416,7 @@ export function Sortable({
   grips,
   instructions,
   outside,
+  hint,
   still,
   disabled,
   children,
@@ -668,6 +672,7 @@ export function Sortable({
             </div>
           ) : null}
           {activeId && outNow && outside?.note ? <div className="lift__note">{outside.note}</div> : null}
+          {activeId && !outNow && hint ? <div className="lift__hint">{hint}</div> : null}
         </DragOverlay>,
         document.body,
       )}

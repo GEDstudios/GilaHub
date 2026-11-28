@@ -13,7 +13,7 @@ import { dropMarks, type Landing } from '../ui/dropMark';
 import { dweller, placer, unfoldTo } from '../outline';
 import { SettleContext, useSettle } from '../ui/useSettle';
 import { ItemRow, SortableItemRow } from './ItemRow';
-import { Disclosure, DropChip } from '../ui/primitives';
+import { Disclosure, DropChip, PullHint } from '../ui/primitives';
 import { G } from '../ui/glyphs';
 import { isTouch } from '../ui/pointer';
 
@@ -175,6 +175,7 @@ export function Children({
           onMove={onMove}
           onLift={coached}
           outside={liftOut}
+          hint={liftOut && open.length > 1 ? <PullHint /> : undefined}
           // With the path to drop on, the row may leave its list's edges.
           bounds={liftOut ? 'none' : undefined}
           label={(id) => hub.item(id)?.title ?? ''}
