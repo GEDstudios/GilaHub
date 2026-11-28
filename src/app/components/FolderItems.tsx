@@ -141,8 +141,7 @@ export function FolderItems({
     // Under a task: it darkens and a gap opens where it goes; into a folder: it darkens.
     aim: (p: Point | null) => {
       const pl = p ? placed.current : null;
-      // (A card it goes under only darkens: there's no row of subtasks in it to open a gap in.)
-      mark(pl ? { into: pl.into, gap: cards ? null : pl.gap } : { into: (p && dropListAt(p)?.el) || null });
+      mark(pl ? { into: pl.into, gap: pl.gap } : { into: (p && dropListAt(p)?.el) || null });
       dwell.at(pl?.unfold);
       if (p && !!pl !== nesting) setNesting(!!pl);
     },

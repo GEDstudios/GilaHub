@@ -97,6 +97,75 @@
 }
 
 /*
+ * Subtasks unfolded in a card: small rows across its foot, each on a gray tile (not cards in a
+ * card). The gray box that opens when a card is rested on this one (drag.css, "Landing") is one
+ * such row's size, right where the new subtask will be.
+ */
+.rows--cards .row > .rows--sub,
+.rows--cards .row > .dropgap {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.rows--cards .row > .rows--sub {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rows--cards .rows--sub .row,
+.rows--cards .rows--sub .row:hover,
+.main .rows--cards .rows--sub .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 10px;
+  background: var(--tile);
+  box-shadow: none;
+  transform: none;
+}
+
+.rows--cards .rows--sub .row:active {
+  background: var(--tile-2);
+  transform: none;
+}
+
+.rows--cards .rows--sub .row > .check {
+  margin: -6px -6px -6px -8px;
+}
+
+.rows--cards .rows--sub .row__body {
+  align-self: center;
+  min-width: 0;
+}
+
+.rows--cards .rows--sub .row__title {
+  -webkit-line-clamp: 2;
+  font-size: var(--type-label);
+  font-weight: 400;
+}
+
+.rows--cards .rows--sub .row__meta {
+  margin-top: 2px;
+}
+
+.rows--cards .rows--sub .row__trail {
+  margin-left: auto;
+}
+
+.rows--cards .row > .dropgap,
+.rows--cards .rows--sub > .dropgap {
+  height: 40px;
+}
+
+.rows--cards .dropgap::before {
+  inset: 0;
+  border-radius: 10px;
+}
+
+/*
  * Moving a card. Where it came from, which is where it lands as the others make room: one plain
  * gray slot the card's size (no white card under it, no dashes: the same gray that says "here"
  * everywhere else, drag.css "Landing").
