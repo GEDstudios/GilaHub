@@ -8,6 +8,7 @@ import { useOverlays } from '../ui/overlays';
 import { Button, FoldButton, ListBullet, DropChip } from '../ui/primitives';
 import { Sortable, type Point } from '../ui/Sortable';
 import { SettleContext, useSettle } from '../ui/useSettle';
+import { useOnce } from '../ui/useOnce';
 import type { FolderGroup } from '../views';
 import { ItemRow, SortableItemRow } from './ItemRow';
 import { QuickAddSheet } from './QuickAddSheet';
@@ -101,18 +102,32 @@ export function FolderItems({
     const track = (e: PointerEvent) => {
       lastPt.current = [e.clientX, e.clientY];
     };
+    // Where it presses too: a finger held still to lift a row never moves, and "pulled right" is
+    // counted from there.
+    window.addEventListener('pointerdown', track, { capture: true, passive: true });
     window.addEventListener('pointermove', track, { capture: true, passive: true });
-    return () => window.removeEventListener('pointermove', track, { capture: true });
+    return () => {
+      window.removeEventListener('pointerdown', track, { capture: true });
+      window.removeEventListener('pointermove', track, { capture: true });
+    };
   }, []);
 
   // Drop a task on a folder (a folder here, a step of the path, a folder in the bar): it moves there.
   const lifted = useRef<string | null>(null);
   const mark = useMemo(dropMarks, []);
-  // Or among another task's subtasks, or onto its middle (under it, at the end; a folded one
-  // unfolds after a moment so it can go among them), or pulled right: it becomes a subtask, right
+  // Or among another task's subtasks, or pulled right (under the task above where it would land;
+  // a folded one unfolds after a moment so it can go among them): it becomes a subtask, right
   // where the gap opens (outline.ts). The list's own drag does the reordering between tasks.
   // How the chip in the hand says it goes in (set as it aims, so the chip follows along).
   const [nesting, setNesting] = useState(false);
+  // Up and down is its place, right is its level: said once, the first time a task is in the hand.
+  const [lifting, setLifting] = useState(false);
+  const [nestHint, nestHinted] = useOnce('nest-pull', lifting && !cards && ids.length > 1);
+  useEffect(() => {
+    if (!nestHint) return;
+    toast('Pull it right to put it under the task above');
+    nestHinted();
+  }, [nestHint, nestHinted, toast]);
   const liftX = useRef<number | null>(null);
   const placed = useRef<Placement | null>(null);
   const dwell = useMemo(() => dweller(), []);
@@ -159,11 +174,13 @@ export function FolderItems({
       movedTo(hub, overlays, id, was.listId, to.id, `Moved to ${to.name}`, () => hub.move(id, was));
     },
     lift: (id: string) => {
+      setLifting(true);
       lifted.current = id;
       liftX.current = lastPt.current?.[0] ?? null;
       placed.current = null;
     },
     end: () => {
+      setLifting(false);
       lifted.current = null;
       liftX.current = null;
       placed.current = null;

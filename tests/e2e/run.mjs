@@ -120,6 +120,54 @@ async function swipeRow(p, ctx, row, dx) {
   await p.waitForTimeout(500);
   await cdp.detach();
 }
+/**
+ * A finger holding a row (by its title), then moving through `legs` ([dx, dy, pause ms] from where
+ * it is), then letting go.
+ */
+async function dragRow(p, ctx, title, legs) {
+  const at = await p.evaluate((t) => {
+    for (const li of document.querySelectorAll('li.row[data-id]')) {
+      const own = [...li.querySelectorAll('.row__title')].find((e) => e.closest('li.row') === li);
+      if (own && own.textContent === t) {
+        li.scrollIntoView({ block: 'center' });
+        const r = own.getBoundingClientRect();
+        return { x: r.x + 60, y: r.y + r.height / 2 };
+      }
+    }
+    return null;
+  }, title);
+  if (!at) throw new Error(`no row “${title}”`);
+  await p.waitForTimeout(250);
+  const cdp = await ctx.newCDPSession(p);
+  let { x, y } = at;
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  await p.waitForTimeout(450);
+  for (const [dx, dy, pause = 0] of legs) {
+    for (let i = 1; i <= 10; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + (dx * i) / 10, y: y + (dy * i) / 10, id: 1 }] });
+      await p.waitForTimeout(24);
+    }
+    x += dx;
+    y += dy;
+    if (pause) await p.waitForTimeout(pause);
+  }
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await p.waitForTimeout(900);
+  await cdp.detach();
+}
+/** The tasks on the page as an outline: "A B(C D) E" (subtasks unfolded in brackets, folded ones as a count). */
+function outline(p) {
+  return p.evaluate(() => {
+    const out = [];
+    for (const li of document.querySelectorAll('li.row[data-id]:not(.row--nested)')) {
+      const own = [...li.querySelectorAll('.row__title')].find((e) => e.closest('li.row') === li);
+      const kids = [...li.querySelectorAll(':scope > .rows--sub > li.row')].map((k) => k.querySelector('.row__title')?.textContent);
+      const count = li.querySelector('.meta--fold')?.textContent?.trim();
+      out.push(`${own?.textContent}${kids.length ? `(${kids.join(' ')})` : count ? `[${count}]` : ''}`);
+    }
+    return out.join(' ');
+  });
+}
 let failures = 0;
 const check = async (label, fn) => {
   try {
@@ -929,6 +977,38 @@ try {
   });
 
   // ---------- Recovery
+  await check('Dragging: up and down only places a task, a pause on a row included; pulled right it goes under the one above; pulled left it comes out', async () => {
+    await guy.goto(`${url}/lists`);
+    await guy.locator('.foldercard--new').first().click();
+    await guy.locator('.sheet .ccard__input').fill('Sorting');
+    await guy.getByRole('button', { name: /create folder/i }).click();
+    await guy.getByRole('heading', { name: 'Sorting', level: 1 }).waitFor({ timeout: 5000 });
+    await addVia(guy, ['one', 'two', 'three', 'four']);
+    const is = async (want, what) => {
+      const got = await outline(guy);
+      if (got !== want) throw new Error(`${what}: expected “${want}”, got “${got}”`);
+    };
+    await is('one two three four', 'to begin with');
+    const row = async (t) => (await guy.locator('li.row', { has: guy.locator('.row__title', { hasText: new RegExp(`^${t}$`) }) }).last().boundingBox()).height;
+    const h = await row('one');
+    // Down two rows, resting a second on each: it's only moved.
+    await dragRow(guy, guyCtx, 'one', [[0, h, 1000], [0, h, 1000]]);
+    await is('two three one four', 'down two rows with pauses');
+    // Pulled right where it is: under the task above it.
+    await dragRow(guy, guyCtx, 'four', [[70, 0, 400]]);
+    await is('two three one(four)', 'pulled right in place');
+    // Down a row, then right: under the one now above it.
+    await dragRow(guy, guyCtx, 'two', [[0, h, 300], [70, 0, 400]]);
+    await is('three(two) one(four)', 'down one, then pulled right');
+    // Pulled right and taken back: nothing.
+    await dragRow(guy, guyCtx, 'one', [[70, 0, 300], [-66, 0, 300]]);
+    await is('three(two) one(four)', 'pulled right and back');
+    // A subtask pulled left: its own task again, right after the one it was under.
+    await dragRow(guy, guyCtx, 'two', [[-70, 0, 400]]);
+    await is('three two one(four)', 'a subtask pulled left');
+    await shot(guy, '31-dragging');
+  });
+
   await check('Recovery: Guy makes a code; a brand-new phone comes back as Guy, private things and all', async () => {
     await guy.goto(`${url}/settings`);
     await guy.locator('.optrow', { hasText: 'Recovery code' }).click();

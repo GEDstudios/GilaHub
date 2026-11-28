@@ -28,7 +28,7 @@ export const SLOP = {
 
 /** Distances (px) that change what a drag does. */
 export const DIST = {
-  /** Pulled this far right while dragging: it goes under the task (or subtask) it's over, or above. */
+  /** Pulled this far right while dragging: it goes under the task above where it would land; this far left, a subtask comes out. */
   nest: 48,
 } as const;
 
